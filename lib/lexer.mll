@@ -104,12 +104,6 @@ let white = [' ' '\t']+
 let newline = '\r' | '\n' | "\r\n"
 let backslash_escapes = ['\\' '\'' '"' 'n' 't' 'b' 'r' ' ']
 
-let hashnum = '#' int
-let hashnumbrack = hashnum '['
-let sized_id = lowercase_alpha+ hashnum
-let hashquest = '#' '?'
-let unknown_sized_id = lowercase_alpha+ hashquest
-
 let plus_ops = '+' | '-'
 let mult_ops = '*' | '/'
 let cmp_ops = '<' | '>'
@@ -182,10 +176,8 @@ rule read =
   | '}'      { Rcurly }
   | '['      { Lbrack }
   | ']'      { Rbrack }
-  | "#["     { Hashtag_brack }
-  | hashnumbrack { Hashnum_brack (int_of_hashnum (Lexing.lexeme lexbuf)) }
-  | sized_id  { Sized_ident (Lexing.lexeme lexbuf) }
-  | unknown_sized_id { Unknown_sized_ident (Lexing.lexeme lexbuf) }
+  | "#?"     { Hash_quest }
+  | '#'      { Hash }
   | "->"     { Right_arrow }
   | "--"      { line_comment lexbuf }
   | eq_op    { Eq_op (Lexing.lexeme lexbuf) }

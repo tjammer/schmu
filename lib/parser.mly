@@ -39,8 +39,8 @@
 %token <string> String_lit
 %token True
 %token False
-%token Hashtag_brack
-%token <int> Hashnum_brack
+%token Hash
+%token Hash_quest
 %token Semicolon
 %token Right_arrow
 %token With
@@ -56,8 +56,6 @@
 %token <string> Builtin_id
 %token Val
 %token Rec
-%token <string> Sized_ident
-%token <string> Unknown_sized_ident
 
 /* ops  */
 
@@ -84,7 +82,7 @@
 %left Lcurly
 %left Lbrack
 %left Lpar
-%left Path Hashtag_brack
+%left Path Hash
 
 %start <Ast.prog> prog
 
@@ -373,7 +371,7 @@ special_builtins:
     {App ($loc, Var ($loc, "__array_get"),
           [{apass = Dnorm; aloc = $loc(e); aexpr = e};
            {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
-  | e = expr; Hashtag_brack; i = expr; Rbrack
+  | e = expr; Hash; Lbrack; i = expr; Rbrack
     {App ($loc, Var ($loc, "__fixed_array_get"),
           [{apass = Dnorm; aloc = $loc(e); aexpr = e};
            {apass = Dnorm; aloc = $loc(i); aexpr = i}])}
@@ -420,8 +418,8 @@ separated_trailing_list(sep, item, terminator):
   | lst = separated_nonempty_trailing_list(sep, item, terminator) { lst }
 
 fixed_array_lit:
-  | Hashtag_brack; items = separated_nonempty_trailing_list(Comma, expr, Rbrack) { Fixed_array items }
-  | num = Hashnum_brack; item = expr; Rbrack { Fixed_array_num (num, item) }
+  | Hash; Lbrack; items = separated_nonempty_trailing_list(Comma, expr, Rbrack) { Fixed_array items }
+  | Hash; num = Int; Lbrack; item = expr; Rbrack { Fixed_array_num (num, item) }
 
 call_arg:
   | aexpr = expr { {apass = Dnorm; aexpr; aloc = $loc} }
@@ -468,8 +466,8 @@ parens(x):
 type_spec:
   | id = Ident { Ty_id id }
   | id = poly_id { Ty_var id }
-  | id = Sized_ident { Ty_id id }
-  | id = Unknown_sized_ident { Ty_id id }
+  | id = Ident; Hash; i = Int { Ty_id (id ^ "#" ^ string_of_int i) }
+  | id = Ident; Hash_quest { Ty_id (id ^ "#?") }
   | path = type_path { Ty_use_id ($loc, path) }
   | head = type_spec; Lbrack; tail = separated_nonempty_list(Comma, type_spec); Rbrack
     { Ty_applied (head :: tail) }

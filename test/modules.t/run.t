@@ -1087,3 +1087,8 @@ Fix handling of parameterized abstract types
 
 Fix external declarations in inner modules
   $ schmu inner_module_externals.smu
+
+Make applied functors hidden behind signatures usable. Does this apply to local module too?
+  $ schmu -m hidden_functor_app.smu
+  $ schmu use_hidden_functor_app.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./use_hidden_functor_app

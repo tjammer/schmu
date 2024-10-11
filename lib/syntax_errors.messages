@@ -62,7 +62,15 @@ prog: External Ident Colon Lpar Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Rpar Right_arrow Ident With
+prog: External Ident Colon Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Ident Hash With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Lpar Rpar Right_arrow Quote Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -94,7 +102,7 @@ prog: External Ident Colon Lpar Ident Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Rpar Right_arrow Ident With
+prog: External Ident Colon Lpar Ident Rpar Right_arrow Quote Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -110,7 +118,7 @@ prog: External Ident Colon Lpar Ident Ampersand Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Ampersand Rpar Right_arrow Ident With
+prog: External Ident Colon Lpar Ident Ampersand Rpar Right_arrow Quote Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -142,7 +150,7 @@ prog: External Ident Colon Lpar Ident Comma Ident Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Rpar Right_arrow Ident With
+prog: External Ident Colon Lpar Ident Comma Ident Rpar Right_arrow Quote Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -466,11 +474,11 @@ prog: If With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Hashtag_brack With
+prog: Hash With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Hashnum_brack With
+prog: Hash Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -650,11 +658,15 @@ prog: False Mult_op False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Hashtag_brack With
+prog: False Hash With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Hashtag_brack False Wildcard
+prog: False Hash Lbrack With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Hash Lbrack False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -858,15 +870,23 @@ prog: Fun Lpar Rpar Colon False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Hashnum_brack False Wildcard
+prog: Lbrack False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Hashtag_brack False Wildcard
+prog: Lbrack False Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Hashtag_brack False Comma With
+prog: Hash Int With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Hash Int Lbrack With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Hash Int Lbrack False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1062,11 +1082,11 @@ prog: Functor Ident Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Functor Ident Lpar Ident Colon Ident Rpar With
+prog: Functor Ident Lpar Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Functor Ident Lpar Ident Colon Ident Rpar Lcurly With
+prog: Functor Ident Lpar Rpar Lcurly With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1098,7 +1118,7 @@ prog: Ident Semicolon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Functor Ident Lpar Ident Colon Ident Rpar Lcurly Ident Eof
+prog: Functor Ident Lpar Rpar Lcurly Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
