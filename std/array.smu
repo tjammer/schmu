@@ -98,10 +98,10 @@ fun map(arr, f) {
 fun pop_back(arr&) {
   use option
   if length(arr) == 0 {
-    #none
+    None
   }
   else {
-    #some(__unsafe_array_pop_back(&arr))
+    Some(__unsafe_array_pop_back(&arr))
   }
 }
 

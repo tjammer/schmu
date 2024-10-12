@@ -1,14 +1,14 @@
-type list0['a] = #nil | #cons('a, rc[list0])
+type list0['a] = Nil | Cons('a, rc[list0])
 
-let list = #cons(0, rc/create(!#cons(1, rc/create(!#cons(1, rc/create(!#cons(1, rc/create(!#cons(1, rc/create(!#nil))))))))))
+let list = Cons(0, rc/create(!Cons(1, rc/create(!Cons(1, rc/create(!Cons(1, rc/create(!Cons(1, rc/create(!Nil))))))))))
 
 let _ = copy(list)
 
-type list['a] = #nil | #cons('a, option[rc[list]])
+type list['a] = Nil | Cons('a, option[rc[list]])
 
-let _ = rc/create(!#cons(1, #none))
-let fst = rc/create(!#cons(1, #some(rc/create(!#nil))))
-let _ = #cons(0, #some(fst.copy()))
+let _ = rc/create(!Cons(1, None))
+let fst = rc/create(!Cons(1, Some(rc/create(!Nil))))
+let _ = Cons(0, Some(fst.copy()))
 
 -- recursive record
 type container['a] = { a : 'a }

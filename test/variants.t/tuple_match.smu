@@ -1,16 +1,16 @@
 fun doo(a, b) {
   match(a, b) {
-    (#some(a), #some(b)): a + b
-    (#none, #some(b)): b
-    (#some(a), #none): a
-    (_, #none): 0
+    (Some(a), Some(b)): a + b
+    (None, Some(b)): b
+    (Some(a), None): a
+    (_, None): 0
   }
   .fmt()
   .println()
 }
-let none_int : option[int] = #none
+let none_int : option[int] = None
 
-doo(#some(1), #some(2))
-doo(none_int, #some(2))
-doo(#some(1), #none)
-doo(none_int, #none)
+doo(Some(1), Some(2))
+doo(none_int, Some(2))
+doo(Some(1), None)
+doo(none_int, None)

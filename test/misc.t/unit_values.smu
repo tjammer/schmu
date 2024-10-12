@@ -1,12 +1,12 @@
 -- variants
 let a = ()
-let b = #some(a)
+let b = Some(a)
 
 fun a() {()}
-let b = #some(a())
+let b = Some(a())
 match b {
-  #some(a): println("some")
-  #none: println("none")
+  Some(a): println("some")
+  None: println("none")
 }
 -- records
 type thing = {u : unit}

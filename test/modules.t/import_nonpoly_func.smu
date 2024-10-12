@@ -3,8 +3,8 @@ use nonpoly_func
 
 fun doo(a) {
   match a {
-   #left: add_ints(0, 5)
-   #right: add_ints(0, -5)
+   Left: add_ints(0, 5)
+   Right: add_ints(0, -5)
   }
 }
-doo(#left).fmt().println()
+doo(Left).fmt().println()

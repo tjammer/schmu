@@ -42,9 +42,9 @@ let bufsize = 4096
 fun open(name) {
   let file = fopen(string/data(name), string/data("r"))
   if is_nullptr(file) {
-    #none
+    None
   } else {
-    #some({buf = #4096[0u8], head = 0, unseen = 0, file})
+    Some({buf = #4096[0u8], head = 0, unseen = 0, file})
   }
 }
 
@@ -54,13 +54,13 @@ fun close(ic) {
 
 fun with_open(name, f) {
   match open(name) {
-    #some(ic): {
+    Some(ic): {
       let ic& = !ic
       let ret = f(&ic)
       close(ic)
-      #some(ret)
+      Some(ret)
     }
-    #none: #none
+    None: None
   }
 }
 
@@ -81,7 +81,7 @@ fun readbuf(ic&, buf&) {
   fill(&buf, ic.buf, lower, upper)
   &ic.head = 0
   &ic.unseen = 0
-  #some(upper - lower)
+  Some(upper - lower)
 }
 
 fun rec readn_impl(ic&, buf&, n, readacc) {
@@ -89,16 +89,16 @@ fun rec readn_impl(ic&, buf&, n, readacc) {
     fill(&buf, ic.buf, ic.head, ic.head + n)
     &ic.head = ic.head + n
     &ic.unseen = ic.unseen - n
-    #some(readacc + n)
+    Some(readacc + n)
   } else if ic.unseen > 0 {
     match readbuf(&ic, &buf) {
-      #some(nread): {
+      Some(nread): {
         assert((n - nread) < 0)
         readn_impl(&ic, &buf, n - nread, nread + readacc)
       }
-      #none: {
+      None: {
         assert(false)
-        #none
+        None
       }
     }
   } else {
@@ -106,7 +106,7 @@ fun rec readn_impl(ic&, buf&, n, readacc) {
     &ic.head = 0
     &ic.unseen = copy(nread)
     if nread == 0 {
-      if readacc == 0 { #none } else { #some(readacc) }
+      if readacc == 0 { None } else { Some(readacc) }
     } else {
       readn_impl(&ic, &buf, n, readacc)
     }}
@@ -118,7 +118,7 @@ fun rec readall_impl(ic&, buf&, acc) {
   -- assumes ic.unseen = 0
   let nread = fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file)
   if nread == 0  {
-    if acc == 0 { #none } else { #some(acc) }
+    if acc == 0 { None } else { Some(acc) }
   } else {
     fill(&buf, ic.buf, 0, nread)
     readall_impl(&ic, &buf, nread + acc)
@@ -127,11 +127,11 @@ fun rec readall_impl(ic&, buf&, acc) {
 
 fun readrem(ic&, buf&) {
   let ret = match readbuf(&ic, &buf) {
-    #some(nread): {
+    Some(nread): {
       fill(&buf, ic.buf, ic.head, ic.head + ic.unseen)
       readall_impl(&ic, &buf, nread)
     }
-    #none: #none
+    None: None
   }
   -- make other (read) calls fail after this
   &ic.unseen = 0
@@ -145,7 +145,7 @@ fun readline(ic&, buf&) {
       if prelude/char_equal('\n', ic.buf#[ic.head]) {
         &ic.unseen = ic.unseen - 1
         &ic.head = ic.head + 1
-        #some(acc)
+        Some(acc)
       } else {
         array/push(&buf, !copy(ic.buf#[ic.head]))
         &ic.unseen = ic.unseen - 1
@@ -159,9 +159,9 @@ fun readline(ic&, buf&) {
       &ic.unseen = copy(nread)
       if nread == 0 {
         if acc == 0 {
-          #none
+          None
         } else {
-          #some(acc)
+          Some(acc)
         }
       } else { find_newline(acc) }
     }}
@@ -171,8 +171,8 @@ fun readline(ic&, buf&) {
 fun readall(ic&) {
   let buf& = array/create(bufsize)
   match readrem(&ic, &buf) {
-    #some(_): string/of_array(!buf)
-    #none: ""
+    Some(_): string/of_array(!buf)
+    None: ""
   }
 }
 
@@ -180,14 +180,14 @@ fun lines(ic&, f) {
   let buf& = array/create(bufsize)
   fun rec aux() {
     match readline(&ic, &buf) {
-      #some(_): {
+      Some(_): {
         let str = string/of_array(!buf)
         f(str)
         &buf = string/to_array(!str)
         array/clear(&buf)
         aux()
       }
-      #none: ()
+      None: ()
     }}
   aux()
 }

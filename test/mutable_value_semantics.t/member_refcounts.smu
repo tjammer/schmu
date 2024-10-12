@@ -9,6 +9,6 @@ let r = [copy(a)]
 &a.[0] = 30
 println(fmt(r.[0].[0]))
 
-let r = #some(copy(a))
+let r = Some(copy(a))
 &a.[0] = 40
-match r {#some(a): println(fmt(a.[0])) | #none: println("none")}
+match r {Some(a): println(fmt(a.[0])) | None: println("none")}

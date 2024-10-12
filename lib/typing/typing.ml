@@ -427,7 +427,7 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
     match Hashtbl.find_opt indices !next with
     | Some (name, pl) when has_payload || pl ->
         let msg =
-          Printf.sprintf "Tag %i already used for constructor #%s" !next name
+          Printf.sprintf "Tag %i already used for constructor %s" !next name
         in
         raise (Error (loc, msg))
     | Some _ | None ->
@@ -449,7 +449,8 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
     List.map
       (fun { Ast.name = loc, cname; typ_annot; index } ->
         if Hashtbl.mem names cname then
-          raise (Error (loc, "Two constructors are named " ^ cname))
+          let name = String.capitalize_ascii cname in
+          raise (Error (loc, "Two constructors are named " ^ name))
         else Hashtbl.add names cname ();
         match typ_annot with
         | None ->

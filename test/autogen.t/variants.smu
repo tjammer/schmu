@@ -1,6 +1,6 @@
-let a = #some(("thing", 0))
+let a = Some(("thing", 0))
 
 match copy(a) {
-  #some((t, _)): println(t)
-  #none: ()
+  Some((t, _)): println(t)
+  None: ()
 }

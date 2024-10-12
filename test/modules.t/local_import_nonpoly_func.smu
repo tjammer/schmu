@@ -3,16 +3,16 @@ import nonpoly_func
 fun doo(a) {
   -- TODO use modules for patterns
   nonpoly_func/(match a {
-    #left: add_ints(0, 5)
-    #right: add_ints(0, -5)
+    Left: add_ints(0, 5)
+    Right: add_ints(0, -5)
   })
 }
 fun do2(a) {
   use nonpoly_func
   match a {
-    #left: add_ints(0, 5)
-    #right: add_ints(0, -5)
+    Left: add_ints(0, 5)
+    Right: add_ints(0, -5)
   }
 }
-doo(nonpoly_func/#left).fmt().println()
-do2(nonpoly_func/#left).fmt().println()
+doo(nonpoly_func/Left).fmt().println()
+do2(nonpoly_func/Left).fmt().println()

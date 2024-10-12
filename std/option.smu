@@ -1,25 +1,25 @@
-type t['a] = #none | #some('a)
+type t['a] = None | Some('a)
 
 fun map(opt, f) {
   match opt {
-    #some(thing): #some(f(thing))
-    #none: #none
+    Some(thing): Some(f(thing))
+    None: None
   }
 }
 
 fun iter(opt, f) {
   match opt {
-    #some(thing): {
+    Some(thing): {
       f(thing)
       ()
     }
-    #none: ()
+    None: ()
   }
 }
 
 fun bind(opt, f) {
   match opt {
-    #some(thing): f(thing)
-    #none: #none
+    Some(thing): f(thing)
+    None: None
   }
 }

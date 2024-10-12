@@ -3,14 +3,14 @@ type wrap['a] = { a : 'a }
 fun remove(optarr&, index) {
   let opt& = &optarr.[index.a]
   match opt {
-    #some(thing): {
+    Some(thing): {
       let value = !thing.a
-      &opt = #none
-      #some(value)
+      &opt = None
+      Some(value)
     }
-    #none: #none
+    None: None
   }
 }
-let optarr& = [#some({a = "thing"})]
+let optarr& = [Some({a = "thing"})]
 
 remove(&optarr, {a = 0}).ignore()

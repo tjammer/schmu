@@ -2,7 +2,7 @@ import poly_func
 
 use poly_func
 
-classify(#some(3)).fmt().println()
-classify(#some(3.0)).fmt().println()
-let none : option[float] = #none
+classify(Some(3)).fmt().println()
+classify(Some(3.0)).fmt().println()
+let none : option[float] = None
 classify(none).fmt().println()

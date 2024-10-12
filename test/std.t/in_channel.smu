@@ -1,5 +1,5 @@
 match in_channel/open("in_channel.smu") {
-  #some(ic):{
+  Some(ic):{
     let ic& = !ic
     let buf& = array/create(4096)
     in_channel/readn(&ic, &buf, 50).ignore()
@@ -15,8 +15,8 @@ match in_channel/open("in_channel.smu") {
     &buf = string/to_array(!str)
     array/clear(&buf)
     match in_channel/readline(&ic, &buf) {
-      #some(n): println(fmt("read ", n, " bytes"))
-      #none: println("read nothing")
+      Some(n): println(fmt("read ", n, " bytes"))
+      None: println("read nothing")
     }
     &str = string/of_array(!buf)
     println(str)
@@ -24,8 +24,8 @@ match in_channel/open("in_channel.smu") {
     &buf = string/to_array(!str)
     array/clear(&buf)
     match in_channel/readline(&ic, &buf) {
-      #some(n): println(fmt("read ", n, " bytes"))
-      #none: println("read nothing")
+      Some(n): println(fmt("read ", n, " bytes"))
+      None: println("read nothing")
     }
     &str = string/of_array(!buf)
     println(str)
@@ -33,31 +33,31 @@ match in_channel/open("in_channel.smu") {
     &buf = string/to_array(!str)
     array/clear(&buf)
     match in_channel/readrem(&ic, &buf) {
-      #some(n): println(fmt("read ", n, " bytes"))
-      #none: println("read nothing")
+      Some(n): println(fmt("read ", n, " bytes"))
+      None: println("read nothing")
     }
     &str = string/of_array(!buf)
     println(str)
 
     in_channel/close(ic)
   }
-  #none: ()
+  None: ()
 }
 
 match in_channel/open("in_channel.smu") {
-  #some(ic): {
+  Some(ic): {
     let ic& = !ic
     println(in_channel/readall(&ic))
     in_channel/close(ic)
   }
-  #none: ()
+  None: ()
 }
 
 match in_channel/open("in_channel.smu") {
-  #some(ic): {
+  Some(ic): {
     let ic& = !ic
     in_channel/lines(&ic, fun line {println(line)})
     in_channel/close(ic)
   }
-  #none: ()
+  None: ()
 }

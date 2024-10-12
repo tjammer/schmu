@@ -1,11 +1,11 @@
 fun alt(a, b) {
   match a() {
-    #none:
+    None:
       match b() {
-        #none: #some([0])
+        None: Some([0])
         some: some
       }
     some: some
   }
 }
-alt((fun () {#none}), fun () {#none}).ignore()
+alt((fun () {None}), fun () {None}).ignore()

@@ -1,15 +1,15 @@
 type lexbuf = {buf : string, curr : int}
 type view = {pbuf : string, start : int, len : int}
 type ok = {rem : lexbuf, mtch : view}
-type parse_result = #ok(ok) | #err(lexbuf)
+type parse_result = Ok(ok) | Err(lexbuf)
 
 fun char(c) {
   fun buf {
     if char_equal(string/get(buf.buf, buf.curr), c) {
-      #ok({mtch = {pbuf = copy(buf.buf), start = buf.curr, len = 1},
+      Ok({mtch = {pbuf = copy(buf.buf), start = buf.curr, len = 1},
           rem = {copy(buf) with curr = buf.curr + 1}})
     } else {
-      #err(copy(buf))
+      Err(copy(buf))
     }
   }
 }
@@ -30,10 +30,10 @@ fun view_of_lexbuf(lb) {
 
 fun print_result(res) {
   match res {
-    #ok({rem, mtch}):
+    Ok({rem, mtch}):
       fmt("(\"", string_of_view(view_of_lexbuf(rem)), "\", \"",
         string_of_view(mtch), "\")")
-    #err(lexbuf):
+    Err(lexbuf):
       fmt("\"", string_of_view(view_of_lexbuf(lexbuf)), "\", \"")
   }.println()
 }
@@ -41,8 +41,8 @@ fun print_result(res) {
 fun alt(a, b) {
   fun (buf) [a, b] { -- [buf] is polymorphic
     match a(buf) {
-      #ok(r): #ok(r)
-      #err(_): b(buf)
+      Ok(r): Ok(r)
+      Err(_): b(buf)
   }}
 }
 

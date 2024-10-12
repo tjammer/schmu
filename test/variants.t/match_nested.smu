@@ -1,12 +1,12 @@
-type test = #float(float) | #int(int) | #none
+type test = Float(float) | Int(int) | None
 
 fun doo(m) { match m {
-  #some(#float(f)): int_of_float(f)
-  #some(#int(i)): i
-  #some(#none): 1
-  #none: 0
+  Some(Float(f)): int_of_float(f)
+  Some(Int(i)): i
+  Some(None): 1
+  None: 0
 }}
-doo(#some(#float(3.0))).fmt().println()
-doo(#some(#int(2))).fmt().println()
-doo(#some(#none)).fmt().println()
-doo(#none).fmt().println()
+doo(Some(Float(3.0))).fmt().println()
+doo(Some(Int(2))).fmt().println()
+doo(Some(None)).fmt().println()
+doo(None).fmt().println()

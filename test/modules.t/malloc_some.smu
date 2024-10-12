@@ -1,4 +1,4 @@
-type either = #left(4) | #right
+type either = Left(4) | Right
 
 fun add_ints(a, b) {a + b}
 

@@ -348,20 +348,20 @@ type t['a] = inner/t['a]
 let test_alias_ctors () =
   test "inner/t[int]"
     {|module inner {
-  type t['a] = #noo | #yes('a)}
+  type t['a] = Noo | Yes('a)}
 type t['a] = inner/t['a]
-#yes(10)|}
+Yes(10)|}
 
 let test_alias_ctors_dont_overwrite () =
   test "(option[item['a]]) -> option['a]"
-    {|type option['a] = #some('a) | #none
+    {|type option['a] = Some('a) | None
 type item['a] = {value : 'a}
 type slot['a] = option[item['a]]
 
 fun get_item(slot) {
     match slot {
-      #some(item): #some(copy(item.value))
-      #none: #none}}
+      Some(item): Some(copy(item.value))
+      None: None}}
 get_item|}
 
 let test_array_lit () = test "array[int]" "[0, 1]"
@@ -436,111 +436,109 @@ let test_mutable_track_ptr_mut () =
 
 let test_variants_option_none () =
   test_exn "Expression contains weak type variables: option['a]"
-    "type option['a] = #none | #some('a); #none"
+    "type option['a] = None | Some('a); None"
 
 let test_variants_option_some () =
-  test "option[int]" "type option['a] = #none | #some('a); #some(1)"
+  test "option[int]" "type option['a] = None | Some('a); Some(1)"
 
 let test_variants_option_some_some () =
   test "option[option[float]]"
-    "type option['a] = #none | #some('a); let a = #some(1.0); #some(copy(a))"
+    "type option['a] = None | Some('a); let a = Some(1.0); Some(copy(a))"
 
 let test_variants_option_annot () =
   test "option[option[float]]"
-    "type option['a] = #none | #some('a); let a : option[float] = #none; \
-     #some(a)"
+    "type option['a] = None | Some('a); let a : option[float] = None; Some(a)"
 
 let test_variants_option_none_arg () =
   test_exn
-    "The constructor none expects 0 arguments, but an argument is provided"
-    "type option['a] = #none | #some('a); #none(1)"
+    "The constructor None expects 0 arguments, but an argument is provided"
+    "type option['a] = None | Some('a); None(1)"
 
 let test_variants_option_some_arg () =
-  test_exn "The constructor some expects arguments, but none are provided"
-    "type option['a] = #none | #some('a); #some"
+  test_exn "The constructor Some expects arguments, but none are provided"
+    "type option['a] = None | Some('a); Some"
 
 let test_variants_correct_inference () =
   test "unit"
     {|type view = {start : int, len : int}
 type success['a] = {rem : view, mtch : int}
-type parse_result['a] = #ok(success['a]) | #err(view)
+type parse_result['a] = Ok(success['a]) | Err(view)
 fun map(p, f, buf, view){
   match p(buf, view){
-    #ok(ok): #ok({ok with mtch = f(ok.mtch)})
-    #err(view): #err(view)
+    Ok(ok): Ok({ok with mtch = f(ok.mtch)})
+    Err(view): Err(view)
   }
 }|}
 
 let test_variants_nameclash () =
-  test_exn "Two constructors are named none" "type t = #none | #some | #none"
+  test_exn "Two constructors are named None" "type t = None | Some | None"
 
-let test_lor_clike_variant () = test "int" "type clike = #a | #b; #b.lor(#a)"
+let test_lor_clike_variant () = test "int" "type clike = A | B; B.lor(A)"
 
 let test_lor_other_variant () =
   test_exn "Expecting int, not a variant type"
-    "type clike = #a(int) | #b; #b.lor(#a)"
+    "type clike = A(int) | B; B.lor(A)"
 
 let test_match_all () =
   test "int"
-    "type option['a] = #none | #some('a); match #some(1) { #some(a): a | \
-     #none: -1}"
+    "type option['a] = None | Some('a); match Some(1) { Some(a): a | None: -1}"
 
 let test_match_redundant () =
   test_exn "Pattern match case is redundant"
-    "type option['a] = #none | #some('a); match #some(1){ a: a | #none: -1}"
+    "type option['a] = None | Some('a); match Some(1){ a: a | None: -1}"
 
 let test_match_missing () =
-  test_exn "Pattern match is not exhaustive. Missing cases: #some"
-    "type option['a] = #none | #some('a); match #some(1){ #none: -1}"
+  test_exn "Pattern match is not exhaustive. Missing cases: Some"
+    "type option['a] = None | Some('a); match Some(1){ None: -1}"
 
 let test_match_missing_nested () =
   test_exn
-    "Pattern match is not exhaustive. Missing cases: #some(#int) | #some(#non)"
-    {|type option['a] = #none | #some('a)
-type test = #float(float) | #int(int) | #non
-match #none {
-  #some(#float(f)): f.int_of_float()
-  -- #some(#int(i))
-  -- #some #non
-  #none: 0
+    "Pattern match is not exhaustive. Missing cases: Some(Int) | Some(Non)"
+    {|type option['a] = None | Some('a)
+type test = Float(float) | Int(int) | Non
+match None {
+  Some(Float(f)): f.int_of_float()
+  -- Some(Int(i))
+  -- Some Non
+  None: 0
 }|}
 
 let test_match_all_after_ctor () =
   test "int"
-    {|type option['a] = #none | #some('a)
-match #some(1) {#none: -1 | a: 0}|}
+    {|type option['a] = None | Some('a)
+match Some(1) {None: -1 | a: 0}|}
 
 let test_match_all_before_ctor () =
   test_exn "Pattern match case is redundant"
-    {|type option['a] = #none | #some('a)
-match #some(1) {a: 0 | #none: -1}|}
+    {|type option['a] = None | Some('a)
+match Some(1) {a: 0 | None: -1}|}
 
 let test_match_redundant_all_cases () =
   test_exn "Pattern match case is redundant"
-    {|type option['a] = #none | #some('a)
-type test = #float(float) | #int(int) | #non
-match #none {
-  #some(#float(f)): f.int_of_float()
-  #some(#int(i)): i
-  #some(#non): 1
-  #none: 0
+    {|type option['a] = None | Some('a)
+type test = Float(float) | Int(int) | Non
+match None {
+  Some(Float(f)): f.int_of_float()
+  Some(Int(i)): i
+  Some(Non): 1
+  None: 0
   a: -1
 }|}
 
 let test_match_wildcard () =
   test_exn "Pattern match case is redundant"
-    {|type option['a] = #none | #some('a)
-match #some(1) {_: 0 | #none: -1}|}
+    {|type option['a] = None | Some('a)
+match Some(1) {_: 0 | None: -1}|}
 
 let test_match_wildcard_nested () =
   test_exn "Pattern match case is redundant"
-    {|type option['a] = #none | #some('a)
-type test = #float(float) | #int(int) | #non
-match #none {
-  #some(#float(f)): f.int_of_float()
-  #some(_): -2
-  #some(#non): 1
-  #none: 0
+    {|type option['a] = None | Some('a)
+type test = Float(float) | Int(int) | Non
+match None {
+  Some(Float(f)): f.int_of_float()
+  Some(_): -2
+  Some(Non): 1
+  None: 0
 }|}
 
 let test_match_column_arity () =
@@ -548,79 +546,79 @@ let test_match_column_arity () =
     "Tuple pattern has unexpected type:\n\
      expecting [(int, int)]\n\
      but found [(int, int, 'a)]"
-    {|type option['a] = #none | #some('a)
+    {|type option['a] = None | Some('a)
 match (1, 2) {
   (a, b, c): a
 }|}
 
 let test_match_record () =
   test "int"
-    {|type option['a] = #none | #some('a)
+    {|type option['a] = None | Some('a)
 type foo = {a : int, b : float}
-match #some({a = 12, b = 53.0}) {
-  #some({a, b}): a
-  #none: 0
+match Some({a = 12, b = 53.0}) {
+  Some({a, b}): a
+  None: 0
 }|}
 
 let test_match_record_field_missing () =
   test_exn "There are missing fields in record pattern, for instance b"
-    {|type option['a] = #none | #some('a)
+    {|type option['a] = None | Some('a)
 type foo = {a : int, b : float}
-match #some({a = 12, b = 53.0}) {
-  #some({a}): a
-  #none: 0
+match Some({a = 12, b = 53.0}) {
+  Some({a}): a
+  None: 0
 }|}
 
 let test_match_record_field_twice () =
   test_exn "Field a appears multiple times in record pattern"
-    {|type option['a] = #none | #some('a)
+    {|type option['a] = None | Some('a)
 type foo = {a : int, b : float}
-match #some({a = 12, b = 53.0}) {
-  #some({a, a}): a
-  #none: 0
+match Some({a = 12, b = 53.0}) {
+  Some({a, a}): a
+  None: 0
 }|}
 
 let test_match_record_field_wrong () =
   test_exn "Unbound field c on record foo"
-    {|type option['a] = #none | #some('a)
+    {|type option['a] = None | Some('a)
 type foo = {a : int, b : float}
-match #some({a = 12, b = 53.0}) {
-  #some({a, c}): a
-  #none: 0
+match Some({a = 12, b = 53.0}) {
+  Some({a, c}): a
+  None: 0
 }|}
 
 let test_match_record_case_missing () =
-  test_exn "Pattern match is not exhaustive. Missing cases: #some(#none)"
+  test_exn "Pattern match is not exhaustive. Missing cases: Some(None)"
     {|
-type option['a] = #none | #some('a)
+type option['a] = None | Some('a)
 type foo['a] = {a : 'a, b : float}
-match #some({a = #some(2), b = 53.0}) {
-  #some({a = #some(a), b}): a
-  #none: 0}|}
+match Some({a = Some(2), b = 53.0}) {
+  Some({a = Some(a), b}): a
+  None: 0}|}
 
 let test_match_int () =
   test "int"
-    {|type option['a] = #none | #some('a)
-match #some(10) {#some(1): 1 | #some(10): 10 | #some(_): 0 | #none: -1}
+    {|type option['a] = None | Some('a)
+match Some(10) {Some(1): 1 | Some(10): 10 | Some(_): 0 | None: -1}
 |}
 
 let test_match_int_wildcard_missing () =
   test_exn "Pattern match is not exhaustive. Missing cases: "
-    {|type option['a] = #none | #some('a)
-match #some(10) {#some(1): 1 | #some(10): 10 | #none: -1}|}
+    {|type option['a] = None | Some('a)
+match Some(10) {Some(1): 1 | Some(10): 10 | None: -1}|}
 
 let test_match_int_twice () =
   test_exn "Pattern match case is redundant"
     {|
-type option['a] = #none | #some('a)
-match #some(10) {#some(1): 1 | #some(10): 10 | #some(10): 10 | #some(_): 0 | #none: -1}
+type option['a] = None | Some('a)
+match Some(10) {Some(1): 1 | Some(10): 10 | Some(10): 10 | Some(_): 0 | None: -1}
 |}
 
 let test_match_int_after_catchall () =
   test_exn "Pattern match case is redundant"
     {|
-type option['a] = #none | #some('a)
-match #some(10) {#some(1): 1 | #some(_): 10 | #some(10): 10 | #none: -1}
+type option['a] = None | Some('a)
+match Some(10) {Some(1): 1 | Some(_): 10 | Some(10): 10 | None: -1}
 |}
 
 let test_match_or () = test "int" "match (1, 2) {(a, 1) | (a, 2): a | _: -1}"
@@ -638,7 +636,7 @@ let test_multi_record2 () =
 
 let test_multi_variant2 () =
   test_exn "Expression contains weak type variables: foo[int, 'a]"
-    "type foo['a, 'b] = #some('a) | #other('b); #some(1)"
+    "type foo['a, 'b] = Some('a) | Other('b); Some(1)"
 
 let test_tuple () = test "(int, float)" "( 1, 2.0 )"
 let test_pattern_decl_var () = test "int" "let a = 123; a"
@@ -893,14 +891,14 @@ let test_excl_set_moved () =
 
 let test_excl_binds () =
   test "unit"
-    {|type ease_kind = #linear | #circ_in
+    {|type ease_kind = Linear | Circ_in
 
 fun ease_circ_in(_) {0.0}
 fun ease_linear(_) {0.0}
 
 fun ease(anim){ match anim {
-  #linear: ease_linear(anim)
-  #circ_in: ease_circ_in(anim)}}|}
+  Linear: ease_linear(anim)
+  Circ_in: ease_circ_in(anim)}}|}
 
 let test_excl_shadowing () =
   test_exn "Borrowed parameter a is moved" "fun thing(a){ let a = a;   a}"
@@ -1216,7 +1214,7 @@ module type sig {
 functor make : sig (m : key) {
   type key = m/t
   type item['a] = {key : m/t, value : 'a}
-  type slot['a] = #empty | #tombstone | #item(item['a])
+  type slot['a] = Empty | Tombstone | Item(item['a])
   type t['a] = {data& : array[slot['a]], nitems& : int}
 
   fun create(size : int) {
@@ -1303,36 +1301,36 @@ let test_syntax_double_semicolon () = test "int" "let a = 1;\n ; a"
 
 let test_syntax_multiline_variant () = test "unit" {|
 type t =
-  | #a
-  | #b
+  | A
+  | B
 |}
 
 let test_syntax_multiline_variant_ctor_after () =
   test "t" {|
 type t =
-  | #a
-  | #b
+  | A
+  | B
 
-#a
+A
 |}
 
 let test_syntax_noparens_tuple () = test "(float, int)" "1.0, 1"
 
 let test_rec_type_pos () =
-  test "unit" "type list['a] = #nil | #cons('a, rc[list])"
+  test "unit" "type list['a] = Nil | Cons('a, rc[list])"
 
 let test_rec_type_pos_array () =
-  test "unit" "type list['a] = #nil | #cons('a, array[list])"
+  test "unit" "type list['a] = Nil | Cons('a, array[list])"
 
 let test_rec_type_noptr () =
-  test_exn "Infinite type" "type list['a] = #cons('a, list)"
+  test_exn "Infinite type" "type list['a] = Cons('a, list)"
 
 let test_rec_type_noptr_array () =
-  test_exn "Infinite type" "type list['a] = #cons('a, array#1[list])"
+  test_exn "Infinite type" "type list['a] = Cons('a, array#1[list])"
 
 let test_rec_type_nobase () =
   test_exn "Recursive type has no base case"
-    "type list['a] = #cons('a, rc[list])"
+    "type list['a] = Cons('a, rc[list])"
 
 let test_rec_type_record_param () =
   test "unit"
@@ -1357,18 +1355,18 @@ let test_rec_type_record_some_nobase () =
 
 let test_rec_type_record_variant_base () =
   test "unit"
-    {|type option['a] = #none | #some('a)
+    {|type option['a] = None | Some('a)
 type t = { a : rc[option[t]] }|}
 
 let test_rec_type_record_wrap () =
   test "unit"
-    {|type option['a] = #none | #some('a)
+    {|type option['a] = None | Some('a)
 type wrap['a] = { a : option['a] }
 type t = { a : rc[wrap[t]] }|}
 
 let test_rec_type_record_wrap_twice () =
   test "unit"
-    {|type option['a] = #none | #some('a)
+    {|type option['a] = None | Some('a)
 type wrap['a] = { a : option['a] }
 type t = { a : rc[wrap[wrap[t]]] }|}
 
@@ -1729,21 +1727,21 @@ let c = {
           tase_exn "move binds individual"
             (ln "thing.value was moved in line %i, cannot use" 6)
             {|type data = {key : array[u8], value : array[u8]}
-type data_container = #empty | #item(data)
+type data_container = Empty | Item(data)
 fun hmm(thing&) { match thing {
-  #item({key, value}): {
+  Item({key, value}): {
     ignore((key, 0))
     ignore((value, 0))
     ignore((value, 0))}
-  #empty: ()}}|};
+  Empty: ()}}|};
           tase_exn "move binds param" "Borrowed parameter thing is moved"
             {|type data = {key : array[u8], value : array[u8]}
-type data_container = #empty | #item(data)
+type data_container = Empty | Item(data)
 fun hmm(thing&) { match thing {
-  #item({key, value}): {
+  Item({key, value}): {
     ignore((key, 0))
     ignore((value, 0))}
-  #empty: ()}}|};
+  Empty: ()}}|};
           tase_exn "let pattern name"
             (ln "key was moved in line %i, cannot use" 4)
             {|type data = {key : array[u8], value : array[u8]}

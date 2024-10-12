@@ -56,6 +56,8 @@ module type S = sig
     Env.t -> Ast.decl list -> Env.t * (string * typed_expr) list
 end
 
+let ctor_name name = String.capitalize_ascii name
+
 let array_assoc_opt name arr =
   let rec inner i =
     if i = Array.length arr then None
@@ -518,7 +520,7 @@ module Exhaustiveness = struct
                    temporary ones. So we can continue with exprstl *)
                 match is_exhaustive env false patterns with
                 | Ok () -> Ok ()
-                | Error _ -> Error (kind, List.map (fun s -> "#" ^ s) ctors)))
+                | Error _ -> Error (kind, ctors)))
         | Expand_record fields -> expand_record env fields patterns
         | Infi -> (
             match default patterns with
@@ -553,9 +555,15 @@ module Exhaustiveness = struct
       let strs =
         match kind with
         | New_column ->
-            List.map (fun str -> Printf.sprintf "%s, %s" ctor str) strs
+            List.map
+              (fun str ->
+                Printf.sprintf "%s, %s" (ctor_name ctor) (ctor_name str))
+              strs
         | Specialization ->
-            List.map (fun str -> Printf.sprintf "%s(%s)" ("#" ^ ctor) str) strs
+            List.map
+              (fun str ->
+                Printf.sprintf "%s(%s)" (ctor_name ctor) (ctor_name str))
+              strs
       in
 
       Error (kind, strs)
@@ -643,13 +651,14 @@ module Make (C : Core) (R : Recs) = struct
           Printf.sprintf
             "The constructor %s expects 0 arguments, but an argument is \
              provided"
-            name
+            (ctor_name name)
         in
         raise (Error (loc, msg))
     | Some _, None ->
         let msg =
           Printf.sprintf
-            "The constructor %s expects arguments, but none are provided" name
+            "The constructor %s expects arguments, but none are provided"
+            (ctor_name name)
         in
         raise (Error (loc, msg))
     | _ -> failwith "Internal Error: Not a mismatch"
@@ -949,7 +958,7 @@ module Make (C : Core) (R : Recs) = struct
      | Error (_, cases) ->
          let msg =
            Printf.sprintf "Pattern match is not exhaustive. Missing cases: %s"
-             (String.concat " | " cases)
+             (String.concat " | " (List.map ctor_name cases))
          in
          raise (Error (loc, msg)));
 

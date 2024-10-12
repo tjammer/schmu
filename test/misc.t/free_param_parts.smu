@@ -9,8 +9,8 @@ type named = { thing : string, idx : int }
 
 fun rec consume(storage, opt) {
   match storage.[opt] {
-    #none: println("none")
-    #some(thing, idx): {
+    None: println("none")
+    Some(thing, idx): {
       println(thing)
       -- passing idx in a tail call caused the string 'thing' to be freed. The
       -- solution is to explicitly mark it as (child of a) parameter, and not
@@ -20,28 +20,28 @@ fun rec consume(storage, opt) {
   }
 }
 
-consume([#some("thing", 1), #none], 0)
+consume([Some("thing", 1), None], 0)
 
 -- simpler examples without the array/get
 fun rec simpler(arg, _) {
   match arg {
-    #some(thing, idx): {
+    Some(thing, idx): {
       ignore(thing)
-      simpler(#none, idx)}
-    #none: ()
+      simpler(None, idx)}
+    None: ()
   }
 }
 
-simpler(#some("thing", 0), 0)
+simpler(Some("thing", 0), 0)
 
 -- moved version
 fun rec simpler(arg!, _!) {
   match !arg {
-    #some(thing, idx!): {
+    Some(thing, idx!): {
       ignore(thing)
-      simpler(!#none, !idx)}
-    #none: ()
+      simpler(!None, !idx)}
+    None: ()
   }
 }
 
-simpler(!#some("thing", 0), !0)
+simpler(!Some("thing", 0), !0)
