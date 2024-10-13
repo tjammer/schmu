@@ -148,7 +148,8 @@ let get_variant env loc (_, name) annot =
             | Some ctor -> ctor
             | None ->
                 let msg =
-                  Printf.sprintf "Unbound constructor %s on variant %s" name
+                  Printf.sprintf "Unbound constructor %s on variant %s"
+                    (ctor_name name)
                     Path.(rm_name (Env.modpath env) path |> show)
                 in
                 raise (Error (loc, msg))
@@ -177,7 +178,7 @@ let get_variant env loc (_, name) annot =
           in
           (typename, { ctor with ctyp }, typ)
       | None ->
-          let msg = "Unbound constructor " ^ name in
+          let msg = "Unbound constructor " ^ ctor_name name in
           raise (Error (loc, msg)))
 
 type pattern_data = {

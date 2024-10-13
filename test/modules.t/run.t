@@ -602,11 +602,6 @@ Use module name prefix for function names to prevent linker dups
   4 | fun specific_name(): ()
           ^^^^^^^^^^^^^
   
-  nameclash_use.smu:4.5-18: warning: Unused binding specific_name.
-  
-  4 | fun specific_name(): ()
-          ^^^^^^^^^^^^^
-  
 Distinguish closures and functions
   $ schmu decl_lambda.smu -m
   $ schmu use_lambda.smu
@@ -621,11 +616,6 @@ Test signature
            ^^^^^^
   
   $ schmu use-sign.smu
-  use-sign.smu:21.5-15: warning: Unused binding use_hidden.
-  
-  21 | fun use_hidden () {
-           ^^^^^^^^^^
-  
   use-sign.smu:21.5-15: warning: Unused binding use_hidden.
   
   21 | fun use_hidden () {

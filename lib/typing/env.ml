@@ -495,8 +495,8 @@ let close_thing is_same modpath env =
               sort_unused unused )
         | Stoplevel _ | Sfunc _ ->
             failwith "Internal Error: Unexpected scope type"
-        | Scont usage ->
-            let unused = find_unused unused !usage in
+        | Scont _ ->
+            (* The same usage list will be processed later at toplevel / func *)
             aux (closed @ old_closed) (touched @ old_touched) unused tl
         | Smodule { name; loc; used } ->
             let unused =
