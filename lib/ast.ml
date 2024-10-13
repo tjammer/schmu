@@ -69,7 +69,8 @@ and expr =
   | Pipe_head of loc * argument * pipeable
   | Pipe_tail of loc * argument * pipeable
   | Ctor of loc * ident * expr option
-  | Match of loc * decl_attr * expr * (loc * pattern * expr) list
+  | Match of
+      loc * decl_attr * expr * (loc * Path.t option * pattern * expr) list
   | Local_use of loc * string * expr
   | Fmt of loc * expr list
 

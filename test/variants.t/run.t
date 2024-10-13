@@ -488,3 +488,7 @@ Don't free catchall let pattern in other branch
 Basic recursive types
   $ schmu recursive.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./recursive
+
+Support path prefixes in match patterns
+  $ schmu path_prefix.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./path_prefix

@@ -356,8 +356,13 @@ path_ident:
   | paths = nonempty_list(Path_id); callee = ident
     { List.fold_right (fun path expr -> Local_use ($loc, path, expr)) paths (Var callee) }
 
+clause_path:
+  | paths = nonempty_list(Path_id)
+    { List.fold_right (fun s -> function None -> Some (Path.Pid s) | Some p -> Some (Pmod(s, p))) paths None
+      |> Option.get }
+
 clause:
-  | pattern = match_pattern; Colon; expr = expr { $loc, pattern, expr }
+  | path = option(clause_path); pattern = match_pattern; Colon; expr = expr { $loc, path, pattern, expr }
 
 clauses:
   | clause = clause { [ clause ] }

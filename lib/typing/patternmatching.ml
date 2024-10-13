@@ -44,7 +44,7 @@ module type S = sig
     Ast.loc ->
     Ast.decl_attr ->
     Ast.expr ->
-    (Ast.loc * Ast.pattern * Ast.expr) list ->
+    (Ast.loc * Path.t option * Ast.pattern * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val pattern_id :
@@ -934,7 +934,12 @@ module Make (C : Core) (R : Recs) = struct
     let used_rows = ref Row_set.empty in
     let typed_cases =
       List.map
-        (fun (_, p, ret_expr) ->
+        (fun (_, local_open, p, ret_expr) ->
+          let env =
+            match local_open with
+            | Some path -> Env.use_module env loc path
+            | None -> env
+          in
           type_pattern env ([ 0 ], p)
           |> List.map (fun pat ->
                  incr exp_rows;

@@ -1,0 +1,11 @@
+module local {
+  type t = Thing | Other
+  fun produce(): Thing
+}
+
+fun a {
+  match a {
+    local/Thing: ()
+    Other: ()
+  }
+}.ignore()

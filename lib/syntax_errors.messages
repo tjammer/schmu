@@ -690,6 +690,10 @@ prog: False Exclamation Path_id Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: False Ampersand Path_id Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: False Exclamation Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
