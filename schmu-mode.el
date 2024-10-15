@@ -16,8 +16,8 @@
 
 (defconst schmu-keywords-regexp
   (rx symbol-start
-      (or "fun" "type" "if" "then" "else" "elseif" "and" "or" "external" "let"
-          "match" "with" "module" "module_type" "signature" "val" "functor" "do"
+      (or "fun" "type" "if" "then" "else" "and" "or" "external" "let"
+          "match" "with" "module" "signature" "val" "functor"
           "use" "import")
       symbol-end)
   "Schmu language keywords.")
@@ -81,6 +81,91 @@
     (,schmu-path-pattern 1 font-lock-type-face))
   "Schmu keywords highlighting.")
 
+;; Indentation function. Adapted from zig-mode
+(defconst schmu-electric-indent-chars
+  '(?\; ?\, ?\) ?\] ?\}))
+
+(defcustom schmu-indent-offset 2
+  "Indent Schmu code by this number of spaces."
+  :type 'integer
+  :safe #'integerp)
+
+(defun schmu-currently-in-str () (nth 3 (syntax-ppss)))
+(defun schmu-start-of-current-str-or-comment () (nth 8 (syntax-ppss)))
+
+(defun schmu-skip-backwards-past-whitespace-and-comments ()
+  (while (or
+          ;; If inside a comment, jump to start of comment.
+          (let ((start (schmu-start-of-current-str-or-comment)))
+            (and start
+                 (not (schmu-currently-in-str))
+                 (goto-char start)))
+          ;; Skip backwards past whitespace and comment end delimiters.
+          (/= 0 (skip-syntax-backward " >")))))
+
+(defun schmu-paren-nesting-level () (nth 0 (syntax-ppss)))
+
+(defun schmu-mode-indent-line ()
+  (interactive)
+  ;; First, calculate the column that this line should be indented to.
+  (let ((indent-col
+         (save-excursion
+           (back-to-indentation)
+           (let* (;; paren-level: How many sets of parens (or other delimiters)
+                  ;;   we're within, except that if this line closes the
+                  ;;   innermost set(s) (e.g. the line is just "}"), then we
+                  ;;   don't count those set(s).
+                  (paren-level
+                   (save-excursion
+                     (while (looking-at "[]})]") (forward-char))
+                     (schmu-paren-nesting-level)))
+                  ;; prev-block-indent-col: If we're within delimiters, this is
+                  ;; the column to which the start of that block is indented
+                  ;; (if we're not, this is just zero).
+                  (prev-block-indent-col
+                   (if (<= paren-level 0) 0
+                     (save-excursion
+                       (while (>= (schmu-paren-nesting-level) paren-level)
+                         (backward-up-list)
+                         (back-to-indentation))
+                       (current-column))))
+                  ;; base-indent-col: The column to which a complete expression
+                  ;;   on this line should be indented.
+                  (base-indent-col
+                   (if (<= paren-level 0)
+                       prev-block-indent-col
+                     (or (save-excursion
+                           (backward-up-list)
+                           (forward-char)
+                           (and (not (looking-at " *\\(//[^\n]*\\)?\n"))
+                                (current-column)))
+                         (+ prev-block-indent-col schmu-indent-offset))))
+                  ;; is-expr-continuation: True if this line continues an
+                  ;; expression from the previous line, false otherwise.
+                  ;; (is-expr-continuation
+                  ;;  (and
+                  ;;   (not (looking-at "[]});]\\|else"))
+                  ;;   (save-excursion
+                  ;;     (schmu-skip-backwards-past-whitespace-and-comments)
+                  ;;     (when (> (point) 1)
+                  ;;       (backward-char)
+                  ;;       (or (schmu-currently-in-str)
+                  ;;           (not (looking-at "[,;([{}]")))))))
+                  )
+             ;; Now we can calculate indent-col:
+             base-indent-col
+             ;; (if is-expr-continuation
+             ;;     (+ base-indent-col schmu-indent-offset)
+             ;;   base-indent-col)
+             ))))
+    ;; If point is within the indentation whitespace, move it to the end of the
+    ;; new indentation whitespace (which is what the indent-line-to function
+    ;; always does).  Otherwise, we don't want point to move, so we use a
+    ;; save-excursion.
+    (if (<= (current-column) (current-indentation))
+        (indent-line-to indent-col)
+      (save-excursion (indent-line-to indent-col)))))
+
 ;;;###autoload
 (define-derived-mode schmu-mode prog-mode "Schmu"
   "Major mode for editing Schmu."
@@ -100,7 +185,13 @@
 
   (setq font-lock-defaults '((schmu-font-lock-keywords)))
 
-  (set (make-local-variable 'comment-start) "--"))
+  (set (make-local-variable 'comment-start) "--")
+
+  (setq-local electric-indent-chars
+              (append schmu-electric-indent-chars
+                      (and (boundp 'electric-indent-chars)
+                           electric-indent-chars)))
+  (setq-local indent-line-function 'schmu-mode-indent-line))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.smu\\'" . schmu-mode))
