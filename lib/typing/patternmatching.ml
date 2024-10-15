@@ -672,7 +672,9 @@ module Make (C : Core) (R : Recs) = struct
         match (ctor.ctyp, arg) with
         | Some typ, Some expr ->
             let texpr = convert env expr in
-            unify (loc, "In constructor " ^ snd name ^ ":") typ texpr.typ env;
+            unify
+              (loc, "In constructor " ^ ctor_name (snd name) ^ ":")
+              typ texpr.typ env;
             let expr = Ctor (Path.get_hd typename, ctor.index, Some texpr)
             and const =
               (* There's a special case for string literals.
