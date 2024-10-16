@@ -109,6 +109,7 @@ module Mtree = struct
     recursive : recurs;
     upward : bool ref;
     monomorphized : bool;
+    func_loc : Ast.loc;
   }
 
   type monomorphized_tree = {
@@ -506,7 +507,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Sequence (expr, cont) -> morph_seq make param expr cont
   | Function (name, uniq, abs, ocont) ->
       let p, (call, kind, ftyp, alloca, upward) =
-        prep_func param (name, uniq, abs)
+        prep_func param texpr.loc (name, uniq, abs)
       in
       let p, cont, func = morph_expr { p with ret = param.ret } ocont in
       ( p,
@@ -521,7 +522,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Mutual_rec_decls (decls, cont) ->
       let p = List.fold_left rec_fs_to_env param decls in
       morph_expr p cont
-  | Lambda (id, abs) -> morph_lambda make texpr.typ param id abs
+  | Lambda (id, abs) -> morph_lambda make texpr.typ param texpr.loc id abs
   | App
       {
         callee =
@@ -928,7 +929,7 @@ and morph_seq mk p expr cont =
   let p, cont, func = morph_expr { p with ret } cont in
   (p, mk (Mseq (expr, cont)) ret, func)
 
-and prep_func p (usrname, uniq, abs) =
+and prep_func p func_loc (usrname, uniq, abs) =
   (* If the function is concretely typed, we add it to the function list and add
      the usercode name to the bound variables. In the polymorphic case, we add
      the function to the bound variables, but not to the function list. Instead,
@@ -956,7 +957,7 @@ and prep_func p (usrname, uniq, abs) =
     let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
     let fn () =
       let p = { p with gen_poly_bodies = true } in
-      let p, _ = prep_func p (usrname, uniq, abs) in
+      let p, _ = prep_func p func_loc (usrname, uniq, abs) in
       p
     in
     Hashtbl.add deferredfunc_tbl call fn;
@@ -1033,7 +1034,9 @@ and prep_func p (usrname, uniq, abs) =
 
     let abs = { func; pnames; body } in
     let name = { user = username; call } in
-    let gen_func = { abs; name; recursive; upward; monomorphized = false } in
+    let gen_func =
+      { abs; name; recursive; upward; monomorphized = false; func_loc }
+    in
 
     let p =
       if inline then
@@ -1059,7 +1062,7 @@ and prep_func p (usrname, uniq, abs) =
     in
     (p, (call, func.kind, ftyp, alloca, upward))
 
-and morph_lambda mk typ p id abs =
+and morph_lambda mk typ p func_loc id abs =
   let ftyp = cln p typ in
 
   (* TODO fix lambdas for nested modules *)
@@ -1077,7 +1080,7 @@ and morph_lambda mk typ p id abs =
     let vars = Vars.add name (Normal { no_var with fn }) p.vars in
     let genfn () =
       let p = { p with gen_poly_bodies = true } in
-      let p, _, _ = morph_lambda mk typ p id abs in
+      let p, _, _ = morph_lambda mk typ p func_loc id abs in
       p
     in
     Hashtbl.add deferredfunc_tbl name genfn;
@@ -1140,7 +1143,9 @@ and morph_lambda mk typ p id abs =
     (* lambdas have no username, so we just repeat the call name *)
     let names = { call = name; user = name } in
     let monomorphized = false in
-    let gen_func = { abs; name = names; recursive; upward; monomorphized } in
+    let gen_func =
+      { abs; name = names; recursive; upward; monomorphized; func_loc }
+    in
 
     let p = { p with vars } in
     let p, fn =
@@ -1380,7 +1385,7 @@ let rec morph_toplvl param items =
         (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)
     | Tl_function (loc, name, uniq, abs) ->
         let p, (call, kind, ftyp, alloca, upward) =
-          prep_func param (name, uniq, abs)
+          prep_func param loc (name, uniq, abs)
         in
         let p, cont, func = aux { p with ret = param.ret } tl in
         ( p,

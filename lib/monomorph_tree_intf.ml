@@ -110,6 +110,7 @@ module type S = sig
     recursive : recurs;
     upward : bool ref;
     monomorphized : bool;
+    func_loc : Ast.loc;
   }
 
   type external_decl = {

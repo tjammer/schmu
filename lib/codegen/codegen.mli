@@ -5,5 +5,6 @@ val generate :
   outname:string ->
   release:bool ->
   modul:bool ->
+  start_loc:Ast.loc ->
   Monomorph_tree.monomorphized_tree ->
   unit

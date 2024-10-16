@@ -1,5 +1,6 @@
 open Cleaned_types
 module Vars = Map.Make (String)
+module Debug = Llvm_debuginfo
 
 type value_kind = Const | Const_ptr | Imm | Ptr [@@deriving show]
 type mangle_kind = C | Schmu of string
@@ -18,13 +19,49 @@ type param = {
   alloca : Llvm.llvalue option;
   finalize : (llvar -> unit) option;
   rec_block : rec_block option;
+  scope : Llvm.llmetadata;
 }
 
 let no_param =
-  { vars = Vars.empty; alloca = None; finalize = None; rec_block = None }
+  {
+    vars = Vars.empty;
+    alloca = None;
+    finalize = None;
+    rec_block = None;
+    scope = Debug.llmetadata_null ();
+  }
 
 let context = Llvm.global_context ()
-let the_module = Llvm.create_module context "context"
+
+let the_module =
+  let m = Llvm.create_module context "context" in
+  (* Llvm.add_module_flag m Llvm.ModuleFlagBehavior.Warning "schmu-module" *)
+  (*   (Debug.llmetadata_null ()); *)
+  m
+
+let dibuilder = Debug.dibuilder the_module
+let di_comp_unit = ref None
+let di_file = ref None
+
+let set_di_comp_unit ~filename ~directory ~is_optimized =
+  let file_ref = Debug.dibuild_create_file ~filename ~directory dibuilder in
+  di_file := Some file_ref;
+  let unit =
+    Debug.dibuild_create_compile_unit dibuilder Debug.DWARFSourceLanguageKind.C
+      ~file_ref ~producer:"schmu 0.1x" ~is_optimized ~flags:"" ~runtime_ver:0
+      ~split_name:"" Debug.DWARFEmissionKind.Full ~dwoid:0 ~di_inlining:true
+      ~di_profiling:false ~sys_root:"" ~sdk:""
+  in
+  di_comp_unit := Some unit
+
+let di_comp_unit () = Option.get !di_comp_unit
+let di_file () = Option.get !di_file
+
+let di_loc param loc =
+  let line = Lexing.((fst loc).pos_lnum) in
+  let column = Lexing.((fst loc).pos_cnum) in
+  Debug.dibuild_create_debug_location ~scope:param.scope ~line ~column context
+
 let fpm = Llvm.PassManager.create_function the_module
 let _ = Llvm.PassManager.initialize fpm
 

@@ -4,6 +4,7 @@ module type S = sig
 
   val dummy_fn_value : llvar
   val declare_function : c_linkage:bool -> string -> typ -> llvar
+  val define_function : c_linkage:bool -> string -> typ -> llvar
   val add_closure : llvar Vars.t -> llvar -> bool -> fun_kind -> llvar Vars.t
 
   val add_params :
@@ -309,6 +310,29 @@ struct
           typeof_func ~decl:true (params, ret, kind)
         in
         let value = Llvm.declare_function name ft the_module in
+        if c_linkage then
+          List.iter
+            (fun (i, typ) -> add_byval value i (get_lltype_def typ))
+            byvals;
+        (* Hopefully [noalias] on return param does not mess with C ABI *)
+        List.iter
+          (fun i ->
+            Llvm.(
+              add_function_attr value (Lazy.force noalias_attr)
+                (AttrIndex.Param i)))
+          noaliases;
+        let llvar = { value; typ; lltyp = ft; kind = Imm } in
+        llvar
+    | _ ->
+        prerr_endline name;
+        failwith "Internal Error: declaring non-function"
+
+  let define_function ~c_linkage name = function
+    | Tfun (params, ret, kind) as typ ->
+        let ft, byvals, noaliases =
+          typeof_func ~decl:true (params, ret, kind)
+        in
+        let value = Llvm.define_function name ft the_module in
         if c_linkage then
           List.iter
             (fun (i, typ) -> add_byval value i (get_lltype_def typ))

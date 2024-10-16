@@ -78,7 +78,7 @@ let run file
     else (
       (* TODO if a module has only forward decls, we don't need to codegen anything *)
       Monomorph_tree.monomorphize ~mname ttree
-      |> Codegen.generate ~target ~outname ~release ~modul
+      |> Codegen.generate ~target ~outname ~release ~modul ~start_loc
       |> ignore;
       if dump_llvm then Llvm.dump_module Codegen.the_module;
       if modul then (

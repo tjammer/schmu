@@ -20,17 +20,50 @@ end = struct
   open H
   open Ar
 
+  external finalize_sp : Debug.lldibuilder -> Llvm.llmetadata -> unit
+    = "LlvmFinalizeSp"
+
   let free_tbl = Hashtbl.create 64
 
   let rec gen_function vars
-      { Monomorph_tree.abs; name; recursive; upward; monomorphized } =
+      { Monomorph_tree.abs; name; recursive; upward; monomorphized; func_loc } =
     let typ = Monomorph_tree.typ_of_abs abs in
 
     match typ with
     | Tfun (tparams, ret_t, kind) as typ ->
         let func = declare_function ~c_linkage:false name.call typ in
+        Llvm.delete_function func.value;
+        let func = define_function ~c_linkage:false name.call typ in
         (if monomorphized then
            Llvm.(set_linkage Linkage.Link_once_odr func.value));
+
+        (* Add debug information *)
+        let debug_func =
+          (* Create unspecified type for now *)
+          (* Set no flags for now *)
+          let flags = Debug.(diflags_get DIFlag.Prototyped) in
+          let param_types =
+            [||]
+            (* Array.init *)
+            (*   (Array.length (Llvm.params func.value) + 1) *)
+            (*   (fun i -> *)
+            (*      Debug.dibuild_create_unspecified_type dibuilder *)
+            (*       ~name:(name.user ^ "_ty" ^ string_of_int i)) *)
+          in
+          let ty =
+            Debug.dibuild_create_subroutine_type dibuilder flags
+              ~file:(di_file ()) ~param_types
+          in
+          let line = Lexing.((fst func_loc).pos_lnum) in
+          Debug.dibuild_create_function dibuilder ~scope:(di_file ())
+            ~name:name.user ~linkage_name:name.call ~file:(di_file ())
+            ~line_no:line ~ty ~is_local_to_unit:false ~is_definition:true
+            ~scope_line:line ~flags ~is_optimized:true
+        in
+        finalize_sp dibuilder debug_func;
+        Debug.set_subprogram func.value debug_func;
+
+        let vars = { vars with scope = debug_func } in
 
         let start_index, alloca =
           match ret_t with
@@ -46,7 +79,8 @@ end = struct
         in
 
         (* gen function body *)
-        let bb = Llvm.append_block context "entry" func.value in
+        (* let bb = Llvm.append_block context "entry" func.value in *)
+        let bb = Llvm.entry_block func.value in
         Llvm.position_at_end bb builder;
 
         (* Add params from closure *)
@@ -78,7 +112,9 @@ end = struct
         in
 
         let finalize = Some fun_finalize in
-        let param = { vars = tvars; alloca; finalize; rec_block } in
+        let param =
+          { vars = tvars; alloca; finalize; rec_block; scope = debug_func }
+        in
         let ret = gen_expr param abs.body in
 
         (match recursive with
@@ -91,6 +127,7 @@ end = struct
           (* To generate the report *)
           Llvm_analysis.assert_valid_function func.value);
         let _ = Llvm.PassManager.run_function func.value fpm in
+
         { vars with vars = Vars.add name.call func vars.vars }
     | _ ->
         prerr_endline name.call;
@@ -176,12 +213,12 @@ end = struct
           | _, Builtin (b, bfn), _ ->
               gen_app_builtin param (b, bfn) args alloca typed_expr.loc
           | _, Inline (pnames, tree), _ -> gen_app_inline param args pnames tree
-          | _ -> gen_app param callee args alloca typed_expr.typ
+          | _ -> gen_app param typed_expr.loc callee args alloca typed_expr.typ
         in
 
         List.iter (fun id -> Strtbl.replace free_tbl id value) ms;
         fin value
-    | Mif expr -> gen_if param expr
+    | Mif expr -> gen_if param typed_expr.loc expr
     | Mrecord (labels, allocref, id) ->
         gen_record param typed_expr.typ labels allocref id typed_expr.const
           typed_expr.return
@@ -424,7 +461,7 @@ end = struct
     in
     { expr with value; kind = Imm }
 
-  and gen_app param callee args allocref ret_t =
+  and gen_app param loc callee args allocref ret_t =
     let func = gen_expr param callee.ex in
 
     let func = get_mono_func func param callee.monomorph in
@@ -516,21 +553,26 @@ end = struct
               let retval = get_prealloc !allocref param lltyp "ret" in
               let ret' = Seq.return retval in
               let args = ret' ++ args ++ envarg |> Array.of_seq in
-              ignore (Llvm.build_call ft funcval args "" builder);
+              let call = Llvm.build_call ft funcval args "" builder in
+              Debug.instr_set_debug_loc call (Some (di_loc param loc));
+              ignore loc;
+              ignore call;
               (retval, lltyp)
           | Unboxed size ->
               (* Boxed representation *)
               let retval = get_prealloc !allocref param lltyp "ret" in
               let args = args ++ envarg |> Array.of_seq in
               (* Unboxed representation *)
-              let tempval = Llvm.build_call ft funcval args "" builder in
+              let call = Llvm.build_call ft funcval args "" builder in
+              Debug.instr_set_debug_loc call (Some (di_loc param loc));
               let ret =
-                box_record ~size ~alloc:(Some retval) ~snd_val:None t tempval
+                box_record ~size ~alloc:(Some retval) ~snd_val:None t call
               in
               (ret, lltyp))
       | t ->
           let args = args ++ envarg |> Array.of_seq in
           let retval = Llvm.build_call ft funcval args "" builder in
+          Debug.instr_set_debug_loc retval (Some (di_loc param loc));
           (retval, get_lltype_param false t)
     in
 
@@ -1009,7 +1051,7 @@ end = struct
     let env = List.fold_left2 f param args names in
     gen_expr env tree
 
-  and gen_if param expr =
+  and gen_if param loc expr =
     (* If a function ends in a if expression (and returns a struct),
        we pass in the finalize step. This allows us to handle the branches
        differently and enables tail call elimination *)
@@ -1084,8 +1126,11 @@ end = struct
     in
 
     Llvm.position_at_end start_bb builder;
-    ignore (Llvm.build_cond_br cond then_bb else_bb builder);
+    let br = Llvm.build_cond_br cond then_bb else_bb builder in
+    ignore br;
+    ignore loc;
 
+    (* Debug.instr_set_debug_loc br (Some (di_loc param loc)); *)
     if not (is_tailcall e1) then (
       Llvm.position_at_end e1_bb builder;
       ignore (Llvm.build_br (Lazy.force merge_bb) builder));
@@ -1487,7 +1532,7 @@ let has_init_code tree =
   in
   aux Monomorph_tree.(tree.expr)
 
-let add_global_init funcs outname kind body =
+let add_global_init funcs outname start_loc kind body =
   let fname, glname =
     match kind with
     | `Ctor -> ("__" ^ outname ^ "_init", "llvm.global_ctors")
@@ -1503,6 +1548,7 @@ let add_global_init funcs outname kind body =
         upward;
         abs = { func; pnames = []; body };
         monomorphized = false;
+        func_loc = start_loc;
       }
   in
   let init = Vars.find fname p.vars in
@@ -1517,8 +1563,11 @@ let add_global_init funcs outname kind body =
   let global = define_global glname global the_module in
   set_linkage Appending global
 
-let generate ~target ~outname ~release ~modul
+let generate ~target ~outname ~release ~modul ~start_loc
     { Monomorph_tree.constants; globals; externals; tree; funcs; frees } =
+  set_di_comp_unit ~filename:(outname ^ ".smu") ~directory:(Sys.getcwd ())
+    ~is_optimized:release;
+
   let open Llvm_target in
   let triple =
     match target with
@@ -1591,12 +1640,13 @@ let generate ~target ~outname ~release ~modul
             body = { tree with typ = Tint };
           };
         monomorphized = false;
+        func_loc = start_loc;
       }
     |> ignore
   else if has_init_code tree then (
     (* Or module init *)
     H.set_in_init true;
-    add_global_init funcs outname `Ctor tree;
+    add_global_init funcs outname start_loc `Ctor tree;
 
     (* Add frees to global dctors in reverse order *)
     if not (Seq.is_empty frees) then
@@ -1605,9 +1655,11 @@ let generate ~target ~outname ~release ~modul
         Monomorph_tree.
           { typ = Tunit; expr = Mconst Unit; return = true; loc; const = Cnot }
       in
-      add_global_init no_param outname `Dtor (free_mallocs body frees));
+      add_global_init no_param outname start_loc `Dtor (free_mallocs body frees));
   (* Generate internal helper functions for arrays *)
   Auto.gen_functions ();
+
+  Debug.dibuild_finalize dibuilder;
 
   (match Llvm_analysis.verify_module the_module with
   | Some output -> print_endline output

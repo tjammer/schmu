@@ -1,7 +1,11 @@
 #include <caml/alloc.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm-c/DebugInfo.h>
 
 using namespace llvm;
+
+#define DIBuilder_val(v) (*(LLVMDIBuilderRef *)(Data_custom_val(v)))
+#define Value_val(v) ((LLVMMetadataRef)from_val(v))
 
 // Thank you, zig
 extern "C"
@@ -17,5 +21,10 @@ extern "C"
     Type*       llvm_type = unwrap<Type>(type_ref);
     attr_builder.addByValAttr(llvm_type);
     func->addParamAttrs(static_cast<unsigned>((argnum >> 1) - 1), attr_builder);
+  }
+
+  void LlvmFinalizeSp(value builder, value sp)
+  {
+    LLVMDIBuilderFinalizeSubprogram(DIBuilder_val(builder), Value_val(sp));
   }
 }
