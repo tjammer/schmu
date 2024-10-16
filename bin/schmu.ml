@@ -66,7 +66,13 @@ let run file
   try
     Parse.parse file >>= fun prog ->
     let mname = if modul then Path.Pid outname else Typing.main_path in
-    let ttree, m = Typing.to_typed ~mname ~std fmt_msg_fn prog in
+    let start_loc =
+      let loc =
+        Lexing.{ pos_fname = file; pos_lnum = 0; pos_bol = 0; pos_cnum = 0 }
+      in
+      (loc, loc)
+    in
+    let ttree, m = Typing.to_typed ~mname ~std ~start_loc fmt_msg_fn prog in
 
     if check_only then Ok ()
     else (

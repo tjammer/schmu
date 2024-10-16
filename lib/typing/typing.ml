@@ -1994,11 +1994,10 @@ and convert_prog env items modul =
   { last_type = snd !old; env; items = List.rev items; m; sgn; sgn_env }
 
 (* Conversion to Typing.exr below *)
-let to_typed ?(check_ret = true) ~mname msg_fn ~std prog =
+let to_typed ?(check_ret = true) ~mname msg_fn ~start_loc:loc ~std prog =
   fmt_msg_fn := Some msg_fn;
   reset_type_vars ();
 
-  let loc = Lexing.(dummy_pos, dummy_pos) in
   (* Add builtins to env *)
   let find_module = Module.find_module in
   let scope_of_located = Module.scope_of_located in
@@ -2053,7 +2052,10 @@ let typecheck (prog : Ast.prog) =
   (* Ignore unused binding warnings *)
   let msg_fn _ _ _ = "" in
   let mname = main_path in
-  let tree, _ = to_typed ~mname ~check_ret:false msg_fn ~std:false prog in
+  let start_loc = Lexing.(dummy_pos, dummy_pos) in
+  let tree, _ =
+    to_typed ~mname ~check_ret:false ~start_loc msg_fn ~std:false prog
+  in
   let typ = get_last_type (List.rev tree.items) in
   print_endline (show_typ typ);
   typ

@@ -447,20 +447,28 @@ and load_dep_modules env fname loc objects ~regeneralize =
 
 and read_module env filename loc ~regeneralize mname =
   let c = open_in (filename ^ ".smi") in
-  match Sexp.input c |> Result.map t_of_sexp with
-  | Ok t ->
-      close_in c;
-      (* Load transitive modules. The interface files are the same as object files *)
-      load_dep_modules env filename loc t.objects ~regeneralize;
-      add_object_names filename t.objects;
-      let kind, m = (Cfile (filename, false), map_t ~mname ~f:regeneralize t) in
-      (* Make module scope *)
-      let scope = make_scope env loc (Some (filename, regeneralize)) mname m in
-      Hashtbl.add module_cache mname (Cached (kind, scope, m));
-      Ok scope
-  | Error _ ->
-      close_in c;
-      Error ("Could not deserialize module: " ^ filename)
+  try
+    match Sexp.input c |> Result.map t_of_sexp with
+    | Ok t ->
+        close_in c;
+        (* Load transitive modules. The interface files are the same as object files *)
+        load_dep_modules env filename loc t.objects ~regeneralize;
+        add_object_names filename t.objects;
+        let kind, m =
+          (Cfile (filename, false), map_t ~mname ~f:regeneralize t)
+        in
+        (* Make module scope *)
+        let scope =
+          make_scope env loc (Some (filename, regeneralize)) mname m
+        in
+        Hashtbl.add module_cache mname (Cached (kind, scope, m));
+        Ok scope
+    | Error _ ->
+        close_in c;
+        Error ("Could not deserialize module: " ^ filename)
+  with _ ->
+    close_in c;
+    Error ("Could not deserialize module: " ^ filename)
 
 and add_object_names fname objects =
   let objs =
