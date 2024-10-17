@@ -7,7 +7,7 @@ Copy string literal
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"test \00" }
   @1 = private unnamed_addr constant { i64, i64, [7 x i8] } { i64 6, i64 6, [7 x i8] c"%s%li\0A\00" }
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !2 {
   entry:
     %0 = alloca ptr, align 8
     store ptr @0, ptr %0, align 8
@@ -55,6 +55,14 @@ Copy string literal
   declare void @free(ptr %0)
   
   attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "string_lit.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
   test 1
 
 Copy array of strings
@@ -69,7 +77,7 @@ Copy array of strings
   
   declare void @string_println(ptr %0)
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !2 {
   entry:
     %0 = tail call ptr @malloc(i64 32)
     store ptr %0, ptr @schmu_a, align 8
@@ -93,7 +101,7 @@ Copy array of strings
     %6 = getelementptr i8, ptr %5, i64 16
     %7 = getelementptr ptr, ptr %6, i64 1
     %8 = load ptr, ptr %7, align 8
-    call void @string_println(ptr %8)
+    call void @string_println(ptr %8), !dbg !5
     call void @__free_2ac2_(ptr %4)
     call void @__free_2ac2_(ptr @schmu_a)
     ret i64 0
@@ -191,6 +199,15 @@ Copy array of strings
   declare void @free(ptr %0)
   
   attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "arr_of_strings.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 2, scope: !2)
   toast
 
 Copy records
@@ -207,7 +224,7 @@ Copy records
   
   declare void @string_println(ptr %0)
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !2 {
   entry:
     store double 1.000000e+01, ptr @schmu_a, align 8
     %0 = alloca ptr, align 8
@@ -236,7 +253,7 @@ Copy records
     call void @__copy_dac_lal3_(ptr %5)
     %6 = getelementptr inbounds %t_, ptr %5, i32 0, i32 1
     %7 = load ptr, ptr %6, align 8
-    call void @string_println(ptr %7)
+    call void @string_println(ptr %7), !dbg !5
     call void @__free_dac_lal3_(ptr %5)
     call void @__free_dac_lal3_(ptr @schmu_a)
     ret i64 0
@@ -328,6 +345,15 @@ Copy records
   declare void @free(ptr %0)
   
   attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "records.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 6, scope: !2)
   lul
 
 Copy variants
@@ -344,7 +370,7 @@ Copy variants
   
   declare void @string_println(ptr %0)
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !2 {
   entry:
     store i32 1, ptr @schmu_a, align 4
     %0 = alloca ptr, align 8
@@ -360,13 +386,13 @@ Copy variants
     call void @__copy_vac_l2_(ptr %3)
     %index = load i32, ptr %3, align 4
     %eq = icmp eq i32 %index, 1
-    br i1 %eq, label %then, label %ifcont
+    br i1 %eq, label %then, label %ifcont, !dbg !5
   
   then:                                             ; preds = %entry
     %data = getelementptr inbounds %option.tac_l__, ptr %3, i32 0, i32 1
     %4 = getelementptr inbounds %ac_l_, ptr %data, i32 0, i32 1
     %5 = load ptr, ptr %data, align 8
-    call void @string_println(ptr %5)
+    call void @string_println(ptr %5), !dbg !6
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -453,6 +479,16 @@ Copy variants
   declare void @free(ptr %0)
   
   attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "variants.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 4, column: 2, scope: !2)
+  !6 = !DILocation(line: 4, column: 16, scope: !2)
   thing
 
 Copy closures
@@ -470,17 +506,17 @@ Copy closures
   
   declare void @string_println(ptr %0)
   
-  define void @__fun_schmu0(ptr %0) {
+  define void @__fun_schmu0(ptr %0) !dbg !2 {
   entry:
     %a = getelementptr inbounds { ptr, ptr, ptr }, ptr %0, i32 0, i32 2
     %a1 = load ptr, ptr %a, align 8
     %1 = getelementptr i8, ptr %a1, i64 16
     %2 = load ptr, ptr %1, align 8
-    tail call void @string_println(ptr %2)
+    tail call void @string_println(ptr %2), !dbg !5
     ret void
   }
   
-  define i64 @schmu_capture(ptr %0) {
+  define i64 @schmu_capture(ptr %0) !dbg !6 {
   entry:
     %a = getelementptr inbounds { ptr, ptr, i64 }, ptr %0, i32 0, i32 2
     %a1 = load i64, ptr %a, align 8
@@ -488,7 +524,7 @@ Copy closures
     ret i64 %add
   }
   
-  define i64 @schmu_capture__2(ptr %0) {
+  define i64 @schmu_capture__2(ptr %0) !dbg !7 {
   entry:
     %a = getelementptr inbounds { ptr, ptr, i64 }, ptr %0, i32 0, i32 2
     %a1 = load i64, ptr %a, align 8
@@ -496,7 +532,7 @@ Copy closures
     ret i64 %add
   }
   
-  define void @schmu_hmm(ptr noalias %0) {
+  define void @schmu_hmm(ptr noalias %0) !dbg !8 {
   entry:
     %1 = alloca %"2l_", align 8
     store i64 1, ptr %1, align 8
@@ -514,7 +550,7 @@ Copy closures
     ret void
   }
   
-  define void @schmu_hmm_move(ptr noalias %0) {
+  define void @schmu_hmm_move(ptr noalias %0) !dbg !9 {
   entry:
     %1 = alloca %"2l_", align 8
     store i64 1, ptr %1, align 8
@@ -532,7 +568,7 @@ Copy closures
     ret void
   }
   
-  define void @schmu_test(ptr noalias %0) {
+  define void @schmu_test(ptr noalias %0) !dbg !10 {
   entry:
     %1 = tail call ptr @malloc(i64 24)
     %arr = alloca ptr, align 8
@@ -676,7 +712,7 @@ Copy closures
   
   declare void @free(ptr %0)
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !11 {
   entry:
     %0 = alloca %"2rl2_l_", align 8
     %clstmp = alloca %closure, align 8
@@ -696,14 +732,14 @@ Copy closures
     call void @__copy_2rl2_(ptr %1)
     %"15" = getelementptr inbounds %"2rl2_l_", ptr %1, i32 0, i32 1
     store i64 0, ptr %"15", align 8
-    call void @schmu_test(ptr @schmu_c)
+    call void @schmu_test(ptr @schmu_c), !dbg !12
     %2 = alloca %closure, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %2, ptr align 8 @schmu_c, i64 16, i1 false)
     call void @__copy_ru_(ptr %2)
     %loadtmp = load ptr, ptr %2, align 8
     %envptr6 = getelementptr inbounds %closure, ptr %2, i32 0, i32 1
     %loadtmp7 = load ptr, ptr %envptr6, align 8
-    call void %loadtmp(ptr %loadtmp7)
+    call void %loadtmp(ptr %loadtmp7), !dbg !13
     call void @__free_ru_(ptr %2)
     call void @__free_ru_(ptr @schmu_c)
     call void @__free_2rl2_l_(ptr %1)
@@ -807,6 +843,23 @@ Copy closures
   }
   
   attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "closure.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !1, file: !1, line: 20, type: !3, scopeLine: 20, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 20, column: 14, scope: !2)
+  !6 = distinct !DISubprogram(name: "capture", linkageName: "schmu_capture", scope: !1, file: !1, line: 3, type: !3, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !7 = distinct !DISubprogram(name: "capture", linkageName: "schmu_capture__2", scope: !1, file: !1, line: 12, type: !3, scopeLine: 12, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !8 = distinct !DISubprogram(name: "hmm", linkageName: "schmu_hmm", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !9 = distinct !DISubprogram(name: "hmm_move", linkageName: "schmu_hmm_move", scope: !1, file: !1, line: 9, type: !3, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !10 = distinct !DISubprogram(name: "test", linkageName: "schmu_test", scope: !1, file: !1, line: 18, type: !3, scopeLine: 18, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !11 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !12 = !DILocation(line: 23, column: 8, scope: !11)
+  !13 = !DILocation(line: 24, scope: !11)
   hello
 
 Copy string literal on move
@@ -825,7 +878,7 @@ Copy string literal on move
   
   declare void @string_println(ptr %0)
   
-  define void @__fun_schmu0(ptr noalias %arr) {
+  define void @__fun_schmu0(ptr noalias %arr) !dbg !2 {
   entry:
     %0 = load ptr, ptr %arr, align 8
     %1 = getelementptr i8, ptr %0, i64 16
@@ -834,7 +887,7 @@ Copy string literal on move
     ret void
   }
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !5 {
   entry:
     %0 = tail call ptr @malloc(i64 24)
     store ptr %0, ptr @schmu_a, align 8
@@ -854,14 +907,14 @@ Copy string literal on move
     store ptr @__fun_schmu0, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @string_modify_buf(ptr @schmu_b, ptr %clstmp)
+    call void @string_modify_buf(ptr @schmu_b, ptr %clstmp), !dbg !6
     %4 = load ptr, ptr @schmu_b, align 8
-    call void @string_println(ptr %4)
-    call void @string_println(ptr @0)
+    call void @string_println(ptr %4), !dbg !7
+    call void @string_println(ptr @0), !dbg !8
     %5 = load ptr, ptr @schmu_a, align 8
     %6 = getelementptr i8, ptr %5, i64 16
     %7 = load ptr, ptr %6, align 8
-    call void @string_println(ptr %7)
+    call void @string_println(ptr %7), !dbg !9
     call void @__free_ac_(ptr @schmu_b)
     call void @__free_2ac2_(ptr @schmu_a)
     ret i64 0
@@ -926,6 +979,19 @@ Copy string literal on move
   declare void @free(ptr %0)
   
   attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "copy_string_lit.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !1, file: !1, line: 3, type: !3, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !6 = !DILocation(line: 3, scope: !5)
+  !7 = !DILocation(line: 6, scope: !5)
+  !8 = !DILocation(line: 7, scope: !5)
+  !9 = !DILocation(line: 8, scope: !5)
   aieu
   aoeu
   aoeu

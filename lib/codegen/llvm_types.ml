@@ -59,7 +59,7 @@ let di_file () = Option.get !di_file
 
 let di_loc param loc =
   let line = Lexing.((fst loc).pos_lnum) in
-  let column = Lexing.((fst loc).pos_cnum) in
+  let column = Lexing.((fst loc).pos_cnum - (fst loc).pos_bol) in
   Debug.dibuild_create_debug_location ~scope:param.scope ~line ~column context
 
 let fpm = Llvm.PassManager.create_function the_module

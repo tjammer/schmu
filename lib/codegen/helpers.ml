@@ -4,7 +4,6 @@ module type S = sig
 
   val dummy_fn_value : llvar
   val declare_function : c_linkage:bool -> string -> typ -> llvar
-  val define_function : c_linkage:bool -> string -> typ -> llvar
   val add_closure : llvar Vars.t -> llvar -> bool -> fun_kind -> llvar Vars.t
 
   val add_params :
@@ -67,7 +66,12 @@ module type S = sig
   val set_in_init : bool -> unit
 
   val assert_fail :
-    text:string -> file:string -> line:int -> func:string -> Llvm.llvalue
+    text:string ->
+    file:string ->
+    line:int ->
+    func:string ->
+    Llvm.llmetadata ->
+    Llvm.llvalue
 
   val get_snippet : Ast.loc -> string
 
@@ -253,7 +257,7 @@ struct
         failwith "Internal Error: Impossible string format"
 
   (* use [__assert_fail] from libc *)
-  let assert_fail ~text ~file ~line ~func =
+  let assert_fail ~text ~file ~line ~func md =
     let assert_fail =
       lazy
         Llvm.(
@@ -269,7 +273,8 @@ struct
     in
     let args = [| d text; d file; Llvm.const_int i32_t line; d func |] in
     let ft, decl = Lazy.force assert_fail in
-    ignore (Llvm.build_call ft decl args "" builder);
+    let call = Llvm.build_call ft decl args "" builder in
+    Debug.instr_set_debug_loc call (Some md);
     Llvm.build_unreachable builder
 
   let get_snippet (lbeg, lend) =
@@ -310,29 +315,6 @@ struct
           typeof_func ~decl:true (params, ret, kind)
         in
         let value = Llvm.declare_function name ft the_module in
-        if c_linkage then
-          List.iter
-            (fun (i, typ) -> add_byval value i (get_lltype_def typ))
-            byvals;
-        (* Hopefully [noalias] on return param does not mess with C ABI *)
-        List.iter
-          (fun i ->
-            Llvm.(
-              add_function_attr value (Lazy.force noalias_attr)
-                (AttrIndex.Param i)))
-          noaliases;
-        let llvar = { value; typ; lltyp = ft; kind = Imm } in
-        llvar
-    | _ ->
-        prerr_endline name;
-        failwith "Internal Error: declaring non-function"
-
-  let define_function ~c_linkage name = function
-    | Tfun (params, ret, kind) as typ ->
-        let ft, byvals, noaliases =
-          typeof_func ~decl:true (params, ret, kind)
-        in
-        let value = Llvm.define_function name ft the_module in
         if c_linkage then
           List.iter
             (fun (i, typ) -> add_byval value i (get_lltype_def typ))

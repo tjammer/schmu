@@ -32,8 +32,7 @@ end = struct
     match typ with
     | Tfun (tparams, ret_t, kind) as typ ->
         let func = declare_function ~c_linkage:false name.call typ in
-        Llvm.delete_function func.value;
-        let func = define_function ~c_linkage:false name.call typ in
+
         (if monomorphized then
            Llvm.(set_linkage Linkage.Link_once_odr func.value));
 
@@ -42,14 +41,7 @@ end = struct
           (* Create unspecified type for now *)
           (* Set no flags for now *)
           let flags = Debug.(diflags_get DIFlag.Prototyped) in
-          let param_types =
-            [||]
-            (* Array.init *)
-            (*   (Array.length (Llvm.params func.value) + 1) *)
-            (*   (fun i -> *)
-            (*      Debug.dibuild_create_unspecified_type dibuilder *)
-            (*       ~name:(name.user ^ "_ty" ^ string_of_int i)) *)
-          in
+          let param_types = [||] in
           let ty =
             Debug.dibuild_create_subroutine_type dibuilder flags
               ~file:(di_file ()) ~param_types
@@ -79,8 +71,7 @@ end = struct
         in
 
         (* gen function body *)
-        (* let bb = Llvm.append_block context "entry" func.value in *)
-        let bb = Llvm.entry_block func.value in
+        let bb = Llvm.append_block context "entry" func.value in
         Llvm.position_at_end bb builder;
 
         (* Add params from closure *)
@@ -213,12 +204,12 @@ end = struct
           | _, Builtin (b, bfn), _ ->
               gen_app_builtin param (b, bfn) args alloca typed_expr.loc
           | _, Inline (pnames, tree), _ -> gen_app_inline param args pnames tree
-          | _ -> gen_app param typed_expr.loc callee args alloca typed_expr.typ
+          | _ -> gen_app param callee args alloca typed_expr.typ
         in
 
         List.iter (fun id -> Strtbl.replace free_tbl id value) ms;
         fin value
-    | Mif expr -> gen_if param typed_expr.loc expr
+    | Mif expr -> gen_if param expr
     | Mrecord (labels, allocref, id) ->
         gen_record param typed_expr.typ labels allocref id typed_expr.const
           typed_expr.return
@@ -461,9 +452,9 @@ end = struct
     in
     { expr with value; kind = Imm }
 
-  and gen_app param loc callee args allocref ret_t =
+  and gen_app param callee args allocref ret_t =
     let func = gen_expr param callee.ex in
-
+    let loc = callee.ex.loc in
     let func = get_mono_func func param callee.monomorph in
 
     let ret, kind =
@@ -917,15 +908,18 @@ end = struct
         let parent = Llvm.block_parent start_bb in
         let func = Llvm.value_name parent in
         let text = get_snippet loc in
-        let loc = fst loc in
 
         let success_bb = Llvm.append_block context "success" parent in
         let fail_bb = Llvm.append_block context "fail" parent in
 
-        ignore (Llvm.build_cond_br cond success_bb fail_bb builder);
+        let br = Llvm.build_cond_br cond success_bb fail_bb builder in
+        Debug.instr_set_debug_loc br (Some (di_loc param loc));
 
         Llvm.position_at_end fail_bb builder;
-        ignore (assert_fail ~text ~file:loc.pos_fname ~line:loc.pos_lnum ~func);
+        let md = di_loc param loc in
+        let loc = fst loc in
+        ignore
+          (assert_fail ~text ~file:loc.pos_fname ~line:loc.pos_lnum ~func md);
 
         Llvm.position_at_end success_bb builder;
 
@@ -1051,7 +1045,7 @@ end = struct
     let env = List.fold_left2 f param args names in
     gen_expr env tree
 
-  and gen_if param loc expr =
+  and gen_if param expr =
     (* If a function ends in a if expression (and returns a struct),
        we pass in the finalize step. This allows us to handle the branches
        differently and enables tail call elimination *)
@@ -1127,10 +1121,9 @@ end = struct
 
     Llvm.position_at_end start_bb builder;
     let br = Llvm.build_cond_br cond then_bb else_bb builder in
-    ignore br;
-    ignore loc;
 
-    (* Debug.instr_set_debug_loc br (Some (di_loc param loc)); *)
+    Debug.instr_set_debug_loc br (Some (di_loc param expr.cond.loc));
+
     if not (is_tailcall e1) then (
       Llvm.position_at_end e1_bb builder;
       ignore (Llvm.build_br (Lazy.force merge_bb) builder));

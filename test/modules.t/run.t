@@ -11,11 +11,19 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   @nonpoly_func_c = internal constant i64 10
   
-  define i64 @nonpoly_func_add_ints(i64 %a, i64 %b) {
+  define i64 @nonpoly_func_add_ints(i64 %a, i64 %b) !dbg !2 {
   entry:
     %add = add i64 %a, %b
     ret i64 %add
   }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "nonpoly_func.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "add_ints", linkageName: "nonpoly_func_add_ints", scope: !1, file: !1, line: 3, type: !3, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
   $ cat nonpoly_func.smi | sed -E 's/([0-9]+:\/.*lib\/schmu\/std)//'
   (()((5:Mtype(((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:26)))6:either((6:params())(4:kind(8:Dvariant5:false(((5:cname4:left)(4:ctyp())(5:index1:0))((5:cname5:right)(4:ctyp())(5:index1:1)))))(6:in_sgn5:false)))(4:Mfun(((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:28)(8:pos_cnum2:32))((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:6)(7:pos_bol2:70)(8:pos_cnum2:71)))(4:Tfun(((2:pt(7:Tconstr3:int()))(5:pattr5:Dnorm))((2:pt(7:Tconstr3:int()))(5:pattr5:Dnorm)))(7:Tconstr3:int())6:Simple)((4:user8:add_ints)(4:call((8:add_ints(12:nonpoly_func)()))))))((/std/string5:false)))
 
@@ -28,30 +36,43 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
   
-  define i64 @schmu_doo(i32 %0) {
+  define i64 @schmu_doo(i32 %0) !dbg !2 {
   entry:
     %a = alloca i32, align 4
     store i32 %0, ptr %a, align 4
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %then, label %else
+    br i1 %eq, label %then, label %else, !dbg !5
   
   then:                                             ; preds = %entry
-    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5)
+    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5), !dbg !6
     ret i64 %1
   
   else:                                             ; preds = %entry
-    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5)
+    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5), !dbg !7
     ret i64 %2
   }
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !8 {
   entry:
-    %0 = tail call i64 @schmu_doo(i32 0)
+    %0 = tail call i64 @schmu_doo(i32 0), !dbg !9
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
     ret i64 0
   }
   
   declare void @printf(ptr %0, ...)
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "import_nonpoly_func.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "doo", linkageName: "schmu_doo", scope: !1, file: !1, line: 4, type: !3, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 6, column: 3, scope: !2)
+  !6 = !DILocation(line: 6, column: 9, scope: !2)
+  !7 = !DILocation(line: 7, column: 10, scope: !2)
+  !8 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !9 = !DILocation(line: 10, scope: !8)
   $ ./import_nonpoly_func
   5
 
@@ -64,48 +85,66 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
   
-  define i64 @schmu_do2(i32 %0) {
+  define i64 @schmu_do2(i32 %0) !dbg !2 {
   entry:
     %a = alloca i32, align 4
     store i32 %0, ptr %a, align 4
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %then, label %else
+    br i1 %eq, label %then, label %else, !dbg !5
   
   then:                                             ; preds = %entry
-    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5)
+    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5), !dbg !6
     ret i64 %1
   
   else:                                             ; preds = %entry
-    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5)
+    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5), !dbg !7
     ret i64 %2
   }
   
-  define i64 @schmu_doo(i32 %0) {
+  define i64 @schmu_doo(i32 %0) !dbg !8 {
   entry:
     %a = alloca i32, align 4
     store i32 %0, ptr %a, align 4
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %then, label %else
+    br i1 %eq, label %then, label %else, !dbg !9
   
   then:                                             ; preds = %entry
-    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5)
+    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5), !dbg !10
     ret i64 %1
   
   else:                                             ; preds = %entry
-    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5)
+    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5), !dbg !11
     ret i64 %2
   }
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !12 {
   entry:
-    %0 = tail call i64 @schmu_doo(i32 0)
+    %0 = tail call i64 @schmu_doo(i32 0), !dbg !13
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
-    %1 = tail call i64 @schmu_do2(i32 0)
+    %1 = tail call i64 @schmu_do2(i32 0), !dbg !14
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
     ret i64 0
   }
   
   declare void @printf(ptr %0, ...)
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "local_import_nonpoly_func.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "do2", linkageName: "schmu_do2", scope: !1, file: !1, line: 10, type: !3, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 13, column: 4, scope: !2)
+  !6 = !DILocation(line: 13, column: 10, scope: !2)
+  !7 = !DILocation(line: 14, column: 11, scope: !2)
+  !8 = distinct !DISubprogram(name: "doo", linkageName: "schmu_doo", scope: !1, file: !1, line: 3, type: !3, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !9 = !DILocation(line: 6, column: 4, scope: !8)
+  !10 = !DILocation(line: 6, column: 10, scope: !8)
+  !11 = !DILocation(line: 7, column: 11, scope: !8)
+  !12 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !13 = !DILocation(line: 17, scope: !12)
+  !14 = !DILocation(line: 18, scope: !12)
   $ ./local_import_nonpoly_func
   5
   5
@@ -120,17 +159,27 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @lets_b = global i64 0, align 8
   @llvm.global_ctors = appending global [1 x { i32, ptr, ptr }] [{ i32, ptr, ptr } { i32 65535, ptr @__lets_init, ptr null }]
   
-  define i64 @lets_generate_b() {
+  define i64 @lets_generate_b() !dbg !2 {
   entry:
     ret i64 21
   }
   
-  define internal void @__lets_init() section ".text.startup" {
+  define internal void @__lets_init() section ".text.startup" !dbg !5 {
   entry:
-    %0 = tail call i64 @lets_generate_b()
+    %0 = tail call i64 @lets_generate_b(), !dbg !6
     store i64 %0, ptr @lets_b, align 8
     ret void
   }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "lets.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "generate_b", linkageName: "lets_generate_b", scope: !1, file: !1, line: 5, type: !3, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = distinct !DISubprogram(name: "__lets_init", linkageName: "__lets_init", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !6 = !DILocation(line: 7, column: 8, scope: !5)
 
   $ schmu import_lets.smu --dump-llvm
   ; ModuleID = 'context'
@@ -145,34 +194,54 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(ptr %0, i64 %1)
   
-  define void @schmu_inside_fn() {
+  define void @schmu_inside_fn() !dbg !2 {
   entry:
-    tail call void @schmu_second()
+    tail call void @schmu_second(), !dbg !5
     ret void
   }
   
-  define void @schmu_second() {
+  define void @schmu_second() !dbg !6 {
   entry:
-    %0 = tail call ptr @string_data(ptr @0)
+    %0 = tail call ptr @string_data(ptr @0), !dbg !7
     %1 = load i64, ptr @lets_a__2, align 8
-    tail call void @printf(ptr %0, i64 %1)
-    %2 = tail call ptr @string_data(ptr @0)
+    tail call void @printf(ptr %0, i64 %1), !dbg !8
+    %2 = tail call ptr @string_data(ptr @0), !dbg !9
     %3 = load i64, ptr @lets_b, align 8
-    tail call void @printf(ptr %2, i64 %3)
+    tail call void @printf(ptr %2, i64 %3), !dbg !10
     ret void
   }
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !11 {
   entry:
-    %0 = tail call ptr @string_data(ptr @0)
+    %0 = tail call ptr @string_data(ptr @0), !dbg !12
     %1 = load i64, ptr @lets_a__2, align 8
-    tail call void @printf(ptr %0, i64 %1)
-    %2 = tail call ptr @string_data(ptr @0)
+    tail call void @printf(ptr %0, i64 %1), !dbg !13
+    %2 = tail call ptr @string_data(ptr @0), !dbg !14
     %3 = load i64, ptr @lets_b, align 8
-    tail call void @printf(ptr %2, i64 %3)
-    tail call void @schmu_inside_fn()
+    tail call void @printf(ptr %2, i64 %3), !dbg !15
+    tail call void @schmu_inside_fn(), !dbg !16
     ret i64 0
   }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "import_lets.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "inside_fn", linkageName: "schmu_inside_fn", scope: !1, file: !1, line: 8, type: !3, scopeLine: 8, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 14, column: 2, scope: !2)
+  !6 = distinct !DISubprogram(name: "second", linkageName: "schmu_second", scope: !1, file: !1, line: 10, type: !3, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !7 = !DILocation(line: 11, column: 11, scope: !6)
+  !8 = !DILocation(line: 11, column: 4, scope: !6)
+  !9 = !DILocation(line: 12, column: 11, scope: !6)
+  !10 = !DILocation(line: 12, column: 4, scope: !6)
+  !11 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !12 = !DILocation(line: 5, column: 7, scope: !11)
+  !13 = !DILocation(line: 5, scope: !11)
+  !14 = !DILocation(line: 6, column: 7, scope: !11)
+  !15 = !DILocation(line: 6, scope: !11)
+  !16 = !DILocation(line: 16, scope: !11)
   $ ./import_lets
   11
   21
@@ -192,22 +261,38 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(ptr %0, i64 %1)
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !2 {
   entry:
-    %0 = tail call ptr @string_data(ptr @0)
+    %0 = tail call ptr @string_data(ptr @0), !dbg !5
     %1 = load i64, ptr @lets_a__2, align 8
-    tail call void @printf(ptr %0, i64 %1)
-    %2 = tail call ptr @string_data(ptr @0)
+    tail call void @printf(ptr %0, i64 %1), !dbg !6
+    %2 = tail call ptr @string_data(ptr @0), !dbg !7
     %3 = load i64, ptr @lets_b, align 8
-    tail call void @printf(ptr %2, i64 %3)
-    %4 = tail call ptr @string_data(ptr @0)
+    tail call void @printf(ptr %2, i64 %3), !dbg !8
+    %4 = tail call ptr @string_data(ptr @0), !dbg !9
     %5 = load i64, ptr @lets_a__2, align 8
-    tail call void @printf(ptr %4, i64 %5)
-    %6 = tail call ptr @string_data(ptr @0)
+    tail call void @printf(ptr %4, i64 %5), !dbg !10
+    %6 = tail call ptr @string_data(ptr @0), !dbg !11
     %7 = load i64, ptr @lets_b, align 8
-    tail call void @printf(ptr %6, i64 %7)
+    tail call void @printf(ptr %6, i64 %7), !dbg !12
     ret i64 0
   }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "local_import_lets.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 3, column: 12, scope: !2)
+  !6 = !DILocation(line: 3, scope: !2)
+  !7 = !DILocation(line: 4, column: 13, scope: !2)
+  !8 = !DILocation(line: 4, column: 6, scope: !2)
+  !9 = !DILocation(line: 6, column: 9, scope: !2)
+  !10 = !DILocation(line: 6, column: 2, scope: !2)
+  !11 = !DILocation(line: 7, column: 9, scope: !2)
+  !12 = !DILocation(line: 7, column: 2, scope: !2)
   $ ./local_import_lets
   11
   21
@@ -218,6 +303,11 @@ Simplest module with 1 type and 1 nonpolymorphic function
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "poly_func.smu", directory: "$TESTCASE_ROOT")
   $ cat poly_func.smi | sed -E 's/([0-9]+:\/.*lib\/schmu\/std)//'
   (()((5:Mtype(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:80)(8:pos_cnum2:80))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:80)(8:pos_cnum3:113)))6:option((6:params((4:Qvar2:40)))(4:kind(8:Dvariant5:false(((5:cname4:some)(4:ctyp((4:Qvar2:40)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(6:in_sgn5:false)))(9:Mpoly_fun(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol3:115)(8:pos_cnum3:119))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:9)(7:pos_bol3:184)(8:pos_cnum3:185)))((7:nparams(5:thing))(4:body((3:typ(7:Tconstr3:int()))(4:expr(4:Move((3:typ(7:Tconstr3:int()))(4:expr(4:Bind7:__expr0((3:typ(7:Tconstr16:poly_func/option((4:Qvar1:1))))(4:expr(3:Var5:thing()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:145))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:150)))))((3:typ(7:Tconstr3:int()))(4:expr(2:If((3:typ(7:Tconstr4:bool()))(4:expr(3:Bop7:Equal_i((3:typ(7:Tconstr3:i32()))(4:expr(13:Variant_index((3:typ(7:Tconstr16:poly_func/option((4:Qvar1:1))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:139))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:150)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))((3:typ(7:Tconstr3:i32()))(4:expr(5:Const(3:I321:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))(4:true)((3:typ(7:Tconstr3:int()))(4:expr(4:Bind7:__expr0((3:typ(4:Qvar1:1))(4:expr(12:Variant_data((3:typ(7:Tconstr16:poly_func/option((4:Qvar1:1))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:139))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:150)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))((3:typ(7:Tconstr3:int()))(4:expr(5:Const(3:Int1:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:166))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:167)))))))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:166))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:167)))))((3:typ(7:Tconstr3:int()))(4:expr(4:Bind7:__expr0((3:typ(7:Tconstr16:poly_func/option((4:Qvar1:1))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))((3:typ(7:Tconstr3:int()))(4:expr(5:Const(3:Int1:1)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:7)(7:pos_bol3:168)(8:pos_cnum3:178))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:7)(7:pos_bol3:168)(8:pos_cnum3:179)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:7)(7:pos_bol3:168)(8:pos_cnum3:172))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:7)(7:pos_bol3:168)(8:pos_cnum3:176)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161))))))(4:func((7:tparams(((2:pt(7:Tconstr16:poly_func/option((4:Qvar1:1))))(5:pattr5:Dnorm))))(3:ret(7:Tconstr3:int()))(4:kind6:Simple)(7:touched())))(6:inline5:false)(6:is_rec5:false))8:classify()))((/std/string5:false)))
 
@@ -232,14 +322,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @schmu_none = constant %poly_func.optiond_ { i32 1, double undef }
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  define linkonce_odr i64 @__poly_func_classify_vd__(i32 %0, double %1) {
+  define linkonce_odr i64 @__poly_func_classify_vd__(i32 %0, double %1) !dbg !2 {
   entry:
     %thing = alloca { i32, double }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, double }, ptr %thing, i32 0, i32 1
     store double %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else
+    br i1 %eq, label %ifcont, label %else, !dbg !5
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -249,14 +339,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__poly_func_classify_vl__(i32 %0, i64 %1) {
+  define linkonce_odr i64 @__poly_func_classify_vl__(i32 %0, i64 %1) !dbg !6 {
   entry:
     %thing = alloca { i32, i64 }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %thing, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else
+    br i1 %eq, label %ifcont, label %else, !dbg !7
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -266,28 +356,43 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !8 {
   entry:
     %boxconst = alloca %poly_func.optionl_, align 8
     store %poly_func.optionl_ { i32 0, i64 3 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
-    %0 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2)
+    %0 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2), !dbg !9
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
     %boxconst3 = alloca %poly_func.optiond_, align 8
     store %poly_func.optiond_ { i32 0, double 3.000000e+00 }, ptr %boxconst3, align 8
     %fst5 = load i32, ptr %boxconst3, align 4
     %snd6 = getelementptr inbounds { i32, double }, ptr %boxconst3, i32 0, i32 1
     %snd7 = load double, ptr %snd6, align 8
-    %1 = tail call i64 @__poly_func_classify_vd__(i32 %fst5, double %snd7)
+    %1 = tail call i64 @__poly_func_classify_vd__(i32 %fst5, double %snd7), !dbg !10
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
-    %2 = tail call i64 @__poly_func_classify_vd__(i32 1, double undef)
+    %2 = tail call i64 @__poly_func_classify_vd__(i32 1, double undef), !dbg !11
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %2)
     ret i64 0
   }
   
   declare void @printf(ptr %0, ...)
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "import_poly_func.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vd__", scope: !1, file: !1, line: 4, type: !3, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 6, column: 4, scope: !2)
+  !6 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vl__", scope: !1, file: !1, line: 4, type: !3, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !7 = !DILocation(line: 6, column: 4, scope: !6)
+  !8 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !9 = !DILocation(line: 5, scope: !8)
+  !10 = !DILocation(line: 6, scope: !8)
+  !11 = !DILocation(line: 8, scope: !8)
   $ ./import_poly_func
   0
   0
@@ -304,14 +409,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @schmu_none = constant %poly_func.optiond_ { i32 1, double undef }
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  define linkonce_odr i64 @__poly_func_classify_vd__(i32 %0, double %1) {
+  define linkonce_odr i64 @__poly_func_classify_vd__(i32 %0, double %1) !dbg !2 {
   entry:
     %thing = alloca { i32, double }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, double }, ptr %thing, i32 0, i32 1
     store double %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else
+    br i1 %eq, label %ifcont, label %else, !dbg !5
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -321,14 +426,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__poly_func_classify_vl__(i32 %0, i64 %1) {
+  define linkonce_odr i64 @__poly_func_classify_vl__(i32 %0, i64 %1) !dbg !6 {
   entry:
     %thing = alloca { i32, i64 }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %thing, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else
+    br i1 %eq, label %ifcont, label %else, !dbg !7
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -338,28 +443,43 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !8 {
   entry:
     %boxconst = alloca %poly_func.optionl_, align 8
     store %poly_func.optionl_ { i32 0, i64 3 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
-    %0 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2)
+    %0 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2), !dbg !9
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
     %boxconst3 = alloca %poly_func.optiond_, align 8
     store %poly_func.optiond_ { i32 0, double 3.000000e+00 }, ptr %boxconst3, align 8
     %fst5 = load i32, ptr %boxconst3, align 4
     %snd6 = getelementptr inbounds { i32, double }, ptr %boxconst3, i32 0, i32 1
     %snd7 = load double, ptr %snd6, align 8
-    %1 = tail call i64 @__poly_func_classify_vd__(i32 %fst5, double %snd7)
+    %1 = tail call i64 @__poly_func_classify_vd__(i32 %fst5, double %snd7), !dbg !10
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
-    %2 = tail call i64 @__poly_func_classify_vd__(i32 1, double undef)
+    %2 = tail call i64 @__poly_func_classify_vd__(i32 1, double undef), !dbg !11
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %2)
     ret i64 0
   }
   
   declare void @printf(ptr %0, ...)
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "local_import_poly_func.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vd__", scope: !1, file: !1, line: 4, type: !3, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 6, column: 4, scope: !2)
+  !6 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vl__", scope: !1, file: !1, line: 4, type: !3, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !7 = !DILocation(line: 6, column: 4, scope: !6)
+  !8 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !9 = !DILocation(line: 3, scope: !8)
+  !10 = !DILocation(line: 4, scope: !8)
+  !11 = !DILocation(line: 6, column: 11, scope: !8)
   $ ./local_import_poly_func
   0
   0
@@ -377,15 +497,15 @@ Simplest module with 1 type and 1 nonpolymorphic function
   @llvm.global_ctors = appending global [1 x { i32, ptr, ptr }] [{ i32, ptr, ptr } { i32 65535, ptr @__malloc_some_init, ptr null }]
   @llvm.global_dtors = appending global [1 x { i32, ptr, ptr }] [{ i32, ptr, ptr } { i32 65535, ptr @__malloc_some_deinit, ptr null }]
   
-  define i64 @malloc_some_add_ints(i64 %a, i64 %b) {
+  define i64 @malloc_some_add_ints(i64 %a, i64 %b) !dbg !2 {
   entry:
     %add = add i64 %a, %b
     ret i64 %add
   }
   
-  define internal void @__malloc_some_init() section ".text.startup" {
+  define internal void @__malloc_some_init() section ".text.startup" !dbg !5 {
   entry:
-    %0 = tail call i64 @malloc_some_add_ints(i64 1, i64 3)
+    %0 = tail call i64 @malloc_some_add_ints(i64 1, i64 3), !dbg !6
     store i64 %0, ptr @malloc_some_b, align 8
     %1 = tail call ptr @malloc(i64 32)
     store ptr %1, ptr @malloc_some_vtest, align 8
@@ -408,7 +528,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare ptr @malloc(i64 %0)
   
-  define internal void @__malloc_some_deinit() section ".text.startup" {
+  define internal void @__malloc_some_deinit() section ".text.startup" !dbg !7 {
   entry:
     tail call void @__free_al_(ptr @malloc_some_vtest2)
     tail call void @__free_al_(ptr @malloc_some_vtest)
@@ -423,6 +543,17 @@ Simplest module with 1 type and 1 nonpolymorphic function
   }
   
   declare void @free(ptr %0)
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "malloc_some.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "add_ints", linkageName: "malloc_some_add_ints", scope: !1, file: !1, line: 3, type: !3, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = distinct !DISubprogram(name: "__malloc_some_init", linkageName: "__malloc_some_init", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !6 = !DILocation(line: 7, column: 8, scope: !5)
+  !7 = distinct !DISubprogram(name: "__malloc_some_deinit", linkageName: "__malloc_some_deinit", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
 
   $ cat malloc_some.smi | sed -E 's/([0-9]+:\/.*lib\/schmu\/std)//'
   (()((5:Mtype(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:29)))6:either((6:params())(4:kind(8:Dvariant5:false(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(6:in_sgn5:false)))(4:Mfun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:31)(8:pos_cnum2:35))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:31)(8:pos_cnum2:57)))(4:Tfun(((2:pt(7:Tconstr3:int()))(5:pattr5:Dnorm))((2:pt(7:Tconstr3:int()))(5:pattr5:Dnorm)))(7:Tconstr3:int())6:Simple)((4:user8:add_ints)(4:call((8:add_ints(11:malloc_some)())))))(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:59)(8:pos_cnum2:59))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:59)(8:pos_cnum2:69)))(7:Tconstr3:int())((4:user1:a)(4:call((1:a(11:malloc_some)()))))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:71)(8:pos_cnum2:71))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:71)(8:pos_cnum2:93)))(7:Tconstr3:int())((4:user1:b)(4:call((1:b(11:malloc_some)()))))5:false)(9:Mpoly_fun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum2:99))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:114)))((7:nparams(1:x))(4:body((3:typ(4:Qvar1:1))(4:expr(4:Move((3:typ(4:Qvar1:1))(4:expr(3:App(6:callee((3:typ(4:Tfun(((2:pt(4:Qvar1:1))(5:pattr5:Dnorm)))(4:Qvar1:1)6:Simple))(4:expr(3:Var4:copy()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:106))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:110))))))(4:args((((3:typ(4:Qvar1:1))(4:expr(3:Var1:x()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:111))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:112)))))5:Dnorm)))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:106))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:113)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:106))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:113))))))(4:func((7:tparams(((2:pt(4:Qvar1:1))(5:pattr5:Dnorm))))(3:ret(4:Qvar1:1))(4:kind6:Simple)(7:touched())))(6:inline5:false)(6:is_rec5:false))2:id())(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:116)(8:pos_cnum3:116))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:116)(8:pos_cnum3:134)))(7:Tconstr5:array((7:Tconstr3:int())))((4:user5:vtest)(4:call((5:vtest(11:malloc_some)()))))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:135)(8:pos_cnum3:135))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:135)(8:pos_cnum3:151)))(7:Tconstr5:array((7:Tconstr3:int())))((4:user6:vtest2)(4:call((6:vtest2(11:malloc_some)()))))5:false))((/std/string5:false)))
@@ -446,7 +577,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(ptr %0, i64 %1)
   
-  define linkonce_odr void @__array_inner_Cal_lru__(i64 %i, ptr %0) {
+  define linkonce_odr void @__array_inner_Cal_lru__(i64 %i, ptr %0) !dbg !2 {
   entry:
     %arr = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %0, i32 0, i32 2
     %arr1 = load ptr, ptr %arr, align 8
@@ -460,7 +591,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %3 = add i64 %lsr.iv, -1
     %4 = load i64, ptr %arr1, align 8
     %eq = icmp eq i64 %3, %4
-    br i1 %eq, label %then, label %else
+    br i1 %eq, label %then, label %else, !dbg !5
   
   then:                                             ; preds = %rec
     ret void
@@ -474,13 +605,13 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %loadtmp = load ptr, ptr %sunkaddr, align 8
     %sunkaddr4 = getelementptr inbounds i8, ptr %0, i64 32
     %loadtmp2 = load ptr, ptr %sunkaddr4, align 8
-    tail call void %loadtmp(i64 %6, ptr %loadtmp2)
+    tail call void %loadtmp(i64 %6, ptr %loadtmp2), !dbg !6
     store i64 %lsr.iv, ptr %1, align 8
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec
   }
   
-  define linkonce_odr void @__array_iter_al_lru__(ptr %arr, ptr %f) {
+  define linkonce_odr void @__array_iter_al_lru__(ptr %arr, ptr %f) !dbg !7 {
   entry:
     %__array_inner_Cal_lru__ = alloca %closure, align 8
     store ptr @__array_inner_Cal_lru__, ptr %__array_inner_Cal_lru__, align 8
@@ -494,21 +625,21 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store ptr null, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %__array_inner_Cal_lru__, i32 0, i32 1
     store ptr %clsr___array_inner_Cal_lru__, ptr %envptr, align 8
-    call void @__array_inner_Cal_lru__(i64 0, ptr %clsr___array_inner_Cal_lru__)
+    call void @__array_inner_Cal_lru__(i64 0, ptr %clsr___array_inner_Cal_lru__), !dbg !8
     ret void
   }
   
-  define i64 @schmu_do_something(ptr %big) {
+  define i64 @schmu_do_something(ptr %big) !dbg !9 {
   entry:
     %0 = load i64, ptr %big, align 8
     %add = add i64 %0, 1
     ret i64 %add
   }
   
-  define void @schmu_printi(i64 %i) {
+  define void @schmu_printi(i64 %i) !dbg !10 {
   entry:
-    %0 = tail call ptr @string_data(ptr @0)
-    tail call void @printf(ptr %0, i64 %i)
+    %0 = tail call ptr @string_data(ptr @0), !dbg !11
+    tail call void @printf(ptr %0, i64 %i), !dbg !12
     ret void
   }
   
@@ -562,18 +693,36 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !13 {
   entry:
     %0 = load ptr, ptr @malloc_some_vtest, align 8
     %clstmp = alloca %closure, align 8
     store ptr @schmu_printi, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @__array_iter_al_lru__(ptr %0, ptr %clstmp)
+    call void @__array_iter_al_lru__(ptr %0, ptr %clstmp), !dbg !14
     ret i64 0
   }
   
   attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "use_malloc_some.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner_Cal_lru__", scope: !1, file: !1, line: 32, type: !3, scopeLine: 32, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 33, column: 7, scope: !2)
+  !6 = !DILocation(line: 36, column: 6, scope: !2)
+  !7 = distinct !DISubprogram(name: "_array_iter", linkageName: "__array_iter_al_lru__", scope: !1, file: !1, line: 31, type: !3, scopeLine: 31, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !8 = !DILocation(line: 41, column: 2, scope: !7)
+  !9 = distinct !DISubprogram(name: "do_something", linkageName: "schmu_do_something", scope: !1, file: !1, line: 5, type: !3, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !10 = distinct !DISubprogram(name: "printi", linkageName: "schmu_printi", scope: !1, file: !1, line: 10, type: !3, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !11 = !DILocation(line: 11, column: 9, scope: !10)
+  !12 = !DILocation(line: 11, column: 2, scope: !10)
+  !13 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !14 = !DILocation(line: 13, scope: !13)
   $ ./use_malloc_some
   0
   1
@@ -663,41 +812,60 @@ Local modules
   
   declare void @string_println(ptr %0)
   
-  define linkonce_odr void @__schmu_local_poly_test_ac__(ptr %a) {
+  define linkonce_odr void @__schmu_local_poly_test_ac__(ptr %a) !dbg !2 {
   entry:
     %0 = getelementptr i8, ptr %a, i64 16
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @1, i64 16), ptr %0)
     ret void
   }
   
-  define void @schmu_local_test() {
+  define void @schmu_local_test() !dbg !5 {
   entry:
-    tail call void @string_println(ptr @2)
+    tail call void @string_println(ptr @2), !dbg !6
     ret void
   }
   
-  define void @schmu_nosig_nested_nested() {
+  define void @schmu_nosig_nested_nested() !dbg !7 {
   entry:
-    tail call void @string_println(ptr @3)
+    tail call void @string_println(ptr @3), !dbg !8
     ret void
   }
   
-  define void @schmu_test() {
+  define void @schmu_test() !dbg !9 {
   entry:
-    tail call void @string_println(ptr @4)
+    tail call void @string_println(ptr @4), !dbg !10
     ret void
   }
   
   declare void @printf(ptr %0, ...)
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !11 {
   entry:
-    tail call void @schmu_test()
-    tail call void @schmu_local_test()
-    tail call void @__schmu_local_poly_test_ac__(ptr @0)
-    tail call void @schmu_nosig_nested_nested()
+    tail call void @schmu_test(), !dbg !12
+    tail call void @schmu_local_test(), !dbg !13
+    tail call void @__schmu_local_poly_test_ac__(ptr @0), !dbg !14
+    tail call void @schmu_nosig_nested_nested(), !dbg !15
     ret i64 0
   }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "local_module.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "_schmu_local_poly_test", linkageName: "__schmu_local_poly_test_ac__", scope: !1, file: !1, line: 17, type: !3, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = distinct !DISubprogram(name: "_schmu_local_test", linkageName: "schmu_local_test", scope: !1, file: !1, line: 14, type: !3, scopeLine: 14, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !6 = !DILocation(line: 15, column: 4, scope: !5)
+  !7 = distinct !DISubprogram(name: "_schmu_nosig_nested_nested", linkageName: "schmu_nosig_nested_nested", scope: !1, file: !1, line: 32, type: !3, scopeLine: 32, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !8 = !DILocation(line: 33, column: 6, scope: !7)
+  !9 = distinct !DISubprogram(name: "test", linkageName: "schmu_test", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !10 = !DILocation(line: 1, column: 12, scope: !9)
+  !11 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !12 = !DILocation(line: 23, scope: !11)
+  !13 = !DILocation(line: 25, scope: !11)
+  !14 = !DILocation(line: 26, scope: !11)
+  !15 = !DILocation(line: 40, scope: !11)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./local_module
   hey test
   hey thing
@@ -752,10 +920,18 @@ Local modules can shadow types. Use unique type names in codegen
   @schmu_nosig_t = constant %nosig.t_ { i64 10, i64 20 }
   @schmu_nosig_nested_t = constant %nosig.nested.t_ { i64 10, i64 20, i64 30 }
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !2 {
   entry:
     ret i64 0
   }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "local_module_type_shadowing.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
 
 Search for modules when variables cannot be found
   $ schmu err_local_otherfile.smu
@@ -800,22 +976,34 @@ Transitive polymorphic dependency needs to be available
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  define linkonce_odr i64 @__direct_dep_id_lrl_(i64 %a) {
+  define linkonce_odr i64 @__direct_dep_id_lrl_(i64 %a) !dbg !2 {
   entry:
-    %0 = tail call i64 @__transitive_id_lrl_(i64 %a)
+    %0 = tail call i64 @__transitive_id_lrl_(i64 %a), !dbg !5
     ret i64 %0
   }
   
-  define linkonce_odr i64 @__transitive_id_lrl_(i64 %a) {
+  define linkonce_odr i64 @__transitive_id_lrl_(i64 %a) !dbg !6 {
   entry:
     ret i64 %a
   }
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !7 {
   entry:
-    %0 = tail call i64 @__direct_dep_id_lrl_(i64 10)
+    %0 = tail call i64 @__direct_dep_id_lrl_(i64 10), !dbg !8
     ret i64 %0
   }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "use_dep.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "_direct_dep_id", linkageName: "__direct_dep_id_lrl_", scope: !1, file: !1, line: 3, type: !3, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = !DILocation(line: 3, column: 12, scope: !2)
+  !6 = distinct !DISubprogram(name: "_transitive_id", linkageName: "__transitive_id_lrl_", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !7 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !8 = !DILocation(line: 3, scope: !7)
 
 Apply local functors
   $ schmu --dump-llvm local_functor.smu
@@ -829,33 +1017,33 @@ Apply local functors
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"%.9g\0A\00" }
   
-  define double @schmu_floata_add(double %a, double %b) {
+  define double @schmu_floata_add(double %a, double %b) !dbg !2 {
   entry:
     %add = fadd double %a, %b
     ret double %add
   }
   
-  define double @schmu_floatadder_add_twice(double %a, double %b) {
+  define double @schmu_floatadder_add_twice(double %a, double %b) !dbg !5 {
   entry:
-    %0 = tail call double @schmu_floata_add(double %a, double %b)
-    %1 = tail call double @schmu_floata_add(double %0, double %b)
+    %0 = tail call double @schmu_floata_add(double %a, double %b), !dbg !6
+    %1 = tail call double @schmu_floata_add(double %0, double %b), !dbg !7
     ret double %1
   }
   
-  define i64 @schmu_inta_add(i64 %a, i64 %b) {
+  define i64 @schmu_inta_add(i64 %a, i64 %b) !dbg !8 {
   entry:
     %add = add i64 %a, %b
     ret i64 %add
   }
   
-  define i64 @schmu_intadder_add_twice(i64 %a, i64 %b) {
+  define i64 @schmu_intadder_add_twice(i64 %a, i64 %b) !dbg !9 {
   entry:
-    %0 = tail call i64 @schmu_inta_add(i64 %a, i64 %b)
-    %1 = tail call i64 @schmu_inta_add(i64 %0, i64 %b)
+    %0 = tail call i64 @schmu_inta_add(i64 %a, i64 %b), !dbg !10
+    %1 = tail call i64 @schmu_inta_add(i64 %0, i64 %b), !dbg !11
     ret i64 %1
   }
   
-  define i64 @schmu_outa_add(i64 %0, i64 %1) {
+  define i64 @schmu_outa_add(i64 %0, i64 %1) !dbg !12 {
   entry:
     %a = alloca i64, align 8
     store i64 %0, ptr %a, align 8
@@ -867,22 +1055,22 @@ Apply local functors
     ret i64 %add
   }
   
-  define i64 @schmu_outeradder_add_twice(i64 %0, i64 %1) {
+  define i64 @schmu_outeradder_add_twice(i64 %0, i64 %1) !dbg !13 {
   entry:
     %a = alloca i64, align 8
     store i64 %0, ptr %a, align 8
     %b = alloca i64, align 8
     store i64 %1, ptr %b, align 8
     %ret = alloca %outer.t_, align 8
-    %2 = tail call i64 @schmu_outa_add(i64 %0, i64 %1)
+    %2 = tail call i64 @schmu_outa_add(i64 %0, i64 %1), !dbg !14
     store i64 %2, ptr %ret, align 8
     %ret4 = alloca %outer.t_, align 8
-    %3 = tail call i64 @schmu_outa_add(i64 %2, i64 %1)
+    %3 = tail call i64 @schmu_outa_add(i64 %2, i64 %1), !dbg !15
     store i64 %3, ptr %ret4, align 8
     ret i64 %3
   }
   
-  define { i64, i64 } @schmu_recadder_add_twice(i64 %0, i64 %1, i64 %2, i64 %3) {
+  define { i64, i64 } @schmu_recadder_add_twice(i64 %0, i64 %1, i64 %2, i64 %3) !dbg !16 {
   entry:
     %a = alloca { i64, i64 }, align 8
     store i64 %0, ptr %a, align 8
@@ -893,18 +1081,18 @@ Apply local functors
     %snd2 = getelementptr inbounds { i64, i64 }, ptr %b, i32 0, i32 1
     store i64 %3, ptr %snd2, align 8
     %ret = alloca %somerec.t_, align 8
-    %4 = tail call { i64, i64 } @schmu_somerec_add(i64 %0, i64 %1, i64 %2, i64 %3)
+    %4 = tail call { i64, i64 } @schmu_somerec_add(i64 %0, i64 %1, i64 %2, i64 %3), !dbg !17
     store { i64, i64 } %4, ptr %ret, align 8
     %fst12 = load i64, ptr %ret, align 8
     %snd13 = getelementptr inbounds { i64, i64 }, ptr %ret, i32 0, i32 1
     %snd14 = load i64, ptr %snd13, align 8
     %ret19 = alloca %somerec.t_, align 8
-    %5 = tail call { i64, i64 } @schmu_somerec_add(i64 %fst12, i64 %snd14, i64 %2, i64 %3)
+    %5 = tail call { i64, i64 } @schmu_somerec_add(i64 %fst12, i64 %snd14, i64 %2, i64 %3), !dbg !18
     store { i64, i64 } %5, ptr %ret19, align 8
     ret { i64, i64 } %5
   }
   
-  define { i64, i64 } @schmu_somerec_add(i64 %0, i64 %1, i64 %2, i64 %3) {
+  define { i64, i64 } @schmu_somerec_add(i64 %0, i64 %1, i64 %2, i64 %3) !dbg !19 {
   entry:
     %a = alloca { i64, i64 }, align 8
     store i64 %0, ptr %a, align 8
@@ -924,16 +1112,42 @@ Apply local functors
     ret { i64, i64 } %unbox
   }
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !20 {
   entry:
-    %0 = tail call i64 @schmu_intadder_add_twice(i64 1, i64 2)
+    %0 = tail call i64 @schmu_intadder_add_twice(i64 1, i64 2), !dbg !21
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
-    %1 = tail call double @schmu_floatadder_add_twice(double 1.000000e+00, double 2.000000e+00)
+    %1 = tail call double @schmu_floatadder_add_twice(double 1.000000e+00, double 2.000000e+00), !dbg !22
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @1, i64 16), double %1)
     ret i64 0
   }
   
   declare void @printf(ptr %0, ...)
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "local_functor.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "_schmu_floata_add", linkageName: "schmu_floata_add", scope: !1, file: !1, line: 24, type: !3, scopeLine: 24, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = distinct !DISubprogram(name: "_schmu_floatadder_add_twice", linkageName: "schmu_floatadder_add_twice", scope: !1, file: !1, line: 9, type: !3, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !6 = !DILocation(line: 9, column: 29, scope: !5)
+  !7 = !DILocation(line: 9, column: 23, scope: !5)
+  !8 = distinct !DISubprogram(name: "_schmu_inta_add", linkageName: "schmu_inta_add", scope: !1, file: !1, line: 17, type: !3, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !9 = distinct !DISubprogram(name: "_schmu_intadder_add_twice", linkageName: "schmu_intadder_add_twice", scope: !1, file: !1, line: 9, type: !3, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !10 = !DILocation(line: 9, column: 29, scope: !9)
+  !11 = !DILocation(line: 9, column: 23, scope: !9)
+  !12 = distinct !DISubprogram(name: "_schmu_outa_add", linkageName: "schmu_outa_add", scope: !1, file: !1, line: 13, type: !3, scopeLine: 13, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !13 = distinct !DISubprogram(name: "_schmu_outeradder_add_twice", linkageName: "schmu_outeradder_add_twice", scope: !1, file: !1, line: 9, type: !3, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !14 = !DILocation(line: 9, column: 29, scope: !13)
+  !15 = !DILocation(line: 9, column: 23, scope: !13)
+  !16 = distinct !DISubprogram(name: "_schmu_recadder_add_twice", linkageName: "schmu_recadder_add_twice", scope: !1, file: !1, line: 9, type: !3, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !17 = !DILocation(line: 9, column: 29, scope: !16)
+  !18 = !DILocation(line: 9, column: 23, scope: !16)
+  !19 = distinct !DISubprogram(name: "_schmu_somerec_add", linkageName: "schmu_somerec_add", scope: !1, file: !1, line: 28, type: !3, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !20 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !21 = !DILocation(line: 37, column: 12, scope: !20)
+  !22 = !DILocation(line: 38, column: 12, scope: !20)
   $ ./local_functor
   5
   5
@@ -951,7 +1165,7 @@ Simple functor
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"this\00" }
   @2 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"other\00" }
   
-  define linkonce_odr { i64, i64 } @__schmu_s_create_ac_rac_ac2__(ptr %this, ptr %other) {
+  define linkonce_odr { i64, i64 } @__schmu_s_create_ac_rac_ac2__(ptr %this, ptr %other) !dbg !2 {
   entry:
     %0 = getelementptr i8, ptr %this, i64 16
     %1 = getelementptr i8, ptr %other, i64 16
@@ -966,7 +1180,7 @@ Simple functor
   
   declare void @printf(ptr %0, ...)
   
-  define i64 @main(i64 %arg) {
+  define i64 @main(i64 %arg) !dbg !5 {
   entry:
     %0 = alloca ptr, align 8
     store ptr @1, ptr %0, align 8
@@ -981,7 +1195,7 @@ Simple functor
     call void @__copy_ac_(ptr %4)
     %5 = load ptr, ptr %4, align 8
     %ret = alloca %s.otherac__, align 8
-    %6 = call { i64, i64 } @__schmu_s_create_ac_rac_ac2__(ptr %2, ptr %5)
+    %6 = call { i64, i64 } @__schmu_s_create_ac_rac_ac2__(ptr %2, ptr %5), !dbg !6
     store { i64, i64 } %6, ptr %ret, align 8
     call void @__free_ac_ac2_(ptr %ret)
     ret i64 0
@@ -1028,6 +1242,16 @@ Simple functor
   declare void @free(ptr %0)
   
   attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "use_simple_functor.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "_schmu_s_create", linkageName: "__schmu_s_create_ac_rac_ac2__", scope: !1, file: !1, line: 8, type: !3, scopeLine: 8, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
+  !4 = !{}
+  !5 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !6 = !DILocation(line: 5, column: 7, scope: !5)
   $ ./use_simple_functor
   create: this other
 
