@@ -166,9 +166,12 @@ let rec cln ss p = function
   | Tconstr (Pid "bool", _) -> Tbool
   | Tconstr (Pid "unit", _) -> Tunit
   | Tconstr (Pid "float", _) -> Tfloat
+  | Tconstr (Pid "i8", _) -> Ti8
   | Tconstr (Pid "u8", _) -> Tu8
+  | Tconstr (Pid "i16", _) -> Ti16
   | Tconstr (Pid "u16", _) -> Tu16
   | Tconstr (Pid "i32", _) -> Ti32
+  | Tconstr (Pid "u32", _) -> Tu32
   | Tconstr (Pid "f32", _) -> Tf32
   | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
   | Tfun (params, ret, kind) ->

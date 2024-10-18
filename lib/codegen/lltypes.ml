@@ -18,10 +18,10 @@ module Make (A : Abi_intf.S) = struct
   let rec get_lltype_def = function
     | Tint -> int_t
     | Tbool -> bool_t
-    | Tu8 -> u8_t
-    | Tu16 -> u16_t
+    | Ti8 | Tu8 -> u8_t
+    | Ti16 | Tu16 -> u16_t
     | Tfloat -> float_t
-    | Ti32 -> i32_t
+    | Ti32 | Tu32 -> i32_t
     | Tf32 -> f32_t
     | Tunit -> unit_t
     | Tpoly _ -> ptr_t
@@ -33,7 +33,7 @@ module Make (A : Abi_intf.S) = struct
 
   and get_lltype_param mut = function
     | ( Tint | Tbool | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Tunit | Tpoly _
-      | Traw_ptr _ | Tarray _ ) as t ->
+      | Traw_ptr _ | Tarray _ | Ti8 | Ti16 | Tu32 ) as t ->
         let t = get_lltype_def t in
         if mut then ptr_t else t
     | Tfun _ -> ptr_t

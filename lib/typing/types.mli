@@ -46,9 +46,12 @@ val tunit : typ
 val tint : typ
 val tfloat : typ
 val ti32 : typ
+val tu32 : typ
 val tf32 : typ
 val tbool : typ
+val ti8 : typ
 val tu8 : typ
+val ti16 : typ
 val tu16 : typ
 val tarray : typ -> typ
 val traw_ptr : typ -> typ

@@ -110,8 +110,8 @@ struct
 
   let default_kind = function
     | t when is_struct t -> Ptr
-    | Tint | Tbool | Tfloat | Tu8 | Tu16 | Ti32 | Tf32 | Tunit | Traw_ptr _
-    | Tarray _ | Trc _ ->
+    | Tint | Tbool | Tfloat | Tu8 | Tu16 | Ti32 | Tf32 | Ti8 | Ti16 | Tu32
+    | Tunit | Traw_ptr _ | Tarray _ | Trc _ ->
         Imm
     | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ | Tfixed_array _ ->
         failwith "unreachable"
@@ -249,8 +249,12 @@ struct
         let v = { value; typ; lltyp; kind = Imm } in
         let ptr = Arr.array_data [ v ] in
         ("%s", ptr.value)
+    | Ti8 -> ("%dhh", v.value)
     | Tu8 -> ("%c", v.value)
+    | Ti16 -> ("%dh", v.value)
+    | Tu16 -> ("%uh", v.value)
     | Ti32 -> ("%i", v.value)
+    | Tu32 -> ("%u", v.value)
     | Tf32 -> ("%.9gf", Llvm.build_fpcast v.value float_t "" builder)
     | _ ->
         print_endline (show_typ value.typ);

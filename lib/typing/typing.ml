@@ -1137,7 +1137,12 @@ end = struct
       | _, Tconstr (p, [])
         when Path.equal p (Path.Pmod ("string", Path.Pid "t")) ->
           Fexpr e
-      | _, Tconstr (Pid ("int" | "bool" | "float" | "u8" | "i32" | "f32"), _) ->
+      | ( _,
+          Tconstr
+            ( Pid
+                ( "int" | "bool" | "float" | "u8" | "i32" | "f32" | "i8" | "i16"
+                | "u16" | "u32" ),
+              _ ) ) ->
           Fexpr e
       | _, Tvar { contents = Unbound _ } ->
           Fexpr e (* Might be the right type later *)

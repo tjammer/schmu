@@ -2,10 +2,13 @@ type typ =
   | Tint
   | Tbool
   | Tunit
+  | Ti8
   | Tu8
+  | Ti16
   | Tu16
   | Tfloat
   | Ti32
+  | Tu32
   | Tf32
   | Tpoly of string
   | Tfun of param list * typ * fun_kind

@@ -117,10 +117,10 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       | Tint -> "l"
       | Tbool -> "b"
       | Tunit -> "u"
-      | Tu8 -> "c"
-      | Tu16 -> "s"
+      | Tu8 | Ti8 -> "c"
+      | Tu16 | Ti16 -> "s"
       | Tfloat -> "d"
-      | Ti32 -> "i"
+      | Ti32 | Tu32 -> "i"
       | Tf32 -> "f"
       | Tfun (ps, r, k) ->
           let k =
@@ -184,8 +184,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
   let nominal_name name ~closure ~poly concrete =
     let open Printf in
     let rec aux ~poly = function
-      | (Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Tpoly _) as
-        t ->
+      | ( Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Ti8 | Ti16
+        | Tu32 | Tpoly _ ) as t ->
           structural_name ~closure t
       | Tfun (ps, r, k) -> (
           match poly with

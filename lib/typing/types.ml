@@ -56,10 +56,13 @@ let tunit = Tconstr (Pid "unit", [])
 and tint = Tconstr (Pid "int", [])
 and tfloat = Tconstr (Pid "float", [])
 and ti32 = Tconstr (Pid "i32", [])
+and tu32 = Tconstr (Pid "u32", [])
 and tf32 = Tconstr (Pid "f32", [])
 and tbool = Tconstr (Pid "bool", [])
 and tu8 = Tconstr (Pid "u8", [])
+and ti8 = Tconstr (Pid "i8", [])
 and tu16 = Tconstr (Pid "u16", [])
+and ti16 = Tconstr (Pid "i16", [])
 and tarray typ = Tconstr (Pid "array", [ typ ])
 and traw_ptr typ = Tconstr (Pid "raw_ptr", [ typ ])
 and trc typ = Tconstr (Pid "rc", [ typ ])
@@ -158,9 +161,12 @@ let fold_builtins f init =
       tbool;
       tunit;
       tfloat;
+      ti8;
       tu8;
+      ti16;
       tu16;
       ti32;
+      tu32;
       tf32;
       tarray (Qvar "0");
       traw_ptr (Qvar "0");
@@ -171,7 +177,7 @@ let is_builtin = function
   | Tconstr
       ( Pid
           ( "int" | "bool" | "unit" | "float" | "u8" | "u16" | "i32" | "f32"
-          | "array" | "raw_ptr" | "rc" ),
+          | "i8" | "i16" | "u32" | "array" | "raw_ptr" | "rc" ),
         _ ) ->
       true
   | _ -> false
