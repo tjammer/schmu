@@ -45,7 +45,7 @@ fun hash(str) {
   --     return hash;
   -- }
   array/fold(str, !5381, fun (hash!, c) {
-    (hash * 33) + u8_to_int(c)})
+    (hash * 33) + int_of_u8(c)})
 }
 
 external memcmp : (raw_ptr[u8], raw_ptr[u8], int) -> i32
@@ -94,7 +94,7 @@ fun make_skips(pattern) {
   let skips& = #256[len]
   array/iteri(pattern, fun(i, c) {
     if not(i == len - 1) { -- ignore last char
-      &skips#[u8_to_int(c)] = len - 1 - i
+      &skips#[int_of_u8(c)] = len - 1 - i
     }
   })
   skips
@@ -116,7 +116,7 @@ fun boyer_moore_horspool(pattern, str) {
           .int_of_i32()) == 0 {
         Some(istr)
       } else {
-        let skip = skips#[u8_to_int(last_windowchar)]
+        let skip = skips#[int_of_u8(last_windowchar)]
         find(skips, istr + skip)
       }
     } else { None }

@@ -128,3 +128,24 @@ let rec contains_allocation = function
 let is_folded = function
   | Tvariant (_, Rec_folded, _) | Trecord (_, Rec_folded, _) -> true
   | _ -> false
+
+let of_typ = function
+  | Types.Tconstr (Pid "int", _) -> Tint
+  | Tconstr (Pid "bool", _) -> Tbool
+  | Tconstr (Pid "unit", _) -> Tunit
+  | Tconstr (Pid "float", _) -> Tfloat
+  | Tconstr (Pid "i8", _) -> Ti8
+  | Tconstr (Pid "u8", _) -> Tu8
+  | Tconstr (Pid "i16", _) -> Ti16
+  | Tconstr (Pid "u16", _) -> Tu16
+  | Tconstr (Pid "i32", _) -> Ti32
+  | Tconstr (Pid "u32", _) -> Tu32
+  | Tconstr (Pid "f32", _) -> Tf32
+  | _ -> failwith "unreachable"
+
+let is_int = function
+  | Tint | Ti8 | Tu8 | Ti16 | Tu16 | Ti32 | Tu32 -> true
+  | _ -> false
+
+let is_float = function Tfloat | Tf32 -> true | _ -> false
+let is_signed = function Tint | Ti8 | Ti16 | Ti32 -> true | _ -> false

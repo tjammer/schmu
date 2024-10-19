@@ -7,22 +7,7 @@ type t =
   | Realloc
   | Malloc
   | Ignore
-  | Int_of_float
-  | Int_of_f32
-  | Int_of_i32
-  | Float_of_int
-  | Float_of_f32
-  | Float_of_i32
-  | I32_of_int
-  | I32_of_float
-  | I32_of_f32
-  | U8_of_int
-  | U8_to_int
-  | U16_of_int
-  | U16_to_int
-  | F32_of_float
-  | F32_of_int
-  | F32_of_i32
+  | Cast of Types.typ * Types.typ
   | Not
   | Mod
   | Array_get
@@ -114,38 +99,6 @@ let tbl =
     (Malloc, Tfun ([ { p with pt = tint } ], traw_ptr (Qvar "0"), Simple));
   Hashtbl.add tbl "ignore"
     (Ignore, Tfun ([ { p with pt = Qvar "0" } ], tunit, Simple));
-  Hashtbl.add tbl "int_of_float"
-    (Int_of_float, Tfun ([ { p with pt = tfloat } ], tint, Simple));
-  Hashtbl.add tbl "int_of_i32"
-    (Int_of_i32, Tfun ([ { p with pt = ti32 } ], tint, Simple));
-  Hashtbl.add tbl "int_of_f32"
-    (Int_of_f32, Tfun ([ { p with pt = tf32 } ], tint, Simple));
-  Hashtbl.add tbl "float_of_int"
-    (Float_of_int, Tfun ([ { p with pt = tint } ], tfloat, Simple));
-  Hashtbl.add tbl "float_of_f32"
-    (Float_of_f32, Tfun ([ { p with pt = tf32 } ], tfloat, Simple));
-  Hashtbl.add tbl "float_of_i32"
-    (Float_of_i32, Tfun ([ { p with pt = ti32 } ], tfloat, Simple));
-  Hashtbl.add tbl "i32_of_int"
-    (I32_of_int, Tfun ([ { p with pt = tint } ], ti32, Simple));
-  Hashtbl.add tbl "i32_of_float"
-    (I32_of_float, Tfun ([ { p with pt = tfloat } ], ti32, Simple));
-  Hashtbl.add tbl "i32_of_f32"
-    (I32_of_f32, Tfun ([ { p with pt = tf32 } ], ti32, Simple));
-  Hashtbl.add tbl "f32_of_float"
-    (F32_of_float, Tfun ([ { p with pt = tfloat } ], tf32, Simple));
-  Hashtbl.add tbl "f32_of_int"
-    (F32_of_int, Tfun ([ { p with pt = tint } ], tf32, Simple));
-  Hashtbl.add tbl "f32_of_i32"
-    (F32_of_i32, Tfun ([ { p with pt = ti32 } ], tf32, Simple));
-  Hashtbl.add tbl "u8_of_int"
-    (U8_of_int, Tfun ([ { p with pt = tint } ], tu8, Simple));
-  Hashtbl.add tbl "u8_to_int"
-    (U8_to_int, Tfun ([ { p with pt = tu8 } ], tint, Simple));
-  Hashtbl.add tbl "u16_of_int"
-    (U16_of_int, Tfun ([ { p with pt = tint } ], tu16, Simple));
-  Hashtbl.add tbl "u16_to_int"
-    (U16_to_int, Tfun ([ { p with pt = tu16 } ], tint, Simple));
   Hashtbl.add tbl "not" (Not, Tfun ([ { p with pt = tbool } ], tbool, Simple));
   Hashtbl.add tbl "mod"
     (Mod, Tfun ([ { p with pt = tint }; { p with pt = tint } ], tint, Simple));
@@ -290,6 +243,24 @@ let tbl =
       Tfun ([ { pt = Qvar "0"; pattr = Dmove } ], trc (Qvar "0"), Simple) );
   Hashtbl.add tbl "__rc_get"
     (Rc_get, Tfun ([ { p with pt = trc (Qvar "0") } ], Qvar "0", Simple));
+
+  let castable_types =
+    [ tint; tfloat; ti32; tu32; tf32; tbool; ti8; tu8; ti16; tu16 ]
+  in
+  List.iteri
+    (fun i to_ ->
+      List.iteri
+        (fun j of_ ->
+          if i <> j then
+            let name =
+              Printf.sprintf "%s_of_%s"
+                (string_of_type Path.(Pid "") to_)
+                (string_of_type Path.(Pid "") of_)
+            in
+            Hashtbl.add tbl name
+              (Cast (to_, of_), Tfun ([ { p with pt = of_ } ], to_, Simple)))
+        castable_types)
+    castable_types;
 
   tbl
 

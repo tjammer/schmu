@@ -646,9 +646,10 @@ end = struct
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
 
-    let cast f lltyp typ =
+    let cast f typ =
       match args with
       | [ value ] ->
+          let lltyp = get_lltype_def typ in
           let value = f (bring_default value) lltyp "" builder in
           { value; typ; lltyp; kind = Imm }
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
@@ -866,18 +867,20 @@ end = struct
 
         { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Ptr }
     | Ignore -> dummy_fn_value
-    | Int_of_float | Int_of_f32 -> cast Llvm.build_fptosi int_t Tint
-    | Int_of_i32 -> cast Llvm.build_intcast int_t Tint
-    | Float_of_int | Float_of_i32 -> cast Llvm.build_sitofp float_t Tfloat
-    | Float_of_f32 -> cast Llvm.build_fpcast float_t Tfloat
-    | I32_of_float | I32_of_f32 -> cast Llvm.build_fptosi i32_t Ti32
-    | I32_of_int -> cast Llvm.build_intcast i32_t Ti32
-    | F32_of_int | F32_of_i32 -> cast Llvm.build_sitofp f32_t Tf32
-    | F32_of_float -> cast Llvm.build_fpcast f32_t Tf32
-    | U8_of_int -> cast Llvm.build_trunc u8_t Tu8
-    | U8_to_int -> cast Llvm.build_zext int_t Tint
-    | U16_of_int -> cast Llvm.build_trunc u16_t Tu16
-    | U16_to_int -> cast Llvm.build_zext int_t Tint
+    | Cast (to_, from_) ->
+        let to_ = of_typ to_ and from_ = of_typ from_ in
+        if is_int to_ then
+          if is_float from_ then
+            if is_signed to_ then cast Llvm.build_fptosi to_
+            else cast Llvm.build_fptoui to_
+          else if sizeof_typ to_ > sizeof_typ from_ then
+            if is_signed from_ then cast Llvm.build_sext to_
+            else cast Llvm.build_zext to_
+          else cast Llvm.build_trunc_or_bitcast to_
+        else if is_int from_ then
+          if is_signed from_ then cast Llvm.build_sitofp to_
+          else cast Llvm.build_uitofp to_
+        else cast Llvm.build_fpcast to_
     | Not ->
         let value =
           match args with

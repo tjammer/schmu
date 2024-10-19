@@ -43,3 +43,12 @@ val is_struct : typ -> bool
 val is_aggregate : typ -> bool
 val contains_allocation : typ -> bool
 val is_folded : typ -> bool
+
+val of_typ : Types.typ -> typ
+(** Only works for primitive types *)
+
+val is_int : typ -> bool
+val is_float : typ -> bool
+
+val is_signed : typ -> bool
+(** Only works for ints *)

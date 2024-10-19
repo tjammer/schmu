@@ -6,7 +6,7 @@ module a {
   module a {
     type t = float
     println(fmt(a))
-    assert(u8_to_int(a) == u8_to_int('a'))
+    assert(int_of_u8(a) == int_of_u8('a'))
     let a = 10
     println(fmt(a))
     assert(a == 10)
