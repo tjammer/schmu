@@ -219,8 +219,8 @@ struct
   let fmt_str value =
     let v = bring_default_var value in
     match value.typ with
-    | Tint -> ("%li", v.value)
     | Tfloat -> ("%.9g", v.value)
+    | Tf32 -> ("%.9gf", Llvm.build_fpcast v.value float_t "" builder)
     | Tarray Tu8 ->
         let ptr = Arr.array_data [ v ] in
         ("%s", ptr.value)
@@ -249,13 +249,13 @@ struct
         let v = { value; typ; lltyp; kind = Imm } in
         let ptr = Arr.array_data [ v ] in
         ("%s", ptr.value)
-    | Ti8 -> ("%dhh", v.value)
+    | Ti8 -> ("%hhd", v.value)
     | Tu8 -> ("%c", v.value)
-    | Ti16 -> ("%dh", v.value)
-    | Tu16 -> ("%uh", v.value)
+    | Ti16 -> ("%hd", v.value)
+    | Tu16 -> ("%hu", v.value)
     | Ti32 -> ("%i", v.value)
+    | Tint -> ("%li", v.value)
     | Tu32 -> ("%u", v.value)
-    | Tf32 -> ("%.9gf", Llvm.build_fpcast v.value float_t "" builder)
     | _ ->
         print_endline (show_typ value.typ);
         failwith "Internal Error: Impossible string format"
