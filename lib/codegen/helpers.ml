@@ -558,19 +558,10 @@ struct
       let store dst =
         if mut then tailrec_store ~src ~dst else store_or_copy ~src ~dst
       in
-      match src.typ with
-      | t when is_struct t ->
-          let typ = get_lltype_def src.typ |> m in
-          let dst = Llvm.build_alloca typ "" builder in
-          store dst;
-          dst
-      | Traw_ptr _ -> failwith "TODO"
-      | t ->
-          (* Simple type *)
-          let typ = get_lltype_def t |> m in
-          let dst = Llvm.build_alloca typ "" builder in
-          store dst;
-          dst
+      let typ = get_lltype_def src.typ |> m in
+      let dst = Llvm.build_alloca typ "" builder in
+      store dst;
+      dst
     in
 
     (* If the function is named, we allow recursion *)
