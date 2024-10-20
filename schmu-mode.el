@@ -30,7 +30,7 @@
 
 (defconst schmu-types-regexp
   (rx symbol-start
-      (or "int" "unit" "bool" "float" "i32" "u8" "f32")
+      (or "int" "unit" "bool" "float" "i32" "u8" "f32" "i8" "i16" "u16" "u32")
       symbol-end)
   "Schmu language builtin types.")
 
