@@ -20,6 +20,7 @@ signature {
   val of_array : (array[u8]!) -> t
   val to_array : (t!) -> array[u8]
   val of_fixed_array : (array#?[u8]) -> t
+  val of_cstr : (cstr) -> t
 
   val println : (t) -> unit
   val print : (t) -> unit
@@ -144,6 +145,18 @@ fun of_fixed_array(arr : array#?[u8]) {
   let ret = array/create(__fixed_array_length(arr))
   memcpy(array/data(ret), __fixed_array_data(arr), __fixed_array_length(arr))
   ret
+}
+
+external strlen : (raw_ptr[u8]) -> int
+
+fun of_cstr(cstr) {
+  -- NOTE we could implement this without traversing the string twice
+  let size = strlen(cstr)
+  let arr& = array/create(size + 1)
+  -- copy null terminator
+  memcpy(array/data(arr), cstr, size + 1)
+  &__unsafe_array_length(arr) = size
+  arr
 }
 
 type file = raw_ptr[u8]
