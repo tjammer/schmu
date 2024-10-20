@@ -1129,7 +1129,7 @@ end = struct
           Tconstr
             ( Pid "array",
               [
-                ( Tconstr (Pid "u8", _)
+                ( Tconstr (Pid "u8", [])
                 (* Might be a string later *)
                 | Tvar { contents = Unbound _ } );
               ] ) ) ->
@@ -1146,6 +1146,7 @@ end = struct
           Fexpr e
       | _, Tvar { contents = Unbound _ } ->
           Fexpr e (* Might be the right type later *)
+      | _, Tconstr (Pid "raw_ptr", [ Tconstr (Pid "u8", []) ]) -> Fexpr e
       | _, _ ->
           raise
             (Error

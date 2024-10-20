@@ -256,6 +256,7 @@ struct
     | Ti32 -> ("%i", v.value)
     | Tint -> ("%li", v.value)
     | Tu32 -> ("%u", v.value)
+    | Traw_ptr Tu8 -> ("%s", v.value)
     | _ ->
         print_endline (show_typ value.typ);
         failwith "Internal Error: Impossible string format"
