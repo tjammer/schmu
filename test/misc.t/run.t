@@ -14,15 +14,15 @@ Test elif
   define i64 @schmu_test(i64 %n) !dbg !2 {
   entry:
     %eq = icmp eq i64 %n, 10
-    br i1 %eq, label %ifcont8, label %else, !dbg !5
+    br i1 %eq, label %ifcont8, label %else, !dbg !6
   
   else:                                             ; preds = %entry
     %lt = icmp slt i64 %n, 1
-    br i1 %lt, label %ifcont8, label %else2, !dbg !6
+    br i1 %lt, label %ifcont8, label %else2, !dbg !7
   
   else2:                                            ; preds = %else
     %lt3 = icmp slt i64 %n, 10
-    br i1 %lt3, label %ifcont8, label %else5, !dbg !7
+    br i1 %lt3, label %ifcont8, label %else5, !dbg !8
   
   else5:                                            ; preds = %else2
     br label %ifcont8
@@ -32,20 +32,20 @@ Test elif
     ret i64 %iftmp9
   }
   
-  define i64 @main(i64 %arg) !dbg !8 {
+  define i64 @main(i64 %arg) !dbg !9 {
   entry:
-    %0 = tail call i64 @schmu_test(i64 10), !dbg !9
+    %0 = tail call i64 @schmu_test(i64 10), !dbg !10
     %eq = icmp eq i64 %0, 1
-    tail call void @assert(i1 %eq), !dbg !10
-    %1 = tail call i64 @schmu_test(i64 0), !dbg !11
+    tail call void @assert(i1 %eq), !dbg !11
+    %1 = tail call i64 @schmu_test(i64 0), !dbg !12
     %eq1 = icmp eq i64 %1, 2
-    tail call void @assert(i1 %eq1), !dbg !12
-    %2 = tail call i64 @schmu_test(i64 1), !dbg !13
+    tail call void @assert(i1 %eq1), !dbg !13
+    %2 = tail call i64 @schmu_test(i64 1), !dbg !14
     %eq2 = icmp eq i64 %2, 3
-    tail call void @assert(i1 %eq2), !dbg !14
-    %3 = tail call i64 @schmu_test(i64 11), !dbg !15
+    tail call void @assert(i1 %eq2), !dbg !15
+    %3 = tail call i64 @schmu_test(i64 11), !dbg !16
     %eq3 = icmp eq i64 %3, 4
-    tail call void @assert(i1 %eq3), !dbg !16
+    tail call void @assert(i1 %eq3), !dbg !17
     ret i64 0
   }
   
@@ -53,21 +53,22 @@ Test elif
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "elseif.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "test", linkageName: "schmu_test", scope: !1, file: !1, line: 3, type: !3, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 4, column: 5, scope: !2)
-  !6 = !DILocation(line: 5, column: 10, scope: !2)
-  !7 = !DILocation(line: 6, column: 10, scope: !2)
-  !8 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !9 = !DILocation(line: 10, column: 7, scope: !8)
-  !10 = !DILocation(line: 10, scope: !8)
-  !11 = !DILocation(line: 11, column: 7, scope: !8)
-  !12 = !DILocation(line: 11, scope: !8)
-  !13 = !DILocation(line: 12, column: 7, scope: !8)
-  !14 = !DILocation(line: 12, scope: !8)
-  !15 = !DILocation(line: 13, column: 7, scope: !8)
-  !16 = !DILocation(line: 13, scope: !8)
+  !2 = distinct !DISubprogram(name: "test", linkageName: "schmu_test", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "elseif.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 4, column: 5, scope: !2)
+  !7 = !DILocation(line: 5, column: 10, scope: !2)
+  !8 = !DILocation(line: 6, column: 10, scope: !2)
+  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !10 = !DILocation(line: 10, column: 7, scope: !9)
+  !11 = !DILocation(line: 10, scope: !9)
+  !12 = !DILocation(line: 11, column: 7, scope: !9)
+  !13 = !DILocation(line: 11, scope: !9)
+  !14 = !DILocation(line: 12, column: 7, scope: !9)
+  !15 = !DILocation(line: 12, scope: !9)
+  !16 = !DILocation(line: 13, column: 7, scope: !9)
+  !17 = !DILocation(line: 13, scope: !9)
 
 Test simple typedef
   $ schmu --dump-llvm stub.o simple_typealias.smu && ./simple_typealias
@@ -89,9 +90,10 @@ Test simple typedef
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "simple_typealias.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
+  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "simple_typealias.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
 
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
@@ -177,11 +179,11 @@ Also mutable fields and 'realloc' builtin
     %1 = load i64, ptr %capacity, align 8
     %2 = load i64, ptr %0, align 8
     %eq = icmp eq i64 %1, %2
-    br i1 %eq, label %then, label %ifcont5, !dbg !5
+    br i1 %eq, label %then, label %ifcont5, !dbg !6
   
   then:                                             ; preds = %entry
     %eq1 = icmp eq i64 %1, 0
-    br i1 %eq1, label %then2, label %else, !dbg !6
+    br i1 %eq1, label %then2, label %else, !dbg !7
   
   then2:                                            ; preds = %then
     %3 = tail call ptr @realloc(ptr %0, i64 48)
@@ -211,7 +213,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define linkonce_odr void @__array_push_al2_l__(ptr noalias %arr, i64 %0) !dbg !7 {
+  define linkonce_odr void @__array_push_al2_l__(ptr noalias %arr, i64 %0) !dbg !8 {
   entry:
     %value = alloca i64, align 8
     store i64 %0, ptr %value, align 8
@@ -220,11 +222,11 @@ Also mutable fields and 'realloc' builtin
     %2 = load i64, ptr %capacity, align 8
     %3 = load i64, ptr %1, align 8
     %eq = icmp eq i64 %2, %3
-    br i1 %eq, label %then, label %ifcont5, !dbg !8
+    br i1 %eq, label %then, label %ifcont5, !dbg !9
   
   then:                                             ; preds = %entry
     %eq1 = icmp eq i64 %2, 0
-    br i1 %eq1, label %then2, label %else, !dbg !9
+    br i1 %eq1, label %then2, label %else, !dbg !10
   
   then2:                                            ; preds = %then
     %4 = tail call ptr @realloc(ptr %1, i64 48)
@@ -254,7 +256,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define void @schmu_arr_inside() !dbg !10 {
+  define void @schmu_arr_inside() !dbg !11 {
   entry:
     %0 = alloca ptr, align 8
     %1 = tail call ptr @malloc(i64 40)
@@ -268,12 +270,12 @@ Also mutable fields and 'realloc' builtin
     store %foo_ { i64 2 }, ptr %"1", align 8
     %"2" = getelementptr %foo_, ptr %2, i64 2
     store %foo_ { i64 3 }, ptr %"2", align 8
-    call void @__array_push_al2_l__(ptr %0, i64 12), !dbg !11
+    call void @__array_push_al2_l__(ptr %0, i64 12), !dbg !13
     call void @__free_al2_(ptr %0)
     ret void
   }
   
-  define ptr @schmu_arr_of_records() !dbg !12 {
+  define ptr @schmu_arr_of_records() !dbg !14 {
   entry:
     %0 = tail call ptr @malloc(i64 48)
     %arr = alloca ptr, align 8
@@ -282,24 +284,24 @@ Also mutable fields and 'realloc' builtin
     %cap = getelementptr i64, ptr %0, i64 1
     store i64 2, ptr %cap, align 8
     %1 = getelementptr i8, ptr %0, i64 16
-    %2 = tail call { i64, i64 } @schmu_record_of_arrs(), !dbg !13
+    %2 = tail call { i64, i64 } @schmu_record_of_arrs(), !dbg !15
     store { i64, i64 } %2, ptr %1, align 8
     %"1" = getelementptr %container_, ptr %1, i64 1
-    %3 = tail call { i64, i64 } @schmu_record_of_arrs(), !dbg !14
+    %3 = tail call { i64, i64 } @schmu_record_of_arrs(), !dbg !16
     store { i64, i64 } %3, ptr %"1", align 8
     ret ptr %0
   }
   
-  define void @schmu_inner_parent_scope() !dbg !15 {
+  define void @schmu_inner_parent_scope() !dbg !17 {
   entry:
-    %0 = tail call ptr @schmu_make_arr(), !dbg !16
+    %0 = tail call ptr @schmu_make_arr(), !dbg !18
     %1 = alloca ptr, align 8
     store ptr %0, ptr %1, align 8
     call void @__free_al2_(ptr %1)
     ret void
   }
   
-  define ptr @schmu_make_arr() !dbg !17 {
+  define ptr @schmu_make_arr() !dbg !19 {
   entry:
     %0 = tail call ptr @malloc(i64 40)
     %arr = alloca ptr, align 8
@@ -316,7 +318,7 @@ Also mutable fields and 'realloc' builtin
     ret ptr %0
   }
   
-  define ptr @schmu_make_nested_arr() !dbg !18 {
+  define ptr @schmu_make_nested_arr() !dbg !20 {
   entry:
     %0 = tail call ptr @malloc(i64 32)
     %arr = alloca ptr, align 8
@@ -347,19 +349,19 @@ Also mutable fields and 'realloc' builtin
     ret ptr %0
   }
   
-  define ptr @schmu_nest_allocs() !dbg !19 {
+  define ptr @schmu_nest_allocs() !dbg !21 {
   entry:
-    %0 = tail call ptr @schmu_make_nested_arr(), !dbg !20
+    %0 = tail call ptr @schmu_make_nested_arr(), !dbg !22
     ret ptr %0
   }
   
-  define ptr @schmu_nest_fns() !dbg !21 {
+  define ptr @schmu_nest_fns() !dbg !23 {
   entry:
-    %0 = tail call ptr @schmu_make_arr(), !dbg !22
+    %0 = tail call ptr @schmu_make_arr(), !dbg !24
     ret ptr %0
   }
   
-  define void @schmu_nest_local() !dbg !23 {
+  define void @schmu_nest_local() !dbg !25 {
   entry:
     %0 = tail call ptr @malloc(i64 32)
     %arr = alloca ptr, align 8
@@ -391,7 +393,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define { i64, i64 } @schmu_record_of_arrs() !dbg !24 {
+  define { i64, i64 } @schmu_record_of_arrs() !dbg !26 {
   entry:
     %0 = tail call ptr @malloc(i64 32)
     %arr = alloca ptr, align 8
@@ -459,7 +461,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !25 {
+  define i64 @main(i64 %arg) !dbg !27 {
   entry:
     %0 = tail call ptr @malloc(i64 40)
     store ptr %0, ptr @schmu_arr, align 8
@@ -492,11 +494,11 @@ Also mutable fields and 'realloc' builtin
     store %foo_ { i64 2 }, ptr %"14", align 8
     %"25" = getelementptr %foo_, ptr %6, i64 2
     store %foo_ { i64 3 }, ptr %"25", align 8
-    %7 = tail call ptr @schmu_make_arr(), !dbg !26
+    %7 = tail call ptr @schmu_make_arr(), !dbg !28
     store ptr %7, ptr @schmu_arr__3, align 8
-    tail call void @schmu_arr_inside(), !dbg !27
-    tail call void @schmu_inner_parent_scope(), !dbg !28
-    %8 = tail call ptr @schmu_nest_fns(), !dbg !29
+    tail call void @schmu_arr_inside(), !dbg !29
+    tail call void @schmu_inner_parent_scope(), !dbg !30
+    %8 = tail call ptr @schmu_nest_fns(), !dbg !31
     store ptr %8, ptr @schmu_normal, align 8
     %9 = tail call ptr @malloc(i64 32)
     store ptr %9, ptr @schmu_nested, align 8
@@ -533,12 +535,12 @@ Also mutable fields and 'realloc' builtin
     store i64 4, ptr %16, align 8
     %"121" = getelementptr i64, ptr %16, i64 1
     store i64 5, ptr %"121", align 8
-    tail call void @__array_push_2al2_al__(ptr @schmu_nested, ptr %15), !dbg !30
-    %17 = tail call ptr @schmu_make_nested_arr(), !dbg !31
+    tail call void @__array_push_2al2_al__(ptr @schmu_nested, ptr %15), !dbg !32
+    %17 = tail call ptr @schmu_make_nested_arr(), !dbg !33
     store ptr %17, ptr @schmu_nested__2, align 8
-    %18 = tail call ptr @schmu_nest_allocs(), !dbg !32
+    %18 = tail call ptr @schmu_nest_allocs(), !dbg !34
     store ptr %18, ptr @schmu_nested__3, align 8
-    tail call void @schmu_nest_local(), !dbg !33
+    tail call void @schmu_nest_local(), !dbg !35
     store i64 12, ptr @schmu_rec_of_arr, align 8
     %19 = tail call ptr @malloc(i64 32)
     %arr22 = alloca ptr, align 8
@@ -551,7 +553,7 @@ Also mutable fields and 'realloc' builtin
     %"126" = getelementptr i64, ptr %20, i64 1
     store i64 2, ptr %"126", align 8
     store ptr %19, ptr getelementptr inbounds (%container_, ptr @schmu_rec_of_arr, i32 0, i32 1), align 8
-    %21 = tail call { i64, i64 } @schmu_record_of_arrs(), !dbg !34
+    %21 = tail call { i64, i64 } @schmu_record_of_arrs(), !dbg !36
     store { i64, i64 } %21, ptr @schmu_rec_of_arr__2, align 8
     %22 = tail call ptr @malloc(i64 48)
     store ptr %22, ptr @schmu_arr_of_rec, align 8
@@ -559,12 +561,12 @@ Also mutable fields and 'realloc' builtin
     %cap28 = getelementptr i64, ptr %22, i64 1
     store i64 2, ptr %cap28, align 8
     %23 = getelementptr i8, ptr %22, i64 16
-    %24 = tail call { i64, i64 } @schmu_record_of_arrs(), !dbg !35
+    %24 = tail call { i64, i64 } @schmu_record_of_arrs(), !dbg !37
     store { i64, i64 } %24, ptr %23, align 8
     %"130" = getelementptr %container_, ptr %23, i64 1
-    %25 = tail call { i64, i64 } @schmu_record_of_arrs(), !dbg !36
+    %25 = tail call { i64, i64 } @schmu_record_of_arrs(), !dbg !38
     store { i64, i64 } %25, ptr %"130", align 8
-    %26 = tail call ptr @schmu_arr_of_records(), !dbg !37
+    %26 = tail call ptr @schmu_arr_of_records(), !dbg !39
     store ptr %26, ptr @schmu_arr_of_rec__2, align 8
     %27 = alloca ptr, align 8
     store ptr %26, ptr %27, align 8
@@ -683,42 +685,44 @@ Also mutable fields and 'realloc' builtin
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "free_array.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_2al2_al__", scope: !1, file: !1, line: 15, type: !3, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 19, column: 5, scope: !2)
-  !6 = !DILocation(line: 20, column: 7, scope: !2)
-  !7 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al2_l__", scope: !1, file: !1, line: 15, type: !3, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !8 = !DILocation(line: 19, column: 5, scope: !7)
-  !9 = !DILocation(line: 20, column: 7, scope: !7)
-  !10 = distinct !DISubprogram(name: "arr_inside", linkageName: "schmu_arr_inside", scope: !1, file: !1, line: 11, type: !3, scopeLine: 11, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !11 = !DILocation(line: 14, column: 2, scope: !10)
-  !12 = distinct !DISubprogram(name: "arr_of_records", linkageName: "schmu_arr_of_records", scope: !1, file: !1, line: 44, type: !3, scopeLine: 44, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !13 = !DILocation(line: 45, column: 3, scope: !12)
-  !14 = !DILocation(line: 45, column: 21, scope: !12)
-  !15 = distinct !DISubprogram(name: "inner_parent_scope", linkageName: "schmu_inner_parent_scope", scope: !1, file: !1, line: 21, type: !3, scopeLine: 21, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !16 = !DILocation(line: 22, column: 9, scope: !15)
-  !17 = distinct !DISubprogram(name: "make_arr", linkageName: "schmu_make_arr", scope: !1, file: !1, line: 17, type: !3, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !18 = distinct !DISubprogram(name: "make_nested_arr", linkageName: "schmu_make_nested_arr", scope: !1, file: !1, line: 27, type: !3, scopeLine: 27, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !19 = distinct !DISubprogram(name: "nest_allocs", linkageName: "schmu_nest_allocs", scope: !1, file: !1, line: 31, type: !3, scopeLine: 31, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !20 = !DILocation(line: 32, column: 2, scope: !19)
-  !21 = distinct !DISubprogram(name: "nest_fns", linkageName: "schmu_nest_fns", scope: !1, file: !1, line: 25, type: !3, scopeLine: 25, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !22 = !DILocation(line: 25, column: 16, scope: !21)
-  !23 = distinct !DISubprogram(name: "nest_local", linkageName: "schmu_nest_local", scope: !1, file: !1, line: 35, type: !3, scopeLine: 35, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !24 = distinct !DISubprogram(name: "record_of_arrs", linkageName: "schmu_record_of_arrs", scope: !1, file: !1, line: 39, type: !3, scopeLine: 39, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !25 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !26 = !DILocation(line: 47, column: 10, scope: !25)
-  !27 = !DILocation(line: 48, scope: !25)
-  !28 = !DILocation(line: 49, scope: !25)
-  !29 = !DILocation(line: 50, column: 13, scope: !25)
-  !30 = !DILocation(line: 53, scope: !25)
-  !31 = !DILocation(line: 54, column: 13, scope: !25)
-  !32 = !DILocation(line: 55, column: 13, scope: !25)
-  !33 = !DILocation(line: 56, scope: !25)
-  !34 = !DILocation(line: 59, column: 17, scope: !25)
-  !35 = !DILocation(line: 61, column: 18, scope: !25)
-  !36 = !DILocation(line: 61, column: 36, scope: !25)
-  !37 = !DILocation(line: 62, column: 17, scope: !25)
+  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_2al2_al__", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "array.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 19, column: 5, scope: !2)
+  !7 = !DILocation(line: 20, column: 7, scope: !2)
+  !8 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al2_l__", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = !DILocation(line: 19, column: 5, scope: !8)
+  !10 = !DILocation(line: 20, column: 7, scope: !8)
+  !11 = distinct !DISubprogram(name: "arr_inside", linkageName: "schmu_arr_inside", scope: !12, file: !12, line: 11, type: !4, scopeLine: 11, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = !DIFile(filename: "free_array.smu", directory: "")
+  !13 = !DILocation(line: 14, column: 2, scope: !11)
+  !14 = distinct !DISubprogram(name: "arr_of_records", linkageName: "schmu_arr_of_records", scope: !12, file: !12, line: 44, type: !4, scopeLine: 44, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !15 = !DILocation(line: 45, column: 3, scope: !14)
+  !16 = !DILocation(line: 45, column: 21, scope: !14)
+  !17 = distinct !DISubprogram(name: "inner_parent_scope", linkageName: "schmu_inner_parent_scope", scope: !12, file: !12, line: 21, type: !4, scopeLine: 21, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !18 = !DILocation(line: 22, column: 9, scope: !17)
+  !19 = distinct !DISubprogram(name: "make_arr", linkageName: "schmu_make_arr", scope: !12, file: !12, line: 17, type: !4, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !20 = distinct !DISubprogram(name: "make_nested_arr", linkageName: "schmu_make_nested_arr", scope: !12, file: !12, line: 27, type: !4, scopeLine: 27, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !21 = distinct !DISubprogram(name: "nest_allocs", linkageName: "schmu_nest_allocs", scope: !12, file: !12, line: 31, type: !4, scopeLine: 31, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !22 = !DILocation(line: 32, column: 2, scope: !21)
+  !23 = distinct !DISubprogram(name: "nest_fns", linkageName: "schmu_nest_fns", scope: !12, file: !12, line: 25, type: !4, scopeLine: 25, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !24 = !DILocation(line: 25, column: 16, scope: !23)
+  !25 = distinct !DISubprogram(name: "nest_local", linkageName: "schmu_nest_local", scope: !12, file: !12, line: 35, type: !4, scopeLine: 35, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !26 = distinct !DISubprogram(name: "record_of_arrs", linkageName: "schmu_record_of_arrs", scope: !12, file: !12, line: 39, type: !4, scopeLine: 39, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !27 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !12, file: !12, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !28 = !DILocation(line: 47, column: 10, scope: !27)
+  !29 = !DILocation(line: 48, scope: !27)
+  !30 = !DILocation(line: 49, scope: !27)
+  !31 = !DILocation(line: 50, column: 13, scope: !27)
+  !32 = !DILocation(line: 53, scope: !27)
+  !33 = !DILocation(line: 54, column: 13, scope: !27)
+  !34 = !DILocation(line: 55, column: 13, scope: !27)
+  !35 = !DILocation(line: 56, scope: !27)
+  !36 = !DILocation(line: 59, column: 17, scope: !27)
+  !37 = !DILocation(line: 61, column: 18, scope: !27)
+  !38 = !DILocation(line: 61, column: 36, scope: !27)
+  !39 = !DILocation(line: 62, column: 17, scope: !27)
 
 Test x86_64-linux-gnu ABI (parts of it, anyway)
   $ schmu --dump-llvm -c abi.smu
@@ -778,7 +782,7 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %snd = getelementptr inbounds { double, double }, ptr %boxconst, i32 0, i32 1
     %snd2 = load double, ptr %snd, align 8
     %ret = alloca %v2_, align 8
-    %0 = tail call { double, double } @subv2(double %fst1, double %snd2), !dbg !5
+    %0 = tail call { double, double } @subv2(double %fst1, double %snd2), !dbg !6
     store { double, double } %0, ptr %ret, align 8
     %boxconst3 = alloca %i2_, align 8
     store %i2_ { i64 1, i64 10 }, ptr %boxconst3, align 8
@@ -786,36 +790,36 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %snd6 = getelementptr inbounds { i64, i64 }, ptr %boxconst3, i32 0, i32 1
     %snd7 = load i64, ptr %snd6, align 8
     %ret8 = alloca %i2_, align 8
-    %1 = tail call { i64, i64 } @subi2(i64 %fst5, i64 %snd7), !dbg !6
+    %1 = tail call { i64, i64 } @subi2(i64 %fst5, i64 %snd7), !dbg !7
     store { i64, i64 } %1, ptr %ret8, align 8
     %ret9 = alloca %v1_, align 8
-    %2 = tail call double @subv1(double 1.000000e+00), !dbg !7
+    %2 = tail call double @subv1(double 1.000000e+00), !dbg !8
     store double %2, ptr %ret9, align 8
     %ret10 = alloca %i1_, align 8
-    %3 = tail call i64 @subi1(i64 1), !dbg !8
+    %3 = tail call i64 @subi1(i64 1), !dbg !9
     store i64 %3, ptr %ret10, align 8
     %boxconst11 = alloca %v3_, align 8
     store %v3_ { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02 }, ptr %boxconst11, align 8
     %ret12 = alloca %v3_, align 8
-    call void @subv3(ptr %ret12, ptr %boxconst11), !dbg !9
+    call void @subv3(ptr %ret12, ptr %boxconst11), !dbg !10
     %boxconst13 = alloca %i3_, align 8
     store %i3_ { i64 1, i64 10, i64 100 }, ptr %boxconst13, align 8
     %ret14 = alloca %i3_, align 8
-    call void @subi3(ptr %ret14, ptr %boxconst13), !dbg !10
+    call void @subi3(ptr %ret14, ptr %boxconst13), !dbg !11
     %boxconst15 = alloca %v4_, align 8
     store %v4_ { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02, double 1.000000e+03 }, ptr %boxconst15, align 8
     %ret16 = alloca %v4_, align 8
-    call void @subv4(ptr %ret16, ptr %boxconst15), !dbg !11
+    call void @subv4(ptr %ret16, ptr %boxconst15), !dbg !12
     %boxconst17 = alloca %mixed4_, align 8
     store %mixed4_ { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02, i64 1 }, ptr %boxconst17, align 8
     %ret18 = alloca %mixed4_, align 8
-    call void @submixed4(ptr %ret18, ptr %boxconst17), !dbg !12
+    call void @submixed4(ptr %ret18, ptr %boxconst17), !dbg !13
     %boxconst19 = alloca %trailv2_, align 8
     store %trailv2_ { i64 1, i64 2, double 1.000000e+00, double 2.000000e+00 }, ptr %boxconst19, align 8
     %ret20 = alloca %trailv2_, align 8
-    call void @subtrailv2(ptr %ret20, ptr %boxconst19), !dbg !13
+    call void @subtrailv2(ptr %ret20, ptr %boxconst19), !dbg !14
     %ret21 = alloca %f2s_, align 8
-    %4 = call <2 x float> @subf2s(<2 x float> <float 2.000000e+00, float 3.000000e+00>), !dbg !14
+    %4 = call <2 x float> @subf2s(<2 x float> <float 2.000000e+00, float 3.000000e+00>), !dbg !15
     store <2 x float> %4, ptr %ret21, align 8
     %boxconst22 = alloca %f3s_, align 8
     store %f3s_ { float 2.000000e+00, float 3.000000e+00, float 5.000000e+00 }, ptr %boxconst22, align 4
@@ -823,12 +827,12 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %snd25 = getelementptr inbounds { <2 x float>, float }, ptr %boxconst22, i32 0, i32 1
     %snd26 = load float, ptr %snd25, align 4
     %ret27 = alloca %f3s_, align 8
-    %5 = call { <2 x float>, float } @subf3s(<2 x float> %fst24, float %snd26), !dbg !15
+    %5 = call { <2 x float>, float } @subf3s(<2 x float> %fst24, float %snd26), !dbg !16
     store { <2 x float>, float } %5, ptr %ret27, align 8
-    %6 = call ptr @string_data(ptr @0), !dbg !16
-    %7 = call ptr @string_data(ptr @1), !dbg !17
+    %6 = call ptr @string_data(ptr @0), !dbg !17
+    %7 = call ptr @string_data(ptr @1), !dbg !18
     %ret28 = alloca %shader_, align 8
-    %8 = call { i32, i64 } @load_shader(ptr %6, ptr %7), !dbg !18
+    %8 = call { i32, i64 } @load_shader(ptr %6, ptr %7), !dbg !19
     store { i32, i64 } %8, ptr %ret28, align 8
     %9 = alloca %shader_, align 8
     store i32 0, ptr %9, align 4
@@ -836,7 +840,7 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     store ptr null, ptr %locs, align 8
     %boxconst33 = alloca %v4_, align 8
     store %v4_ { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02, double 1.000000e+03 }, ptr %boxconst33, align 8
-    call void @set_shader_value(i32 0, i64 0, i32 0, ptr %boxconst33), !dbg !19
+    call void @set_shader_value(i32 0, i64 0, i32 0, ptr %boxconst33), !dbg !20
     ret i64 0
   }
   
@@ -844,24 +848,25 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "abi.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 28, column: 8, scope: !2)
-  !6 = !DILocation(line: 29, column: 8, scope: !2)
-  !7 = !DILocation(line: 30, column: 8, scope: !2)
-  !8 = !DILocation(line: 31, column: 8, scope: !2)
-  !9 = !DILocation(line: 32, column: 8, scope: !2)
-  !10 = !DILocation(line: 33, column: 8, scope: !2)
-  !11 = !DILocation(line: 34, column: 8, scope: !2)
-  !12 = !DILocation(line: 35, column: 8, scope: !2)
-  !13 = !DILocation(line: 36, column: 8, scope: !2)
-  !14 = !DILocation(line: 37, column: 8, scope: !2)
-  !15 = !DILocation(line: 38, column: 8, scope: !2)
-  !16 = !DILocation(line: 39, column: 16, scope: !2)
-  !17 = !DILocation(line: 39, column: 28, scope: !2)
-  !18 = !DILocation(line: 39, scope: !2)
-  !19 = !DILocation(line: 40, scope: !2)
+  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "abi.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 28, column: 8, scope: !2)
+  !7 = !DILocation(line: 29, column: 8, scope: !2)
+  !8 = !DILocation(line: 30, column: 8, scope: !2)
+  !9 = !DILocation(line: 31, column: 8, scope: !2)
+  !10 = !DILocation(line: 32, column: 8, scope: !2)
+  !11 = !DILocation(line: 33, column: 8, scope: !2)
+  !12 = !DILocation(line: 34, column: 8, scope: !2)
+  !13 = !DILocation(line: 35, column: 8, scope: !2)
+  !14 = !DILocation(line: 36, column: 8, scope: !2)
+  !15 = !DILocation(line: 37, column: 8, scope: !2)
+  !16 = !DILocation(line: 38, column: 8, scope: !2)
+  !17 = !DILocation(line: 39, column: 16, scope: !2)
+  !18 = !DILocation(line: 39, column: 28, scope: !2)
+  !19 = !DILocation(line: 39, scope: !2)
+  !20 = !DILocation(line: 40, scope: !2)
 
 Regression test for issue #19
   $ schmu --dump-llvm stub.o regression_issue_19.smu && ./regression_issue_19
@@ -894,7 +899,7 @@ Regression test for issue #19
     ret void
   }
   
-  define void @schmu_v3_scale(ptr noalias %0, ptr %v3, double %factor) !dbg !5 {
+  define void @schmu_v3_scale(ptr noalias %0, ptr %v3, double %factor) !dbg !6 {
   entry:
     %1 = load double, ptr %v3, align 8
     %mul = fmul double %1, %factor
@@ -912,24 +917,24 @@ Regression test for issue #19
     ret void
   }
   
-  define void @schmu_wrap(ptr noalias %0) !dbg !6 {
+  define void @schmu_wrap(ptr noalias %0) !dbg !7 {
   entry:
     %boxconst = alloca %v3_, align 8
     store %v3_ { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02 }, ptr %boxconst, align 8
     %ret = alloca %v3_, align 8
-    call void @schmu_v3_scale(ptr %ret, ptr %boxconst, double 1.500000e+00), !dbg !7
+    call void @schmu_v3_scale(ptr %ret, ptr %boxconst, double 1.500000e+00), !dbg !8
     %boxconst1 = alloca %v3_, align 8
     store %v3_ { double 1.000000e+00, double 2.000000e+00, double 3.000000e+00 }, ptr %boxconst1, align 8
     %ret2 = alloca %v3_, align 8
-    call void @schmu_v3_scale(ptr %ret2, ptr %boxconst1, double 1.500000e+00), !dbg !8
-    call void @schmu_v3_add(ptr %0, ptr %ret, ptr %ret2), !dbg !9
+    call void @schmu_v3_scale(ptr %ret2, ptr %boxconst1, double 1.500000e+00), !dbg !9
+    call void @schmu_v3_add(ptr %0, ptr %ret, ptr %ret2), !dbg !10
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !10 {
+  define i64 @main(i64 %arg) !dbg !11 {
   entry:
     %ret = alloca %v3_, align 8
-    call void @schmu_wrap(ptr %ret), !dbg !11
+    call void @schmu_wrap(ptr %ret), !dbg !12
     ret i64 0
   }
   
@@ -937,16 +942,17 @@ Regression test for issue #19
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "regression_issue_19.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "v3_add", linkageName: "schmu_v3_add", scope: !1, file: !1, line: 3, type: !3, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = distinct !DISubprogram(name: "v3_scale", linkageName: "schmu_v3_scale", scope: !1, file: !1, line: 7, type: !3, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !6 = distinct !DISubprogram(name: "wrap", linkageName: "schmu_wrap", scope: !1, file: !1, line: 11, type: !3, scopeLine: 11, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !7 = !DILocation(line: 12, column: 2, scope: !6)
-  !8 = !DILocation(line: 13, column: 10, scope: !6)
-  !9 = !DILocation(line: 13, column: 3, scope: !6)
-  !10 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !11 = !DILocation(line: 16, column: 7, scope: !10)
+  !2 = distinct !DISubprogram(name: "v3_add", linkageName: "schmu_v3_add", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "regression_issue_19.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = distinct !DISubprogram(name: "v3_scale", linkageName: "schmu_v3_scale", scope: !3, file: !3, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !7 = distinct !DISubprogram(name: "wrap", linkageName: "schmu_wrap", scope: !3, file: !3, line: 11, type: !4, scopeLine: 11, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = !DILocation(line: 12, column: 2, scope: !7)
+  !9 = !DILocation(line: 13, column: 10, scope: !7)
+  !10 = !DILocation(line: 13, column: 3, scope: !7)
+  !11 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = !DILocation(line: 16, column: 7, scope: !11)
 
 Test 'and', 'or' and 'not'
   $ schmu --dump-llvm stub.o boolean_logic.smu && ./boolean_logic
@@ -966,24 +972,24 @@ Test 'and', 'or' and 'not'
   
   define i1 @schmu_false_() !dbg !2 {
   entry:
-    tail call void @string_println(ptr @0), !dbg !5
+    tail call void @string_println(ptr @0), !dbg !6
     ret i1 false
   }
   
-  define i1 @schmu_true_() !dbg !6 {
+  define i1 @schmu_true_() !dbg !7 {
   entry:
-    tail call void @string_println(ptr @1), !dbg !7
+    tail call void @string_println(ptr @1), !dbg !8
     ret i1 true
   }
   
-  define i64 @main(i64 %arg) !dbg !8 {
+  define i64 @main(i64 %arg) !dbg !9 {
   entry:
-    tail call void @string_println(ptr @2), !dbg !9
-    %0 = tail call i1 @schmu_true_(), !dbg !10
+    tail call void @string_println(ptr @2), !dbg !10
+    %0 = tail call i1 @schmu_true_(), !dbg !11
     br i1 %0, label %true1, label %cont
   
   true1:                                            ; preds = %entry
-    %1 = tail call i1 @schmu_true_(), !dbg !11
+    %1 = tail call i1 @schmu_true_(), !dbg !12
     br i1 %1, label %true2, label %cont
   
   true2:                                            ; preds = %true1
@@ -991,22 +997,22 @@ Test 'and', 'or' and 'not'
   
   cont:                                             ; preds = %true2, %true1, %entry
     %andtmp = phi i1 [ false, %entry ], [ false, %true1 ], [ true, %true2 ]
-    br i1 %andtmp, label %then, label %else, !dbg !10
+    br i1 %andtmp, label %then, label %else, !dbg !11
   
   then:                                             ; preds = %cont
-    tail call void @string_println(ptr @3), !dbg !12
+    tail call void @string_println(ptr @3), !dbg !13
     br label %ifcont
   
   else:                                             ; preds = %cont
-    tail call void @string_println(ptr @4), !dbg !13
+    tail call void @string_println(ptr @4), !dbg !14
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
-    %2 = tail call i1 @schmu_true_(), !dbg !14
+    %2 = tail call i1 @schmu_true_(), !dbg !15
     br i1 %2, label %true11, label %cont3
   
   true11:                                           ; preds = %ifcont
-    %3 = tail call i1 @schmu_false_(), !dbg !15
+    %3 = tail call i1 @schmu_false_(), !dbg !16
     br i1 %3, label %true22, label %cont3
   
   true22:                                           ; preds = %true11
@@ -1014,22 +1020,22 @@ Test 'and', 'or' and 'not'
   
   cont3:                                            ; preds = %true22, %true11, %ifcont
     %andtmp4 = phi i1 [ false, %ifcont ], [ false, %true11 ], [ true, %true22 ]
-    br i1 %andtmp4, label %then5, label %else6, !dbg !14
+    br i1 %andtmp4, label %then5, label %else6, !dbg !15
   
   then5:                                            ; preds = %cont3
-    tail call void @string_println(ptr @3), !dbg !16
+    tail call void @string_println(ptr @3), !dbg !17
     br label %ifcont7
   
   else6:                                            ; preds = %cont3
-    tail call void @string_println(ptr @4), !dbg !17
+    tail call void @string_println(ptr @4), !dbg !18
     br label %ifcont7
   
   ifcont7:                                          ; preds = %else6, %then5
-    %4 = tail call i1 @schmu_false_(), !dbg !18
+    %4 = tail call i1 @schmu_false_(), !dbg !19
     br i1 %4, label %true18, label %cont10
   
   true18:                                           ; preds = %ifcont7
-    %5 = tail call i1 @schmu_true_(), !dbg !19
+    %5 = tail call i1 @schmu_true_(), !dbg !20
     br i1 %5, label %true29, label %cont10
   
   true29:                                           ; preds = %true18
@@ -1037,22 +1043,22 @@ Test 'and', 'or' and 'not'
   
   cont10:                                           ; preds = %true29, %true18, %ifcont7
     %andtmp11 = phi i1 [ false, %ifcont7 ], [ false, %true18 ], [ true, %true29 ]
-    br i1 %andtmp11, label %then12, label %else13, !dbg !18
+    br i1 %andtmp11, label %then12, label %else13, !dbg !19
   
   then12:                                           ; preds = %cont10
-    tail call void @string_println(ptr @3), !dbg !20
+    tail call void @string_println(ptr @3), !dbg !21
     br label %ifcont14
   
   else13:                                           ; preds = %cont10
-    tail call void @string_println(ptr @4), !dbg !21
+    tail call void @string_println(ptr @4), !dbg !22
     br label %ifcont14
   
   ifcont14:                                         ; preds = %else13, %then12
-    %6 = tail call i1 @schmu_false_(), !dbg !22
+    %6 = tail call i1 @schmu_false_(), !dbg !23
     br i1 %6, label %true115, label %cont17
   
   true115:                                          ; preds = %ifcont14
-    %7 = tail call i1 @schmu_false_(), !dbg !23
+    %7 = tail call i1 @schmu_false_(), !dbg !24
     br i1 %7, label %true216, label %cont17
   
   true216:                                          ; preds = %true115
@@ -1060,23 +1066,23 @@ Test 'and', 'or' and 'not'
   
   cont17:                                           ; preds = %true216, %true115, %ifcont14
     %andtmp18 = phi i1 [ false, %ifcont14 ], [ false, %true115 ], [ true, %true216 ]
-    br i1 %andtmp18, label %then19, label %else20, !dbg !22
+    br i1 %andtmp18, label %then19, label %else20, !dbg !23
   
   then19:                                           ; preds = %cont17
-    tail call void @string_println(ptr @3), !dbg !24
+    tail call void @string_println(ptr @3), !dbg !25
     br label %ifcont21
   
   else20:                                           ; preds = %cont17
-    tail call void @string_println(ptr @4), !dbg !25
+    tail call void @string_println(ptr @4), !dbg !26
     br label %ifcont21
   
   ifcont21:                                         ; preds = %else20, %then19
-    tail call void @string_println(ptr @5), !dbg !26
-    %8 = tail call i1 @schmu_true_(), !dbg !27
+    tail call void @string_println(ptr @5), !dbg !27
+    %8 = tail call i1 @schmu_true_(), !dbg !28
     br i1 %8, label %cont22, label %false1
   
   false1:                                           ; preds = %ifcont21
-    %9 = tail call i1 @schmu_true_(), !dbg !28
+    %9 = tail call i1 @schmu_true_(), !dbg !29
     br i1 %9, label %cont22, label %false2
   
   false2:                                           ; preds = %false1
@@ -1084,22 +1090,22 @@ Test 'and', 'or' and 'not'
   
   cont22:                                           ; preds = %false2, %false1, %ifcont21
     %andtmp23 = phi i1 [ true, %ifcont21 ], [ true, %false1 ], [ false, %false2 ]
-    br i1 %andtmp23, label %then24, label %else25, !dbg !27
+    br i1 %andtmp23, label %then24, label %else25, !dbg !28
   
   then24:                                           ; preds = %cont22
-    tail call void @string_println(ptr @3), !dbg !29
+    tail call void @string_println(ptr @3), !dbg !30
     br label %ifcont26
   
   else25:                                           ; preds = %cont22
-    tail call void @string_println(ptr @4), !dbg !30
+    tail call void @string_println(ptr @4), !dbg !31
     br label %ifcont26
   
   ifcont26:                                         ; preds = %else25, %then24
-    %10 = tail call i1 @schmu_true_(), !dbg !31
+    %10 = tail call i1 @schmu_true_(), !dbg !32
     br i1 %10, label %cont29, label %false127
   
   false127:                                         ; preds = %ifcont26
-    %11 = tail call i1 @schmu_false_(), !dbg !32
+    %11 = tail call i1 @schmu_false_(), !dbg !33
     br i1 %11, label %cont29, label %false228
   
   false228:                                         ; preds = %false127
@@ -1107,22 +1113,22 @@ Test 'and', 'or' and 'not'
   
   cont29:                                           ; preds = %false228, %false127, %ifcont26
     %andtmp30 = phi i1 [ true, %ifcont26 ], [ true, %false127 ], [ false, %false228 ]
-    br i1 %andtmp30, label %then31, label %else32, !dbg !31
+    br i1 %andtmp30, label %then31, label %else32, !dbg !32
   
   then31:                                           ; preds = %cont29
-    tail call void @string_println(ptr @3), !dbg !33
+    tail call void @string_println(ptr @3), !dbg !34
     br label %ifcont33
   
   else32:                                           ; preds = %cont29
-    tail call void @string_println(ptr @4), !dbg !34
+    tail call void @string_println(ptr @4), !dbg !35
     br label %ifcont33
   
   ifcont33:                                         ; preds = %else32, %then31
-    %12 = tail call i1 @schmu_false_(), !dbg !35
+    %12 = tail call i1 @schmu_false_(), !dbg !36
     br i1 %12, label %cont36, label %false134
   
   false134:                                         ; preds = %ifcont33
-    %13 = tail call i1 @schmu_true_(), !dbg !36
+    %13 = tail call i1 @schmu_true_(), !dbg !37
     br i1 %13, label %cont36, label %false235
   
   false235:                                         ; preds = %false134
@@ -1130,22 +1136,22 @@ Test 'and', 'or' and 'not'
   
   cont36:                                           ; preds = %false235, %false134, %ifcont33
     %andtmp37 = phi i1 [ true, %ifcont33 ], [ true, %false134 ], [ false, %false235 ]
-    br i1 %andtmp37, label %then38, label %else39, !dbg !35
+    br i1 %andtmp37, label %then38, label %else39, !dbg !36
   
   then38:                                           ; preds = %cont36
-    tail call void @string_println(ptr @3), !dbg !37
+    tail call void @string_println(ptr @3), !dbg !38
     br label %ifcont40
   
   else39:                                           ; preds = %cont36
-    tail call void @string_println(ptr @4), !dbg !38
+    tail call void @string_println(ptr @4), !dbg !39
     br label %ifcont40
   
   ifcont40:                                         ; preds = %else39, %then38
-    %14 = tail call i1 @schmu_false_(), !dbg !39
+    %14 = tail call i1 @schmu_false_(), !dbg !40
     br i1 %14, label %cont43, label %false141
   
   false141:                                         ; preds = %ifcont40
-    %15 = tail call i1 @schmu_false_(), !dbg !40
+    %15 = tail call i1 @schmu_false_(), !dbg !41
     br i1 %15, label %cont43, label %false242
   
   false242:                                         ; preds = %false141
@@ -1153,41 +1159,41 @@ Test 'and', 'or' and 'not'
   
   cont43:                                           ; preds = %false242, %false141, %ifcont40
     %andtmp44 = phi i1 [ true, %ifcont40 ], [ true, %false141 ], [ false, %false242 ]
-    br i1 %andtmp44, label %then45, label %else46, !dbg !39
+    br i1 %andtmp44, label %then45, label %else46, !dbg !40
   
   then45:                                           ; preds = %cont43
-    tail call void @string_println(ptr @3), !dbg !41
+    tail call void @string_println(ptr @3), !dbg !42
     br label %ifcont47
   
   else46:                                           ; preds = %cont43
-    tail call void @string_println(ptr @4), !dbg !42
+    tail call void @string_println(ptr @4), !dbg !43
     br label %ifcont47
   
   ifcont47:                                         ; preds = %else46, %then45
-    tail call void @string_println(ptr @6), !dbg !43
-    %16 = tail call i1 @schmu_true_(), !dbg !44
+    tail call void @string_println(ptr @6), !dbg !44
+    %16 = tail call i1 @schmu_true_(), !dbg !45
     %17 = xor i1 %16, true
-    br i1 %17, label %then48, label %else49, !dbg !45
+    br i1 %17, label %then48, label %else49, !dbg !46
   
   then48:                                           ; preds = %ifcont47
-    tail call void @string_println(ptr @3), !dbg !46
+    tail call void @string_println(ptr @3), !dbg !47
     br label %ifcont50
   
   else49:                                           ; preds = %ifcont47
-    tail call void @string_println(ptr @4), !dbg !47
+    tail call void @string_println(ptr @4), !dbg !48
     br label %ifcont50
   
   ifcont50:                                         ; preds = %else49, %then48
-    %18 = tail call i1 @schmu_false_(), !dbg !48
+    %18 = tail call i1 @schmu_false_(), !dbg !49
     %19 = xor i1 %18, true
-    br i1 %19, label %then51, label %else52, !dbg !49
+    br i1 %19, label %then51, label %else52, !dbg !50
   
   then51:                                           ; preds = %ifcont50
-    tail call void @string_println(ptr @3), !dbg !50
+    tail call void @string_println(ptr @3), !dbg !51
     br label %ifcont53
   
   else52:                                           ; preds = %ifcont50
-    tail call void @string_println(ptr @4), !dbg !51
+    tail call void @string_println(ptr @4), !dbg !52
     br label %ifcont53
   
   ifcont53:                                         ; preds = %else52, %then51
@@ -1198,56 +1204,57 @@ Test 'and', 'or' and 'not'
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "boolean_logic.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "false_", linkageName: "schmu_false_", scope: !1, file: !1, line: 6, type: !3, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 7, column: 2, scope: !2)
-  !6 = distinct !DISubprogram(name: "true_", linkageName: "schmu_true_", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !7 = !DILocation(line: 2, column: 2, scope: !6)
-  !8 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !9 = !DILocation(line: 11, scope: !8)
-  !10 = !DILocation(line: 13, column: 3, scope: !8)
-  !11 = !DILocation(line: 13, column: 15, scope: !8)
-  !12 = !DILocation(line: 14, column: 2, scope: !8)
-  !13 = !DILocation(line: 16, column: 2, scope: !8)
-  !14 = !DILocation(line: 19, column: 3, scope: !8)
-  !15 = !DILocation(line: 19, column: 15, scope: !8)
-  !16 = !DILocation(line: 20, column: 2, scope: !8)
-  !17 = !DILocation(line: 22, column: 2, scope: !8)
-  !18 = !DILocation(line: 25, column: 3, scope: !8)
-  !19 = !DILocation(line: 25, column: 16, scope: !8)
-  !20 = !DILocation(line: 26, column: 2, scope: !8)
-  !21 = !DILocation(line: 28, column: 2, scope: !8)
-  !22 = !DILocation(line: 31, column: 3, scope: !8)
-  !23 = !DILocation(line: 31, column: 16, scope: !8)
-  !24 = !DILocation(line: 32, column: 2, scope: !8)
-  !25 = !DILocation(line: 34, column: 2, scope: !8)
-  !26 = !DILocation(line: 37, scope: !8)
-  !27 = !DILocation(line: 39, column: 3, scope: !8)
-  !28 = !DILocation(line: 39, column: 14, scope: !8)
-  !29 = !DILocation(line: 40, column: 2, scope: !8)
-  !30 = !DILocation(line: 42, column: 2, scope: !8)
-  !31 = !DILocation(line: 45, column: 3, scope: !8)
-  !32 = !DILocation(line: 45, column: 14, scope: !8)
-  !33 = !DILocation(line: 46, column: 2, scope: !8)
-  !34 = !DILocation(line: 48, column: 2, scope: !8)
-  !35 = !DILocation(line: 51, column: 3, scope: !8)
-  !36 = !DILocation(line: 51, column: 15, scope: !8)
-  !37 = !DILocation(line: 52, column: 2, scope: !8)
-  !38 = !DILocation(line: 54, column: 2, scope: !8)
-  !39 = !DILocation(line: 57, column: 3, scope: !8)
-  !40 = !DILocation(line: 57, column: 15, scope: !8)
-  !41 = !DILocation(line: 58, column: 2, scope: !8)
-  !42 = !DILocation(line: 60, column: 2, scope: !8)
-  !43 = !DILocation(line: 63, scope: !8)
-  !44 = !DILocation(line: 65, column: 7, scope: !8)
-  !45 = !DILocation(line: 65, column: 3, scope: !8)
-  !46 = !DILocation(line: 66, column: 2, scope: !8)
-  !47 = !DILocation(line: 68, column: 2, scope: !8)
-  !48 = !DILocation(line: 71, column: 7, scope: !8)
-  !49 = !DILocation(line: 71, column: 3, scope: !8)
-  !50 = !DILocation(line: 72, column: 2, scope: !8)
-  !51 = !DILocation(line: 74, column: 2, scope: !8)
+  !2 = distinct !DISubprogram(name: "false_", linkageName: "schmu_false_", scope: !3, file: !3, line: 6, type: !4, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "boolean_logic.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 7, column: 2, scope: !2)
+  !7 = distinct !DISubprogram(name: "true_", linkageName: "schmu_true_", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = !DILocation(line: 2, column: 2, scope: !7)
+  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !10 = !DILocation(line: 11, scope: !9)
+  !11 = !DILocation(line: 13, column: 3, scope: !9)
+  !12 = !DILocation(line: 13, column: 15, scope: !9)
+  !13 = !DILocation(line: 14, column: 2, scope: !9)
+  !14 = !DILocation(line: 16, column: 2, scope: !9)
+  !15 = !DILocation(line: 19, column: 3, scope: !9)
+  !16 = !DILocation(line: 19, column: 15, scope: !9)
+  !17 = !DILocation(line: 20, column: 2, scope: !9)
+  !18 = !DILocation(line: 22, column: 2, scope: !9)
+  !19 = !DILocation(line: 25, column: 3, scope: !9)
+  !20 = !DILocation(line: 25, column: 16, scope: !9)
+  !21 = !DILocation(line: 26, column: 2, scope: !9)
+  !22 = !DILocation(line: 28, column: 2, scope: !9)
+  !23 = !DILocation(line: 31, column: 3, scope: !9)
+  !24 = !DILocation(line: 31, column: 16, scope: !9)
+  !25 = !DILocation(line: 32, column: 2, scope: !9)
+  !26 = !DILocation(line: 34, column: 2, scope: !9)
+  !27 = !DILocation(line: 37, scope: !9)
+  !28 = !DILocation(line: 39, column: 3, scope: !9)
+  !29 = !DILocation(line: 39, column: 14, scope: !9)
+  !30 = !DILocation(line: 40, column: 2, scope: !9)
+  !31 = !DILocation(line: 42, column: 2, scope: !9)
+  !32 = !DILocation(line: 45, column: 3, scope: !9)
+  !33 = !DILocation(line: 45, column: 14, scope: !9)
+  !34 = !DILocation(line: 46, column: 2, scope: !9)
+  !35 = !DILocation(line: 48, column: 2, scope: !9)
+  !36 = !DILocation(line: 51, column: 3, scope: !9)
+  !37 = !DILocation(line: 51, column: 15, scope: !9)
+  !38 = !DILocation(line: 52, column: 2, scope: !9)
+  !39 = !DILocation(line: 54, column: 2, scope: !9)
+  !40 = !DILocation(line: 57, column: 3, scope: !9)
+  !41 = !DILocation(line: 57, column: 15, scope: !9)
+  !42 = !DILocation(line: 58, column: 2, scope: !9)
+  !43 = !DILocation(line: 60, column: 2, scope: !9)
+  !44 = !DILocation(line: 63, scope: !9)
+  !45 = !DILocation(line: 65, column: 7, scope: !9)
+  !46 = !DILocation(line: 65, column: 3, scope: !9)
+  !47 = !DILocation(line: 66, column: 2, scope: !9)
+  !48 = !DILocation(line: 68, column: 2, scope: !9)
+  !49 = !DILocation(line: 71, column: 7, scope: !9)
+  !50 = !DILocation(line: 71, column: 3, scope: !9)
+  !51 = !DILocation(line: 72, column: 2, scope: !9)
+  !52 = !DILocation(line: 74, column: 2, scope: !9)
   test 'and':
   true
   true
@@ -1318,9 +1325,10 @@ Test 'and', 'or' and 'not'
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "unary_minus.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
+  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "unary_minus.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
   [254]
 
 Test unused binding warning
@@ -1407,12 +1415,12 @@ Tailcall loops
   rec.outer:                                        ; preds = %entry, %then
     %.ph = phi i64 [ %a, %entry ], [ %add, %then ]
     %.ph6 = phi i64 [ %b, %entry ], [ 0, %then ]
-    br label %rec, !dbg !5
+    br label %rec, !dbg !6
   
   rec:                                              ; preds = %rec.outer, %else3
     %2 = phi i64 [ %add4, %else3 ], [ %.ph6, %rec.outer ]
     %eq = icmp eq i64 %2, 3
-    br i1 %eq, label %then, label %else, !dbg !5
+    br i1 %eq, label %then, label %else, !dbg !6
   
   then:                                             ; preds = %rec
     %add = add i64 %.ph, 1
@@ -1422,20 +1430,20 @@ Tailcall loops
   
   else:                                             ; preds = %rec
     %eq1 = icmp eq i64 %.ph, 3
-    br i1 %eq1, label %then2, label %else3, !dbg !6
+    br i1 %eq1, label %then2, label %else3, !dbg !7
   
   then2:                                            ; preds = %else
     ret void
   
   else3:                                            ; preds = %else
-    %3 = tail call ptr @string_data(ptr @0), !dbg !7
-    tail call void @printf(ptr %3, i64 %.ph, i64 %2, i64 0), !dbg !8
+    %3 = tail call ptr @string_data(ptr @0), !dbg !8
+    tail call void @printf(ptr %3, i64 %.ph, i64 %2, i64 0), !dbg !9
     %add4 = add i64 %2, 1
     store i64 %add4, ptr %1, align 8
     br label %rec
   }
   
-  define void @schmu_nested__2(i64 %a, i64 %b, i64 %c) !dbg !9 {
+  define void @schmu_nested__2(i64 %a, i64 %b, i64 %c) !dbg !10 {
   entry:
     %0 = alloca i64, align 8
     store i64 %a, ptr %0, align 8
@@ -1449,19 +1457,19 @@ Tailcall loops
     %.ph.ph = phi i64 [ 0, %then ], [ %b, %entry ]
     %.ph11.ph = phi i64 [ %add, %then ], [ %a, %entry ]
     %.ph13.ph = phi i64 [ %4, %then ], [ %c, %entry ]
-    br label %rec.outer, !dbg !10
+    br label %rec.outer, !dbg !11
   
   rec.outer:                                        ; preds = %rec.outer.outer, %then2
     %.ph = phi i64 [ %add3, %then2 ], [ %.ph.ph, %rec.outer.outer ]
     %.ph12 = phi i64 [ %3, %then2 ], [ %.ph11.ph, %rec.outer.outer ]
     %.ph13 = phi i64 [ 0, %then2 ], [ %.ph13.ph, %rec.outer.outer ]
-    br label %rec, !dbg !10
+    br label %rec, !dbg !11
   
   rec:                                              ; preds = %rec.outer, %else7
     %3 = phi i64 [ %.ph11.ph, %else7 ], [ %.ph12, %rec.outer ]
     %4 = phi i64 [ %add8, %else7 ], [ %.ph13, %rec.outer ]
     %eq = icmp eq i64 %.ph, 3
-    br i1 %eq, label %then, label %else, !dbg !10
+    br i1 %eq, label %then, label %else, !dbg !11
   
   then:                                             ; preds = %rec
     %add = add i64 %.ph11.ph, 1
@@ -1471,7 +1479,7 @@ Tailcall loops
   
   else:                                             ; preds = %rec
     %eq1 = icmp eq i64 %4, 3
-    br i1 %eq1, label %then2, label %else4, !dbg !11
+    br i1 %eq1, label %then2, label %else4, !dbg !12
   
   then2:                                            ; preds = %else
     %add3 = add i64 %.ph, 1
@@ -1481,20 +1489,20 @@ Tailcall loops
   
   else4:                                            ; preds = %else
     %eq5 = icmp eq i64 %3, 3
-    br i1 %eq5, label %then6, label %else7, !dbg !12
+    br i1 %eq5, label %then6, label %else7, !dbg !13
   
   then6:                                            ; preds = %else4
     ret void
   
   else7:                                            ; preds = %else4
-    %5 = tail call ptr @string_data(ptr @1), !dbg !13
-    tail call void @printf(ptr %5, i64 %.ph11.ph, i64 %.ph, i64 %4), !dbg !14
+    %5 = tail call ptr @string_data(ptr @1), !dbg !14
+    tail call void @printf(ptr %5, i64 %.ph11.ph, i64 %.ph, i64 %4), !dbg !15
     %add8 = add i64 %4, 1
     store i64 %add8, ptr %2, align 8
     br label %rec
   }
   
-  define void @schmu_nested__3(i64 %a, i64 %b, i64 %c) !dbg !15 {
+  define void @schmu_nested__3(i64 %a, i64 %b, i64 %c) !dbg !16 {
   entry:
     %0 = alloca i64, align 8
     store i64 %a, ptr %0, align 8
@@ -1508,19 +1516,19 @@ Tailcall loops
     %.ph.ph = phi i64 [ 0, %then ], [ %b, %entry ]
     %.ph10.ph = phi i64 [ %add, %then ], [ %a, %entry ]
     %.ph11.ph = phi i64 [ %3, %then ], [ %c, %entry ]
-    br label %rec.outer, !dbg !16
+    br label %rec.outer, !dbg !17
   
   rec.outer:                                        ; preds = %rec.outer.outer, %then5
     %.ph = phi i64 [ %add6, %then5 ], [ %.ph.ph, %rec.outer.outer ]
     %.ph11 = phi i64 [ 0, %then5 ], [ %.ph11.ph, %rec.outer.outer ]
     %.ph12 = phi i64 [ %4, %then5 ], [ %.ph10.ph, %rec.outer.outer ]
-    br label %rec, !dbg !16
+    br label %rec, !dbg !17
   
   rec:                                              ; preds = %rec.outer, %else7
     %3 = phi i64 [ %add8, %else7 ], [ %.ph11, %rec.outer ]
     %4 = phi i64 [ %.ph10.ph, %else7 ], [ %.ph12, %rec.outer ]
     %eq = icmp eq i64 %.ph, 3
-    br i1 %eq, label %then, label %else, !dbg !16
+    br i1 %eq, label %then, label %else, !dbg !17
   
   then:                                             ; preds = %rec
     %add = add i64 %.ph10.ph, 1
@@ -1530,14 +1538,14 @@ Tailcall loops
   
   else:                                             ; preds = %rec
     %eq1 = icmp eq i64 %4, 3
-    br i1 %eq1, label %then2, label %else3, !dbg !17
+    br i1 %eq1, label %then2, label %else3, !dbg !18
   
   then2:                                            ; preds = %else
     ret void
   
   else3:                                            ; preds = %else
     %eq4 = icmp eq i64 %3, 3
-    br i1 %eq4, label %then5, label %else7, !dbg !18
+    br i1 %eq4, label %then5, label %else7, !dbg !19
   
   then5:                                            ; preds = %else3
     %add6 = add i64 %.ph, 1
@@ -1546,19 +1554,19 @@ Tailcall loops
     br label %rec.outer
   
   else7:                                            ; preds = %else3
-    %5 = tail call ptr @string_data(ptr @1), !dbg !19
-    tail call void @printf(ptr %5, i64 %.ph10.ph, i64 %.ph, i64 %3), !dbg !20
+    %5 = tail call ptr @string_data(ptr @1), !dbg !20
+    tail call void @printf(ptr %5, i64 %.ph10.ph, i64 %.ph, i64 %3), !dbg !21
     %add8 = add i64 %3, 1
     store i64 %add8, ptr %2, align 8
     br label %rec
   }
   
-  define i64 @main(i64 %arg) !dbg !21 {
+  define i64 @main(i64 %arg) !dbg !22 {
   entry:
-    tail call void @schmu_nested(i64 0, i64 0), !dbg !22
-    %0 = tail call ptr @string_data(ptr @2), !dbg !23
-    tail call void @printf(ptr %0, i64 0, i64 0, i64 0), !dbg !24
-    tail call void @schmu_nested__2(i64 0, i64 0, i64 0), !dbg !25
+    tail call void @schmu_nested(i64 0, i64 0), !dbg !23
+    %0 = tail call ptr @string_data(ptr @2), !dbg !24
+    tail call void @printf(ptr %0, i64 0, i64 0, i64 0), !dbg !25
+    tail call void @schmu_nested__2(i64 0, i64 0, i64 0), !dbg !26
     ret i64 0
   }
   
@@ -1566,30 +1574,31 @@ Tailcall loops
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "regression_issue_26.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "nested", linkageName: "schmu_nested", scope: !1, file: !1, line: 6, type: !3, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 7, column: 5, scope: !2)
-  !6 = !DILocation(line: 8, column: 10, scope: !2)
-  !7 = !DILocation(line: 10, column: 11, scope: !2)
-  !8 = !DILocation(line: 10, column: 4, scope: !2)
-  !9 = distinct !DISubprogram(name: "nested", linkageName: "schmu_nested__2", scope: !1, file: !1, line: 17, type: !3, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !10 = !DILocation(line: 18, column: 5, scope: !9)
-  !11 = !DILocation(line: 19, column: 10, scope: !9)
-  !12 = !DILocation(line: 20, column: 10, scope: !9)
-  !13 = !DILocation(line: 22, column: 11, scope: !9)
-  !14 = !DILocation(line: 22, column: 4, scope: !9)
-  !15 = distinct !DISubprogram(name: "nested", linkageName: "schmu_nested__3", scope: !1, file: !1, line: 27, type: !3, scopeLine: 27, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !16 = !DILocation(line: 28, column: 5, scope: !15)
-  !17 = !DILocation(line: 29, column: 10, scope: !15)
-  !18 = !DILocation(line: 30, column: 10, scope: !15)
-  !19 = !DILocation(line: 32, column: 11, scope: !15)
-  !20 = !DILocation(line: 32, column: 4, scope: !15)
-  !21 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !22 = !DILocation(line: 14, scope: !21)
-  !23 = !DILocation(line: 16, column: 7, scope: !21)
-  !24 = !DILocation(line: 16, scope: !21)
-  !25 = !DILocation(line: 26, scope: !21)
+  !2 = distinct !DISubprogram(name: "nested", linkageName: "schmu_nested", scope: !3, file: !3, line: 6, type: !4, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "regression_issue_26.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 7, column: 5, scope: !2)
+  !7 = !DILocation(line: 8, column: 10, scope: !2)
+  !8 = !DILocation(line: 10, column: 11, scope: !2)
+  !9 = !DILocation(line: 10, column: 4, scope: !2)
+  !10 = distinct !DISubprogram(name: "nested", linkageName: "schmu_nested__2", scope: !3, file: !3, line: 17, type: !4, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !11 = !DILocation(line: 18, column: 5, scope: !10)
+  !12 = !DILocation(line: 19, column: 10, scope: !10)
+  !13 = !DILocation(line: 20, column: 10, scope: !10)
+  !14 = !DILocation(line: 22, column: 11, scope: !10)
+  !15 = !DILocation(line: 22, column: 4, scope: !10)
+  !16 = distinct !DISubprogram(name: "nested", linkageName: "schmu_nested__3", scope: !3, file: !3, line: 27, type: !4, scopeLine: 27, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !17 = !DILocation(line: 28, column: 5, scope: !16)
+  !18 = !DILocation(line: 29, column: 10, scope: !16)
+  !19 = !DILocation(line: 30, column: 10, scope: !16)
+  !20 = !DILocation(line: 32, column: 11, scope: !16)
+  !21 = !DILocation(line: 32, column: 4, scope: !16)
+  !22 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !23 = !DILocation(line: 14, scope: !22)
+  !24 = !DILocation(line: 16, column: 7, scope: !22)
+  !25 = !DILocation(line: 16, scope: !22)
+  !26 = !DILocation(line: 26, scope: !22)
   0, 0
   0, 1
   0, 2
@@ -1648,13 +1657,13 @@ Make sure an if returns either Const or Const_ptr, but in a consistent way
   
   define void @schmu_calc_acc(ptr noalias %0, ptr %vel) !dbg !2 {
   entry:
-    %1 = tail call double @dot(ptr %vel, ptr %vel), !dbg !5
+    %1 = tail call double @dot(ptr %vel, ptr %vel), !dbg !6
     %gt = fcmp ogt double %1, 1.000000e-01
-    br i1 %gt, label %then, label %else, !dbg !5
+    br i1 %gt, label %then, label %else, !dbg !6
   
   then:                                             ; preds = %entry
     %ret = alloca %v_, align 8
-    call void @norm(ptr %ret, ptr %vel), !dbg !6
+    call void @norm(ptr %ret, ptr %vel), !dbg !7
     br label %ifcont
   
   else:                                             ; preds = %entry
@@ -1664,30 +1673,30 @@ Make sure an if returns either Const or Const_ptr, but in a consistent way
   
   ifcont:                                           ; preds = %else, %then
     %iftmp = phi ptr [ %ret, %then ], [ %2, %else ]
-    %3 = call i1 @maybe(), !dbg !7
-    br i1 %3, label %then1, label %else2, !dbg !7
+    %3 = call i1 @maybe(), !dbg !8
+    br i1 %3, label %then1, label %else2, !dbg !8
   
   then1:                                            ; preds = %ifcont
-    call void @scale(ptr %0, ptr %iftmp, double 1.000000e+02), !dbg !8
+    call void @scale(ptr %0, ptr %iftmp, double 1.000000e+02), !dbg !9
     br label %ifcont6
   
   else2:                                            ; preds = %ifcont
-    %4 = call i1 @maybe(), !dbg !9
-    br i1 %4, label %then3, label %else4, !dbg !9
+    %4 = call i1 @maybe(), !dbg !10
+    br i1 %4, label %then3, label %else4, !dbg !10
   
   then3:                                            ; preds = %else2
-    call void @scale(ptr %0, ptr %iftmp, double -3.000000e+02), !dbg !10
+    call void @scale(ptr %0, ptr %iftmp, double -3.000000e+02), !dbg !11
     br label %ifcont6
   
   else4:                                            ; preds = %else2
-    call void @scale(ptr %0, ptr %iftmp, double 1.000000e-01), !dbg !11
+    call void @scale(ptr %0, ptr %iftmp, double 1.000000e-01), !dbg !12
     br label %ifcont6
   
   ifcont6:                                          ; preds = %then3, %else4, %then1
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !12 {
+  define i64 @main(i64 %arg) !dbg !13 {
   entry:
     ret i64 0
   }
@@ -1696,17 +1705,18 @@ Make sure an if returns either Const or Const_ptr, but in a consistent way
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "regression_issue_30.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "calc_acc", linkageName: "schmu_calc_acc", scope: !1, file: !1, line: 8, type: !3, scopeLine: 8, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 10, column: 7, scope: !2)
-  !6 = !DILocation(line: 11, column: 6, scope: !2)
-  !7 = !DILocation(line: 15, column: 15, scope: !2)
-  !8 = !DILocation(line: 15, column: 24, scope: !2)
-  !9 = !DILocation(line: 16, column: 12, scope: !2)
-  !10 = !DILocation(line: 16, column: 21, scope: !2)
-  !11 = !DILocation(line: 17, column: 10, scope: !2)
-  !12 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
+  !2 = distinct !DISubprogram(name: "calc_acc", linkageName: "schmu_calc_acc", scope: !3, file: !3, line: 8, type: !4, scopeLine: 8, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "regression_issue_30.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 10, column: 7, scope: !2)
+  !7 = !DILocation(line: 11, column: 6, scope: !2)
+  !8 = !DILocation(line: 15, column: 15, scope: !2)
+  !9 = !DILocation(line: 15, column: 24, scope: !2)
+  !10 = !DILocation(line: 16, column: 12, scope: !2)
+  !11 = !DILocation(line: 16, column: 21, scope: !2)
+  !12 = !DILocation(line: 17, column: 10, scope: !2)
+  !13 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
 
 Piping for ctors and field accessors
   $ schmu stub.o --dump-llvm piping.smu && ./piping
@@ -1734,14 +1744,14 @@ Piping for ctors and field accessors
     ret i64 %add
   }
   
-  define i64 @__fun_schmu1(i32 %0, i64 %1) !dbg !5 {
+  define i64 @__fun_schmu1(i32 %0, i64 %1) !dbg !6 {
   entry:
     %x = alloca { i32, i64 }, align 8
     store i32 %0, ptr %x, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %x, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 1
-    br i1 %eq, label %ifcont, label %else, !dbg !6
+    br i1 %eq, label %ifcont, label %else, !dbg !7
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -1751,19 +1761,19 @@ Piping for ctors and field accessors
     ret i64 %iftmp
   }
   
-  define i64 @main(i64 %arg) !dbg !7 {
+  define i64 @main(i64 %arg) !dbg !8 {
   entry:
-    %0 = tail call i64 @__fun_schmu0(i64 1), !dbg !8
-    tail call void @Printi(i64 %0), !dbg !9
+    %0 = tail call i64 @__fun_schmu0(i64 1), !dbg !9
+    tail call void @Printi(i64 %0), !dbg !10
     %boxconst = alloca %option.tl_, align 8
     store %option.tl_ { i32 1, i64 1 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
-    %1 = tail call i64 @__fun_schmu1(i32 %fst1, i64 %snd2), !dbg !10
-    tail call void @Printi(i64 %1), !dbg !11
-    tail call void @Printi(i64 1), !dbg !12
-    tail call void @string_println(ptr @0), !dbg !13
+    %1 = tail call i64 @__fun_schmu1(i32 %fst1, i64 %snd2), !dbg !11
+    tail call void @Printi(i64 %1), !dbg !12
+    tail call void @Printi(i64 1), !dbg !13
+    tail call void @string_println(ptr @0), !dbg !14
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @1, i64 16), i64 10)
     %2 = tail call ptr @malloc(i64 19)
     %arr = alloca ptr, align 8
@@ -1777,8 +1787,8 @@ Piping for ctors and field accessors
     store i8 98, ptr %"1", align 1
     %"2" = getelementptr i8, ptr %3, i64 2
     store i8 99, ptr %"2", align 1
-    %4 = tail call ptr @string_of_array(ptr %2), !dbg !14
-    %5 = tail call i8 @string_get(ptr %4, i64 1), !dbg !15
+    %4 = tail call ptr @string_of_array(ptr %2), !dbg !15
+    %5 = tail call i8 @string_get(ptr %4, i64 1), !dbg !16
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @2, i64 16), i8 %5)
     %6 = alloca ptr, align 8
     store ptr %4, ptr %6, align 8
@@ -1803,20 +1813,21 @@ Piping for ctors and field accessors
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "piping.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !1, file: !1, line: 4, type: !3, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = distinct !DISubprogram(name: "__fun_schmu1", linkageName: "__fun_schmu1", scope: !1, file: !1, line: 7, type: !3, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !6 = !DILocation(line: 8, column: 2, scope: !5)
-  !7 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !8 = !DILocation(line: 4, column: 3, scope: !7)
-  !9 = !DILocation(line: 4, column: 20, scope: !7)
-  !10 = !DILocation(line: 7, column: 2, scope: !7)
-  !11 = !DILocation(line: 10, column: 6, scope: !7)
-  !12 = !DILocation(line: 14, column: 10, scope: !7)
-  !13 = !DILocation(line: 15, scope: !7)
-  !14 = !DILocation(line: 17, column: 16, scope: !7)
-  !15 = !DILocation(line: 17, column: 34, scope: !7)
+  !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "piping.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = distinct !DISubprogram(name: "__fun_schmu1", linkageName: "__fun_schmu1", scope: !3, file: !3, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !7 = !DILocation(line: 8, column: 2, scope: !6)
+  !8 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = !DILocation(line: 4, column: 3, scope: !8)
+  !10 = !DILocation(line: 4, column: 20, scope: !8)
+  !11 = !DILocation(line: 7, column: 2, scope: !8)
+  !12 = !DILocation(line: 10, column: 6, scope: !8)
+  !13 = !DILocation(line: 14, column: 10, scope: !8)
+  !14 = !DILocation(line: 15, scope: !8)
+  !15 = !DILocation(line: 17, column: 16, scope: !8)
+  !16 = !DILocation(line: 17, column: 34, scope: !8)
   
   2
   1
@@ -1844,13 +1855,13 @@ Ensure global are loadad correctly when passed to functions
     ret void
   }
   
-  define void @schmu_wrap_seg() !dbg !5 {
+  define void @schmu_wrap_seg() !dbg !6 {
   entry:
-    tail call void @__schmu_get_seg_2dl2df__(ptr @schmu_world), !dbg !6
+    tail call void @__schmu_get_seg_2dl2df__(ptr @schmu_world), !dbg !7
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !7 {
+  define i64 @main(i64 %arg) !dbg !8 {
   entry:
     store double 0.000000e+00, ptr @schmu_world, align 8
     store double 1.280000e+03, ptr getelementptr inbounds (%bar_, ptr @schmu_world, i32 0, i32 1), align 8
@@ -1858,7 +1869,7 @@ Ensure global are loadad correctly when passed to functions
     store double 1.000000e-01, ptr getelementptr inbounds (%bar_, ptr @schmu_world, i32 0, i32 3), align 8
     store double 5.400000e+02, ptr getelementptr inbounds (%bar_, ptr @schmu_world, i32 0, i32 4), align 8
     store float 5.000000e+00, ptr getelementptr inbounds (%bar_, ptr @schmu_world, i32 0, i32 5), align 4
-    tail call void @schmu_wrap_seg(), !dbg !8
+    tail call void @schmu_wrap_seg(), !dbg !9
     ret i64 0
   }
   
@@ -1866,13 +1877,14 @@ Ensure global are loadad correctly when passed to functions
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "regression_load_global.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "get_seg", linkageName: "__schmu_get_seg_2dl2df__", scope: !1, file: !1, line: 16, type: !3, scopeLine: 16, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = distinct !DISubprogram(name: "wrap_seg", linkageName: "schmu_wrap_seg", scope: !1, file: !1, line: 18, type: !3, scopeLine: 18, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !6 = !DILocation(line: 18, column: 16, scope: !5)
-  !7 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !8 = !DILocation(line: 20, scope: !7)
+  !2 = distinct !DISubprogram(name: "get_seg", linkageName: "__schmu_get_seg_2dl2df__", scope: !3, file: !3, line: 16, type: !4, scopeLine: 16, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "regression_load_global.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = distinct !DISubprogram(name: "wrap_seg", linkageName: "schmu_wrap_seg", scope: !3, file: !3, line: 18, type: !4, scopeLine: 18, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !7 = !DILocation(line: 18, column: 16, scope: !6)
+  !8 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = !DILocation(line: 20, scope: !8)
 
 
 Array push
@@ -1894,11 +1906,11 @@ Array push
     %1 = load i64, ptr %capacity, align 8
     %2 = load i64, ptr %0, align 8
     %eq = icmp eq i64 %1, %2
-    br i1 %eq, label %then, label %ifcont5, !dbg !5
+    br i1 %eq, label %then, label %ifcont5, !dbg !6
   
   then:                                             ; preds = %entry
     %eq1 = icmp eq i64 %1, 0
-    br i1 %eq1, label %then2, label %else, !dbg !6
+    br i1 %eq1, label %then2, label %else, !dbg !7
   
   then2:                                            ; preds = %then
     %3 = tail call ptr @realloc(ptr %0, i64 48)
@@ -1928,18 +1940,18 @@ Array push
     ret void
   }
   
-  define linkonce_odr void @__array_push_al_l_(ptr noalias %arr, i64 %value) !dbg !7 {
+  define linkonce_odr void @__array_push_al_l_(ptr noalias %arr, i64 %value) !dbg !8 {
   entry:
     %0 = load ptr, ptr %arr, align 8
     %capacity = getelementptr i64, ptr %0, i64 1
     %1 = load i64, ptr %capacity, align 8
     %2 = load i64, ptr %0, align 8
     %eq = icmp eq i64 %1, %2
-    br i1 %eq, label %then, label %ifcont5, !dbg !8
+    br i1 %eq, label %then, label %ifcont5, !dbg !9
   
   then:                                             ; preds = %entry
     %eq1 = icmp eq i64 %1, 0
-    br i1 %eq1, label %then2, label %else, !dbg !9
+    br i1 %eq1, label %then2, label %else, !dbg !10
   
   then2:                                            ; preds = %then
     %3 = tail call ptr @realloc(ptr %0, i64 48)
@@ -1969,7 +1981,7 @@ Array push
     ret void
   }
   
-  define void @schmu_in_fun() !dbg !10 {
+  define void @schmu_in_fun() !dbg !11 {
   entry:
     %0 = alloca ptr, align 8
     %1 = tail call ptr @malloc(i64 32)
@@ -1984,7 +1996,7 @@ Array push
     %3 = alloca ptr, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %3, ptr align 8 %0, i64 8, i1 false)
     call void @__copy_al_(ptr %3)
-    call void @__array_push_al_l_(ptr %0, i64 30), !dbg !11
+    call void @__array_push_al_l_(ptr %0, i64 30), !dbg !13
     %4 = load ptr, ptr %0, align 8
     %5 = load i64, ptr %4, align 8
     call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %5)
@@ -2027,7 +2039,7 @@ Array push
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !12 {
+  define i64 @main(i64 %arg) !dbg !14 {
   entry:
     %0 = tail call ptr @malloc(i64 32)
     store ptr %0, ptr @schmu_a, align 8
@@ -2040,14 +2052,14 @@ Array push
     store i64 20, ptr %"1", align 8
     tail call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_b, ptr align 8 @schmu_a, i64 8, i1 false)
     tail call void @__copy_al_(ptr @schmu_b)
-    tail call void @__array_push_al_l_(ptr @schmu_a, i64 30), !dbg !13
+    tail call void @__array_push_al_l_(ptr @schmu_a, i64 30), !dbg !15
     %2 = load ptr, ptr @schmu_a, align 8
     %3 = load i64, ptr %2, align 8
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %3)
     %4 = load ptr, ptr @schmu_b, align 8
     %5 = load i64, ptr %4, align 8
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %5)
-    tail call void @schmu_in_fun(), !dbg !14
+    tail call void @schmu_in_fun(), !dbg !16
     %6 = tail call ptr @malloc(i64 32)
     store ptr %6, ptr @schmu_nested, align 8
     store i64 2, ptr %6, align 8
@@ -2086,7 +2098,7 @@ Array push
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %14, ptr align 8 @schmu_a__2, i64 8, i1 false)
     call void @__copy_al_(ptr %14)
     %15 = load ptr, ptr %14, align 8
-    call void @__array_push_2al2_al__(ptr @schmu_nested, ptr %15), !dbg !15
+    call void @__array_push_2al2_al__(ptr @schmu_nested, ptr %15), !dbg !17
     %16 = load ptr, ptr @schmu_nested, align 8
     %17 = getelementptr i8, ptr %16, i64 16
     %18 = getelementptr ptr, ptr %17, i64 1
@@ -2115,7 +2127,7 @@ Array push
     store i64 4, ptr %27, align 8
     %"121" = getelementptr i64, ptr %27, i64 1
     store i64 5, ptr %"121", align 8
-    call void @__array_push_2al2_al__(ptr @schmu_nested, ptr %26), !dbg !16
+    call void @__array_push_2al2_al__(ptr @schmu_nested, ptr %26), !dbg !18
     %28 = load ptr, ptr @schmu_nested, align 8
     %29 = getelementptr i8, ptr %28, i64 16
     %30 = getelementptr ptr, ptr %29, i64 1
@@ -2188,21 +2200,23 @@ Array push
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "array_push.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_2al2_al__", scope: !1, file: !1, line: 15, type: !3, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 19, column: 5, scope: !2)
-  !6 = !DILocation(line: 20, column: 7, scope: !2)
-  !7 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !1, file: !1, line: 15, type: !3, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !8 = !DILocation(line: 19, column: 5, scope: !7)
-  !9 = !DILocation(line: 20, column: 7, scope: !7)
-  !10 = distinct !DISubprogram(name: "in_fun", linkageName: "schmu_in_fun", scope: !1, file: !1, line: 9, type: !3, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !11 = !DILocation(line: 13, column: 2, scope: !10)
-  !12 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !13 = !DILocation(line: 4, scope: !12)
-  !14 = !DILocation(line: 19, scope: !12)
-  !15 = !DILocation(line: 23, scope: !12)
-  !16 = !DILocation(line: 26, scope: !12)
+  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_2al2_al__", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "array.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 19, column: 5, scope: !2)
+  !7 = !DILocation(line: 20, column: 7, scope: !2)
+  !8 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = !DILocation(line: 19, column: 5, scope: !8)
+  !10 = !DILocation(line: 20, column: 7, scope: !8)
+  !11 = distinct !DISubprogram(name: "in_fun", linkageName: "schmu_in_fun", scope: !12, file: !12, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = !DIFile(filename: "array_push.smu", directory: "")
+  !13 = !DILocation(line: 13, column: 2, scope: !11)
+  !14 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !12, file: !12, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !15 = !DILocation(line: 4, scope: !14)
+  !16 = !DILocation(line: 19, scope: !14)
+  !17 = !DILocation(line: 23, scope: !14)
+  !18 = !DILocation(line: 26, scope: !14)
   3
   2
   3
@@ -2219,10 +2233,10 @@ Decrease ref counts for local variables in if branches
     ret i1 true
   }
   
-  define i64 @main(i64 %arg) !dbg !5 {
+  define i64 @main(i64 %arg) !dbg !6 {
   entry:
-    %0 = tail call i1 @schmu_ret_true(), !dbg !6
-    br i1 %0, label %then, label %else, !dbg !6
+    %0 = tail call i1 @schmu_ret_true(), !dbg !7
+    br i1 %0, label %then, label %else, !dbg !7
   
   then:                                             ; preds = %entry
     %1 = tail call ptr @malloc(i64 24)
@@ -2276,11 +2290,12 @@ Decrease ref counts for local variables in if branches
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "decr_rc_if.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "ret_true", linkageName: "schmu_ret_true", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !6 = !DILocation(line: 3, column: 4, scope: !5)
+  !2 = distinct !DISubprogram(name: "ret_true", linkageName: "schmu_ret_true", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "decr_rc_if.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !7 = !DILocation(line: 3, column: 4, scope: !6)
 
 Drop last element
   $ schmu --dump-llvm array_drop_back.smu && valgrind -q --leak-check=yes --show-reachable=yes ./array_drop_back
@@ -2302,7 +2317,7 @@ Drop last element
     %0 = load ptr, ptr %arr, align 8
     %1 = load i64, ptr %0, align 8
     %eq = icmp eq i64 %1, 0
-    br i1 %eq, label %then, label %else, !dbg !5
+    br i1 %eq, label %then, label %else, !dbg !6
   
   then:                                             ; preds = %entry
     %t = alloca %option.tal__, align 8
@@ -2328,7 +2343,7 @@ Drop last element
     ret { i32, i64 } %unbox
   }
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %arg) !dbg !7 {
   entry:
     %0 = tail call ptr @malloc(i64 32)
     store ptr %0, ptr @schmu_nested, align 8
@@ -2359,15 +2374,15 @@ Drop last element
     %7 = load i64, ptr %6, align 8
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %7)
     %ret = alloca %option.tal__, align 8
-    %8 = tail call { i32, i64 } @__array_pop_back_2al2_rval2__(ptr @schmu_nested), !dbg !7
+    %8 = tail call { i32, i64 } @__array_pop_back_2al2_rval2__(ptr @schmu_nested), !dbg !9
     store { i32, i64 } %8, ptr %ret, align 8
     %index = load i32, ptr %ret, align 4
     %eq = icmp eq i32 %index, 1
-    br i1 %eq, label %then, label %ifcont, !dbg !8
+    br i1 %eq, label %then, label %ifcont, !dbg !10
   
   then:                                             ; preds = %entry
     %data = getelementptr inbounds %option.tal__, ptr %ret, i32 0, i32 1
-    tail call void @string_println(ptr @1), !dbg !9
+    tail call void @string_println(ptr @1), !dbg !11
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -2375,24 +2390,24 @@ Drop last element
     %10 = load i64, ptr %9, align 8
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %10)
     %ret10 = alloca %option.tal__, align 8
-    %11 = tail call { i32, i64 } @__array_pop_back_2al2_rval2__(ptr @schmu_nested), !dbg !10
+    %11 = tail call { i32, i64 } @__array_pop_back_2al2_rval2__(ptr @schmu_nested), !dbg !12
     store { i32, i64 } %11, ptr %ret10, align 8
     %12 = load ptr, ptr @schmu_nested, align 8
     %13 = load i64, ptr %12, align 8
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %13)
     %ret12 = alloca %option.tal__, align 8
-    %14 = tail call { i32, i64 } @__array_pop_back_2al2_rval2__(ptr @schmu_nested), !dbg !11
+    %14 = tail call { i32, i64 } @__array_pop_back_2al2_rval2__(ptr @schmu_nested), !dbg !13
     store { i32, i64 } %14, ptr %ret12, align 8
     %index14 = load i32, ptr %ret12, align 4
     %eq15 = icmp eq i32 %index14, 1
-    br i1 %eq15, label %then16, label %else18, !dbg !12
+    br i1 %eq15, label %then16, label %else18, !dbg !14
   
   then16:                                           ; preds = %ifcont
     %data17 = getelementptr inbounds %option.tal__, ptr %ret12, i32 0, i32 1
     br label %ifcont19
   
   else18:                                           ; preds = %ifcont
-    tail call void @string_println(ptr @2), !dbg !13
+    tail call void @string_println(ptr @2), !dbg !15
     br label %ifcont19
   
   ifcont19:                                         ; preds = %else18, %then16
@@ -2466,18 +2481,20 @@ Drop last element
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "array_drop_back.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_pop_back", linkageName: "__array_pop_back_2al2_rval2__", scope: !1, file: !1, line: 98, type: !3, scopeLine: 98, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 100, column: 5, scope: !2)
-  !6 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !7 = !DILocation(line: 3, column: 6, scope: !6)
-  !8 = !DILocation(line: 3, column: 32, scope: !6)
-  !9 = !DILocation(line: 3, column: 41, scope: !6)
-  !10 = !DILocation(line: 5, scope: !6)
-  !11 = !DILocation(line: 7, column: 6, scope: !6)
-  !12 = !DILocation(line: 7, column: 31, scope: !6)
-  !13 = !DILocation(line: 7, column: 51, scope: !6)
+  !2 = distinct !DISubprogram(name: "_array_pop_back", linkageName: "__array_pop_back_2al2_rval2__", scope: !3, file: !3, line: 98, type: !4, scopeLine: 98, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "array.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 100, column: 5, scope: !2)
+  !7 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !8, file: !8, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = !DIFile(filename: "array_drop_back.smu", directory: "")
+  !9 = !DILocation(line: 3, column: 6, scope: !7)
+  !10 = !DILocation(line: 3, column: 32, scope: !7)
+  !11 = !DILocation(line: 3, column: 41, scope: !7)
+  !12 = !DILocation(line: 5, scope: !7)
+  !13 = !DILocation(line: 7, column: 6, scope: !7)
+  !14 = !DILocation(line: 7, column: 31, scope: !7)
+  !15 = !DILocation(line: 7, column: 51, scope: !7)
   2
   some
   1
@@ -2504,7 +2521,7 @@ Global lets with expressions
     ret { i32, i64 } %unbox
   }
   
-  define i64 @schmu_ret_rec() !dbg !5 {
+  define i64 @schmu_ret_rec() !dbg !6 {
   entry:
     %0 = alloca %ral__, align 8
     %1 = tail call ptr @malloc(i64 40)
@@ -2526,14 +2543,14 @@ Global lets with expressions
   
   declare ptr @malloc(i64 %0)
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %arg) !dbg !7 {
   entry:
     %ret = alloca %option.tal__, align 8
-    %0 = tail call { i32, i64 } @schmu_ret_none(), !dbg !7
+    %0 = tail call { i32, i64 } @schmu_ret_none(), !dbg !8
     store { i32, i64 } %0, ptr %ret, align 8
     %index = load i32, ptr %ret, align 4
     %eq = icmp eq i32 %index, 1
-    br i1 %eq, label %then, label %else, !dbg !8
+    br i1 %eq, label %then, label %else, !dbg !9
   
   then:                                             ; preds = %entry
     %data = getelementptr inbounds %option.tal__, ptr %ret, i32 0, i32 1
@@ -2557,7 +2574,7 @@ Global lets with expressions
     %3 = load ptr, ptr %iftmp, align 8
     store ptr %3, ptr @schmu_b, align 8
     %ret1 = alloca %ral__, align 8
-    %4 = call i64 @schmu_ret_rec(), !dbg !9
+    %4 = call i64 @schmu_ret_rec(), !dbg !10
     store i64 %4, ptr %ret1, align 8
     %5 = inttoptr i64 %4 to ptr
     %6 = getelementptr i8, ptr %5, i64 16
@@ -2605,14 +2622,15 @@ Global lets with expressions
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "global_let.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "ret_none", linkageName: "schmu_ret_none", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = distinct !DISubprogram(name: "ret_rec", linkageName: "schmu_ret_rec", scope: !1, file: !1, line: 9, type: !3, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !6 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !7 = !DILocation(line: 5, column: 15, scope: !6)
-  !8 = !DILocation(line: 5, column: 27, scope: !6)
-  !9 = !DILocation(line: 11, column: 10, scope: !6)
+  !2 = distinct !DISubprogram(name: "ret_none", linkageName: "schmu_ret_none", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "global_let.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = distinct !DISubprogram(name: "ret_rec", linkageName: "schmu_ret_rec", scope: !3, file: !3, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !7 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = !DILocation(line: 5, column: 15, scope: !7)
+  !9 = !DILocation(line: 5, column: 27, scope: !7)
+  !10 = !DILocation(line: 11, column: 10, scope: !7)
 
 Mutual recursive function
   $ schmu mutual_rec.smu && ./mutual_rec
@@ -2672,13 +2690,13 @@ Return nonclosure functions
     ret i64 %add
   }
   
-  define i64 @schmu_named(i64 %a) !dbg !5 {
+  define i64 @schmu_named(i64 %a) !dbg !6 {
   entry:
     %add = add i64 %a, 13
     ret i64 %add
   }
   
-  define void @schmu_ret_fn(ptr noalias %0) !dbg !6 {
+  define void @schmu_ret_fn(ptr noalias %0) !dbg !7 {
   entry:
     store ptr @__fun_schmu0, ptr %0, align 8
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
@@ -2686,7 +2704,7 @@ Return nonclosure functions
     ret void
   }
   
-  define void @schmu_ret_named(ptr noalias %0) !dbg !7 {
+  define void @schmu_ret_named(ptr noalias %0) !dbg !8 {
   entry:
     store ptr @schmu_named, ptr %0, align 8
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
@@ -2694,17 +2712,17 @@ Return nonclosure functions
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !8 {
+  define i64 @main(i64 %arg) !dbg !9 {
   entry:
-    tail call void @schmu_ret_fn(ptr @schmu_f), !dbg !9
+    tail call void @schmu_ret_fn(ptr @schmu_f), !dbg !10
     %loadtmp = load ptr, ptr @schmu_f, align 8
     %loadtmp1 = load ptr, ptr getelementptr inbounds (%closure, ptr @schmu_f, i32 0, i32 1), align 8
-    %0 = tail call i64 %loadtmp(i64 12, ptr %loadtmp1), !dbg !10
+    %0 = tail call i64 %loadtmp(i64 12, ptr %loadtmp1), !dbg !11
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
-    tail call void @schmu_ret_named(ptr @schmu_f__2), !dbg !11
+    tail call void @schmu_ret_named(ptr @schmu_f__2), !dbg !12
     %loadtmp2 = load ptr, ptr @schmu_f__2, align 8
     %loadtmp3 = load ptr, ptr getelementptr inbounds (%closure, ptr @schmu_f__2, i32 0, i32 1), align 8
-    %1 = tail call i64 %loadtmp2(i64 12, ptr %loadtmp3), !dbg !12
+    %1 = tail call i64 %loadtmp2(i64 12, ptr %loadtmp3), !dbg !13
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
     tail call void @__free_lrl_(ptr @schmu_f__2)
     tail call void @__free_lrl_(ptr @schmu_f)
@@ -2744,17 +2762,18 @@ Return nonclosure functions
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "return_fn.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !1, file: !1, line: 2, type: !3, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = distinct !DISubprogram(name: "named", linkageName: "schmu_named", scope: !1, file: !1, line: 6, type: !3, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !6 = distinct !DISubprogram(name: "ret_fn", linkageName: "schmu_ret_fn", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !7 = distinct !DISubprogram(name: "ret_named", linkageName: "schmu_ret_named", scope: !1, file: !1, line: 5, type: !3, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !8 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !9 = !DILocation(line: 10, column: 8, scope: !8)
-  !10 = !DILocation(line: 11, column: 12, scope: !8)
-  !11 = !DILocation(line: 13, column: 8, scope: !8)
-  !12 = !DILocation(line: 14, column: 12, scope: !8)
+  !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !3, file: !3, line: 2, type: !4, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "return_fn.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = distinct !DISubprogram(name: "named", linkageName: "schmu_named", scope: !3, file: !3, line: 6, type: !4, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !7 = distinct !DISubprogram(name: "ret_fn", linkageName: "schmu_ret_fn", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = distinct !DISubprogram(name: "ret_named", linkageName: "schmu_ret_named", scope: !3, file: !3, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !10 = !DILocation(line: 10, column: 8, scope: !9)
+  !11 = !DILocation(line: 11, column: 12, scope: !9)
+  !12 = !DILocation(line: 13, column: 8, scope: !9)
+  !13 = !DILocation(line: 14, column: 12, scope: !9)
   24
   25
 
@@ -2779,7 +2798,7 @@ Return closures
     ret i64 %add
   }
   
-  define i64 @schmu_bla(i64 %a, ptr %0) !dbg !5 {
+  define i64 @schmu_bla(i64 %a, ptr %0) !dbg !6 {
   entry:
     %b = getelementptr inbounds { ptr, ptr, i64 }, ptr %0, i32 0, i32 2
     %b1 = load i64, ptr %b, align 8
@@ -2787,7 +2806,7 @@ Return closures
     ret i64 %add
   }
   
-  define void @schmu_ret_fn(ptr noalias %0, i64 %b) !dbg !6 {
+  define void @schmu_ret_fn(ptr noalias %0, i64 %b) !dbg !7 {
   entry:
     store ptr @schmu_bla, ptr %0, align 8
     %1 = tail call ptr @malloc(i64 24)
@@ -2801,7 +2820,7 @@ Return closures
     ret void
   }
   
-  define void @schmu_ret_lambda(ptr noalias %0, i64 %b) !dbg !7 {
+  define void @schmu_ret_lambda(ptr noalias %0, i64 %b) !dbg !8 {
   entry:
     store ptr @__fun_schmu0, ptr %0, align 8
     %1 = tail call ptr @malloc(i64 24)
@@ -2827,22 +2846,22 @@ Return closures
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define i64 @main(i64 %arg) !dbg !8 {
+  define i64 @main(i64 %arg) !dbg !9 {
   entry:
-    tail call void @schmu_ret_fn(ptr @schmu_f, i64 13), !dbg !9
-    tail call void @schmu_ret_fn(ptr @schmu_f2, i64 35), !dbg !10
+    tail call void @schmu_ret_fn(ptr @schmu_f, i64 13), !dbg !10
+    tail call void @schmu_ret_fn(ptr @schmu_f2, i64 35), !dbg !11
     %loadtmp = load ptr, ptr @schmu_f, align 8
     %loadtmp1 = load ptr, ptr getelementptr inbounds (%closure, ptr @schmu_f, i32 0, i32 1), align 8
-    %0 = tail call i64 %loadtmp(i64 12, ptr %loadtmp1), !dbg !11
+    %0 = tail call i64 %loadtmp(i64 12, ptr %loadtmp1), !dbg !12
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
     %loadtmp2 = load ptr, ptr @schmu_f2, align 8
     %loadtmp3 = load ptr, ptr getelementptr inbounds (%closure, ptr @schmu_f2, i32 0, i32 1), align 8
-    %1 = tail call i64 %loadtmp2(i64 12, ptr %loadtmp3), !dbg !12
+    %1 = tail call i64 %loadtmp2(i64 12, ptr %loadtmp3), !dbg !13
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
-    tail call void @schmu_ret_lambda(ptr @schmu_f__2, i64 134), !dbg !13
+    tail call void @schmu_ret_lambda(ptr @schmu_f__2, i64 134), !dbg !14
     %loadtmp4 = load ptr, ptr @schmu_f__2, align 8
     %loadtmp5 = load ptr, ptr getelementptr inbounds (%closure, ptr @schmu_f__2, i32 0, i32 1), align 8
-    %2 = tail call i64 %loadtmp4(i64 12, ptr %loadtmp5), !dbg !14
+    %2 = tail call i64 %loadtmp4(i64 12, ptr %loadtmp5), !dbg !15
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %2)
     tail call void @__free_lrl_(ptr @schmu_f__2)
     tail call void @__free_lrl_(ptr @schmu_f2)
@@ -2885,19 +2904,20 @@ Return closures
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "return_closure.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !1, file: !1, line: 7, type: !3, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = distinct !DISubprogram(name: "bla", linkageName: "schmu_bla", scope: !1, file: !1, line: 2, type: !3, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !6 = distinct !DISubprogram(name: "ret_fn", linkageName: "schmu_ret_fn", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !7 = distinct !DISubprogram(name: "ret_lambda", linkageName: "schmu_ret_lambda", scope: !1, file: !1, line: 6, type: !3, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !8 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !9 = !DILocation(line: 10, column: 8, scope: !8)
-  !10 = !DILocation(line: 11, column: 9, scope: !8)
-  !11 = !DILocation(line: 12, column: 12, scope: !8)
-  !12 = !DILocation(line: 13, column: 12, scope: !8)
-  !13 = !DILocation(line: 15, column: 8, scope: !8)
-  !14 = !DILocation(line: 16, column: 12, scope: !8)
+  !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !3, file: !3, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "return_closure.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = distinct !DISubprogram(name: "bla", linkageName: "schmu_bla", scope: !3, file: !3, line: 2, type: !4, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !7 = distinct !DISubprogram(name: "ret_fn", linkageName: "schmu_ret_fn", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = distinct !DISubprogram(name: "ret_lambda", linkageName: "schmu_ret_lambda", scope: !3, file: !3, line: 6, type: !4, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !10 = !DILocation(line: 10, column: 8, scope: !9)
+  !11 = !DILocation(line: 11, column: 9, scope: !9)
+  !12 = !DILocation(line: 12, column: 12, scope: !9)
+  !13 = !DILocation(line: 13, column: 12, scope: !9)
+  !14 = !DILocation(line: 15, column: 8, scope: !9)
+  !15 = !DILocation(line: 16, column: 12, scope: !9)
   25
   47
   146
@@ -2957,10 +2977,10 @@ Take/use not all allocations of a record in tailrec calls
   rec:                                              ; preds = %cont, %entry
     %4 = phi i1 [ true, %cont ], [ false, %entry ]
     %5 = phi i64 [ %add, %cont ], [ %cnt, %entry ]
-    call void @schmu_ch(ptr %ret, ptr %1), !dbg !5
+    call void @schmu_ch(ptr %ret, ptr %1), !dbg !6
     %index = load i32, ptr %ret, align 4
     %eq = icmp eq i32 %index, 0
-    br i1 %eq, label %then, label %else, !dbg !6
+    br i1 %eq, label %then, label %else, !dbg !7
   
   then:                                             ; preds = %rec
     %data = getelementptr inbounds %parse_resultac_2l__, ptr %ret, i32 0, i32 1
@@ -3004,14 +3024,14 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define void @schmu_ch(ptr noalias %0, ptr %buf) !dbg !7 {
+  define void @schmu_ch(ptr noalias %0, ptr %buf) !dbg !8 {
   entry:
     %1 = load ptr, ptr %buf, align 8
     %2 = getelementptr inbounds %view_, ptr %buf, i32 0, i32 1
     %3 = load i64, ptr %2, align 8
-    %4 = tail call i8 @string_get(ptr %1, i64 %3), !dbg !8
-    %5 = tail call i1 @prelude_char_equal(i8 %4, i8 32), !dbg !9
-    br i1 %5, label %then, label %else, !dbg !9
+    %4 = tail call i8 @string_get(ptr %1, i64 %3), !dbg !9
+    %5 = tail call i1 @prelude_char_equal(i8 %4, i8 32), !dbg !10
+    br i1 %5, label %then, label %else, !dbg !10
   
   then:                                             ; preds = %entry
     store i32 0, ptr %0, align 4
@@ -3052,13 +3072,13 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define void @schmu_many_count(ptr noalias %0, ptr %buf) !dbg !10 {
+  define void @schmu_many_count(ptr noalias %0, ptr %buf) !dbg !11 {
   entry:
-    tail call void @schmu_aux(ptr %0, ptr %buf, i64 0), !dbg !11
+    tail call void @schmu_aux(ptr %0, ptr %buf, i64 0), !dbg !12
     ret void
   }
   
-  define void @schmu_view_of_string(ptr noalias %0, ptr %str) !dbg !12 {
+  define void @schmu_view_of_string(ptr noalias %0, ptr %str) !dbg !13 {
   entry:
     %1 = alloca ptr, align 8
     store ptr %str, ptr %1, align 8
@@ -3070,7 +3090,7 @@ Take/use not all allocations of a record in tailrec calls
     %start = getelementptr inbounds %view_, ptr %0, i32 0, i32 1
     store i64 0, ptr %start, align 8
     %len = getelementptr inbounds %view_, ptr %0, i32 0, i32 2
-    %4 = call i64 @string_len(ptr %str), !dbg !13
+    %4 = call i64 @string_len(ptr %str), !dbg !14
     store i64 %4, ptr %len, align 8
     ret void
   }
@@ -3157,7 +3177,7 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !14 {
+  define i64 @main(i64 %arg) !dbg !15 {
   entry:
     %fmtsize = tail call i32 (ptr, i64, ptr, ...) @snprintf(ptr null, i64 0, ptr getelementptr (i8, ptr @0, i64 16))
     %0 = add i32 %fmtsize, 17
@@ -3170,9 +3190,9 @@ Take/use not all allocations of a record in tailrec calls
     %data = getelementptr i64, ptr %2, i64 2
     %fmt = tail call i32 (ptr, i64, ptr, ...) @snprintf(ptr %data, i64 %1, ptr getelementptr (i8, ptr @0, i64 16))
     store ptr %2, ptr @schmu_s, align 8
-    tail call void @schmu_view_of_string(ptr @schmu_inp, ptr %2), !dbg !15
+    tail call void @schmu_view_of_string(ptr @schmu_inp, ptr %2), !dbg !16
     %ret = alloca %parse_resultl_, align 8
-    call void @schmu_many_count(ptr %ret, ptr @schmu_inp), !dbg !16
+    call void @schmu_many_count(ptr %ret, ptr @schmu_inp), !dbg !17
     call void @__free_vac_2l_l_ac_2l2_(ptr %ret)
     call void @__free_ac_2l_(ptr @schmu_inp)
     call void @__free_ac_(ptr @schmu_s)
@@ -3223,21 +3243,22 @@ Take/use not all allocations of a record in tailrec calls
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "take_partial_alloc.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "aux", linkageName: "schmu_aux", scope: !1, file: !1, line: 19, type: !3, scopeLine: 19, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 20, column: 10, scope: !2)
-  !6 = !DILocation(line: 21, column: 6, scope: !2)
-  !7 = distinct !DISubprogram(name: "ch", linkageName: "schmu_ch", scope: !1, file: !1, line: 9, type: !3, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !8 = !DILocation(line: 10, column: 16, scope: !7)
-  !9 = !DILocation(line: 10, column: 5, scope: !7)
-  !10 = distinct !DISubprogram(name: "many_count", linkageName: "schmu_many_count", scope: !1, file: !1, line: 18, type: !3, scopeLine: 18, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !11 = !DILocation(line: 27, column: 2, scope: !10)
-  !12 = distinct !DISubprogram(name: "view_of_string", linkageName: "schmu_view_of_string", scope: !1, file: !1, line: 5, type: !3, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !13 = !DILocation(line: 6, column: 37, scope: !12)
-  !14 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !15 = !DILocation(line: 31, column: 10, scope: !14)
-  !16 = !DILocation(line: 32, column: 7, scope: !14)
+  !2 = distinct !DISubprogram(name: "aux", linkageName: "schmu_aux", scope: !3, file: !3, line: 19, type: !4, scopeLine: 19, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "take_partial_alloc.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 20, column: 10, scope: !2)
+  !7 = !DILocation(line: 21, column: 6, scope: !2)
+  !8 = distinct !DISubprogram(name: "ch", linkageName: "schmu_ch", scope: !3, file: !3, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = !DILocation(line: 10, column: 16, scope: !8)
+  !10 = !DILocation(line: 10, column: 5, scope: !8)
+  !11 = distinct !DISubprogram(name: "many_count", linkageName: "schmu_many_count", scope: !3, file: !3, line: 18, type: !4, scopeLine: 18, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = !DILocation(line: 27, column: 2, scope: !11)
+  !13 = distinct !DISubprogram(name: "view_of_string", linkageName: "schmu_view_of_string", scope: !3, file: !3, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !14 = !DILocation(line: 6, column: 37, scope: !13)
+  !15 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !16 = !DILocation(line: 31, column: 10, scope: !15)
+  !17 = !DILocation(line: 32, column: 7, scope: !15)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./take_partial_alloc
 
 Take/use not all allocations of a record in tailrec calls, different order for pattern matches
@@ -3270,7 +3291,7 @@ Increase refcount for returned params in ifs
     %lsr.iv = phi i64 [ %lsr.iv.next, %else ], [ %2, %entry ]
     %4 = add i64 %3, %lsr.iv
     %eq = icmp eq i64 %4, 1
-    br i1 %eq, label %then, label %else, !dbg !5
+    br i1 %eq, label %then, label %else, !dbg !6
   
   then:                                             ; preds = %rec
     ret void
@@ -3280,13 +3301,13 @@ Increase refcount for returned params in ifs
     %loadtmp = load ptr, ptr %sunkaddr, align 8
     %sunkaddr3 = getelementptr inbounds i8, ptr %0, i64 24
     %loadtmp2 = load ptr, ptr %sunkaddr3, align 8
-    tail call void %loadtmp(ptr @0, ptr %loadtmp2), !dbg !6
+    tail call void %loadtmp(ptr @0, ptr %loadtmp2), !dbg !7
     store i64 %lsr.iv, ptr %1, align 8
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec
   }
   
-  define void @schmu_test(ptr %value) !dbg !7 {
+  define void @schmu_test(ptr %value) !dbg !8 {
   entry:
     %0 = alloca ptr, align 8
     store ptr %value, ptr %0, align 8
@@ -3297,7 +3318,7 @@ Increase refcount for returned params in ifs
     ret void
   }
   
-  define void @schmu_times(i64 %limit, ptr %f) !dbg !8 {
+  define void @schmu_times(i64 %limit, ptr %f) !dbg !9 {
   entry:
     %schmu_inner = alloca %closure, align 8
     store ptr @schmu_inner, ptr %schmu_inner, align 8
@@ -3311,7 +3332,7 @@ Increase refcount for returned params in ifs
     store ptr null, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %schmu_inner, i32 0, i32 1
     store ptr %clsr_schmu_inner, ptr %envptr, align 8
-    call void @schmu_inner(i64 0, ptr %clsr_schmu_inner), !dbg !9
+    call void @schmu_inner(i64 0, ptr %clsr_schmu_inner), !dbg !10
     ret void
   }
   
@@ -3374,13 +3395,13 @@ Increase refcount for returned params in ifs
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !10 {
+  define i64 @main(i64 %arg) !dbg !11 {
   entry:
     %clstmp = alloca %closure, align 8
     store ptr @schmu_test, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @schmu_times(i64 2, ptr %clstmp), !dbg !11
+    call void @schmu_times(i64 2, ptr %clstmp), !dbg !12
     ret i64 0
   }
   
@@ -3392,16 +3413,17 @@ Increase refcount for returned params in ifs
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "if_ret_param.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "inner", linkageName: "schmu_inner", scope: !1, file: !1, line: 4, type: !3, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 5, column: 7, scope: !2)
-  !6 = !DILocation(line: 7, column: 6, scope: !2)
-  !7 = distinct !DISubprogram(name: "test", linkageName: "schmu_test", scope: !1, file: !1, line: 14, type: !3, scopeLine: 14, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !8 = distinct !DISubprogram(name: "times", linkageName: "schmu_times", scope: !1, file: !1, line: 3, type: !3, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !9 = !DILocation(line: 11, column: 2, scope: !8)
-  !10 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !11 = !DILocation(line: 18, scope: !10)
+  !2 = distinct !DISubprogram(name: "inner", linkageName: "schmu_inner", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "if_ret_param.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 5, column: 7, scope: !2)
+  !7 = !DILocation(line: 7, column: 6, scope: !2)
+  !8 = distinct !DISubprogram(name: "test", linkageName: "schmu_test", scope: !3, file: !3, line: 14, type: !4, scopeLine: 14, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = distinct !DISubprogram(name: "times", linkageName: "schmu_times", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !10 = !DILocation(line: 11, column: 2, scope: !9)
+  !11 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = !DILocation(line: 18, scope: !11)
 
 Monomorphization in closures
   $ schmu --dump-llvm closure_monomorph.smu && ./closure_monomorph
@@ -3431,7 +3453,7 @@ Monomorphization in closures
     %3 = add i64 %lsr.iv, -1
     %4 = load i64, ptr %arr1, align 8
     %eq = icmp eq i64 %3, %4
-    br i1 %eq, label %then, label %else, !dbg !5
+    br i1 %eq, label %then, label %else, !dbg !6
   
   then:                                             ; preds = %rec
     ret void
@@ -3445,13 +3467,13 @@ Monomorphization in closures
     %loadtmp = load ptr, ptr %sunkaddr, align 8
     %sunkaddr4 = getelementptr inbounds i8, ptr %0, i64 32
     %loadtmp2 = load ptr, ptr %sunkaddr4, align 8
-    tail call void %loadtmp(i64 %6, ptr %loadtmp2), !dbg !6
+    tail call void %loadtmp(i64 %6, ptr %loadtmp2), !dbg !7
     store i64 %lsr.iv, ptr %1, align 8
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec
   }
   
-  define linkonce_odr void @__array_iter_al_lru__(ptr %arr, ptr %f) !dbg !7 {
+  define linkonce_odr void @__array_iter_al_lru__(ptr %arr, ptr %f) !dbg !8 {
   entry:
     %__array_inner_Cal_lru__ = alloca %closure, align 8
     store ptr @__array_inner_Cal_lru__, ptr %__array_inner_Cal_lru__, align 8
@@ -3465,15 +3487,15 @@ Monomorphization in closures
     store ptr null, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %__array_inner_Cal_lru__, i32 0, i32 1
     store ptr %clsr___array_inner_Cal_lru__, ptr %envptr, align 8
-    call void @__array_inner_Cal_lru__(i64 0, ptr %clsr___array_inner_Cal_lru__), !dbg !8
+    call void @__array_inner_Cal_lru__(i64 0, ptr %clsr___array_inner_Cal_lru__), !dbg !9
     ret void
   }
   
-  define linkonce_odr void @__array_swap_items_al__(ptr noalias %arr, i64 %i, i64 %j) !dbg !9 {
+  define linkonce_odr void @__array_swap_items_al__(ptr noalias %arr, i64 %i, i64 %j) !dbg !10 {
   entry:
     %eq = icmp eq i64 %i, %j
     %0 = xor i1 %eq, true
-    br i1 %0, label %then, label %ifcont, !dbg !10
+    br i1 %0, label %then, label %ifcont, !dbg !11
   
   then:                                             ; preds = %entry
     %1 = alloca i64, align 8
@@ -3492,7 +3514,7 @@ Monomorphization in closures
     ret void
   }
   
-  define linkonce_odr void @__fun_schmu0_Cal_2lrl_ll_(i64 %j, ptr %0) !dbg !11 {
+  define linkonce_odr void @__fun_schmu0_Cal_2lrl_ll_(i64 %j, ptr %0) !dbg !12 {
   entry:
     %arr = getelementptr inbounds { ptr, ptr, ptr, %closure, ptr, i64 }, ptr %0, i32 0, i32 2
     %arr1 = load ptr, ptr %arr, align 8
@@ -3508,34 +3530,34 @@ Monomorphization in closures
     %loadtmp = load ptr, ptr %cmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %cmp, i32 0, i32 1
     %loadtmp4 = load ptr, ptr %envptr, align 8
-    %5 = tail call i64 %loadtmp(i64 %4, i64 %pivot3, ptr %loadtmp4), !dbg !12
+    %5 = tail call i64 %loadtmp(i64 %4, i64 %pivot3, ptr %loadtmp4), !dbg !14
     %lt = icmp slt i64 %5, 0
-    br i1 %lt, label %then, label %ifcont, !dbg !12
+    br i1 %lt, label %then, label %ifcont, !dbg !14
   
   then:                                             ; preds = %entry
     %6 = load i64, ptr %i2, align 8
     %add = add i64 %6, 1
     store i64 %add, ptr %i2, align 8
-    tail call void @__array_swap_items_al__(ptr %arr1, i64 %add, i64 %j), !dbg !13
+    tail call void @__array_swap_items_al__(ptr %arr1, i64 %add, i64 %j), !dbg !15
     ret void
   
   ifcont:                                           ; preds = %entry
     ret void
   }
   
-  define i64 @__fun_schmu1(i64 %a, i64 %b) !dbg !14 {
+  define i64 @__fun_schmu1(i64 %a, i64 %b) !dbg !16 {
   entry:
     %sub = sub i64 %a, %b
     ret i64 %sub
   }
   
-  define void @__fun_schmu2(i64 %i) !dbg !15 {
+  define void @__fun_schmu2(i64 %i) !dbg !17 {
   entry:
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %i)
     ret void
   }
   
-  define linkonce_odr void @__fun_schmu3_Cal_2lrl_ll_(i64 %j, ptr %0) !dbg !16 {
+  define linkonce_odr void @__fun_schmu3_Cal_2lrl_ll_(i64 %j, ptr %0) !dbg !18 {
   entry:
     %arr = getelementptr inbounds { ptr, ptr, ptr, %closure, ptr, i64 }, ptr %0, i32 0, i32 2
     %arr1 = load ptr, ptr %arr, align 8
@@ -3551,34 +3573,34 @@ Monomorphization in closures
     %loadtmp = load ptr, ptr %cmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %cmp, i32 0, i32 1
     %loadtmp4 = load ptr, ptr %envptr, align 8
-    %5 = tail call i64 %loadtmp(i64 %4, i64 %pivot3, ptr %loadtmp4), !dbg !17
+    %5 = tail call i64 %loadtmp(i64 %4, i64 %pivot3, ptr %loadtmp4), !dbg !19
     %lt = icmp slt i64 %5, 0
-    br i1 %lt, label %then, label %ifcont, !dbg !17
+    br i1 %lt, label %then, label %ifcont, !dbg !19
   
   then:                                             ; preds = %entry
     %6 = load i64, ptr %i2, align 8
     %add = add i64 %6, 1
     store i64 %add, ptr %i2, align 8
-    tail call void @__array_swap_items_al__(ptr %arr1, i64 %add, i64 %j), !dbg !18
+    tail call void @__array_swap_items_al__(ptr %arr1, i64 %add, i64 %j), !dbg !20
     ret void
   
   ifcont:                                           ; preds = %entry
     ret void
   }
   
-  define i64 @__fun_schmu4(i64 %a, i64 %b) !dbg !19 {
+  define i64 @__fun_schmu4(i64 %a, i64 %b) !dbg !21 {
   entry:
     %sub = sub i64 %a, %b
     ret i64 %sub
   }
   
-  define void @__fun_schmu5(i64 %i) !dbg !20 {
+  define void @__fun_schmu5(i64 %i) !dbg !22 {
   entry:
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %i)
     ret void
   }
   
-  define linkonce_odr i64 @__schmu_partition__2_al_C2lrl__(ptr noalias %arr, i64 %lo, i64 %hi, ptr %0) !dbg !21 {
+  define linkonce_odr i64 @__schmu_partition__2_al_C2lrl__(ptr noalias %arr, i64 %lo, i64 %hi, ptr %0) !dbg !23 {
   entry:
     %cmp = getelementptr inbounds { ptr, ptr, %closure }, ptr %0, i32 0, i32 2
     %1 = load ptr, ptr %arr, align 8
@@ -3606,14 +3628,14 @@ Monomorphization in closures
     store ptr null, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %__fun_schmu3_Cal_2lrl_ll_, i32 0, i32 1
     store ptr %clsr___fun_schmu3_Cal_2lrl_ll_, ptr %envptr, align 8
-    call void @prelude_iter_range(i64 %lo, i64 %hi, ptr %__fun_schmu3_Cal_2lrl_ll_), !dbg !22
+    call void @prelude_iter_range(i64 %lo, i64 %hi, ptr %__fun_schmu3_Cal_2lrl_ll_), !dbg !24
     %7 = load i64, ptr %6, align 8
     %add = add i64 %7, 1
-    call void @__array_swap_items_al__(ptr %arr, i64 %add, i64 %hi), !dbg !23
+    call void @__array_swap_items_al__(ptr %arr, i64 %add, i64 %hi), !dbg !25
     ret i64 %add
   }
   
-  define linkonce_odr i64 @__schmu_partition_al_C2lrl__(ptr noalias %arr, i64 %lo, i64 %hi, ptr %0) !dbg !24 {
+  define linkonce_odr i64 @__schmu_partition_al_C2lrl__(ptr noalias %arr, i64 %lo, i64 %hi, ptr %0) !dbg !26 {
   entry:
     %cmp = getelementptr inbounds { ptr, ptr, %closure }, ptr %0, i32 0, i32 2
     %1 = load ptr, ptr %arr, align 8
@@ -3641,14 +3663,14 @@ Monomorphization in closures
     store ptr null, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %__fun_schmu0_Cal_2lrl_ll_, i32 0, i32 1
     store ptr %clsr___fun_schmu0_Cal_2lrl_ll_, ptr %envptr, align 8
-    call void @prelude_iter_range(i64 %lo, i64 %hi, ptr %__fun_schmu0_Cal_2lrl_ll_), !dbg !25
+    call void @prelude_iter_range(i64 %lo, i64 %hi, ptr %__fun_schmu0_Cal_2lrl_ll_), !dbg !27
     %7 = load i64, ptr %6, align 8
     %add = add i64 %7, 1
-    call void @__array_swap_items_al__(ptr %arr, i64 %add, i64 %hi), !dbg !26
+    call void @__array_swap_items_al__(ptr %arr, i64 %add, i64 %hi), !dbg !28
     ret i64 %add
   }
   
-  define linkonce_odr void @__schmu_quicksort__2_al_Cal_2lrlC2lrl2__(ptr noalias %arr, i64 %lo, i64 %hi, ptr %0) !dbg !27 {
+  define linkonce_odr void @__schmu_quicksort__2_al_Cal_2lrlC2lrl2__(ptr noalias %arr, i64 %lo, i64 %hi, ptr %0) !dbg !29 {
   entry:
     %1 = alloca ptr, align 8
     store ptr %arr, ptr %1, align 8
@@ -3675,7 +3697,7 @@ Monomorphization in closures
   
   cont:                                             ; preds = %false2, %false1, %rec
     %andtmp = phi i1 [ true, %rec ], [ true, %false1 ], [ false, %false2 ]
-    br i1 %andtmp, label %then, label %else, !dbg !28
+    br i1 %andtmp, label %then, label %else, !dbg !30
   
   then:                                             ; preds = %cont
     store i1 true, ptr %2, align 1
@@ -3686,16 +3708,16 @@ Monomorphization in closures
     %loadtmp = load ptr, ptr %sunkaddr, align 8
     %sunkaddr6 = getelementptr inbounds i8, ptr %0, i64 24
     %loadtmp3 = load ptr, ptr %sunkaddr6, align 8
-    %7 = tail call i64 %loadtmp(ptr %arr, i64 %5, i64 %hi, ptr %loadtmp3), !dbg !29
+    %7 = tail call i64 %loadtmp(ptr %arr, i64 %5, i64 %hi, ptr %loadtmp3), !dbg !31
     %sub = sub i64 %7, 1
-    tail call void @__schmu_quicksort__2_al_Cal_2lrlC2lrl2__(ptr %arr, i64 %5, i64 %sub, ptr %0), !dbg !30
+    tail call void @__schmu_quicksort__2_al_Cal_2lrlC2lrl2__(ptr %arr, i64 %5, i64 %sub, ptr %0), !dbg !32
     %add = add i64 %7, 1
     store ptr %arr, ptr %1, align 8
     store i64 %add, ptr %3, align 8
     br label %rec
   }
   
-  define linkonce_odr void @__schmu_quicksort_al_Cal_2lrlC2lrl2__(ptr noalias %arr, i64 %lo, i64 %hi, ptr %0) !dbg !31 {
+  define linkonce_odr void @__schmu_quicksort_al_Cal_2lrlC2lrl2__(ptr noalias %arr, i64 %lo, i64 %hi, ptr %0) !dbg !33 {
   entry:
     %1 = alloca ptr, align 8
     store ptr %arr, ptr %1, align 8
@@ -3722,7 +3744,7 @@ Monomorphization in closures
   
   cont:                                             ; preds = %false2, %false1, %rec
     %andtmp = phi i1 [ true, %rec ], [ true, %false1 ], [ false, %false2 ]
-    br i1 %andtmp, label %then, label %else, !dbg !32
+    br i1 %andtmp, label %then, label %else, !dbg !34
   
   then:                                             ; preds = %cont
     store i1 true, ptr %2, align 1
@@ -3733,16 +3755,16 @@ Monomorphization in closures
     %loadtmp = load ptr, ptr %sunkaddr, align 8
     %sunkaddr6 = getelementptr inbounds i8, ptr %0, i64 24
     %loadtmp3 = load ptr, ptr %sunkaddr6, align 8
-    %7 = tail call i64 %loadtmp(ptr %arr, i64 %5, i64 %hi, ptr %loadtmp3), !dbg !33
+    %7 = tail call i64 %loadtmp(ptr %arr, i64 %5, i64 %hi, ptr %loadtmp3), !dbg !35
     %sub = sub i64 %7, 1
-    tail call void @__schmu_quicksort_al_Cal_2lrlC2lrl2__(ptr %arr, i64 %5, i64 %sub, ptr %0), !dbg !34
+    tail call void @__schmu_quicksort_al_Cal_2lrlC2lrl2__(ptr %arr, i64 %5, i64 %sub, ptr %0), !dbg !36
     %add = add i64 %7, 1
     store ptr %arr, ptr %1, align 8
     store i64 %add, ptr %3, align 8
     br label %rec
   }
   
-  define linkonce_odr void @__schmu_sort__2_al_2lrl__(ptr noalias %arr, ptr %cmp) !dbg !35 {
+  define linkonce_odr void @__schmu_sort__2_al_2lrl__(ptr noalias %arr, ptr %cmp) !dbg !37 {
   entry:
     %__schmu_partition__2_al_C2lrl__ = alloca %closure, align 8
     store ptr @__schmu_partition__2_al_C2lrl__, ptr %__schmu_partition__2_al_C2lrl__, align 8
@@ -3767,11 +3789,11 @@ Monomorphization in closures
     %0 = load ptr, ptr %arr, align 8
     %1 = load i64, ptr %0, align 8
     %sub = sub i64 %1, 1
-    call void @__schmu_quicksort__2_al_Cal_2lrlC2lrl2__(ptr %arr, i64 0, i64 %sub, ptr %clsr___schmu_quicksort__2_al_Cal_2lrlC2lrl2__), !dbg !36
+    call void @__schmu_quicksort__2_al_Cal_2lrlC2lrl2__(ptr %arr, i64 0, i64 %sub, ptr %clsr___schmu_quicksort__2_al_Cal_2lrlC2lrl2__), !dbg !38
     ret void
   }
   
-  define linkonce_odr void @__schmu_sort_al_2lrl__(ptr noalias %arr, ptr %cmp) !dbg !37 {
+  define linkonce_odr void @__schmu_sort_al_2lrl__(ptr noalias %arr, ptr %cmp) !dbg !39 {
   entry:
     %__schmu_partition_al_C2lrl__ = alloca %closure, align 8
     store ptr @__schmu_partition_al_C2lrl__, ptr %__schmu_partition_al_C2lrl__, align 8
@@ -3796,7 +3818,7 @@ Monomorphization in closures
     %0 = load ptr, ptr %arr, align 8
     %1 = load i64, ptr %0, align 8
     %sub = sub i64 %1, 1
-    call void @__schmu_quicksort_al_Cal_2lrlC2lrl2__(ptr %arr, i64 0, i64 %sub, ptr %clsr___schmu_quicksort_al_Cal_2lrlC2lrl2__), !dbg !38
+    call void @__schmu_quicksort_al_Cal_2lrlC2lrl2__(ptr %arr, i64 0, i64 %sub, ptr %clsr___schmu_quicksort_al_Cal_2lrlC2lrl2__), !dbg !40
     ret void
   }
   
@@ -3926,7 +3948,7 @@ Monomorphization in closures
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !39 {
+  define i64 @main(i64 %arg) !dbg !41 {
   entry:
     %0 = tail call ptr @malloc(i64 64)
     store ptr %0, ptr @schmu_arr, align 8
@@ -3949,13 +3971,13 @@ Monomorphization in closures
     store ptr @__fun_schmu1, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @__schmu_sort_al_2lrl__(ptr @schmu_arr, ptr %clstmp), !dbg !40
+    call void @__schmu_sort_al_2lrl__(ptr @schmu_arr, ptr %clstmp), !dbg !42
     %2 = load ptr, ptr @schmu_arr, align 8
     %clstmp1 = alloca %closure, align 8
     store ptr @__fun_schmu2, ptr %clstmp1, align 8
     %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
     store ptr null, ptr %envptr3, align 8
-    call void @__array_iter_al_lru__(ptr %2, ptr %clstmp1), !dbg !41
+    call void @__array_iter_al_lru__(ptr %2, ptr %clstmp1), !dbg !43
     %3 = call ptr @malloc(i64 64)
     store ptr %3, ptr @schmu_arr__2, align 8
     store i64 6, ptr %3, align 8
@@ -3977,13 +3999,13 @@ Monomorphization in closures
     store ptr @__fun_schmu4, ptr %clstmp12, align 8
     %envptr14 = getelementptr inbounds %closure, ptr %clstmp12, i32 0, i32 1
     store ptr null, ptr %envptr14, align 8
-    call void @__schmu_sort__2_al_2lrl__(ptr @schmu_arr__2, ptr %clstmp12), !dbg !42
+    call void @__schmu_sort__2_al_2lrl__(ptr @schmu_arr__2, ptr %clstmp12), !dbg !44
     %5 = load ptr, ptr @schmu_arr__2, align 8
     %clstmp15 = alloca %closure, align 8
     store ptr @__fun_schmu5, ptr %clstmp15, align 8
     %envptr17 = getelementptr inbounds %closure, ptr %clstmp15, i32 0, i32 1
     store ptr null, ptr %envptr17, align 8
-    call void @__array_iter_al_lru__(ptr %5, ptr %clstmp15), !dbg !43
+    call void @__array_iter_al_lru__(ptr %5, ptr %clstmp15), !dbg !45
     call void @__free_al_(ptr @schmu_arr__2)
     call void @__free_al_(ptr @schmu_arr)
     ret i64 0
@@ -3997,48 +4019,50 @@ Monomorphization in closures
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "closure_monomorph.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner_Cal_lru__", scope: !1, file: !1, line: 32, type: !3, scopeLine: 32, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 33, column: 7, scope: !2)
-  !6 = !DILocation(line: 36, column: 6, scope: !2)
-  !7 = distinct !DISubprogram(name: "_array_iter", linkageName: "__array_iter_al_lru__", scope: !1, file: !1, line: 31, type: !3, scopeLine: 31, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !8 = !DILocation(line: 41, column: 2, scope: !7)
-  !9 = distinct !DISubprogram(name: "_array_swap_items", linkageName: "__array_swap_items_al__", scope: !1, file: !1, line: 108, type: !3, scopeLine: 108, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !10 = !DILocation(line: 109, column: 5, scope: !9)
-  !11 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0_Cal_2lrl_ll_", scope: !1, file: !1, line: 5, type: !3, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !12 = !DILocation(line: 6, column: 9, scope: !11)
-  !13 = !DILocation(line: 8, column: 8, scope: !11)
-  !14 = distinct !DISubprogram(name: "__fun_schmu1", linkageName: "__fun_schmu1", scope: !1, file: !1, line: 36, type: !3, scopeLine: 36, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !15 = distinct !DISubprogram(name: "__fun_schmu2", linkageName: "__fun_schmu2", scope: !1, file: !1, line: 37, type: !3, scopeLine: 37, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !16 = distinct !DISubprogram(name: "__fun_schmu3", linkageName: "__fun_schmu3_Cal_2lrl_ll_", scope: !1, file: !1, line: 44, type: !3, scopeLine: 44, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !17 = !DILocation(line: 45, column: 9, scope: !16)
-  !18 = !DILocation(line: 47, column: 8, scope: !16)
-  !19 = distinct !DISubprogram(name: "__fun_schmu4", linkageName: "__fun_schmu4", scope: !1, file: !1, line: 75, type: !3, scopeLine: 75, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !20 = distinct !DISubprogram(name: "__fun_schmu5", linkageName: "__fun_schmu5", scope: !1, file: !1, line: 76, type: !3, scopeLine: 76, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !21 = distinct !DISubprogram(name: "partition", linkageName: "__schmu_partition__2_al_C2lrl__", scope: !1, file: !1, line: 41, type: !3, scopeLine: 41, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !22 = !DILocation(line: 44, column: 4, scope: !21)
-  !23 = !DILocation(line: 51, column: 4, scope: !21)
-  !24 = distinct !DISubprogram(name: "partition", linkageName: "__schmu_partition_al_C2lrl__", scope: !1, file: !1, line: 2, type: !3, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !25 = !DILocation(line: 5, column: 4, scope: !24)
-  !26 = !DILocation(line: 12, column: 4, scope: !24)
-  !27 = distinct !DISubprogram(name: "quicksort", linkageName: "__schmu_quicksort__2_al_Cal_2lrlC2lrl2__", scope: !1, file: !1, line: 62, type: !3, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !28 = !DILocation(line: 63, column: 7, scope: !27)
-  !29 = !DILocation(line: 66, column: 14, scope: !27)
-  !30 = !DILocation(line: 67, column: 6, scope: !27)
-  !31 = distinct !DISubprogram(name: "quicksort", linkageName: "__schmu_quicksort_al_Cal_2lrlC2lrl2__", scope: !1, file: !1, line: 22, type: !3, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !32 = !DILocation(line: 23, column: 7, scope: !31)
-  !33 = !DILocation(line: 26, column: 14, scope: !31)
-  !34 = !DILocation(line: 27, column: 6, scope: !31)
-  !35 = distinct !DISubprogram(name: "sort", linkageName: "__schmu_sort__2_al_2lrl__", scope: !1, file: !1, line: 40, type: !3, scopeLine: 40, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !36 = !DILocation(line: 72, column: 2, scope: !35)
-  !37 = distinct !DISubprogram(name: "sort", linkageName: "__schmu_sort_al_2lrl__", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !38 = !DILocation(line: 32, column: 2, scope: !37)
-  !39 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !40 = !DILocation(line: 36, scope: !39)
-  !41 = !DILocation(line: 37, scope: !39)
-  !42 = !DILocation(line: 75, scope: !39)
-  !43 = !DILocation(line: 76, scope: !39)
+  !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner_Cal_lru__", scope: !3, file: !3, line: 32, type: !4, scopeLine: 32, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "array.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 33, column: 7, scope: !2)
+  !7 = !DILocation(line: 36, column: 6, scope: !2)
+  !8 = distinct !DISubprogram(name: "_array_iter", linkageName: "__array_iter_al_lru__", scope: !3, file: !3, line: 31, type: !4, scopeLine: 31, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = !DILocation(line: 41, column: 2, scope: !8)
+  !10 = distinct !DISubprogram(name: "_array_swap_items", linkageName: "__array_swap_items_al__", scope: !3, file: !3, line: 108, type: !4, scopeLine: 108, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !11 = !DILocation(line: 109, column: 5, scope: !10)
+  !12 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0_Cal_2lrl_ll_", scope: !13, file: !13, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !13 = !DIFile(filename: "closure_monomorph.smu", directory: "")
+  !14 = !DILocation(line: 6, column: 9, scope: !12)
+  !15 = !DILocation(line: 8, column: 8, scope: !12)
+  !16 = distinct !DISubprogram(name: "__fun_schmu1", linkageName: "__fun_schmu1", scope: !13, file: !13, line: 36, type: !4, scopeLine: 36, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !17 = distinct !DISubprogram(name: "__fun_schmu2", linkageName: "__fun_schmu2", scope: !13, file: !13, line: 37, type: !4, scopeLine: 37, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !18 = distinct !DISubprogram(name: "__fun_schmu3", linkageName: "__fun_schmu3_Cal_2lrl_ll_", scope: !13, file: !13, line: 44, type: !4, scopeLine: 44, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !19 = !DILocation(line: 45, column: 9, scope: !18)
+  !20 = !DILocation(line: 47, column: 8, scope: !18)
+  !21 = distinct !DISubprogram(name: "__fun_schmu4", linkageName: "__fun_schmu4", scope: !13, file: !13, line: 75, type: !4, scopeLine: 75, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !22 = distinct !DISubprogram(name: "__fun_schmu5", linkageName: "__fun_schmu5", scope: !13, file: !13, line: 76, type: !4, scopeLine: 76, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !23 = distinct !DISubprogram(name: "partition", linkageName: "__schmu_partition__2_al_C2lrl__", scope: !13, file: !13, line: 41, type: !4, scopeLine: 41, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !24 = !DILocation(line: 44, column: 4, scope: !23)
+  !25 = !DILocation(line: 51, column: 4, scope: !23)
+  !26 = distinct !DISubprogram(name: "partition", linkageName: "__schmu_partition_al_C2lrl__", scope: !13, file: !13, line: 2, type: !4, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !27 = !DILocation(line: 5, column: 4, scope: !26)
+  !28 = !DILocation(line: 12, column: 4, scope: !26)
+  !29 = distinct !DISubprogram(name: "quicksort", linkageName: "__schmu_quicksort__2_al_Cal_2lrlC2lrl2__", scope: !13, file: !13, line: 62, type: !4, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !30 = !DILocation(line: 63, column: 7, scope: !29)
+  !31 = !DILocation(line: 66, column: 14, scope: !29)
+  !32 = !DILocation(line: 67, column: 6, scope: !29)
+  !33 = distinct !DISubprogram(name: "quicksort", linkageName: "__schmu_quicksort_al_Cal_2lrlC2lrl2__", scope: !13, file: !13, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !34 = !DILocation(line: 23, column: 7, scope: !33)
+  !35 = !DILocation(line: 26, column: 14, scope: !33)
+  !36 = !DILocation(line: 27, column: 6, scope: !33)
+  !37 = distinct !DISubprogram(name: "sort", linkageName: "__schmu_sort__2_al_2lrl__", scope: !13, file: !13, line: 40, type: !4, scopeLine: 40, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !38 = !DILocation(line: 72, column: 2, scope: !37)
+  !39 = distinct !DISubprogram(name: "sort", linkageName: "__schmu_sort_al_2lrl__", scope: !13, file: !13, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !40 = !DILocation(line: 32, column: 2, scope: !39)
+  !41 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !13, file: !13, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !42 = !DILocation(line: 36, scope: !41)
+  !43 = !DILocation(line: 37, scope: !41)
+  !44 = !DILocation(line: 75, scope: !41)
+  !45 = !DILocation(line: 76, scope: !41)
   0
   9
   30
@@ -4135,7 +4159,7 @@ Handle partial allocations
     ret ptr %8
   }
   
-  define void @schmu_set_moved() !dbg !5 {
+  define void @schmu_set_moved() !dbg !6 {
   entry:
     %0 = alloca %tal__, align 8
     %1 = tail call ptr @malloc(i64 24)
@@ -4201,10 +4225,10 @@ Handle partial allocations
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %arg) !dbg !7 {
   entry:
-    %0 = tail call ptr @schmu_inf(), !dbg !7
-    tail call void @schmu_set_moved(), !dbg !8
+    %0 = tail call ptr @schmu_inf(), !dbg !8
+    tail call void @schmu_set_moved(), !dbg !9
     %1 = alloca ptr, align 8
     store ptr %0, ptr %1, align 8
     call void @__free_al_(ptr %1)
@@ -4217,13 +4241,14 @@ Handle partial allocations
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "partials.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "inf", linkageName: "schmu_inf", scope: !1, file: !1, line: 3, type: !3, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = distinct !DISubprogram(name: "set_moved", linkageName: "schmu_set_moved", scope: !1, file: !1, line: 15, type: !3, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !6 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !7 = !DILocation(line: 12, column: 7, scope: !6)
-  !8 = !DILocation(line: 21, scope: !6)
+  !2 = distinct !DISubprogram(name: "inf", linkageName: "schmu_inf", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "partials.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = distinct !DISubprogram(name: "set_moved", linkageName: "schmu_set_moved", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !7 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = !DILocation(line: 12, column: 7, scope: !7)
+  !9 = !DILocation(line: 21, scope: !7)
 
 Don't free string literals
   $ schmu borrow_string_lit.smu
@@ -4278,9 +4303,10 @@ Const fixed array
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "const_fixed_arr.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
+  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "const_fixed_arr.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
   $ valgrind -q --leak-check=yes --show-reachable=yes ./const_fixed_arr
   17
 
@@ -4339,11 +4365,11 @@ Using unit values
     %1 = load i64, ptr %capacity, align 8
     %2 = load i64, ptr %0, align 8
     %eq = icmp eq i64 %1, %2
-    br i1 %eq, label %then, label %ifcont5, !dbg !5
+    br i1 %eq, label %then, label %ifcont5, !dbg !6
   
   then:                                             ; preds = %entry
     %eq1 = icmp eq i64 %1, 0
-    br i1 %eq1, label %then2, label %else, !dbg !6
+    br i1 %eq1, label %then2, label %else, !dbg !7
   
   then2:                                            ; preds = %then
     %3 = tail call ptr @realloc(ptr %0, i64 16)
@@ -4367,12 +4393,12 @@ Using unit values
     ret void
   }
   
-  define void @schmu_a__2() !dbg !7 {
+  define void @schmu_a__2() !dbg !8 {
   entry:
     ret void
   }
   
-  define void @schmu_t__2(ptr noalias %0) !dbg !8 {
+  define void @schmu_t__2(ptr noalias %0) !dbg !10 {
   entry:
     store %thing_ zeroinitializer, ptr %0, align 1
     ret void
@@ -4380,24 +4406,24 @@ Using unit values
   
   declare ptr @realloc(ptr %0, i64 %1)
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %arg) !dbg !11 {
   entry:
     store i32 1, ptr @schmu_b__2, align 4
-    tail call void @schmu_a__2(), !dbg !10
+    tail call void @schmu_a__2(), !dbg !12
     %index = load i32, ptr @schmu_b__2, align 4
     %eq = icmp eq i32 %index, 1
-    br i1 %eq, label %then, label %else, !dbg !11
+    br i1 %eq, label %then, label %else, !dbg !13
   
   then:                                             ; preds = %entry
-    tail call void @string_println(ptr @0), !dbg !12
+    tail call void @string_println(ptr @0), !dbg !14
     br label %ifcont
   
   else:                                             ; preds = %entry
-    tail call void @string_println(ptr @1), !dbg !13
+    tail call void @string_println(ptr @1), !dbg !15
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
-    tail call void @schmu_t__2(ptr @schmu_t2), !dbg !14
+    tail call void @schmu_t__2(ptr @schmu_t2), !dbg !16
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @2, i64 16), double 9.990000e+01)
     %0 = tail call ptr @malloc(i64 16)
     store ptr %0, ptr @schmu_arr, align 8
@@ -4405,7 +4431,7 @@ Using unit values
     %cap = getelementptr i64, ptr %0, i64 1
     store i64 2, ptr %cap, align 8
     %1 = getelementptr i8, ptr %0, i64 16
-    tail call void @__array_push_au_u_(ptr @schmu_arr), !dbg !15
+    tail call void @__array_push_au_u_(ptr @schmu_arr), !dbg !17
     %2 = load ptr, ptr @schmu_arr, align 8
     %3 = load i64, ptr %2, align 8
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @3, i64 16), i64 %3)
@@ -4432,20 +4458,22 @@ Using unit values
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "unit_values.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_au_u_", scope: !1, file: !1, line: 15, type: !3, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !3 = !DISubroutineType(flags: DIFlagPrototyped, types: !4)
-  !4 = !{}
-  !5 = !DILocation(line: 19, column: 5, scope: !2)
-  !6 = !DILocation(line: 20, column: 7, scope: !2)
-  !7 = distinct !DISubprogram(name: "a", linkageName: "schmu_a__2", scope: !1, file: !1, line: 5, type: !3, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !8 = distinct !DISubprogram(name: "t", linkageName: "schmu_t__2", scope: !1, file: !1, line: 16, type: !3, scopeLine: 16, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !1, file: !1, line: 1, type: !3, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !4)
-  !10 = !DILocation(line: 6, column: 13, scope: !9)
-  !11 = !DILocation(line: 8, column: 2, scope: !9)
-  !12 = !DILocation(line: 8, column: 11, scope: !9)
-  !13 = !DILocation(line: 9, column: 8, scope: !9)
-  !14 = !DILocation(line: 17, column: 9, scope: !9)
-  !15 = !DILocation(line: 27, scope: !9)
+  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_au_u_", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "array.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 19, column: 5, scope: !2)
+  !7 = !DILocation(line: 20, column: 7, scope: !2)
+  !8 = distinct !DISubprogram(name: "a", linkageName: "schmu_a__2", scope: !9, file: !9, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = !DIFile(filename: "unit_values.smu", directory: "")
+  !10 = distinct !DISubprogram(name: "t", linkageName: "schmu_t__2", scope: !9, file: !9, line: 16, type: !4, scopeLine: 16, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !11 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !9, file: !9, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = !DILocation(line: 6, column: 13, scope: !11)
+  !13 = !DILocation(line: 8, column: 2, scope: !11)
+  !14 = !DILocation(line: 8, column: 11, scope: !11)
+  !15 = !DILocation(line: 9, column: 8, scope: !11)
+  !16 = !DILocation(line: 17, column: 9, scope: !11)
+  !17 = !DILocation(line: 27, scope: !11)
   some
   99.9
   3

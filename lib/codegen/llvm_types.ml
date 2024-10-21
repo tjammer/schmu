@@ -42,6 +42,7 @@ let the_module =
 let dibuilder = Debug.dibuilder the_module
 let di_comp_unit = ref None
 let di_file = ref None
+let di_filetbl = Hashtbl.create 64
 
 let set_di_comp_unit ~filename ~directory ~is_optimized =
   let file_ref = Debug.dibuild_create_file ~filename ~directory dibuilder in
@@ -55,7 +56,19 @@ let set_di_comp_unit ~filename ~directory ~is_optimized =
   di_comp_unit := Some unit
 
 let di_comp_unit () = Option.get !di_comp_unit
-let di_file () = Option.get !di_file
+
+let di_file loc =
+  (* We don't have accurate [directory] information for polymorphic functions
+     from other modules. Ignore it for now *)
+  let filename = Lexing.((fst loc).pos_fname) in
+  match Hashtbl.find_opt di_filetbl filename with
+  | Some file_ref -> file_ref
+  | None ->
+      let file_ref =
+        Debug.dibuild_create_file ~filename ~directory:"" dibuilder
+      in
+      Hashtbl.add di_filetbl filename file_ref;
+      file_ref
 
 let di_loc param loc =
   let line = Lexing.((fst loc).pos_lnum) in

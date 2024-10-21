@@ -44,11 +44,11 @@ end = struct
           let param_types = [||] in
           let ty =
             Debug.dibuild_create_subroutine_type dibuilder flags
-              ~file:(di_file ()) ~param_types
+              ~file:(di_file func_loc) ~param_types
           in
           let line = Lexing.((fst func_loc).pos_lnum) in
-          Debug.dibuild_create_function dibuilder ~scope:(di_file ())
-            ~name:name.user ~linkage_name:name.call ~file:(di_file ())
+          Debug.dibuild_create_function dibuilder ~scope:(di_file func_loc)
+            ~name:name.user ~linkage_name:name.call ~file:(di_file func_loc)
             ~line_no:line ~ty ~is_local_to_unit:false ~is_definition:true
             ~scope_line:line ~flags ~is_optimized:true
         in
