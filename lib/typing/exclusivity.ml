@@ -811,7 +811,8 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       {
         callee =
           ( { expr = Var ("__rc_get", _); _ }
-          | { expr = Var ("get", Some (Pmod ("std", Pid "rc"))); _ } ) as callee;
+          | { expr = Var ("get", Some (Pmod ("std", Pid "rc"))); _ }
+          | { expr = Var ("get", Some (Path.Pid "unsafe")); _ } ) as callee;
         args = [ arg ];
       } ->
       (* Special case for rc_get. It effectively returns the same allocation as
@@ -822,13 +823,11 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
   | App
       {
         callee =
-          ( {
-              expr =
-                Var
-                  (("__array_get" | "__fixed_array_get" | "__unsafe_ptr_get"), _);
-              _;
-            }
-          | { expr = Var ("get", Some (Path.Pid "unsafe")); _ } ) as callee;
+          {
+            expr =
+              Var (("__array_get" | "__fixed_array_get" | "__unsafe_ptr_get"), _);
+            _;
+          } as callee;
         args = [ arr; idx ];
       } ->
       (* Special case for __array_get *)
