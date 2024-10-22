@@ -12,6 +12,7 @@ signature {
   val <= : (t, t) -> bool
   val >= : (t, t) -> bool
   val == : (t, t) -> bool
+  val <> : (t, t) -> bool
 }
 
 let + = __addi
@@ -24,6 +25,7 @@ let > = __greateri
 let <= = __lesseqi
 let >= = __greatereqi
 let == = __equali
+let <> = __nequali
 
 fun hash(i) {
   -- basically murmurhash

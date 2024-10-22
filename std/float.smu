@@ -8,3 +8,4 @@ let > = __greaterf
 let <= = __lesseqf
 let >= = __greatereqf
 let == = __equalf
+let <> = __nequalf

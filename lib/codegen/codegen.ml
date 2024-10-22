@@ -938,7 +938,7 @@ end = struct
         { value; lltyp = int_t; typ = Tint; kind = Imm }
     | Lxor ->
         let a, b = binary () in
-        let value = Llvm.build_xor a b "lor" builder in
+        let value = Llvm.build_xor a b "lxor" builder in
         { value; lltyp = int_t; typ = Tint; kind = Imm }
     | Lshl ->
         let a, b = binary () in
@@ -1004,6 +1004,10 @@ end = struct
         let a, b = binary () in
         let value = Llvm.(build_icmp Icmp.Eq) a b "eq" builder in
         { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Nequali ->
+        let a, b = binary () in
+        let value = Llvm.(build_icmp Icmp.Ne) a b "ne" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
     | Lessf ->
         let a, b = binary () in
         let value = Llvm.(build_fcmp Fcmp.Olt) a b "lt" builder in
@@ -1023,6 +1027,10 @@ end = struct
     | Equalf ->
         let a, b = binary () in
         let value = Llvm.(build_fcmp Fcmp.Oeq) a b "eq" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Nequalf ->
+        let a, b = binary () in
+        let value = Llvm.(build_fcmp Fcmp.One) a b "ne" builder in
         { value; lltyp = bool_t; typ = Tbool; kind = Imm }
     | Rc_create ->
         let e =

@@ -46,11 +46,13 @@ type t =
   | Lesseqi
   | Greatereqi
   | Equali
+  | Nequali
   | Lessf
   | Greaterf
   | Lesseqf
   | Greatereqf
   | Equalf
+  | Nequalf
   | Rc_create
   | Rc_get
 [@@deriving show]
@@ -218,6 +220,9 @@ let tbl =
   Hashtbl.add tbl "__equali"
     ( Equali,
       Tfun ([ { p with pt = tint }; { p with pt = tint } ], tbool, Simple) );
+  Hashtbl.add tbl "__nequali"
+    ( Nequali,
+      Tfun ([ { p with pt = tint }; { p with pt = tint } ], tbool, Simple) );
   Hashtbl.add tbl "__lessf"
     ( Lessf,
       Tfun ([ { p with pt = tfloat }; { p with pt = tfloat } ], tbool, Simple)
@@ -236,6 +241,10 @@ let tbl =
     );
   Hashtbl.add tbl "__equalf"
     ( Equalf,
+      Tfun ([ { p with pt = tfloat }; { p with pt = tfloat } ], tbool, Simple)
+    );
+  Hashtbl.add tbl "__nequalf"
+    ( Nequalf,
       Tfun ([ { p with pt = tfloat }; { p with pt = tfloat } ], tbool, Simple)
     );
   Hashtbl.add tbl "__rc_create"
