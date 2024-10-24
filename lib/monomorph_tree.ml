@@ -530,7 +530,10 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       {
         callee =
           {
-            expr = Var ((("print" | "println") as str), Some (Path.Pid "std"));
+            expr =
+              Var
+                ( (("print" | "println") as str),
+                  Some (Path.Pid ("std" | "string")) );
             _;
           };
         args = [ ({ expr = Fmt es; _ }, _) ];

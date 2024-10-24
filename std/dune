@@ -41,6 +41,13 @@
    (run schmu -m --no-std hashtbl.smu))))
 
 (rule
+ (targets sys.o sys.smi)
+ (deps %{bin:schmu} sys.smu array.smi string.smi unsafe.smi prelude.smi)
+ (action
+  (progn
+   (run schmu -m --no-std sys.smu))))
+
+(rule
  (targets in_channel.o in_channel.smi)
  (deps
   %{bin:schmu}
@@ -74,13 +81,14 @@
   %{bin:schmu}
   std.smu
   array.smi
-  string.smi
-  hashtbl.smi
-  prelude.smi
-  int.smi
   float.smi
-  unsafe.smi
-  in_channel.smi)
+  hashtbl.smi
+  in_channel.smi
+  int.smi
+  prelude.smi
+  string.smi
+  sys.smi
+  unsafe.smi)
  (action
   (progn
    (run schmu -m --no-std std.smu))))
@@ -117,6 +125,9 @@
   int.smu
   (int.smi as std/int.smi)
   (int.o as std/int.o)
+  sys.smu
+  (sys.smi as std/sys.smi)
+  (sys.o as std/sys.o)
   unsafe.smu
   (unsafe.smi as std/unsafe.smi)
   (unsafe.o as std/unsafe.o)))

@@ -1567,7 +1567,28 @@ let add_global_init funcs outname start_loc kind body =
   let global = define_global glname global the_module in
   set_linkage Appending global
 
-let generate ~target ~outname ~release ~modul ~start_loc
+let add_args body ~loc =
+  let name = "__schmu_argv" and lltyp = ptr_t in
+  let value = Llvm.const_null ptr_t in
+  let value = Llvm.define_global name value the_module in
+  Strtbl.add const_tbl name { value; lltyp; typ = Traw_ptr Tu8; kind = Ptr };
+
+  let name = "__schmu_argc" and lltyp = int_t in
+  let value = Llvm.const_null int_t in
+  let value = Llvm.define_global name value the_module in
+  Strtbl.add const_tbl name { value; lltyp; typ = Tint; kind = Ptr };
+
+  let open Monomorph_tree in
+  let expr = Mvar ("__argv", Vnorm) in
+  let var = { typ = Traw_ptr Tu8; expr; return = false; loc; const = Cnot } in
+  let expr = Mlet ("", var, Lowned, Some "__schmu_argv", [], body) in
+  let cont = { body with expr } in
+  let expr = Mvar ("__argc", Vnorm) in
+  let var = { typ = Tint; expr; return = false; loc; const = Cnot } in
+  let expr = Mlet ("", var, Lowned, Some "__schmu_argc", [], cont) in
+  { body with expr }
+
+let generate ~target ~outname ~release ~modul ~args ~start_loc
     { Monomorph_tree.constants; globals; externals; tree; funcs; frees } =
   set_di_comp_unit ~filename:(outname ^ ".smu") ~directory:(Sys.getcwd ())
     ~is_optimized:release;
@@ -1627,6 +1648,11 @@ let generate ~target ~outname ~release ~modul ~start_loc
     (* Add main *)
     let tree = free_mallocs tree frees in
     let upward = ref false in
+    let body =
+      if args then { (add_args tree ~loc:start_loc) with typ = Tint }
+      else { tree with typ = Tint }
+    in
+
     Core.gen_function funcs
       {
         name = { Monomorph_tree.user = "main"; call = "main" };
@@ -1636,12 +1662,16 @@ let generate ~target ~outname ~release ~modul ~start_loc
           {
             func =
               {
-                params = [ { pt = Tint; pmut = false; pmoved = false } ];
+                params =
+                  [
+                    { pt = Tint; pmut = false; pmoved = false };
+                    { pt = Traw_ptr Tu8; pmut = false; pmoved = false };
+                  ];
                 ret = Tint;
                 kind = Simple;
               };
-            pnames = [ ("arg", -1) ];
-            body = { tree with typ = Tint };
+            pnames = [ ("__argc", -1); ("__argv", -1) ];
+            body;
           };
         monomorphized = false;
         func_loc = start_loc;

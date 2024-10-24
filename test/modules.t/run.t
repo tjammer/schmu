@@ -53,7 +53,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %2
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %0 = tail call i64 @schmu_doo(i32 0), !dbg !10
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
@@ -119,7 +119,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %2
   }
   
-  define i64 @main(i64 %arg) !dbg !13 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !13 {
   entry:
     %0 = tail call i64 @schmu_doo(i32 0), !dbg !14
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
@@ -215,7 +215,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !12 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !12 {
   entry:
     %0 = tail call ptr @string_data(ptr @0), !dbg !13
     %1 = load i64, ptr @lets_a__2, align 8
@@ -266,7 +266,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(ptr %0, i64 %1)
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     %0 = tail call ptr @string_data(ptr @0), !dbg !6
     %1 = load i64, ptr @lets_a__2, align 8
@@ -362,7 +362,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %boxconst = alloca %poly_func.optionl_, align 8
     store %poly_func.optionl_ { i32 0, i64 3 }, ptr %boxconst, align 8
@@ -451,7 +451,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %boxconst = alloca %poly_func.optionl_, align 8
     store %poly_func.optionl_ { i32 0, i64 3 }, ptr %boxconst, align 8
@@ -704,7 +704,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !15 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !15 {
   entry:
     %0 = load ptr, ptr @malloc_some_vtest, align 8
     %clstmp = alloca %closure, align 8
@@ -852,7 +852,7 @@ Local modules
   
   declare void @printf(ptr %0, ...)
   
-  define i64 @main(i64 %arg) !dbg !12 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !12 {
   entry:
     tail call void @schmu_test(), !dbg !13
     tail call void @schmu_local_test(), !dbg !14
@@ -934,7 +934,7 @@ Local modules can shadow types. Use unique type names in codegen
   @schmu_nosig_t = constant %nosig.t_ { i64 10, i64 20 }
   @schmu_nosig_nested_t = constant %nosig.nested.t_ { i64 10, i64 20, i64 30 }
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     ret i64 0
   }
@@ -1002,7 +1002,7 @@ Transitive polymorphic dependency needs to be available
     ret i64 %a
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %0 = tail call i64 @__direct_dep_id_lrl_(i64 10), !dbg !11
     ret i64 %0
@@ -1130,7 +1130,7 @@ Apply local functors
     ret { i64, i64 } %unbox
   }
   
-  define i64 @main(i64 %arg) !dbg !21 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !21 {
   entry:
     %0 = tail call i64 @schmu_intadder_add_twice(i64 1, i64 2), !dbg !22
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
@@ -1243,7 +1243,7 @@ Simple functor
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %0 = alloca ptr, align 8
     store ptr @1, ptr %0, align 8

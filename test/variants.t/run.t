@@ -63,7 +63,7 @@ Basic variant ctors
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define i64 @main(i64 %arg) !dbg !7 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !7 {
   entry:
     ret i64 0
   }
@@ -162,7 +162,7 @@ Match option
     ret i64 %iftmp
   }
   
-  define i64 @main(i64 %arg) !dbg !13 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !13 {
   entry:
     %boxconst = alloca %option.tl_, align 8
     store %option.tl_ { i32 1, i64 1 }, ptr %boxconst, align 8
@@ -296,7 +296,7 @@ Nested pattern matching
     ret i64 %iftmp16
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %boxconst = alloca %option.tvdl__, align 8
     store %option.tvdl__ { i32 1, %test_ { i32 0, double 3.000000e+00 } }, ptr %boxconst, align 8
@@ -409,7 +409,7 @@ Match multiple columns
   
   declare void @printf(ptr %0, ...)
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %boxconst = alloca %option.tl_, align 8
     store %option.tl_ { i32 1, i64 1 }, ptr %boxconst, align 8
@@ -535,7 +535,7 @@ Const ctors
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     tail call void @string_println(ptr @0), !dbg !10
     tail call void @schmu_dynamic(ptr @schmu_var), !dbg !11

@@ -18,7 +18,7 @@ Test simple setting of mutable variables
     ret i64 15
   }
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
     store i64 14, ptr @schmu_b, align 8
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 14)
@@ -213,7 +213,7 @@ Use mutable values as ptrs to C code
   
   declare void @mutate_foo(ptr noalias %0)
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     tail call void @mutate_int(ptr @schmu_i), !dbg !6
     tail call void @mutate_foo(ptr @schmu_foo), !dbg !7
@@ -265,7 +265,7 @@ Check aliasing
   
   declare void @printf(ptr %0, ...)
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
     store i64 0, ptr @schmu_f, align 8
     tail call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_fst, ptr align 8 @schmu_f, i64 8, i1 false)
@@ -345,7 +345,7 @@ Const let
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
     %0 = tail call ptr @malloc(i64 24)
     store ptr %0, ptr @schmu_v, align 8
@@ -479,7 +479,7 @@ Copies, but with ref-counted arrays
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !13 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !13 {
   entry:
     %0 = tail call ptr @malloc(i64 24)
     store ptr %0, ptr @schmu_a, align 8
@@ -649,7 +649,7 @@ Arrays in records
   
   declare void @printf(ptr %0, ...)
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %0 = tail call ptr @malloc(i64 24)
     %arr = alloca ptr, align 8
@@ -728,7 +728,7 @@ Nested arrays
   
   declare void @printf(ptr %0, ...)
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
     %0 = tail call ptr @malloc(i64 32)
     store ptr %0, ptr @schmu_a, align 8
@@ -940,7 +940,7 @@ Modify in function
   
   declare ptr @realloc(ptr %0, i64 %1)
   
-  define i64 @main(i64 %arg) !dbg !12 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !12 {
   entry:
     store i64 20, ptr @schmu_a, align 8
     tail call void @schmu_modify(ptr @schmu_a), !dbg !13
@@ -1073,7 +1073,7 @@ Make sure variable ids are correctly propagated
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define i64 @main(i64 %arg) !dbg !11 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !11 {
   entry:
     %0 = tail call ptr @malloc(i64 24)
     %arr = alloca ptr, align 8
@@ -1148,7 +1148,7 @@ Free array params correctly if they are returned
   
   declare ptr @malloc(i64 %0)
   
-  define i64 @main(i64 %arg) !dbg !8 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !8 {
   entry:
     %0 = tail call ptr @schmu_create(), !dbg !9
     %1 = alloca ptr, align 8
@@ -1197,7 +1197,7 @@ Refcounts for members in arrays, records and variants
   
   declare void @string_println(ptr %0)
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     %0 = tail call ptr @malloc(i64 24)
     store ptr %0, ptr @schmu_a, align 8
@@ -1396,7 +1396,7 @@ Fix codegen
     ret i64 11
   }
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
     ret i64 0
   }

@@ -631,6 +631,11 @@ let object_names () =
   in
   Sset.union ours !object_cache |> Sset.to_seq |> List.of_seq
 
+let uses_args () =
+  object_names ()
+  |> List.find_opt (String.ends_with ~suffix:"/std/std/sys.o")
+  |> Option.is_some
+
 let to_channel c ~outname m =
   let module Smap = Map.Make (String) in
   let _, m =

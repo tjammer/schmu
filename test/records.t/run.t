@@ -13,7 +13,7 @@ Simple record creation (out of order)
   
   declare void @printi(i64 %0)
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     tail call void @printi(i64 10), !dbg !6
     ret i64 0
@@ -52,7 +52,7 @@ Pass record to function
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !7 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !7 {
   entry:
     tail call void @schmu_pass_to_func(i64 10, i64 20), !dbg !8
     ret i64 0
@@ -92,7 +92,7 @@ Create record
     ret { i64, i64 } %unbox
   }
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
     %ret = alloca %foo_, align 8
     %0 = tail call { i64, i64 } @schmu_create_record(i64 8, i64 0), !dbg !7
@@ -149,7 +149,7 @@ Nested records
     ret i64 %unbox
   }
   
-  define i64 @main(i64 %arg) !dbg !7 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !7 {
   entry:
     store i64 0, ptr @schmu_a, align 8
     %0 = tail call i64 @schmu_inner(), !dbg !8
@@ -267,7 +267,7 @@ Pass generic record
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define i64 @main(i64 %arg) !dbg !11 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !11 {
   entry:
     %clstmp = alloca %closure, align 8
     store ptr @__schmu_pass_2lb_r2lb__, ptr %clstmp, align 8
@@ -391,7 +391,7 @@ Access parametrized record fields
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !17 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !17 {
   entry:
     tail call void @__schmu_first_3lb__(ptr @schmu_int_t), !dbg !18
     tail call void @__schmu_third_3lb__(ptr @schmu_int_t), !dbg !19
@@ -459,7 +459,7 @@ Make sure alignment of generic param works
     ret i64 %2
   }
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
     %0 = tail call i64 @__schmu_gen_2l_l_rl_(ptr @schmu_m), !dbg !7
     tail call void @printi(i64 %0), !dbg !8
@@ -549,7 +549,7 @@ Support function/closure fields
   
   declare void @printf(ptr %0, ...)
   
-  define i64 @main(i64 %arg) !dbg !11 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !11 {
   entry:
     %0 = alloca %state_, align 8
     store i64 0, ptr %0, align 8
@@ -609,7 +609,7 @@ Regression test: Closures for records used to use store/load like for register v
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !8 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !8 {
   entry:
     tail call void @schmu_print_foo(), !dbg !9
     ret i64 0
@@ -667,7 +667,7 @@ This caused stores to a wrong pointer type in LLVM
     ret { i64, i64 } %unbox
   }
   
-  define i64 @main(i64 %arg) !dbg !7 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !7 {
   entry:
     %0 = tail call { i64, i64 } @schmu_record_with_laters(), !dbg !8
     store { i64, i64 } %0, ptr @schmu_ys, align 8
@@ -811,7 +811,7 @@ A return of a field should not be preallocated
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define i64 @main(i64 %arg) !dbg !13 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !13 {
   entry:
     %ret = alloca %int_wrap_, align 8
     call void @schmu_test_thing(ptr %ret), !dbg !14

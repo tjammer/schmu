@@ -35,7 +35,7 @@ Simple fibonacci
     br label %tailrecurse, !dbg !6
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %0 = tail call i64 @schmu_fib(i64 30), !dbg !10
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
@@ -97,7 +97,7 @@ Fibonacci, but we shadow a bunch
     ret i64 %0
   }
   
-  define i64 @main(i64 %arg) !dbg !13 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !13 {
   entry:
     %0 = tail call i64 @schmu_fib(i64 30), !dbg !14
     tail call void @printi(i64 %0), !dbg !15
@@ -154,7 +154,7 @@ Multiple parameters
     ret i64 1
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %0 = tail call i64 @schmu_one(), !dbg !10
     %1 = tail call i64 @schmu_add(i64 %0, i64 1), !dbg !11
@@ -215,7 +215,7 @@ We have downwards closures
     ret i64 %0
   }
   
-  define i64 @main(i64 %arg) !dbg !11 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !11 {
   entry:
     store i64 10, ptr @schmu_a, align 8
     %0 = tail call i64 @schmu_capture_a(), !dbg !12
@@ -313,7 +313,7 @@ First class functions
     ret i1 false
   }
   
-  define i64 @main(i64 %arg) !dbg !17 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !17 {
   entry:
     %clstmp = alloca %closure, align 8
     store ptr @schmu_add1, ptr %clstmp, align 8
@@ -439,7 +439,7 @@ Don't try to create 'void' value in if
     br label %rec
   }
   
-  define i64 @main(i64 %arg) !dbg !11 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !11 {
   entry:
     tail call void @schmu_foo(i64 4), !dbg !12
     ret i64 0
@@ -501,7 +501,7 @@ Captured values should not overwrite function params
     ret i64 2
   }
   
-  define i64 @main(i64 %arg) !dbg !10 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !10 {
   entry:
     %clstmp = alloca %closure, align 8
     store ptr @schmu_one, ptr %clstmp, align 8
@@ -669,7 +669,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define i64 @main(i64 %arg) !dbg !25 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !25 {
   entry:
     %clstmp = alloca %closure, align 8
     store ptr @schmu_add1, ptr %clstmp, align 8
@@ -822,7 +822,7 @@ A generic pass function. This example is not 100% correct, but works due to call
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define i64 @main(i64 %arg) !dbg !11 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !11 {
   entry:
     %clstmp = alloca %closure, align 8
     store ptr @__schmu_pass_lrl_, ptr %clstmp, align 8
@@ -931,7 +931,7 @@ a second function. Instead, the closure struct was being created again and the c
     ret i64 %add
   }
   
-  define i64 @main(i64 %arg) !dbg !12 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !12 {
   entry:
     %clstmp = alloca %closure, align 8
     store ptr @__schmu_boxed2int_int_l_lrl_rl__, ptr %clstmp, align 8
@@ -1016,7 +1016,7 @@ Closures can recurse too
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     tail call void @schmu_loop(i64 0), !dbg !10
     ret i64 0
@@ -1065,7 +1065,7 @@ Allow mixing of typedefs and external decls in the preface
   
   declare void @print_2nd(i64 %0)
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     ret i64 0
   }
@@ -1134,7 +1134,7 @@ Support monomorphization of nested functions
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define i64 @main(i64 %arg) !dbg !14 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !14 {
   entry:
     %0 = tail call i64 @__schmu_wrapped_lrl_(i64 12), !dbg !15
     tail call void @printi(i64 %0), !dbg !16
@@ -1459,7 +1459,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !24 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !24 {
   entry:
     %0 = tail call ptr @malloc(i64 24)
     store ptr %0, ptr @schmu_arr, align 8
@@ -1561,7 +1561,7 @@ Closures have to be added to the env of other closures, so they can be called co
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !10 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !10 {
   entry:
     tail call void @schmu_use_above(), !dbg !11
     ret i64 0
@@ -1882,7 +1882,7 @@ Don't copy mutable types in setup of tailrecursive functions
   
   declare ptr @malloc(i64 %0)
   
-  define i64 @main(i64 %arg) !dbg !25 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !25 {
   entry:
     store i1 false, ptr @schmu_rf, align 1
     tail call void @schmu_mut_bref(i64 0, ptr @schmu_rf), !dbg !26
@@ -2299,7 +2299,7 @@ The lamba passed as array-iter argument is polymorphic
     ret ptr %1
   }
   
-  define i64 @main(i64 %arg) !dbg !28 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !28 {
   entry:
     %0 = tail call ptr @malloc(i64 96)
     store ptr %0, ptr @schmu_arr, align 8
@@ -2462,7 +2462,7 @@ Function call returning a polymorphic function
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %clstmp = alloca %closure, align 8
     store ptr @__fun_schmu0_ac__, ptr %clstmp, align 8

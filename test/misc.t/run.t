@@ -32,7 +32,7 @@ Test elif
     ret i64 %iftmp9
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     %0 = tail call i64 @schmu_test(i64 10), !dbg !10
     %eq = icmp eq i64 %0, 1
@@ -81,7 +81,7 @@ Test simple typedef
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     ret i64 0
   }
@@ -461,7 +461,7 @@ Also mutable fields and 'realloc' builtin
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !27 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !27 {
   entry:
     %0 = tail call ptr @malloc(i64 40)
     store ptr %0, ptr @schmu_arr, align 8
@@ -774,7 +774,7 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   
   declare void @set_shader_value(i32 %0, i64 %1, i32 %2, ptr byval(%v4_) %3)
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     %boxconst = alloca %v2_, align 8
     store %v2_ { double 1.000000e+00, double 1.000000e+01 }, ptr %boxconst, align 8
@@ -931,7 +931,7 @@ Regression test for issue #19
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !11 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !11 {
   entry:
     %ret = alloca %v3_, align 8
     call void @schmu_wrap(ptr %ret), !dbg !12
@@ -982,7 +982,7 @@ Test 'and', 'or' and 'not'
     ret i1 true
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     tail call void @string_println(ptr @2), !dbg !10
     %0 = tail call i1 @schmu_true_(), !dbg !11
@@ -1316,7 +1316,7 @@ Test 'and', 'or' and 'not'
   @schmu_a__5 = constant i64 -1
   @schmu_b = constant i64 -1
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     ret i64 -2
   }
@@ -1561,7 +1561,7 @@ Tailcall loops
     br label %rec
   }
   
-  define i64 @main(i64 %arg) !dbg !22 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !22 {
   entry:
     tail call void @schmu_nested(i64 0, i64 0), !dbg !23
     %0 = tail call ptr @string_data(ptr @2), !dbg !24
@@ -1696,7 +1696,7 @@ Make sure an if returns either Const or Const_ptr, but in a consistent way
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !13 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !13 {
   entry:
     ret i64 0
   }
@@ -1761,7 +1761,7 @@ Piping for ctors and field accessors
     ret i64 %iftmp
   }
   
-  define i64 @main(i64 %arg) !dbg !8 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !8 {
   entry:
     %0 = tail call i64 @__fun_schmu0(i64 1), !dbg !9
     tail call void @Printi(i64 %0), !dbg !10
@@ -1861,7 +1861,7 @@ Ensure global are loadad correctly when passed to functions
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !8 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !8 {
   entry:
     store double 0.000000e+00, ptr @schmu_world, align 8
     store double 1.280000e+03, ptr getelementptr inbounds (%bar_, ptr @schmu_world, i32 0, i32 1), align 8
@@ -2039,7 +2039,7 @@ Array push
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !14 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !14 {
   entry:
     %0 = tail call ptr @malloc(i64 32)
     store ptr %0, ptr @schmu_a, align 8
@@ -2233,7 +2233,7 @@ Decrease ref counts for local variables in if branches
     ret i1 true
   }
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
     %0 = tail call i1 @schmu_ret_true(), !dbg !7
     br i1 %0, label %then, label %else, !dbg !7
@@ -2343,7 +2343,7 @@ Drop last element
     ret { i32, i64 } %unbox
   }
   
-  define i64 @main(i64 %arg) !dbg !7 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !7 {
   entry:
     %0 = tail call ptr @malloc(i64 32)
     store ptr %0, ptr @schmu_nested, align 8
@@ -2543,7 +2543,7 @@ Global lets with expressions
   
   declare ptr @malloc(i64 %0)
   
-  define i64 @main(i64 %arg) !dbg !7 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !7 {
   entry:
     %ret = alloca %option.tal__, align 8
     %0 = tail call { i32, i64 } @schmu_ret_none(), !dbg !8
@@ -2712,7 +2712,7 @@ Return nonclosure functions
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     tail call void @schmu_ret_fn(ptr @schmu_f), !dbg !10
     %loadtmp = load ptr, ptr @schmu_f, align 8
@@ -2846,7 +2846,7 @@ Return closures
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define i64 @main(i64 %arg) !dbg !9 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
     tail call void @schmu_ret_fn(ptr @schmu_f, i64 13), !dbg !10
     tail call void @schmu_ret_fn(ptr @schmu_f2, i64 35), !dbg !11
@@ -3177,7 +3177,7 @@ Take/use not all allocations of a record in tailrec calls
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !15 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !15 {
   entry:
     %fmtsize = tail call i32 (ptr, i64, ptr, ...) @snprintf(ptr null, i64 0, ptr getelementptr (i8, ptr @0, i64 16))
     %0 = add i32 %fmtsize, 17
@@ -3395,7 +3395,7 @@ Increase refcount for returned params in ifs
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !11 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !11 {
   entry:
     %clstmp = alloca %closure, align 8
     store ptr @schmu_test, ptr %clstmp, align 8
@@ -3948,7 +3948,7 @@ Monomorphization in closures
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !41 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !41 {
   entry:
     %0 = tail call ptr @malloc(i64 64)
     store ptr %0, ptr @schmu_arr, align 8
@@ -4225,7 +4225,7 @@ Handle partial allocations
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !7 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !7 {
   entry:
     %0 = tail call ptr @schmu_inf(), !dbg !8
     tail call void @schmu_set_moved(), !dbg !9
@@ -4287,7 +4287,7 @@ Const fixed array
   @schmu_arr = constant [3 x i64] [i64 1, i64 17, i64 3]
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 17)
     %0 = alloca %"2l_", align 8
@@ -4406,7 +4406,7 @@ Using unit values
   
   declare ptr @realloc(ptr %0, i64 %1)
   
-  define i64 @main(i64 %arg) !dbg !11 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !11 {
   entry:
     store i32 1, ptr @schmu_b__2, align 4
     tail call void @schmu_a__2(), !dbg !12
@@ -4488,3 +4488,85 @@ Don't free params if parts are passed in tail calls
   $ valgrind -q --leak-check=yes --show-reachable=yes ./free_param_parts
   thing
   none
+
+Arguments
+  $ schmu args.smu --dump-llvm
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  @__schmu_argv = global ptr null
+  @__schmu_argc = global i64 0
+  @0 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c" \00" }
+  
+  declare ptr @string_concat(ptr %0, ptr %1)
+  
+  declare void @string_println(ptr %0)
+  
+  declare ptr @sys_argv()
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
+  entry:
+    store i64 %__argc, ptr @__schmu_argc, align 8
+    store ptr %__argv, ptr @__schmu_argv, align 8
+    %0 = tail call ptr @sys_argv(), !dbg !6
+    %1 = tail call ptr @string_concat(ptr @0, ptr %0), !dbg !7
+    tail call void @string_println(ptr %1), !dbg !8
+    %2 = alloca ptr, align 8
+    store ptr %1, ptr %2, align 8
+    call void @__free_ac_(ptr %2)
+    %3 = alloca ptr, align 8
+    store ptr %0, ptr %3, align 8
+    call void @__free_2ac2_(ptr %3)
+    ret i64 0
+  }
+  
+  define linkonce_odr void @__free_ac_(ptr %0) {
+  entry:
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
+    ret void
+  }
+  
+  define linkonce_odr void @__free_2ac2_(ptr %0) {
+  entry:
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
+    %cnt = alloca i64, align 8
+    store i64 0, ptr %cnt, align 8
+    br label %rec
+  
+  rec:                                              ; preds = %child, %entry
+    %2 = load i64, ptr %cnt, align 8
+    %3 = icmp slt i64 %2, %size
+    br i1 %3, label %child, label %cont
+  
+  child:                                            ; preds = %rec
+    %4 = getelementptr i8, ptr %1, i64 16
+    %5 = getelementptr ptr, ptr %4, i64 %2
+    call void @__free_ac_(ptr %5)
+    %6 = add i64 %2, 1
+    store i64 %6, ptr %cnt, align 8
+    br label %rec
+  
+  cont:                                             ; preds = %rec
+    call void @free(ptr %1)
+    ret void
+  }
+  
+  declare void @free(ptr %0)
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !1 = !DIFile(filename: "args.smu", directory: "$TESTCASE_ROOT")
+  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "args.smu", directory: "")
+  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
+  !5 = !{}
+  !6 = !DILocation(line: 1, column: 27, scope: !2)
+  !7 = !DILocation(line: 1, column: 8, scope: !2)
+  !8 = !DILocation(line: 1, scope: !2)
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./args and other --args=2
+  ./args and other --args=2

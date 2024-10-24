@@ -54,6 +54,7 @@ val add_functor :
 
 val clear_cache : unit -> unit
 val object_names : unit -> string list
+val uses_args : unit -> bool
 val register_module : Env.t -> Ast.loc -> Path.t -> t -> (Env.t, unit) result
 
 val register_functor :

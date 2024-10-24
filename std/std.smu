@@ -6,6 +6,7 @@ import int
 import option
 import prelude
 import string
+import sys
 import unsafe
 
 type string = string/t
@@ -27,6 +28,7 @@ module in_channel = in_channel
 module int = int
 module option = option
 module string = string
+module sys = sys
 module unsafe = unsafe
 
 module rc {

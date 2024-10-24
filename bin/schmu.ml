@@ -75,10 +75,11 @@ let run file
     let ttree, m = Typing.to_typed ~mname ~std ~start_loc fmt_msg_fn prog in
 
     if check_only then Ok ()
-    else (
+    else
       (* TODO if a module has only forward decls, we don't need to codegen anything *)
+      let args = if modul then false else Module.uses_args () in
       Monomorph_tree.monomorphize ~mname ttree
-      |> Codegen.generate ~target ~outname ~release ~modul ~start_loc
+      |> Codegen.generate ~target ~outname ~release ~modul ~args ~start_loc
       |> ignore;
       if dump_llvm then Llvm.dump_module Codegen.the_module;
       if modul then (
@@ -87,7 +88,7 @@ let run file
         close_out modfile;
         Ok ())
       else if compile_only then Ok ()
-      else Link.link outname objects cargs)
+      else Link.link outname objects cargs
   with Error.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =

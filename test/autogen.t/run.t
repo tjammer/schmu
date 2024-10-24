@@ -7,7 +7,7 @@ Copy string literal
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"test \00" }
   @1 = private unnamed_addr constant { i64, i64, [7 x i8] } { i64 6, i64 6, [7 x i8] c"%s%li\0A\00" }
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     %0 = alloca ptr, align 8
     store ptr @0, ptr %0, align 8
@@ -78,7 +78,7 @@ Copy array of strings
   
   declare void @string_println(ptr %0)
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     %0 = tail call ptr @malloc(i64 32)
     store ptr %0, ptr @schmu_a, align 8
@@ -226,7 +226,7 @@ Copy records
   
   declare void @string_println(ptr %0)
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     store double 1.000000e+01, ptr @schmu_a, align 8
     %0 = alloca ptr, align 8
@@ -373,7 +373,7 @@ Copy variants
   
   declare void @string_println(ptr %0)
   
-  define i64 @main(i64 %arg) !dbg !2 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     store i32 1, ptr @schmu_a, align 4
     %0 = alloca ptr, align 8
@@ -716,7 +716,7 @@ Copy closures
   
   declare void @free(ptr %0)
   
-  define i64 @main(i64 %arg) !dbg !12 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !12 {
   entry:
     %0 = alloca %"2rl2_l_", align 8
     %clstmp = alloca %closure, align 8
@@ -892,7 +892,7 @@ Copy string literal on move
     ret void
   }
   
-  define i64 @main(i64 %arg) !dbg !6 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
     %0 = tail call ptr @malloc(i64 24)
     store ptr %0, ptr @schmu_a, align 8
