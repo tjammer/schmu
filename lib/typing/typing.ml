@@ -524,6 +524,31 @@ let builtins_hack callee args =
 
 let fold_decl cont (id, e) = { cont with expr = Bind (id, e, cont) }
 
+let is_formattable = function
+  | Const (String _), _ -> true
+  | ( _,
+      Tconstr
+        ( Pid "array",
+          [
+            ( Tconstr (Pid "u8", [])
+            (* Might be a string later *)
+            | Tvar { contents = Unbound _ } );
+          ] ) ) ->
+      true
+  | _, Tconstr (p, []) when Path.equal p (Path.Pmod ("string", Path.Pid "t")) ->
+      true
+  | ( _,
+      Tconstr
+        ( Pid
+            ( "int" | "bool" | "float" | "u8" | "i32" | "f32" | "i8" | "i16"
+            | "u16" | "u32" ),
+          _ ) ) ->
+      true
+  | _, Tconstr (Path.Pmod ("string", Path.Pid "t"), []) -> true
+  | _, Tvar { contents = Unbound _ } -> true (* Might be the right type later *)
+  | _, Tconstr (Pid "raw_ptr", [ Tconstr (Pid "u8", []) ]) -> true
+  | _, _ -> false
+
 module rec Core : sig
   val convert : Env.t -> Ast.expr -> typed_expr
 
@@ -1123,36 +1148,10 @@ end = struct
   and convert_fmt env loc exprs =
     let f expr =
       let e = convert env expr in
-      match (e.expr, repr e.typ) with
-      | Const (String s), _ -> Fstr s
-      | ( _,
-          Tconstr
-            ( Pid "array",
-              [
-                ( Tconstr (Pid "u8", [])
-                (* Might be a string later *)
-                | Tvar { contents = Unbound _ } );
-              ] ) ) ->
-          Fexpr e
-      | _, Tconstr (p, [])
-        when Path.equal p (Path.Pmod ("string", Path.Pid "t")) ->
-          Fexpr e
-      | ( _,
-          Tconstr
-            ( Pid
-                ( "int" | "bool" | "float" | "u8" | "i32" | "f32" | "i8" | "i16"
-                | "u16" | "u32" ),
-              _ ) ) ->
-          Fexpr e
-      | _, Tvar { contents = Unbound _ } ->
-          Fexpr e (* Might be the right type later *)
-      | _, Tconstr (Pid "raw_ptr", [ Tconstr (Pid "u8", []) ]) -> Fexpr e
-      | _, _ ->
-          raise
-            (Error
-               ( e.loc,
-                 "Don't know how to format "
-                 ^ string_of_type (Env.modpath env) e.typ ))
+      match e.expr with
+      (* Concrete type will be checked in weak var check *)
+      | Const (String s) -> Fstr s
+      | _ -> Fexpr e
     in
     let exprs = List.map f exprs in
     let typ = string_typ in
@@ -1372,7 +1371,16 @@ and catch_weak_expr env sub e =
   | Ctor _ -> ()
   | Fmt fmt ->
       List.iter
-        (function Fstr _ -> () | Fexpr e -> catch_weak_expr env sub e)
+        (function
+          | Fstr _ -> ()
+          | Fexpr e ->
+              (if not (is_formattable (e.expr, repr e.typ)) then
+                 let msg =
+                   "Don't know how to format "
+                   ^ string_of_type (Env.modpath env) e.typ
+                 in
+                 raise (Error (e.loc, msg)));
+              catch_weak_expr env sub e)
         fmt
 
 let check_module_annot env loc ~mname m annot =

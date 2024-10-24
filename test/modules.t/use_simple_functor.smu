@@ -1,5 +1,12 @@
 import simple_functor
 
+module string {
+  type t = string
+
+  let hash = string/hash
+  fun to_string(t : t): copy(t)
+}
+
 module s = simple_functor/make(string)
 
 ignore(s/create(!"this", !"other"))

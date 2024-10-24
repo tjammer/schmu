@@ -1184,40 +1184,43 @@ Simple functor
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"this\00" }
   @2 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"other\00" }
   
+  declare i64 @string_hash(ptr %0)
+  
   define linkonce_odr { i64, i64 } @__schmu_s_create_ac_rac_ac2__(ptr %this, ptr %other) !dbg !2 {
   entry:
-    %0 = getelementptr i8, ptr %this, i64 16
-    %1 = getelementptr i8, ptr %other, i64 16
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), ptr %0, ptr %1)
-    %2 = alloca %s.otherac__, align 8
-    store ptr %this, ptr %2, align 8
-    %other2 = getelementptr inbounds %s.otherac__, ptr %2, i32 0, i32 1
+    %0 = tail call ptr @schmu_string_to_string(ptr %this), !dbg !6
+    %1 = getelementptr i8, ptr %0, i64 16
+    %2 = getelementptr i8, ptr %other, i64 16
+    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), ptr %1, ptr %2)
+    %3 = alloca %s.otherac__, align 8
+    store ptr %this, ptr %3, align 8
+    %other2 = getelementptr inbounds %s.otherac__, ptr %3, i32 0, i32 1
     store ptr %other, ptr %other2, align 8
-    %unbox = load { i64, i64 }, ptr %2, align 8
+    %4 = alloca ptr, align 8
+    store ptr %0, ptr %4, align 8
+    call void @__free_ac_(ptr %4)
+    %unbox = load { i64, i64 }, ptr %3, align 8
     ret { i64, i64 } %unbox
   }
   
-  declare void @printf(ptr %0, ...)
-  
-  define i64 @main(i64 %arg) !dbg !6 {
+  define ptr @schmu_string_to_string(ptr %t) !dbg !7 {
   entry:
     %0 = alloca ptr, align 8
-    store ptr @1, ptr %0, align 8
+    store ptr %t, ptr %0, align 8
     %1 = alloca ptr, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %0, i64 8, i1 false)
     call void @__copy_ac_(ptr %1)
     %2 = load ptr, ptr %1, align 8
-    %3 = alloca ptr, align 8
-    store ptr @2, ptr %3, align 8
-    %4 = alloca ptr, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %4, ptr align 8 %3, i64 8, i1 false)
-    call void @__copy_ac_(ptr %4)
-    %5 = load ptr, ptr %4, align 8
-    %ret = alloca %s.otherac__, align 8
-    %6 = call { i64, i64 } @__schmu_s_create_ac_rac_ac2__(ptr %2, ptr %5), !dbg !8
-    store { i64, i64 } %6, ptr %ret, align 8
-    call void @__free_ac_ac2_(ptr %ret)
-    ret i64 0
+    ret ptr %2
+  }
+  
+  declare void @printf(ptr %0, ...)
+  
+  define linkonce_odr void @__free_ac_(ptr %0) {
+  entry:
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
+    ret void
   }
   
   define linkonce_odr void @__copy_ac_(ptr %0) {
@@ -1240,11 +1243,25 @@ Simple functor
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr void @__free_ac_(ptr %0) {
+  define i64 @main(i64 %arg) !dbg !9 {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
-    ret void
+    %0 = alloca ptr, align 8
+    store ptr @1, ptr %0, align 8
+    %1 = alloca ptr, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %0, i64 8, i1 false)
+    call void @__copy_ac_(ptr %1)
+    %2 = load ptr, ptr %1, align 8
+    %3 = alloca ptr, align 8
+    store ptr @2, ptr %3, align 8
+    %4 = alloca ptr, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %4, ptr align 8 %3, i64 8, i1 false)
+    call void @__copy_ac_(ptr %4)
+    %5 = load ptr, ptr %4, align 8
+    %ret = alloca %s.otherac__, align 8
+    %6 = call { i64, i64 } @__schmu_s_create_ac_rac_ac2__(ptr %2, ptr %5), !dbg !10
+    store { i64, i64 } %6, ptr %ret, align 8
+    call void @__free_ac_ac2_(ptr %ret)
+    ret i64 0
   }
   
   define linkonce_odr void @__free_ac_ac2_(ptr %0) {
@@ -1266,13 +1283,15 @@ Simple functor
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
   !1 = !DIFile(filename: "use_simple_functor.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_schmu_s_create", linkageName: "__schmu_s_create_ac_rac_ac2__", scope: !3, file: !3, line: 8, type: !4, scopeLine: 8, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_schmu_s_create", linkageName: "__schmu_s_create_ac_rac_ac2__", scope: !3, file: !3, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "simple_functor.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !7, file: !7, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !7 = !DIFile(filename: "use_simple_functor.smu", directory: "")
-  !8 = !DILocation(line: 5, column: 7, scope: !6)
+  !6 = !DILocation(line: 11, column: 28, scope: !2)
+  !7 = distinct !DISubprogram(name: "_schmu_string_to_string", linkageName: "schmu_string_to_string", scope: !8, file: !8, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = !DIFile(filename: "use_simple_functor.smu", directory: "")
+  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !8, file: !8, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !10 = !DILocation(line: 12, column: 7, scope: !9)
   $ ./use_simple_functor
   create: this other
 
