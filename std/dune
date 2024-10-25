@@ -3,49 +3,49 @@
  (deps %{bin:schmu} string.smu prelude.smi array.smi option.smi)
  (action
   (progn
-   (run schmu -m --no-std string.smu))))
+   (run schmu --release -m --no-std string.smu))))
 
 (rule
  (targets array.o array.smi)
  (deps %{bin:schmu} array.smu prelude.smi option.smi)
  (action
   (progn
-   (run schmu -m --no-std array.smu))))
+   (run schmu --release -m --no-std array.smu))))
 
 (rule
  (targets int.o int.smi)
  (deps %{bin:schmu} int.smu)
  (action
   (progn
-   (run schmu -m --no-std int.smu))))
+   (run schmu --release -m --no-std int.smu))))
 
 (rule
  (targets float.o float.smi)
  (deps %{bin:schmu} float.smu)
  (action
   (progn
-   (run schmu -m --no-std float.smu))))
+   (run schmu --release -m --no-std float.smu))))
 
 (rule
  (targets prelude.o prelude.smi)
  (deps %{bin:schmu} prelude.smu)
  (action
   (progn
-   (run schmu -m --no-std prelude.smu))))
+   (run schmu --release -m --no-std prelude.smu))))
 
 (rule
  (targets hashtbl.o hashtbl.smi)
  (deps %{bin:schmu} hashtbl.smu option.smi prelude.smi array.smi string.smi)
  (action
   (progn
-   (run schmu -m --no-std hashtbl.smu))))
+   (run schmu --release -m --no-std hashtbl.smu))))
 
 (rule
  (targets sys.o sys.smi)
  (deps %{bin:schmu} sys.smu array.smi string.smi unsafe.smi prelude.smi)
  (action
   (progn
-   (run schmu -m --no-std sys.smu))))
+   (run schmu --release -m --no-std sys.smu))))
 
 (rule
  (targets in_channel.o in_channel.smi)
@@ -59,21 +59,21 @@
   unsafe.smi)
  (action
   (progn
-   (run schmu -m --no-std in_channel.smu))))
+   (run schmu --release -m --no-std in_channel.smu))))
 
 (rule
  (targets option.o option.smi)
  (deps %{bin:schmu} option.smu)
  (action
   (progn
-   (run schmu -m --no-std option.smu))))
+   (run schmu --release -m --no-std option.smu))))
 
 (rule
  (targets unsafe.o unsafe.smi)
  (deps %{bin:schmu} unsafe.smu)
  (action
   (progn
-   (run schmu -m --no-std unsafe.smu))))
+   (run schmu --release -m --no-std unsafe.smu))))
 
 (rule
  (alias stdlib)
@@ -92,7 +92,7 @@
   unsafe.smi)
  (action
   (progn
-   (run schmu -m --no-std std.smu))))
+   (run schmu --release -m --no-std std.smu))))
 
 (install
  (section
