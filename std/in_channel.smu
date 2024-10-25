@@ -2,6 +2,7 @@ import array
 import option
 import prelude
 import string
+import unsafe
 
 signature {
   type t
@@ -13,6 +14,7 @@ signature {
   val with_open : (string/t, (t&) -> 'a) -> option/t['a]
   val readall : (t&) -> string/t
   val lines : (t&, (string/t) -> unit) -> unit
+  val size : (t) -> int
 
   -- low level interface
   type buf = array[u8]
@@ -23,6 +25,7 @@ signature {
 
   type file
   val of_file : (file) -> t
+  val to_file : (t) -> file
 }
 
 type file = raw_ptr[u8]
@@ -64,10 +67,16 @@ fun with_open(name, f) {
   }
 }
 
+external memcpy : (raw_ptr[u8], raw_ptr[u8], int) -> unit
+
 fun fill(buf&, icbuf, lower, upper) {
-  prelude/iter_range(lower, upper, fun i {
-    array/push(&buf, !copy(icbuf#[i]))
-  })
+  let diff = upper - lower
+  let len = array/length(buf)
+  -- We call [fill] often in [readall] so we allocate eagerly
+  array/reserve(&buf, prelude/power_2_above(16, len + diff))
+
+  memcpy(array/data(buf).unsafe/at(len), array/fixed/data(icbuf).unsafe/at(lower), diff)
+  &__unsafe_array_length(buf) = len + diff
 }
 
 fun readbuf(ic&, buf&) {
@@ -196,4 +205,18 @@ external rewind : (file) -> unit
 fun of_file(file) {
   rewind(file)
   {buf = #4096[0u8], head = 0, unseen = 0, file}
+}
+
+fun to_file(ic): ic.file
+
+external fseek : (file, int, i32) -> unit
+external ftell : (file) -> int
+let seek_set = 0i32
+let seek_end = 2i32
+fun size(ic) {
+  let curr = ftell(ic.file)
+  fseek(ic.file, 0, seek_end)
+  let end = ftell(ic.file)
+  fseek(ic.file, curr, seek_set)
+  end
 }

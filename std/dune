@@ -52,10 +52,11 @@
  (deps
   %{bin:schmu}
   in_channel.smu
-  string.smi
+  array.smi
   option.smi
   prelude.smi
-  array.smi)
+  string.smi
+  unsafe.smi)
  (action
   (progn
    (run schmu -m --no-std in_channel.smu))))
