@@ -36,6 +36,11 @@ module rc {
   let get = __rc_get
 }
 
+fun failwith(msg) {
+   string/prerrln(msg)
+  __any_abort()
+}
+
 -- common operators
 let + = int/(+)
 let - = int/(-)

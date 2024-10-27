@@ -24,6 +24,8 @@ signature {
 
   val println : (t) -> unit
   val print : (t) -> unit
+  val prerrln : (t) -> unit
+  val prerr : (t) -> unit
 }
 
 type t = array[u8]
@@ -161,6 +163,7 @@ fun of_cstr(cstr) {
 
 type file = raw_ptr[u8]
 external stdout : file
+external stderr : file
 external fwrite : (cstr, int, int, file) -> unit
 
 let newline = #['\n']
@@ -172,4 +175,13 @@ fun println(str : t) {
 
 fun print(str : t) {
   fwrite(array/data(str), 1, array/length(str), stdout)
+}
+
+fun prerrln(str : t) {
+  fwrite(array/data(str), 1, array/length(str), stderr)
+  fwrite(__fixed_array_data(newline), 1, 1, stderr)
+}
+
+fun prerr(str : t) {
+  fwrite(array/data(str), 1, array/length(str), stderr)
 }

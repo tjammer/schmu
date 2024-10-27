@@ -55,6 +55,7 @@ type t =
   | Nequalf
   | Rc_create
   | Rc_get
+  | Any_abort
 [@@deriving show]
 
 let tbl =
@@ -252,6 +253,7 @@ let tbl =
       Tfun ([ { pt = Qvar "0"; pattr = Dmove } ], trc (Qvar "0"), Simple) );
   Hashtbl.add tbl "__rc_get"
     (Rc_get, Tfun ([ { p with pt = trc (Qvar "0") } ], Qvar "0", Simple));
+  Hashtbl.add tbl "__any_abort" (Any_abort, Tfun ([], Qvar "0", Simple));
 
   let castable_types =
     [ tint; tfloat; ti32; tu32; tf32; tbool; ti8; tu8; ti16; tu16 ]

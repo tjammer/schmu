@@ -2576,3 +2576,12 @@ Only direct recursive calls count as recursive
   $ valgrind -q --leak-check=yes --show-reachable=yes ./nested_recursive
   heya
   none
+
+Failwith function
+  $ schmu failwith.smu
+  $ ret=$(./failwith 2> err) 2> /dev/null
+  [134]
+  $ echo $ret
+  
+  $ cat err | grep false
+  i'm false

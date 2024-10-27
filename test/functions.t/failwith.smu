@@ -1,0 +1,8 @@
+let thing = if false { 12.0 } else { failwith("i'm false") }
+ignore(thing)
+
+let thing = if false { Some(#17[0]) } else { failwith("i'm false farr") }
+ignore(thing)
+
+let thing = if false { 12.0, 12.0 } else { failwith("i'm false") }
+ignore(thing)

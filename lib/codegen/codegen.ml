@@ -202,7 +202,7 @@ end = struct
           | true, Recursive _, Some block ->
               gen_app_tailrec param callee args block typed_expr.typ
           | _, Builtin (b, bfn), _ ->
-              gen_app_builtin param (b, bfn) args alloca typed_expr.loc
+              gen_app_builtin param (b, bfn) args alloca typed_expr
           | _, Inline (pnames, tree), _ -> gen_app_inline param args pnames tree
           | _ -> gen_app param callee args alloca typed_expr.typ
         in
@@ -620,7 +620,7 @@ end = struct
     let value = Llvm.build_br rec_block.rec_ builder in
     { value; typ = Tpoly "tail"; lltyp; kind = default_kind ret }
 
-  and gen_app_builtin param (b, fnc) oargs allocref loc =
+  and gen_app_builtin param (b, fnc) oargs allocref tyexpr =
     let handle_arg (arg, _) =
       let arg' = gen_expr param Monomorph_tree.(arg.ex) in
 
@@ -910,17 +910,17 @@ end = struct
         let start_bb = Llvm.insertion_block builder in
         let parent = Llvm.block_parent start_bb in
         let func = Llvm.value_name parent in
-        let text = get_snippet loc in
+        let text = get_snippet tyexpr.loc in
 
         let success_bb = Llvm.append_block context "success" parent in
         let fail_bb = Llvm.append_block context "fail" parent in
 
         let br = Llvm.build_cond_br cond success_bb fail_bb builder in
-        Debug.instr_set_debug_loc br (Some (di_loc param loc));
+        Debug.instr_set_debug_loc br (Some (di_loc param tyexpr.loc));
 
         Llvm.position_at_end fail_bb builder;
-        let md = di_loc param loc in
-        let loc = fst loc in
+        let md = di_loc param tyexpr.loc in
+        let loc = fst tyexpr.loc in
         ignore
           (assert_fail ~text ~file:loc.pos_fname ~line:loc.pos_lnum ~func md);
 
@@ -1041,6 +1041,19 @@ end = struct
         R.gen_rc param e fnc.ret allocref
     | Rc_get ->
         List.hd args |> bring_default_var |> fun llvar -> R.get llvar fnc.ret
+    | Any_abort ->
+        let ft, abort =
+          Llvm.(
+            let ft = function_type unit_t [||] in
+            (ft, declare_function "abort" ft the_module))
+        in
+        ignore (Llvm.build_call ft abort [||] "" builder);
+        let typ = tyexpr.typ in
+        let lltyp = get_lltype_def typ in
+        let value =
+          if is_struct typ then alloca param lltyp "" else Llvm.const_null lltyp
+        in
+        { value; typ; lltyp; kind = default_kind typ }
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)
