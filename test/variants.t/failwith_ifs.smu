@@ -1,0 +1,21 @@
+type state = { scan& : int, storage& : array[option[int]] }
+type token = With | Semicolon | Rcurly
+
+fun append(storage&, thing!) {
+  ignore(storage)
+  ignore(thing)
+  0
+}
+
+fun do_or_record_update(state&) {
+  let block = !match With {
+    Semicolon: {
+      match With { Rcurly: () | _: () }
+      Some(0)
+    }
+    _: failwith("Unexpected token on curly expr")
+  }
+  append(&state.storage, !block)
+}
+
+ignore(do_or_record_update)

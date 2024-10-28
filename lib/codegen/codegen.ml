@@ -1041,7 +1041,7 @@ end = struct
         R.gen_rc param e fnc.ret allocref
     | Rc_get ->
         List.hd args |> bring_default_var |> fun llvar -> R.get llvar fnc.ret
-    | Any_abort ->
+    | Any_abort -> (
         let ft, abort =
           Llvm.(
             let ft = function_type unit_t [||] in
@@ -1049,11 +1049,12 @@ end = struct
         in
         ignore (Llvm.build_call ft abort [||] "" builder);
         let typ = tyexpr.typ in
-        let lltyp = get_lltype_def typ in
-        let value =
-          if is_struct typ then alloca param lltyp "" else Llvm.const_null lltyp
-        in
-        { value; typ; lltyp; kind = default_kind typ }
+        let lltyp = get_lltype_param false typ in
+        match typ with
+        | Tunit -> { dummy_fn_value with typ = Tunit }
+        | _ ->
+            let value = alloca param lltyp "failwith" in
+            { value; typ; lltyp; kind = Ptr })
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)
@@ -1119,18 +1120,20 @@ end = struct
                 (* Both values have to either be ptrs or const literals *)
                 match (e1.kind, e2.kind) with
                 | Const, (Ptr | Const_ptr) when is_struct e1.typ ->
-                    Llvm.position_at_end then_bb builder;
+                    Llvm.position_at_end e1_bb builder;
                     let value = alloca param e1.lltyp "" in
                     ignore (Llvm.build_store (bring_default e1) value builder);
                     ({ e1 with value; kind = Const_ptr }, e2)
                 | (Const | Imm), (Ptr | Const_ptr) ->
+                    Llvm.position_at_end e2_bb builder;
                     (e1, { e2 with value = bring_default e2; kind = e1.kind })
                 | (Ptr | Const_ptr), Const when is_struct e2.typ ->
+                    Llvm.position_at_end e2_bb builder;
                     let value = alloca param e2.lltyp "" in
                     ignore (Llvm.build_store (bring_default e2) value builder);
                     (e1, { e2 with value; kind = Const_ptr })
                 | (Ptr | Const_ptr), (Const | Imm) ->
-                    Llvm.position_at_end then_bb builder;
+                    Llvm.position_at_end e1_bb builder;
                     ({ e1 with value = bring_default e1; kind = e2.kind }, e2)
                 | _, _ -> (e1, e2)
               in
@@ -1157,6 +1160,7 @@ end = struct
 
     if Lazy.is_val merge_bb then
       Llvm.position_at_end (Lazy.force merge_bb) builder;
+
     (match expr.owning with
     | Some id -> Strtbl.replace free_tbl id llvar
     | None -> ());
