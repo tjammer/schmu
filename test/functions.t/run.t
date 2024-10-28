@@ -2584,4 +2584,4 @@ Failwith function
   $ echo $ret
   
   $ cat err | grep false
-  i'm false
+  failwith: i'm false

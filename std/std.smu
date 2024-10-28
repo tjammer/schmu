@@ -37,7 +37,8 @@ module rc {
 }
 
 fun failwith(msg) {
-   string/prerrln(msg)
+  string/prerr("failwith: ")
+  string/prerrln(msg)
   __any_abort()
 }
 
