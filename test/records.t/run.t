@@ -21,7 +21,7 @@ Simple record creation (out of order)
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "simple.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "simple.smu", directory: "")
@@ -60,7 +60,7 @@ Pass record to function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "pass.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "pass_to_func", linkageName: "schmu_pass_to_func", scope: !3, file: !3, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "pass.smu", directory: "")
@@ -104,7 +104,7 @@ Create record
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "create.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "create_record", linkageName: "schmu_create_record", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "create.smu", directory: "")
@@ -171,7 +171,7 @@ Nested records
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "nested.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0_2l3_r2l3__", scope: !3, file: !3, line: 14, type: !4, scopeLine: 14, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "nested.smu", directory: "")
@@ -298,7 +298,7 @@ Pass generic record
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "parametrized_pass.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "apply", linkageName: "__schmu_apply_2lb_r2lb2_2lb_r2lb__", scope: !3, file: !3, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "parametrized_pass.smu", directory: "")
@@ -406,7 +406,7 @@ Access parametrized record fields
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "parametrized_get.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "first", linkageName: "__schmu_first_3lb__", scope: !3, file: !3, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "parametrized_get.smu", directory: "")
@@ -468,7 +468,7 @@ Make sure alignment of generic param works
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "misaligned_get.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "gen", linkageName: "__schmu_gen_2l_l_rl_", scope: !3, file: !3, line: 6, type: !4, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "misaligned_get.smu", directory: "")
@@ -565,7 +565,7 @@ Support function/closure fields
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "function_fields.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "function_fields.smu", directory: "")
@@ -617,7 +617,7 @@ Regression test: Closures for records used to use store/load like for register v
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "closure.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "print_foo", linkageName: "schmu_print_foo", scope: !3, file: !3, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "closure.smu", directory: "")
@@ -686,7 +686,7 @@ This caused stores to a wrong pointer type in LLVM
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "nested_init_let.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "ctrl", linkageName: "schmu_ctrl", scope: !3, file: !3, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "nested_init_let.smu", directory: "")
@@ -828,7 +828,7 @@ A return of a field should not be preallocated
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "nested_prealloc.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "test_thing", linkageName: "schmu_test_thing", scope: !3, file: !3, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "nested_prealloc.smu", directory: "")

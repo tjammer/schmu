@@ -74,7 +74,7 @@ Basic variant ctors
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "basic.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "wrap_clike", linkageName: "schmu_wrap_clike", scope: !3, file: !3, line: 12, type: !4, scopeLine: 12, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "basic.smu", directory: "")
@@ -222,7 +222,7 @@ Match option
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "match_option.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "none_all", linkageName: "__schmu_none_all_vl__", scope: !3, file: !3, line: 27, type: !4, scopeLine: 27, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "match_option.smu", directory: "")
@@ -321,7 +321,7 @@ Nested pattern matching
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "match_nested.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "doo", linkageName: "schmu_doo", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "match_nested.smu", directory: "")
@@ -452,7 +452,7 @@ Match multiple columns
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "tuple_match.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "doo", linkageName: "schmu_doo", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "tuple_match.smu", directory: "")
@@ -544,7 +544,7 @@ Const ctors
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "const_ctor_issue.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "dynamic", linkageName: "schmu_dynamic", scope: !3, file: !3, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "const_ctor_issue.smu", directory: "")

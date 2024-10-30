@@ -46,7 +46,7 @@ Simple fibonacci
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "a.out.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "fib", linkageName: "schmu_fib", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "fib.smu", directory: "")
@@ -106,7 +106,7 @@ Fibonacci, but we shadow a bunch
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "shadowing.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !3, file: !3, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "shadowing.smu", directory: "")
@@ -164,7 +164,7 @@ Multiple parameters
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "multi_params.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "add", linkageName: "schmu_add", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "multi_params.smu", directory: "")
@@ -225,7 +225,7 @@ We have downwards closures
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "closure.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "capture_a", linkageName: "schmu_capture_a", scope: !3, file: !3, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "closure.smu", directory: "")
@@ -357,7 +357,7 @@ First class functions
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "first_class.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0_lrl_", scope: !3, file: !3, line: 11, type: !4, scopeLine: 11, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "first_class.smu", directory: "")
@@ -447,7 +447,7 @@ Don't try to create 'void' value in if
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "if_return_void.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "foo", linkageName: "schmu_foo", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "if_return_void.smu", directory: "")
@@ -518,7 +518,7 @@ Captured values should not overwrite function params
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "a.out.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "add", linkageName: "schmu_add", scope: !3, file: !3, line: 8, type: !4, scopeLine: 8, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "overwrite_params.smu", directory: "")
@@ -719,7 +719,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "generic_fun_arg.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0_l_rl__", scope: !3, file: !3, line: 43, type: !4, scopeLine: 43, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "generic_fun_arg.smu", directory: "")
@@ -851,7 +851,7 @@ A generic pass function. This example is not 100% correct, but works due to call
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "generic_pass.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "apply", linkageName: "__schmu_apply_lb_rlb2_lb_rlb__", scope: !3, file: !3, line: 6, type: !4, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "generic_pass.smu", directory: "")
@@ -964,7 +964,7 @@ a second function. Instead, the closure struct was being created again and the c
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "indirect_closure.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "apply2", linkageName: "__schmu_apply2_l_l_lrl_rl2_lrl_rl__", scope: !3, file: !3, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "indirect_closure.smu", directory: "")
@@ -1024,7 +1024,7 @@ Closures can recurse too
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "a.out.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "loop", linkageName: "schmu_loop", scope: !3, file: !3, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "recursive_closure.smu", directory: "")
@@ -1072,7 +1072,7 @@ Allow mixing of typedefs and external decls in the preface
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "mix_preface.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "mix_preface.smu", directory: "")
@@ -1150,7 +1150,7 @@ Support monomorphization of nested functions
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "monomorph_nested.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "id", linkageName: "__schmu_id_brb_", scope: !3, file: !3, line: 6, type: !4, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "monomorph_nested.smu", directory: "")
@@ -1488,7 +1488,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "nested_polymorphic_closures.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
@@ -1569,7 +1569,7 @@ Closures have to be added to the env of other closures, so they can be called co
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "closures_to_env.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "close_over_a", linkageName: "schmu_close_over_a", scope: !3, file: !3, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "closures_to_env.smu", directory: "")
@@ -1953,7 +1953,7 @@ Don't copy mutable types in setup of tailrecursive functions
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "tailrec_mutable.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
@@ -2349,7 +2349,7 @@ The lamba passed as array-iter argument is polymorphic
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "polymorphic_lambda_argument.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner__2_Cal_2lru__", scope: !3, file: !3, line: 45, type: !4, scopeLine: 45, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
@@ -2518,7 +2518,7 @@ Function call returning a polymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "poly_fn_ret_fn.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0_ac__", scope: !3, file: !3, line: 11, type: !4, scopeLine: 11, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "poly_fn_ret_fn.smu", directory: "")

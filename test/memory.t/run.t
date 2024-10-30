@@ -180,7 +180,7 @@ Drop last element
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "array_drop_back.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_array_pop_back", linkageName: "__array_pop_back_2al2_rval2__", scope: !3, file: !3, line: 98, type: !4, scopeLine: 98, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
@@ -514,7 +514,7 @@ Array push
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "array_push.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_2al2_al__", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
@@ -1140,7 +1140,7 @@ Monomorphization in closures
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "closure_monomorph.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner_Cal_lru__", scope: !3, file: !3, line: 32, type: !4, scopeLine: 32, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
@@ -1225,7 +1225,7 @@ Const fixed array
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "const_fixed_arr.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "const_fixed_arr.smu", directory: "")
@@ -1300,7 +1300,7 @@ Decrease ref counts for local variables in if branches
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "decr_rc_if.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "ret_true", linkageName: "schmu_ret_true", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "decr_rc_if.smu", directory: "")
@@ -1916,7 +1916,7 @@ Also mutable fields and 'realloc' builtin
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "free_array.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_2al2_al__", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
@@ -2090,7 +2090,7 @@ Global lets with expressions
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "global_let.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "ret_none", linkageName: "schmu_ret_none", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "global_let.smu", directory: "")
@@ -2189,7 +2189,7 @@ Regression test for issue #19
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "regression_issue_19.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "v3_add", linkageName: "schmu_v3_add", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "regression_issue_19.smu", directory: "")
@@ -2387,7 +2387,7 @@ Tailcall loops
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "regression_issue_26.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "nested", linkageName: "schmu_nested", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "regression_issue_26.smu", directory: "")
@@ -2511,7 +2511,7 @@ Make sure an if returns either Const or Const_ptr, but in a consistent way
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "regression_issue_30.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "calc_acc", linkageName: "schmu_calc_acc", scope: !3, file: !3, line: 8, type: !4, scopeLine: 8, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "regression_issue_30.smu", directory: "")
@@ -2562,7 +2562,7 @@ Ensure global are loadad correctly when passed to functions
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "regression_load_global.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "get_seg", linkageName: "__schmu_get_seg_2dl2df__", scope: !3, file: !3, line: 16, type: !4, scopeLine: 16, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "regression_load_global.smu", directory: "")
@@ -2698,7 +2698,7 @@ Return closures
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "return_closure.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !3, file: !3, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "return_closure.smu", directory: "")
@@ -2806,7 +2806,7 @@ Return nonclosure functions
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "return_fn.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !3, file: !3, line: 2, type: !4, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "return_fn.smu", directory: "")
@@ -3123,7 +3123,7 @@ Take/use not all allocations of a record in tailrec calls
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "take_partial_alloc.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "aux", linkageName: "schmu_aux", scope: !3, file: !3, line: 19, type: !4, scopeLine: 19, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "take_partial_alloc.smu", directory: "")

@@ -19,7 +19,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "nonpoly_func.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "add_ints", linkageName: "nonpoly_func_add_ints", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "nonpoly_func.smu", directory: "")
@@ -64,7 +64,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "import_nonpoly_func.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "doo", linkageName: "schmu_doo", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "import_nonpoly_func.smu", directory: "")
@@ -132,7 +132,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "local_import_nonpoly_func.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "do2", linkageName: "schmu_do2", scope: !3, file: !3, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "local_import_nonpoly_func.smu", directory: "")
@@ -176,7 +176,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "lets.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "generate_b", linkageName: "lets_generate_b", scope: !3, file: !3, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "lets.smu", directory: "")
@@ -229,7 +229,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "import_lets.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "inside_fn", linkageName: "schmu_inside_fn", scope: !3, file: !3, line: 8, type: !4, scopeLine: 8, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "import_lets.smu", directory: "")
@@ -285,7 +285,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "local_import_lets.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "local_import_lets.smu", directory: "")
@@ -312,7 +312,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "poly_func.smu", directory: "$TESTCASE_ROOT")
   $ cat poly_func.smi | sed -E 's/([0-9]+:\/.*lib\/schmu\/std)//'
   (()((5:Mtype(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:80)(8:pos_cnum2:80))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:2)(7:pos_bol2:80)(8:pos_cnum3:113)))6:option((6:params((4:Qvar2:41)))(4:kind(8:Dvariant5:false(((5:cname4:some)(4:ctyp((4:Qvar2:41)))(5:index1:0))((5:cname4:none)(4:ctyp())(5:index1:1)))))(6:in_sgn5:false)))(9:Mpoly_fun(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:4)(7:pos_bol3:115)(8:pos_cnum3:119))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:9)(7:pos_bol3:184)(8:pos_cnum3:185)))((7:nparams(5:thing))(4:body((3:typ(7:Tconstr3:int()))(4:expr(4:Move((3:typ(7:Tconstr3:int()))(4:expr(4:Bind7:__expr0((3:typ(7:Tconstr16:poly_func/option((4:Qvar1:1))))(4:expr(3:Var5:thing()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:145))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:150)))))((3:typ(7:Tconstr3:int()))(4:expr(2:If((3:typ(7:Tconstr4:bool()))(4:expr(3:Bop7:Equal_i((3:typ(7:Tconstr3:i32()))(4:expr(13:Variant_index((3:typ(7:Tconstr16:poly_func/option((4:Qvar1:1))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:139))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:150)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))((3:typ(7:Tconstr3:i32()))(4:expr(5:Const(3:I321:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))(4:true)((3:typ(7:Tconstr3:int()))(4:expr(4:Bind7:__expr0((3:typ(4:Qvar1:1))(4:expr(12:Variant_data((3:typ(7:Tconstr16:poly_func/option((4:Qvar1:1))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:139))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:5)(7:pos_bol3:137)(8:pos_cnum3:150)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))((3:typ(7:Tconstr3:int()))(4:expr(5:Const(3:Int1:0)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:166))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:167)))))))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:166))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:167)))))((3:typ(7:Tconstr3:int()))(4:expr(4:Bind7:__expr0((3:typ(7:Tconstr16:poly_func/option((4:Qvar1:1))))(4:expr(3:Var7:__expr0(9:poly_func)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))((3:typ(7:Tconstr3:int()))(4:expr(5:Const(3:Int1:1)))(4:attr((5:const4:true)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:7)(7:pos_bol3:168)(8:pos_cnum3:178))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:7)(7:pos_bol3:168)(8:pos_cnum3:179)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:7)(7:pos_bol3:168)(8:pos_cnum3:172))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:7)(7:pos_bol3:168)(8:pos_cnum3:176)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:157))((9:pos_fname13:poly_func.smu)(8:pos_lnum1:6)(7:pos_bol3:153)(8:pos_cnum3:161))))))(4:func((7:tparams(((2:pt(7:Tconstr16:poly_func/option((4:Qvar1:1))))(5:pattr5:Dnorm))))(3:ret(7:Tconstr3:int()))(4:kind6:Simple)(7:touched())))(6:inline5:false)(6:is_rec5:false))8:classify()))((/std/string5:false)))
@@ -387,7 +387,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "import_poly_func.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vd__", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "poly_func.smu", directory: "")
@@ -476,7 +476,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "local_import_poly_func.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vd__", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "poly_func.smu", directory: "")
@@ -556,7 +556,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "malloc_some.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "add_ints", linkageName: "malloc_some_add_ints", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "malloc_some.smu", directory: "")
@@ -719,7 +719,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "use_malloc_some.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner_Cal_lru__", scope: !3, file: !3, line: 32, type: !4, scopeLine: 32, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
@@ -863,7 +863,7 @@ Local modules
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "local_module.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_schmu_local_poly_test", linkageName: "__schmu_local_poly_test_ac__", scope: !3, file: !3, line: 17, type: !4, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "local_module.smu", directory: "")
@@ -941,7 +941,7 @@ Local modules can shadow types. Use unique type names in codegen
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "local_module_type_shadowing.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "local_module_type_shadowing.smu", directory: "")
@@ -1010,7 +1010,7 @@ Transitive polymorphic dependency needs to be available
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "use_dep.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_direct_dep_id", linkageName: "__direct_dep_id_lrl_", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "direct_dep.smu", directory: "")
@@ -1143,7 +1143,7 @@ Apply local functors
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "local_functor.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_schmu_floata_add", linkageName: "schmu_floata_add", scope: !3, file: !3, line: 24, type: !4, scopeLine: 24, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "local_functor.smu", directory: "")
@@ -1281,7 +1281,7 @@ Simple functor
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: FullDebug)
+  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "use_simple_functor.smu", directory: "$TESTCASE_ROOT")
   !2 = distinct !DISubprogram(name: "_schmu_s_create", linkageName: "__schmu_s_create_ac_rac_ac2__", scope: !3, file: !3, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "simple_functor.smu", directory: "")

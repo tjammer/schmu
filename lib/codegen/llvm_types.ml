@@ -50,8 +50,8 @@ let set_di_comp_unit ~filename ~directory ~is_optimized =
   let unit =
     Debug.dibuild_create_compile_unit dibuilder Debug.DWARFSourceLanguageKind.C
       ~file_ref ~producer:"schmu 0.1x" ~is_optimized ~flags:"" ~runtime_ver:0
-      ~split_name:"" Debug.DWARFEmissionKind.Full ~dwoid:0 ~di_inlining:true
-      ~di_profiling:false ~sys_root:"" ~sdk:""
+      ~split_name:"" Debug.DWARFEmissionKind.LineTablesOnly ~dwoid:0
+      ~di_inlining:true ~di_profiling:false ~sys_root:"" ~sdk:""
   in
   di_comp_unit := Some unit
 
