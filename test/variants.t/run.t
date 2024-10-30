@@ -580,3 +580,9 @@ Support path prefixes in match patterns
 
 Regression test for this if structure
   $ schmu failwith_ifs.smu
+
+Regression test for tuple match
+  $ schmu tuple_match_regression.smu
+  $ ./tuple_match_regression
+  c
+  none
