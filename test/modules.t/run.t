@@ -1346,3 +1346,9 @@ Make applied functors hidden behind signatures usable. Does this apply to local 
   $ schmu -m hidden_functor_app.smu
   $ schmu use_hidden_functor_app.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./use_hidden_functor_app
+
+Check deps
+  $ schmu -m --deps modd/modd.smu
+  modd.o modd.smi: indirect.smi public.smi
+  $ schmu --deps modd/modd.smu
+  modd: indirect.smi public.smi

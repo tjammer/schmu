@@ -10,6 +10,7 @@ type opts = {
   check_only : bool;
   cargs : string list;
   search_paths : string list;
+  deps : bool;
 }
 
 let ( >>= ) = Result.bind
@@ -41,6 +42,7 @@ let run file
       check_only;
       cargs;
       search_paths = _;
+      deps;
     } =
   let fmt_msg_fn kind loc msg =
     let file = Lexing.((fst loc).pos_fname) in
@@ -72,23 +74,27 @@ let run file
       in
       (loc, loc)
     in
-    let ttree, m = Typing.to_typed ~mname ~std ~start_loc fmt_msg_fn prog in
-
-    if check_only then Ok ()
+    if deps then (
+      Deps.print_deps ~modul ~outname prog;
+      Ok ())
     else
-      (* TODO if a module has only forward decls, we don't need to codegen anything *)
-      let args = if modul then false else Module.uses_args () in
-      Monomorph_tree.monomorphize ~mname ttree
-      |> Codegen.generate ~target ~outname ~release ~modul ~args ~start_loc
-      |> ignore;
-      if dump_llvm then Llvm.dump_module Codegen.the_module;
-      if modul then (
-        let modfile = open_out (outname ^ ".smi") in
-        Module.to_channel modfile ~outname m;
-        close_out modfile;
-        Ok ())
-      else if compile_only then Ok ()
-      else Link.link outname objects cargs
+      let ttree, m = Typing.to_typed ~mname ~std ~start_loc fmt_msg_fn prog in
+
+      if check_only then Ok ()
+      else
+        (* TODO if a module has only forward decls, we don't need to codegen anything *)
+        let args = if modul then false else Module.uses_args () in
+        Monomorph_tree.monomorphize ~mname ttree
+        |> Codegen.generate ~target ~outname ~release ~modul ~args ~start_loc
+        |> ignore;
+        if dump_llvm then Llvm.dump_module Codegen.the_module;
+        if modul then (
+          let modfile = open_out (outname ^ ".smi") in
+          Module.to_channel modfile ~outname m;
+          close_out modfile;
+          Ok ())
+        else if compile_only then Ok ()
+        else Link.link outname objects cargs
   with Error.Error (loc, msg) -> Error (fmt_msg_fn "error" loc msg)
 
 let run_file filename opts =
@@ -119,6 +125,7 @@ let () =
   let no_std = ref false in
   let check_only = ref false in
   let cargs = ref [] in
+  let deps = ref false in
   let carg s = cargs := s :: !cargs in
   let search_paths = ref [] in
   let search_path s = search_paths := s :: !search_paths in
@@ -157,6 +164,7 @@ let () =
       ("--no-std", Arg.Set no_std, "Compile without std library");
       ("--check", Arg.Set check_only, "Typecheck only");
       ("--cc", Arg.String carg, "Pass to C compiler");
+      ("--deps", Arg.Set deps, "Print module dependencies");
     ]
   in
   let () = Arg.parse speclist anon_fun usage in
@@ -189,4 +197,5 @@ let () =
       check_only = !check_only;
       cargs = List.rev !cargs;
       search_paths = List.rev !search_paths;
+      deps = !deps;
     }
