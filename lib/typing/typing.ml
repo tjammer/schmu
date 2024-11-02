@@ -1391,7 +1391,7 @@ let check_module_annot env loc ~mname m annot =
           let mtype =
             Module_type.adjust_for_checking ~base ~with_:mname mtype
           in
-          Module.validate_intf env ~mname mtype m
+          Module.validate_intf env (Some loc) ~mname mtype m
       | None -> raise (Error (loc, "Cannot find module type " ^ Path.show path))
       )
   | None -> ()
@@ -1781,7 +1781,7 @@ and convert_prog env items modul =
                 List.iter2
                   (fun (aloc, arg) param ->
                     let key = Path.append (fst param) mname in
-                    match Env.find_module_opt aloc arg env with
+                    match Env.find_module_opt floc arg env with
                     | Some mname -> (
                         match Module.of_located env mname with
                         | Ok m ->
@@ -1791,8 +1791,8 @@ and convert_prog env items modul =
                               Module_type.adjust_for_checking ~base:key
                                 ~with_:mname (snd param)
                             in
-                            Module.validate_intf env ~mname mtype m
-                        | Error s -> raise (Error (loc, s)))
+                            Module.validate_intf env (Some aloc) ~mname mtype m
+                        | Error s -> raise (Error (aloc, s)))
                     | None ->
                         raise
                           (Error (aloc, "Cannot find module " ^ Path.show arg)))

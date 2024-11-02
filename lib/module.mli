@@ -89,7 +89,10 @@ type functor_data =
 val functor_data : Env.t -> loc -> Path.t -> (functor_data, string) result
 val to_channel : out_channel -> outname:string -> t -> unit
 val append_externals : Env.ext list -> Env.ext list
-val validate_intf : Env.t -> mname:Path.t -> Module_type.t -> t -> unit
+
+val validate_intf :
+  Env.t -> Ast.loc option -> mname:Path.t -> Module_type.t -> t -> unit
+
 val validate_signature : Env.t -> t -> t
 
 val to_module_type : t -> Module_type.t

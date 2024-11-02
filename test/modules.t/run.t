@@ -1352,3 +1352,12 @@ Check deps
   modd.o modd.smi: indirect.smi public.smi
   $ schmu --deps modd/modd.smu
   modd: indirect.smi public.smi
+
+Use correct location to report functor application errors
+  $ schmu functor_app_err.smu
+  functor_app_err.smu:7.27-31: error: Mismatch between implementation and signature: Missing implementation of (t, t) -> bool equal.
+  
+  7 | module tbl = hashtbl/make(file)
+                                ^^^^
+  
+  [1]

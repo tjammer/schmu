@@ -725,13 +725,14 @@ let decls_match name ~sgn impl =
   | Dabstract None, kind -> Ok (Some (kind, typ_of_decl impl name))
   | _ -> Error None
 
-let validate_module_type env ~mname find mtype =
+let validate_module_type env ~loc ~mname find mtype =
   (* Go through signature and check that the implemented types match.
      Implementation is appended to a list, so the most current bindings are the ones we pick.
      That's exactly what we want. Also, set correct unique name to signature binding. *)
   let mn = mname in
   let com = "Signatures don't match" in
-  let f (name, loc, kind) (sub, acc) =
+  let f (name, tloc, kind) (sub, acc) =
+    let loc = match loc with Some loc -> loc | None -> tloc in
     match (find name kind, kind) with
     | Some (Mtypedef idecl), Mtypedef sdecl ->
         let path = Path.append name mn in
@@ -803,14 +804,14 @@ let validate_signature env m =
   | s ->
       let find name kind = List.find_map (find_item name kind) m.i in
       let mname = Env.modpath env in
-      let s = validate_module_type ~mname env find s in
+      let s = validate_module_type ~loc:None ~mname env find s in
       { m with s }
 
-let validate_intf env ~mname intf m =
+let validate_intf env loc ~mname intf m =
   match m.s with
   | [] ->
       let find name kind = List.find_map (find_item name kind) m.i in
-      ignore (validate_module_type ~mname env find intf)
+      ignore (validate_module_type ~loc ~mname env find intf)
   | s ->
       let find name kind =
         List.find_map
@@ -823,7 +824,7 @@ let validate_intf env ~mname intf m =
                 else None)
           s
       in
-      ignore (validate_module_type ~mname env find intf)
+      ignore (validate_module_type ~loc ~mname env find intf)
 
 let to_module_type { s; i; _ } =
   match (s, i) with

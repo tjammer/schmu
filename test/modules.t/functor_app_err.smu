@@ -1,0 +1,7 @@
+module file {
+  type t = string
+
+  let hash = string/hash
+}
+
+module tbl = hashtbl/make(file)
