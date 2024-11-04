@@ -997,6 +997,13 @@ fun process_state(state&) {
   higher_lvl(&state, fun i {&fst = copy(i)})
 }|}
 
+let test_excl_move_lambda () =
+  test_exn "Borrowed parameter a is moved" "fun copy_param(a&): fun (): &a = 12"
+
+let test_excl_move_fun () =
+  test_exn "Borrowed parameter a is moved"
+    "fun copy_param(a&) {fun f (): &a = 12; f}"
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "type t = int; type t = float"
@@ -1786,6 +1793,8 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "array move wrong index" test_excl_array_move_wrong_index;
           case "array move dyn index" test_excl_array_move_dyn_index;
           case "track rc get" test_excl_track_rc_get;
+          case "move mut param lambda" test_excl_move_lambda;
+          case "move mut param fun" test_excl_move_fun;
         ] );
       ( "type decl",
         [

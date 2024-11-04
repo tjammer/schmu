@@ -77,6 +77,9 @@ module Usage = struct
     | Dset -> Uset
 end
 
+let is_mut_param p =
+  match p.pattr with Dmut -> true | Dnorm | Dset | Dmove -> false
+
 let current_module = ref None
 
 module Id = struct
@@ -1256,8 +1259,12 @@ let check_tree ~mname get_decl pts pns touched body =
   List.iter2
     (fun p (n, loc) ->
       let n = (n, None) in
-      (* If there's no allocation, we copying and moving are the same thing *)
-      if contains_allocation (gg_decl ()) p.pt then
+      (* If there's no allocation, copying and moving are the same thing.
+         However, for mutable parameters, we need to check as well, because we
+         don't want to silently copy a mutable parameter into a closure.
+         Silently copying would lead to the closure mutating a copy, which is
+         not expected from the call site. *)
+      if contains_allocation (gg_decl ()) p.pt || is_mut_param p then
         let borrows = List.nth param_borrows !i in
         let borrow = borrow_of_param (Fst n) loc borrows in
         match p.pattr with
