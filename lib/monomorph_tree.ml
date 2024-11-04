@@ -160,133 +160,159 @@ let decls () = Option.get !decl_tbl
 
 module Ss = Set.Make (String)
 
-let rec cln ss p = function
-  | Types.Tvar { contents = Link t } -> cln ss p t
-  | Tconstr (Pid "int", _) -> Tint
-  | Tconstr (Pid "bool", _) -> Tbool
-  | Tconstr (Pid "unit", _) -> Tunit
-  | Tconstr (Pid "float", _) -> Tfloat
-  | Tconstr (Pid "i8", _) -> Ti8
-  | Tconstr (Pid "u8", _) -> Tu8
-  | Tconstr (Pid "i16", _) -> Ti16
-  | Tconstr (Pid "u16", _) -> Tu16
-  | Tconstr (Pid "i32", _) -> Ti32
-  | Tconstr (Pid "u32", _) -> Tu32
-  | Tconstr (Pid "f32", _) -> Tf32
-  | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
-  | Tfun (params, ret, kind) ->
-      Tfun (List.map (cln_param ss p) params, cln ss p ret, cln_kind ss p kind)
-  | Tconstr (Pid "raw_ptr", [ t ]) -> Traw_ptr (cln ss p t)
-  | Tconstr (Pid "array", [ t ]) -> Tarray (cln ss p t)
-  | Tconstr (Pid "rc", [ t ]) -> Trc (cln ss p t)
-  | Tfixed_array ({ contents = Unknown (i, _) | Generalized i }, t) ->
-      (* That's a hack. We know the unknown number is a string of an int. This is
-         due to an implementation detail in [gen_var] in inference. We need a
-         proper size here, but for these types we don't know yet. The type will be
-         substituted though. So we use the negative of the string-number as a way
-         to mark this case. Luckily, a negative number will raise expcetions or
-         even segfault in codegen. If we don't substitute, it won't go unnoticed.
-         Furthermore, fixed-size arrays with negative indices must recognized as
-         polymorphic*)
-      Tfixed_array (-int_of_string i, cln ss p t)
-  | Tfixed_array ({ contents = Known i }, t) -> Tfixed_array (i, cln ss p t)
-  | Tfixed_array ({ contents = Linked iv }, t) ->
-      cln ss p Types.(Tfixed_array (iv, t)) (* TODO *)
-  | Ttuple ts ->
-      Trecord
-        ( [],
-          Rec_not
-            (List.map (fun t -> { ftyp = cln ss p t; mut = false }) ts
-            |> Array.of_list),
-          None )
-  | Tconstr (name, ops) -> (
-      let open Types in
-      (* Map params to and insert correct types *)
-      match Hashtbl.find_opt (decls ()) name with
-      | Some decl ->
-          let sub = map_params ~inst:ops ~params:decl.params in
-          let ps = List.map (cln ss p) ops in
-          let nname = Path.type_name name in
-          let psname =
-            structural_name ~closure:false
-              (Trecord
-                 ( [],
-                   Rec_not
-                     (List.map (fun ftyp -> { ftyp; mut = false }) ps
-                     |> Array.of_list),
-                   None ))
-            ^ nname
-          in
-          let downss = Ss.add psname ss in
+let cleaned_tbl = Hashtbl.create 512
 
-          let rec cln_dkind = function
-            | Drecord (recurs, fields) -> (
-                let skip =
-                  if recurs && Ss.mem psname ss then
-                    Some (Trecord (ps, Rec_folded, Some nname))
-                  else None
+let rec cln ss p t =
+  let hsh = Types.sexp_of_typ t in
+  (* Memoize types based on sexp. Memoization brings huge gains, especially for
+     complicated recursive types. On my machine, the polymorphic hash with sexp
+     was marginally faster than using the string from [show_typ], with or
+     without polymorphic hash tables. *)
+  match Hashtbl.find_opt cleaned_tbl hsh with
+  | Some t -> t
+  | None ->
+      let t =
+        match t with
+        | Types.Tvar { contents = Link t } -> cln ss p t
+        | Tconstr (Pid "int", _) -> Tint
+        | Tconstr (Pid "bool", _) -> Tbool
+        | Tconstr (Pid "unit", _) -> Tunit
+        | Tconstr (Pid "float", _) -> Tfloat
+        | Tconstr (Pid "i8", _) -> Ti8
+        | Tconstr (Pid "u8", _) -> Tu8
+        | Tconstr (Pid "i16", _) -> Ti16
+        | Tconstr (Pid "u16", _) -> Tu16
+        | Tconstr (Pid "i32", _) -> Ti32
+        | Tconstr (Pid "u32", _) -> Tu32
+        | Tconstr (Pid "f32", _) -> Tf32
+        | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
+        | Tfun (params, ret, kind) ->
+            Tfun
+              ( List.map (cln_param ss p) params,
+                cln ss p ret,
+                cln_kind ss p kind )
+        | Tconstr (Pid "raw_ptr", [ t ]) -> Traw_ptr (cln ss p t)
+        | Tconstr (Pid "array", [ t ]) -> Tarray (cln ss p t)
+        | Tconstr (Pid "rc", [ t ]) -> Trc (cln ss p t)
+        | Tfixed_array ({ contents = Unknown (i, _) | Generalized i }, t) ->
+            (* That's a hack. We know the unknown number is a string of an int. This is
+               due to an implementation detail in [gen_var] in inference. We need a
+               proper size here, but for these types we don't know yet. The type will be
+               substituted though. So we use the negative of the string-number as a way
+               to mark this case. Luckily, a negative number will raise expcetions or
+               even segfault in codegen. If we don't substitute, it won't go unnoticed.
+               Furthermore, fixed-size arrays with negative indices must recognized as
+               polymorphic*)
+            Tfixed_array (-int_of_string i, cln ss p t)
+        | Tfixed_array ({ contents = Known i }, t) ->
+            Tfixed_array (i, cln ss p t)
+        | Tfixed_array ({ contents = Linked iv }, t) ->
+            cln ss p Types.(Tfixed_array (iv, t)) (* TODO *)
+        | Ttuple ts ->
+            Trecord
+              ( [],
+                Rec_not
+                  (List.map (fun t -> { ftyp = cln ss p t; mut = false }) ts
+                  |> Array.of_list),
+                None )
+        | Tconstr (name, ops) -> (
+            let open Types in
+            (* Map params to and insert correct types *)
+            match Hashtbl.find_opt (decls ()) name with
+            | Some decl ->
+                let sub = map_params ~inst:ops ~params:decl.params in
+                let ps = List.map (cln ss p) ops in
+                let nname = Path.type_name name in
+                let psname =
+                  structural_name ~closure:false
+                    (Trecord
+                       ( [],
+                         Rec_not
+                           (List.map (fun ftyp -> { ftyp; mut = false }) ps
+                           |> Array.of_list),
+                         None ))
+                  ^ nname
                 in
-                match skip with
-                | Some typ -> typ
-                | None ->
-                    let _, fields =
-                      Array.fold_left_map
-                        (fun sub f ->
-                          let sub, typ = Inference.instantiate_sub sub f.ftyp in
-                          ( sub,
-                            Cleaned_types.
-                              { ftyp = cln downss p typ; mut = f.mut } ))
-                        sub fields
-                    in
-                    Trecord (ps, Rec_not fields, Some nname))
-            | Dvariant (recurs, cts) -> (
-                (* If the variant is behind a ptr, we fold it *)
-                let skip =
-                  if recurs && Ss.mem psname ss then
-                    Some (Tvariant (ps, Rec_folded, nname))
-                  else None
+                let downss = Ss.add psname ss in
+
+                let rec cln_dkind = function
+                  | Drecord (recurs, fields) -> (
+                      let skip =
+                        if recurs && Ss.mem psname ss then
+                          Some (Trecord (ps, Rec_folded, Some nname))
+                        else None
+                      in
+                      match skip with
+                      | Some typ -> typ
+                      | None ->
+                          let _, fields =
+                            Array.fold_left_map
+                              (fun sub f ->
+                                let sub, typ =
+                                  Inference.instantiate_sub sub f.ftyp
+                                in
+                                ( sub,
+                                  Cleaned_types.
+                                    { ftyp = cln downss p typ; mut = f.mut } ))
+                              sub fields
+                          in
+                          Trecord (ps, Rec_not fields, Some nname))
+                  | Dvariant (recurs, cts) -> (
+                      (* If the variant is behind a ptr, we fold it *)
+                      let skip =
+                        if recurs && Ss.mem psname ss then
+                          Some (Tvariant (ps, Rec_folded, nname))
+                        else None
+                      in
+                      match skip with
+                      | Some typ -> typ
+                      | None ->
+                          let _, cts =
+                            Array.fold_left_map
+                              (fun sub ct ->
+                                match ct.ctyp with
+                                | Some typ ->
+                                    let sub, typ =
+                                      Inference.instantiate_sub sub typ
+                                    in
+                                    let ctyp = Some (cln downss p typ)
+                                    and index = ct.index in
+                                    ( sub,
+                                      {
+                                        Cleaned_types.cname = ct.cname;
+                                        ctyp;
+                                        index;
+                                      } )
+                                | None ->
+                                    let cname = ct.cname and ctyp = None in
+                                    (sub, { cname; ctyp; index = ct.index }))
+                              sub cts
+                          in
+                          let recurs_kind =
+                            if recurs then Rec_top cts else Rec_not cts
+                          in
+                          Tvariant (ps, recurs_kind, nname))
+                  | Dabstract None ->
+                      failwith "Internal Error: Too abstract type"
+                  | Dalias typ ->
+                      let sub =
+                        Types.map_lazy ~inst:ops Types.Smap.empty typ |> snd
+                      in
+                      let typ =
+                        if Smap.is_empty sub then typ
+                        else Inference.instantiate_sub sub typ |> snd
+                      in
+                      cln downss p typ
+                  | Dabstract (Some dkind) -> cln_dkind dkind
                 in
-                match skip with
-                | Some typ -> typ
-                | None ->
-                    let _, cts =
-                      Array.fold_left_map
-                        (fun sub ct ->
-                          match ct.ctyp with
-                          | Some typ ->
-                              let sub, typ =
-                                Inference.instantiate_sub sub typ
-                              in
-                              let ctyp = Some (cln downss p typ)
-                              and index = ct.index in
-                              ( sub,
-                                { Cleaned_types.cname = ct.cname; ctyp; index }
-                              )
-                          | None ->
-                              let cname = ct.cname and ctyp = None in
-                              (sub, { cname; ctyp; index = ct.index }))
-                        sub cts
-                    in
-                    let recurs_kind =
-                      if recurs then Rec_top cts else Rec_not cts
-                    in
-                    Tvariant (ps, recurs_kind, nname))
-            | Dabstract None -> failwith "Internal Error: Too abstract type"
-            | Dalias typ ->
-                let sub =
-                  Types.map_lazy ~inst:ops Types.Smap.empty typ |> snd
-                in
-                let typ =
-                  if Smap.is_empty sub then typ
-                  else Inference.instantiate_sub sub typ |> snd
-                in
-                cln downss p typ
-            | Dabstract (Some dkind) -> cln_dkind dkind
-          in
-          cln_dkind decl.kind
-      | None ->
-          failwith
-            ("Internal Error: Tconstr " ^ Path.show name ^ " not available"))
+                cln_dkind decl.kind
+            | None ->
+                failwith
+                  ("Internal Error: Tconstr " ^ Path.show name
+                 ^ " not available"))
+      in
+      Hashtbl.add cleaned_tbl hsh t;
+      t
 
 and cln_kind ss p = function
   | Simple -> Simple
