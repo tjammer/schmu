@@ -1,0 +1,13 @@
+type ctor['a] = Ctor(array['a])
+
+fun any() {
+  -- TODO using a concrete type here given another error in valgrind, but works
+  fun cb(v) {
+    println(fmt(v))
+  }
+  Ctor([cb])
+}
+
+match any() {
+  Ctor(f): f.[0](0)
+}

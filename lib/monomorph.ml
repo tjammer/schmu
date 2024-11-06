@@ -72,7 +72,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     | _ -> failwith "Internal Error: Not a function type"
 
   let rec find_function_expr vars = function
-    | Mvar (_, Vglobal id) -> (
+    | Mvar (_, Vglobal id, _) -> (
         (* Use the id saved in Vglobal. The usual id is the call name / unique
            global name *)
         match Vars.find_opt id vars with
@@ -81,7 +81,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
             thing.fn
         | Some _ -> failwith "Internal Error: Unexpected nonglobal"
         | None -> No_function)
-    | Mvar (id, _) -> (
+    | Mvar (id, _, _) -> (
         match Vars.find_opt id vars with
         | Some (Normal thing) -> thing.fn
         | Some (Global (_, thing, _)) ->
@@ -105,10 +105,10 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         | _ -> No_function)
     | Mlet _ | Mbind _ -> No_function (* TODO cont? Didn't work on quick test *)
     | Mfmt _ -> No_function
-    | Mfree_after (e, _) -> find_function_expr vars e.expr
+    | Mfree_after (e, _) | Mseq (_, e) -> find_function_expr vars e.expr
     | e ->
         print_endline (show_expr e);
-        "Not supported: " ^ show_expr e |> failwith
+        failwith "Unsupported expression for find_function"
 
   let structural_name ~closure t =
     let rec aux t =
@@ -472,7 +472,41 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     let rec inner tree =
       let sub t = { (inner t) with typ = subst t.typ } in
       match tree.expr with
-      | Mvar _ -> { tree with typ = subst tree.typ }
+      | Mvar (_, _, None) -> { tree with typ = subst tree.typ }
+      | Mvar (id, _, Some mid) as var ->
+          let ex = { tree with typ = subst tree.typ } in
+          (* We use the parameters at function creation time to deal with scope *)
+          let old_p =
+            match Apptbl.find_opt apptbl (string_of_int mid) with
+            | Some old ->
+                { old with funcs = !p.funcs; monomorphized = !p.monomorphized }
+            | None -> failwith "Internal Error: No old param"
+          in
+
+          let p2, monomorph = monomorphize_call old_p ex (Some subst) in
+
+          p :=
+            {
+              !p with
+              funcs = Fset.union !p.funcs p2.funcs;
+              monomorphized = Sset.union !p.monomorphized p2.monomorphized;
+            };
+
+          let expr =
+            match monomorph with
+            | Default | Builtin _ | Inline _ -> var
+            | Concrete name -> Mvar (name, Vnorm, Some mid)
+            | Recursive r ->
+                (* TODO could this be Vnorm? *)
+                Mvar (id, Vrecursive r.call, Some mid)
+            | Mono (name, upwardr) -> Mvar (name, Vmono !upwardr, Some mid)
+          in
+
+          { ex with expr }
+      | Mconst (Array (es, a, i)) ->
+          { tree with expr = Mconst (Array (List.map sub es, a, i)) }
+      | Mconst (Fixed_array (es, a, i)) ->
+          { tree with expr = Mconst (Fixed_array (List.map sub es, a, i)) }
       | Mconst _ -> tree
       | Mbop (bop, l, r) -> { tree with expr = Mbop (bop, sub l, sub r) }
       | Munop (unop, e) -> { tree with expr = Munop (unop, sub e) }

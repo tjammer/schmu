@@ -5,7 +5,8 @@ module type S = sig
   open Cleaned_types
 
   type expr =
-    | Mvar of string * var_kind
+    | Mvar of
+        string * var_kind * int option (* Internal id for monomorphization *)
     | Mconst of const
     | Mbop of Ast.bop * monod_tree * monod_tree
     | Munop of Ast.unop * monod_tree
@@ -88,7 +89,13 @@ module type S = sig
     e2 : monod_tree;
   }
 
-  and var_kind = Vnorm | Vconst | Vglobal of string
+  and var_kind =
+    | Vnorm
+    | Vconst
+    | Vglobal of string
+    | Vmono of bool (* upward *)
+    | Vrecursive of string
+
   and global_name = string option
   and fmt = Fstr of string | Fexpr of monod_tree
   and copy_kind = Cglobal of string | Cnormal of bool

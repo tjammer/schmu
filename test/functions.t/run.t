@@ -2585,3 +2585,8 @@ Failwith function
   
   $ cat err | grep false
   failwith: i'm false
+
+Monomorphize functions as variables
+  $ schmu monomorph_variable.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./monomorph_variable
+  0

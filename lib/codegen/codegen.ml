@@ -158,7 +158,7 @@ end = struct
     | Mconst c -> gen_const c |> fin
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
     | Munop (_, e) -> gen_unop param e |> fin
-    | Mvar (id, kind) -> gen_var param.vars typed_expr.typ id kind |> fin
+    | Mvar (id, kind, _) -> gen_var param typed_expr.typ id kind |> fin
     | Mfunction (name, kind, _, cont, allocref, upward) -> (
         (* The functions are already generated *)
         match Vars.find_opt name param.vars with
@@ -295,10 +295,10 @@ end = struct
     | Unit -> dummy_fn_value
     | String _ | Array _ | Fixed_array _ -> failwith "In other branch"
 
-  and gen_var vars typ id kind =
+  and gen_var param typ id kind =
     match kind with
     | Vnorm -> (
-        match Vars.find_opt id vars with
+        match Vars.find_opt id param.vars with
         | Some v -> v
         | None -> (
             match typ with
@@ -312,6 +312,20 @@ end = struct
                 failwith ("Internal Error: Could not find " ^ id ^ " in codegen")
             ))
     | Vconst | Vglobal _ -> Strtbl.find const_tbl id
+    | Vmono upward -> (
+        let func =
+          match Vars.find_opt id param.vars with
+          | Some v -> v
+          | None ->
+              (* If the variable isn't bound, something went wrong before *)
+              failwith
+                ("Internal Error: Could not find mono " ^ id ^ " in codegen")
+        in
+        match (func.kind, func.typ) with
+        | Imm, Tfun (_, _, Closure assoc) ->
+            gen_closure_obj param assoc func "monoclstmp" no_prealloc upward
+        | _ -> func)
+    | Vrecursive call -> Vars.find call param.vars
 
   and gen_bop param e1 e2 bop =
     let gen = gen_expr param in
@@ -1596,11 +1610,11 @@ let add_args body ~loc =
   Strtbl.add const_tbl name { value; lltyp; typ = Tint; kind = Ptr };
 
   let open Monomorph_tree in
-  let expr = Mvar ("__argv", Vnorm) in
+  let expr = Mvar ("__argv", Vnorm, None) in
   let var = { typ = Traw_ptr Tu8; expr; return = false; loc; const = Cnot } in
   let expr = Mlet ("", var, Lowned, Some "__schmu_argv", [], body) in
   let cont = { body with expr } in
-  let expr = Mvar ("__argc", Vnorm) in
+  let expr = Mvar ("__argc", Vnorm, None) in
   let var = { typ = Tint; expr; return = false; loc; const = Cnot } in
   let expr = Mlet ("", var, Lowned, Some "__schmu_argc", [], cont) in
   { body with expr }

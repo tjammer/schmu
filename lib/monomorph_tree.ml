@@ -4,7 +4,8 @@ module Iset = Set.Make (Int)
 
 module Mtree = struct
   type expr =
-    | Mvar of string * var_kind
+    | Mvar of
+        string * var_kind * int option (* Internal id for monomorphization *)
     | Mconst of const
     | Mbop of Ast.bop * monod_tree * monod_tree
     | Munop of Ast.unop * monod_tree
@@ -83,7 +84,13 @@ module Mtree = struct
     e2 : monod_tree;
   }
 
-  and var_kind = Vnorm | Vconst | Vglobal of string
+  and var_kind =
+    | Vnorm
+    | Vconst
+    | Vglobal of string
+    | Vmono of bool (* upward *)
+    | Vrecursive of string
+
   and global_name = string option
   and fmt = Fstr of string | Fexpr of monod_tree
   and copy_kind = Cglobal of string | Cnormal of bool
@@ -330,7 +337,8 @@ and cln_kind ss p = function
             in
             let clname =
               if not cl.clparam then
-                extract_callname modded_name p.vars (Mvar (cl.clname, Vnorm))
+                extract_callname modded_name p.vars
+                  (Mvar (cl.clname, Vnorm, None))
               else modded_name
             in
             {
@@ -491,7 +499,8 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
     { typ = cln param texpr.typ; expr; return; loc = texpr.loc; const }
   in
   match texpr.expr with
-  | Typed_tree.Var (v, mname) -> morph_var make param v mname
+  | Typed_tree.Var (v, mname) ->
+      morph_var make param v mname (cln param texpr.typ)
   | Const (String s) -> morph_string make param s
   | Const (Array a) -> morph_array make param a (cln param texpr.typ)
   | Const (Fixed_array a) ->
@@ -514,7 +523,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       (* top level function aliases *)
       let var =
         match lhs.expr with
-        | Mvar (id, Vglobal _) ->
+        | Mvar (id, Vglobal _, None) ->
             (* It's already used, we don't care about the actual value *)
             Global (id, func, ref false)
         | _ -> Normal func
@@ -586,7 +595,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       in
       ({ p with mallocs }, e, { func with malloc = No_malloc })
 
-and morph_var mk p v mname =
+and morph_var mk p v mname typ =
   let (v, kind), var =
     let v =
       match mname with
@@ -599,7 +608,18 @@ and morph_var mk p v mname =
         ((v, Vnorm), var)
     | v -> find_var v p.vars
   in
-  let ex = mk (Mvar (v, kind)) p.ret in
+
+  let mono_id =
+    match typ with
+    | Tfun _ ->
+        (* Save env for later monomorphization *)
+        let id = new_id malloc_id in
+        Apptbl.add apptbl (string_of_int id) p;
+        Some id
+    | _ -> None
+  in
+
+  let ex = mk (Mvar (v, kind, mono_id)) p.ret in
   (p, ex, var)
 
 and morph_string mk p s =
@@ -782,7 +802,7 @@ and morph_if mk p cond owning e1 e2 =
           | Some expr ->
               let id =
                 match expr.expr with
-                | Mvar (id, _) -> id
+                | Mvar (id, _, _) -> id
                 | _ -> failwith "Intenal Error: Not a variable expression"
               in
               let _, func = find_var id p.vars in
@@ -1438,7 +1458,7 @@ let rec morph_toplvl param items =
         (* top level function aliases *)
         let var =
           match e1.expr with
-          | Mvar (id, Vglobal _) ->
+          | Mvar (id, Vglobal _, _) ->
               (* It's already used, we don't care about the actual value *)
               Global (id, func, ref false)
           | _ -> Normal func
