@@ -3157,3 +3157,7 @@ Mutable variables in upward closures
   2
   3
   4
+
+Partially free rc
+  $ schmu partial_rc.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./partial_rc

@@ -115,7 +115,14 @@ struct
                   |> ignore;
                   decl_children_exc pset pseudovar f.ftyp)
           fields
-    | _ -> failwith "TODO decl free or not supported"
+    | Trc _ ->
+        (* This is a rc where the payload has been moved out and the refcount
+           still needs freeing. There is no need to declare anything, because we
+           won't free the payload. *)
+        ()
+    | t ->
+        print_endline (show_typ t);
+        failwith "TODO decl free or not supported"
 
   let copy param allocref v =
     if contains_allocation v.typ then
@@ -390,6 +397,45 @@ struct
         Hashtbl.add cls_func_tbl name func;
         func
 
+  let free_rc v item_typ =
+    let v = bring_default_var v in
+
+    let rf = Llvm.build_gep int_t v.value [| ci 0 |] "ref" builder in
+
+    let rc = Llvm.build_load int_t rf "refc" builder in
+
+    (* Get current block *)
+    let start_bb = Llvm.insertion_block builder in
+    let parent = Llvm.block_parent start_bb in
+
+    let decr_bb = Llvm.append_block context "decr" parent in
+    let free_bb = Llvm.append_block context "free" parent in
+    let merge_bb = Llvm.append_block context "merge" parent in
+
+    let cmp =
+      Llvm.(build_icmp Icmp.Eq) rc (Llvm.const_int int_t 1) "" builder
+    in
+    ignore (Llvm.build_cond_br cmp free_bb decr_bb builder);
+
+    (* decr *)
+    Llvm.position_at_end decr_bb builder;
+    let added = Llvm.build_sub rc (Llvm.const_int int_t 1) "" builder in
+    ignore (Llvm.build_store added rf builder);
+    ignore (Llvm.build_br merge_bb builder);
+
+    (* free *)
+    Llvm.position_at_end free_bb builder;
+    let value = Llvm.build_gep int_t v.value [| ci 1 |] "vl" builder in
+    (match item_typ with
+    | Some item_typ ->
+        free_call_only
+          { value; typ = item_typ; lltyp = get_lltype_def item_typ; kind = Ptr }
+    | None -> ());
+    free_var v.value |> ignore;
+    ignore (Llvm.build_br merge_bb builder);
+
+    Llvm.position_at_end merge_bb builder
+
   let free_impl v =
     match v.typ with
     | Tarray t ->
@@ -401,41 +447,7 @@ struct
            iter_array_children v sz t free_call_only);
 
         free_var v.value |> ignore
-    | Trc item_typ ->
-        let v = bring_default_var v in
-
-        let rf = Llvm.build_gep int_t v.value [| ci 0 |] "ref" builder in
-
-        let rc = Llvm.build_load int_t rf "refc" builder in
-
-        (* Get current block *)
-        let start_bb = Llvm.insertion_block builder in
-        let parent = Llvm.block_parent start_bb in
-
-        let decr_bb = Llvm.append_block context "decr" parent in
-        let free_bb = Llvm.append_block context "free" parent in
-        let merge_bb = Llvm.append_block context "merge" parent in
-
-        let cmp =
-          Llvm.(build_icmp Icmp.Eq) rc (Llvm.const_int int_t 1) "" builder
-        in
-        ignore (Llvm.build_cond_br cmp free_bb decr_bb builder);
-
-        (* decr *)
-        Llvm.position_at_end decr_bb builder;
-        let added = Llvm.build_sub rc (Llvm.const_int int_t 1) "" builder in
-        ignore (Llvm.build_store added rf builder);
-        ignore (Llvm.build_br merge_bb builder);
-
-        (* free *)
-        Llvm.position_at_end free_bb builder;
-        let value = Llvm.build_gep int_t v.value [| ci 1 |] "vl" builder in
-        free_call_only
-          { value; typ = item_typ; lltyp = get_lltype_def item_typ; kind = Ptr };
-        free_var v.value |> ignore;
-        ignore (Llvm.build_br merge_bb builder);
-
-        Llvm.position_at_end merge_bb builder
+    | Trc item_typ -> free_rc v (Some item_typ)
     | Trecord (_, Rec_folded, _) -> failwith "unreachable"
     | Trecord (_, (Rec_not fields | Rec_top fields), _) ->
         Array.iteri
@@ -537,6 +549,9 @@ struct
                   let v = follow_field v i in
                   free_except_call pset v)
           fields
+    | Trc _ ->
+        (* Only free refcount ptr. Same as free above, but without the payload *)
+        free_rc v None
     | _ -> failwith "TODO free or not supported"
 
   let gen_functions () =

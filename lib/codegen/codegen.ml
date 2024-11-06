@@ -207,7 +207,12 @@ end = struct
           | _ -> gen_app param callee args alloca typed_expr.typ
         in
 
-        List.iter (fun id -> Strtbl.replace free_tbl id value) ms;
+        (match callee.monomorph with
+        | Builtin (Rc_get, _) ->
+            (* Don't add frees. They would overwrite the rc frees. Think record
+               field: We don't add the child frees either. *)
+            ()
+        | _ -> List.iter (fun id -> Strtbl.replace free_tbl id value) ms);
         fin value
     | Mif expr -> gen_if param expr
     | Mrecord (labels, allocref, id) ->
@@ -1053,8 +1058,7 @@ end = struct
           | _ -> failwith "Internal Error: Arity mismatch in builder"
         in
         R.gen_rc param e fnc.ret allocref
-    | Rc_get ->
-        List.hd args |> bring_default_var |> fun llvar -> R.get llvar fnc.ret
+    | Rc_get -> List.hd args |> bring_default_var |> fun llvar -> R.get llvar
     | Any_abort -> (
         let ft, abort =
           Llvm.(
@@ -1450,7 +1454,14 @@ end = struct
     let open Malloc_types in
     let expr = gen_expr param expr in
     let get_path path init =
-      List.fold_right (fun index expr -> follow_field expr index) path init
+      List.fold_right
+        (fun index expr ->
+          match index with
+          | -1 ->
+              (* Special case for rc get *)
+              R.get expr
+          | _ -> follow_field expr index)
+        path init
     in
     (match fs with
     | Except fs ->

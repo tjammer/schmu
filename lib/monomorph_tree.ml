@@ -1236,9 +1236,16 @@ and morph_app mk p callee args ret_typ =
     else (false, p)
   in
 
+  let fst_arg_malloc = ref None in
+
   let f p (arg, attr) =
     let ret = p.ret in
     let p, ex, var = morph_expr { p with ret = false } arg in
+
+    (match !fst_arg_malloc with
+    | Some _ -> ()
+    | None -> fst_arg_malloc := Some var.malloc);
+
     let is_moved =
       match attr with Typed_tree.Dmove -> true | Dset | Dmut | Dnorm -> false
     in
@@ -1299,8 +1306,11 @@ and morph_app mk p callee args ret_typ =
     (* array-get does not return a temporary. If its value is returned in a
        function, increase value's refcount so that it's really a temporary *)
     match callee.monomorph with
-    | Builtin ((Array_get | Fixed_array_get | Unsafe_ptr_get | Rc_get), _) ->
+    | Builtin ((Array_get | Fixed_array_get | Unsafe_ptr_get), _) ->
         (Malloc.No_malloc, p.mallocs)
+    | Builtin (Rc_get, _) ->
+        let malloc = malloc_add_index (-1) (Option.get !fst_arg_malloc) in
+        (malloc, p.mallocs)
     | _ ->
         let _, malloc, mallocs = mb_malloc None p.mallocs ret_typ in
         (malloc, mallocs)
@@ -1365,11 +1375,11 @@ and morph_var_data mk p expr typ =
   in
   let func =
     (* Since we essentially change the datatype here, we have to be sure that
-       the variant was allocated before. Usually it is, but in the case of toplevel
-       lets it might not. For instance if we have an (option t) which is matched on
-       at assignment. Then, the global value is t, but if we propagate the alloc,
-       the parent (option t) will try to initialize into the global value, which is t,
-       another type.*)
+       the variant was allocated before. Usually it is, but in the case of
+       toplevel lets it might not. For instance if we have an (option t) which
+       is matched on at assignment. Then, the global value is t, but if we
+       propagate the alloc, the parent (option t) will try to initialize into
+       the global value, which is t, another type.*)
     if p.toplvl then
       let alloc = Value (ref (request p)) in
       { func with alloc }

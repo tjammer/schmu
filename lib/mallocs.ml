@@ -10,10 +10,14 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     | Path (m, p) -> Path (m, p @ [ index ])
     | (Single _ | Param _) as m -> Path (m, [ index ])
 
-  let m_to_list = function
+  let rec m_to_list = function
     | Malloc.No_malloc -> []
     | Single i -> [ i.mid ]
     | Param _ -> []
+    | Path (m, [ -1 ]) ->
+        (* Special case for rc/get *)
+        m_to_list m
+    | Path (m, -1 :: tl) -> m_to_list (Path (m, tl))
     | Path _ -> failwith "Internal Error: Path not supported here"
 
   type pmap = Pset.t Imap.t
@@ -96,6 +100,19 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
                 (0, true, Pset.empty) fs
             in
             (excluded, pset)
+        | Trc t ->
+            if contains_allocation t then
+              match pop_index_pset frees (-1) with
+              | Not_excl -> (false, Pset.empty)
+              | Excl -> (false, Pset.singleton [ -1 ])
+              | Followup frees ->
+                  let nexcluded, npset = is_excluded frees t in
+                  let npset =
+                    if nexcluded then Pset.empty
+                    else Pset.map (fun l -> -1 :: l) npset
+                  in
+                  (nexcluded, npset)
+            else (true, Pset.empty)
         | _ -> failwith "todo exh"
     in
     let frees =

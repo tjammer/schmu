@@ -1,0 +1,8 @@
+fun drop_rc(str&, rc!) {
+  match rc/get(rc) {
+    v: &str = v
+  }
+}
+
+let str& = ""
+drop_rc(&str, !rc/create(!",.p"))
