@@ -50,7 +50,14 @@ module Make (A : Abi_intf.S) = struct
     |> Array.of_list |> Llvm.struct_type context
 
   and prepend_closure_env agg =
-    let fs = List.map (fun cl -> { ftyp = cl.cltyp; mut = cl.clmut }) agg in
+    let fs =
+      List.filter_map
+        (fun cl ->
+          match cl.cltyp with
+          | Tunit -> None
+          | _ -> Some { ftyp = cl.cltyp; mut = cl.clmut })
+        agg
+    in
     { mut = false; ftyp = Traw_ptr Tu8 }
     :: { mut = false; ftyp = Traw_ptr Tu8 }
     :: fs
@@ -164,4 +171,9 @@ module Make (A : Abi_intf.S) = struct
     | None ->
         (* Add struct to struct tbl *)
         to_named_typedefs name t
+
+  let is_only_units cls =
+    List.fold_left
+      (fun acc cl -> match cl.cltyp with Tunit -> acc | _ -> false)
+      true cls
 end

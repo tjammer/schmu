@@ -1396,3 +1396,9 @@ Arguments
   !8 = !DILocation(line: 1, scope: !2)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./args and other --args=2
   ./args and other --args=2
+
+Support closures with unit types. Closures with only unit types are a special
+case and don't need to be allocated.
+  $ schmu unit_closures.smu
+  $ valgrind ./unit_closures 2>&1 | grep allocs | cut -f 5- -d '='
+     total heap usage: 2 allocs, 2 frees, 64 bytes allocated

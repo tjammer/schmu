@@ -402,36 +402,40 @@ struct
     ignore (Llvm.build_store func.value fun_ptr builder);
 
     let store_closed_var lltyp clsr_ptr i cl =
-      let src =
-        match Vars.find_opt cl.clname param.vars with
-        | Some v -> v
-        | None ->
-            Llvm.dump_module the_module;
-            failwith
-              ("Internal Error: Cannot find closed variable: " ^ cl.clname)
-      in
-      let dst = Llvm.build_struct_gep lltyp clsr_ptr i cl.clname builder in
-      let src =
-        if upward && cl.clcopy then
-          Auto.copy { no_param with alloca = Some dst } allocref src
-        else src
-      in
-      if is_struct cl.cltyp && cl.clmut && not upward then
-        ignore (Llvm.build_store src.value dst builder)
-      else if is_struct cl.cltyp then
-        (* For records, we just memcpy *)
-        let size = sizeof_typ cl.cltyp |> Llvm.const_int int_t in
-        memcpy ~src ~dst ~size
-      else if cl.clmut && not upward then
-        ignore (Llvm.build_store src.value dst builder)
-      else ignore (Llvm.build_store (bring_default src) dst builder);
-      i + 1
+      match cl.cltyp with
+      | Tunit -> i
+      | _ ->
+          let src =
+            match Vars.find_opt cl.clname param.vars with
+            | Some v -> v
+            | None ->
+                Llvm.dump_module the_module;
+                failwith
+                  ("Internal Error: Cannot find closed variable: " ^ cl.clname)
+          in
+          let dst = Llvm.build_struct_gep lltyp clsr_ptr i cl.clname builder in
+          let src =
+            if upward && cl.clcopy then
+              Auto.copy { no_param with alloca = Some dst } allocref src
+            else src
+          in
+          if is_struct cl.cltyp && cl.clmut && not upward then
+            ignore (Llvm.build_store src.value dst builder)
+          else if is_struct cl.cltyp then
+            (* For records, we just memcpy *)
+            let size = sizeof_typ cl.cltyp |> Llvm.const_int int_t in
+            memcpy ~src ~dst ~size
+          else if cl.clmut && not upward then
+            ignore (Llvm.build_store src.value dst builder)
+          else ignore (Llvm.build_store (bring_default src) dst builder);
+          i + 1
     in
 
     (* Add closed over vars. If the environment is empty, we pass nullptr *)
     let clsr_ptr =
       match assoc with
       | [] -> Llvm.const_pointer_null ptr_t
+      | assoc when is_only_units assoc -> Llvm.const_pointer_null ptr_t
       | assoc ->
           let assoc_type = lltypeof_closure assoc upward in
           let clsr_ptr =
@@ -480,17 +484,26 @@ struct
 
   let add_closure vars func upward = function
     | Simple -> vars
+    | Closure assoc when is_only_units assoc ->
+        List.fold_left
+          (fun vars cl -> Vars.add cl.clname dummy_fn_value vars)
+          vars assoc
     | Closure assoc ->
         let closure_index = (Llvm.params func.value |> Array.length) - 1 in
         let clsr_param = (Llvm.params func.value).(closure_index) in
         let clsr_type = lltypeof_closure assoc upward in
 
         let add_closure (env, i) cl =
-          let item_ptr =
-            Llvm.build_struct_gep clsr_type clsr_param i cl.clname builder
-          in
-          let item = get_closure_item cl item_ptr upward in
-          (Vars.add cl.clname item env, i + 1)
+          match cl.cltyp with
+          | Tunit ->
+              (* Unit types are not part of the closure struct *)
+              (Vars.add cl.clname dummy_fn_value env, i)
+          | _ ->
+              let item_ptr =
+                Llvm.build_struct_gep clsr_type clsr_param i cl.clname builder
+              in
+              let item = get_closure_item cl item_ptr upward in
+              (Vars.add cl.clname item env, i + 1)
         in
         (* [2] as starting index, because [0] is ref count, and [1] is dtor *)
         let env, _ = List.fold_left add_closure (vars, 2) assoc in

@@ -1,0 +1,31 @@
+-- completely empty
+fun unit() { () }
+
+fun in_fun () {
+  let unit = unit()
+  fun () {
+    ignore(unit)
+  }
+}
+
+-- copy the closure
+let f = copy(in_fun())
+f()
+
+
+-- nonempty
+fun in_fun_nonempty () {
+  -- naming ensures that unit type is in the middle of the closure
+  let athing = fun () { 12 }()
+  let bunit = unit()
+  let cthing = fun () { 12 }()
+  fun () {
+    ignore(athing)
+    ignore(bunit)
+    ignore(cthing)
+  }
+}
+
+-- copy the closure
+let nonempty = copy(in_fun_nonempty())
+nonempty()
