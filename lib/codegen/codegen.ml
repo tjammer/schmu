@@ -1288,7 +1288,7 @@ end = struct
           let dataptr = Llvm.build_struct_gep lltyp var 1 "data" builder in
           let data =
             gen_expr { param with alloca = Some dataptr } expr
-            |> bring_default_var
+            |> bring_default_var |> func_to_closure param
           in
 
           set_struct_field data dataptr
