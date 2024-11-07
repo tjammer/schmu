@@ -1004,6 +1004,38 @@ let test_excl_move_fun () =
   test_exn "Borrowed parameter a is moved"
     "fun copy_param(a&) {fun f (): &a = 12; f}"
 
+let test_excl_move_outer_branch () =
+  test_exn "Cannot move value str from outer scope"
+    {|type option['a] = None | Some('a)
+fun mut(thing&) { ignore(thing) }
+fun move(thing!) { ignore(thing) }
+
+let str& = !Some([])
+
+fun capture() {
+  match str {
+    Some(a): move(!a)
+    None: mut(&str)
+  }
+}
+|}
+
+let test_excl_move_outer_branch_else () =
+  test_exn "Cannot move value str from outer scope"
+    {|type option['a] = None | Some('a)
+fun mut(thing&) { ignore(thing) }
+fun move(thing!) { ignore(thing) }
+
+let str& = !Some([])
+
+fun capture() {
+  match str {
+    None: mut(&str)
+    Some(a): move(!a)
+  }
+}
+|}
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "type t = int; type t = float"
@@ -1795,6 +1827,8 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "track rc get" test_excl_track_rc_get;
           case "move mut param lambda" test_excl_move_lambda;
           case "move mut param fun" test_excl_move_fun;
+          case "move outer branch" test_excl_move_outer_branch;
+          case "move outer branch else" test_excl_move_outer_branch_else;
         ] );
       ( "type decl",
         [

@@ -421,6 +421,33 @@ let add_hist v hs =
   | [] -> hs
   | hist -> List.fold_left (fun hs b -> add_binding b hs) hs hist
 
+let rec find_usage_inner ?(partial = false) parts_set = function
+  | [ Bown _ ] -> (Ast.Dnorm, None)
+  | [ Borrow _ ] -> (* String literals are owned by noone *) (Ast.Dnorm, None)
+  | Borrow_mut (b, Dont_set) :: _ -> (Dmut, Some b.loc)
+  | Borrow_mut (b, Set) :: tl -> (
+      match b.borrowed.bpart with
+      | [] ->
+          (* Set the whole thing, that's our usage *)
+          (Dset, Some b.loc)
+      | part ->
+          (* Only parts are set, other parts could still be moved *)
+          find_usage_inner ~partial (Iset.add (Hashtbl.hash part) parts_set) tl)
+  | Bmove (b, _) :: tl -> (
+      match b.borrowed.bpart with
+      | [] -> (* Moved the whole thing *) (Dmove, Some b.loc)
+      | part -> (
+          let hash = Hashtbl.hash part in
+          match Iset.find_opt hash parts_set with
+          | Some hash ->
+              (* This has been re-set after, we continue *)
+              find_usage_inner ~partial (Iset.remove hash parts_set) tl
+          | None -> (* Moved and never was re-set *) (Dmove, Some b.loc)))
+  | Borrow _ :: tl -> find_usage_inner ~partial parts_set tl
+  | Bown _ :: tl -> find_usage_inner ~partial parts_set tl (* binds? *)
+  | [] when partial -> (Dnorm, None)
+  | [] -> failwith "Internal Error: Should have been added as owned"
+
 let rec new_elems nu keep old =
   match (nu, old) with
   | _, [] -> nu
@@ -428,24 +455,36 @@ let rec new_elems nu keep old =
   | a :: tl, _ -> new_elems tl (a :: keep) old
   | _ -> failwith "Internal Error: Impossible"
 
-let integrate_new_elems nu old integrated =
-  Map.fold
-    (fun id borrows integrated ->
-      match Map.find_opt id old with
-      | None -> (
-          (* everything is new *)
-          match Map.find_opt id integrated with
-          | None -> Map.add id borrows integrated
-          | Some l -> Map.add id (borrows @ l) integrated)
-      | Some bs ->
-          let nu = new_elems borrows [] bs in
-          let toadd =
-            match Map.find_opt id integrated with
-            | Some integrated -> nu @ integrated
-            | None -> nu
-          in
-          Map.add id toadd integrated)
-    nu integrated
+let integrate_new_elems ~a ~b ~old =
+  (* For each id, find the new items in [a] and [b] with respect to [old]. The
+     add them. When adding them, we prioritize the side which has [Dmove] usage.
+     Otherwise, we might miss moves of outer scope variables because we report a
+     usage other than [Dmove]. *)
+  let integrated = ref old in
+  Map.merge
+    (fun id a b ->
+      let old = match Map.find_opt id old with Some l -> l | None -> [] in
+      let merged =
+        match (a, b) with
+        | Some a, None -> a
+        | None, Some b -> b
+        | Some a, Some b -> (
+            let a = new_elems a [] old in
+            let b = new_elems b [] old in
+            match
+              ( fst (find_usage_inner ~partial:true Iset.empty a),
+                fst (find_usage_inner ~partial:true Iset.empty b) )
+            with
+            | Dmove, _ -> a @ b
+            | _, Dmove -> b @ a
+            | _ -> a @ b)
+        | None, None -> failwith "unreachable"
+      in
+      integrated := Map.add id (merged @ old) !integrated;
+      None)
+    a b
+  |> ignore;
+  !integrated
 
 let move_local_borrow bs env =
   let rec aux = function
@@ -814,23 +853,25 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       {
         callee =
           ( { expr = Var ("__rc_get", _); _ }
-          | { expr = Var ("get", Some (Pmod ("std", Pid "rc"))); _ }
-          | { expr = Var ("get", Some (Path.Pid "unsafe")); _ } ) as callee;
+          | { expr = Var ("get", Some (Pmod ("std", Pid "rc"))); _ } ) as callee;
         args = [ arg ];
       } ->
       (* Special case for rc_get. It effectively returns the same allocation as
          its first argument and thus needs special handling. *)
+      let bdata = ((Aconst (-1), "payload") :: bpart, special) in
       let t, b, hs = check_tree env mut bdata (fst arg) hist in
       let tree = { tree with expr = App { callee; args = [ (t, snd arg) ] } } in
       (tree, b, hs)
   | App
       {
         callee =
-          {
-            expr =
-              Var (("__array_get" | "__fixed_array_get" | "__unsafe_ptr_get"), _);
-            _;
-          } as callee;
+          ( {
+              expr =
+                Var
+                  (("__array_get" | "__fixed_array_get" | "__unsafe_ptr_get"), _);
+              _;
+            }
+          | { expr = Var ("get", Some (Path.Pid "unsafe")); _ } ) as callee;
         args = [ arr; idx ];
       } ->
       (* Special case for __array_get *)
@@ -942,7 +983,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
             if contains_allocation (gg_decl ()) be.typ then
               _raise "Branches have different ownership: owned vs borrowed"
             else []
-        | b, [] when are_borrow b ->
+        | a, [] when are_borrow a ->
             if contains_allocation (gg_decl ()) ae.typ then
               _raise "Branches have different ownership: borrowed vs owned"
             else []
@@ -956,7 +997,8 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let owning = are_borrow a.imm |> not in
       let delayed = a.delayed @ b.delayed in
       let expr = If (cond, Some owning, ae, be) in
-      ({ tree with expr }, { imm; delayed }, integrate_new_elems ahs hs bhs)
+      let hs = integrate_new_elems ~a:ahs ~b:bhs ~old:hs in
+      ({ tree with expr }, { imm; delayed }, hs)
   | Ctor (name, i, e) -> (
       match e with
       | Some e ->
@@ -1155,34 +1197,8 @@ let check_item (env, bind, mut, part, hist) = function
 let find_usage id hist =
   (* The hierarchy is move > mut > read. Since we read from the end,
      the first borrow means the binding was not moved *)
-  let rec aux parts_set = function
-    | [ Bown _ ] -> (Ast.Dnorm, None)
-    | [ Borrow _ ] -> (* String literals are owned by noone *) (Ast.Dnorm, None)
-    | Borrow_mut (b, Dont_set) :: _ -> (Dmut, Some b.loc)
-    | Borrow_mut (b, Set) :: tl -> (
-        match b.borrowed.bpart with
-        | [] ->
-            (* Set the whole thing, that's our usage *)
-            (Dset, Some b.loc)
-        | part ->
-            (* Only parts are set, other parts could still be moved *)
-            aux (Iset.add (Hashtbl.hash part) parts_set) tl)
-    | Bmove (b, _) :: tl -> (
-        match b.borrowed.bpart with
-        | [] -> (* Moved the whole thing *) (Dmove, Some b.loc)
-        | part -> (
-            let hash = Hashtbl.hash part in
-            match Iset.find_opt hash parts_set with
-            | Some hash ->
-                (* This has been re-set after, we continue *)
-                aux (Iset.remove hash parts_set) tl
-            | None -> (* Moved and never was re-set *) (Dmove, Some b.loc)))
-    | Borrow _ :: tl -> aux parts_set tl
-    | Bown _ :: tl -> aux parts_set tl (* binds? *)
-    | [] -> failwith "Internal Error: Should have been added as owned"
-  in
   match Map.find_opt id hist with
-  | Some hist -> aux Iset.empty hist
+  | Some hist -> find_usage_inner Iset.empty hist
   | None ->
       (* The binding was not used *)
       (Ast.Dnorm, None)
