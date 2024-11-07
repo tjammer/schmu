@@ -6,3 +6,13 @@ fun drop_rc(str&, rc!) {
 
 let str& = ""
 drop_rc(&str, !rc/create(!",.p"))
+
+fun move_out() {
+  let rc = rc/create(!Some("str"))
+  match rc/get(rc) {
+    Some(v): (v, 0)
+    None: ("", 0)
+  }.ignore()
+}
+
+move_out()
