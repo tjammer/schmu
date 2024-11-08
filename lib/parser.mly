@@ -75,7 +75,7 @@
 
 %left And Or
 %left Eq_op
-%nonassoc Cmp_op
+%left Cmp_op
 %left Plus_op
 %left Mult_op
 %left Dot Ampersand Exclamation

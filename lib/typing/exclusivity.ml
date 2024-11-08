@@ -582,7 +582,7 @@ let get_closed_make_usage_delayed tree b =
             (* Move the closed variable into the closure *)
             (move_closed tree c, Umove)
       | None -> (* Touched but not closed? Let's read it *) (tree, Uread))
-  | Tfun _ -> failwith "Oh really?!"
+  | Tfun _ -> (tree, Usage.Uread)
   | _ -> failwith "Internal Error: Not a function type"
 
 let make_usage tree (use : touched) = (tree, Usage.of_attr use.tattr)
