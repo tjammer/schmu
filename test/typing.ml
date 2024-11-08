@@ -109,6 +109,19 @@ let test_func_capture_annot_wrong () =
 let test_func_unused_rec () =
   test_exn "Unused rec flag" "fun rec add(a) {a + 1}"
 
+let test_func_missing_move_known () =
+  test "unit" "fun move(a!) { ignore(a) };move([0])"
+
+let test_func_missing_move_unknown () =
+  test_exn
+    "In application\n\
+     expecting (([array[int]]) -> _) -> _\n\
+     but found (([array[int]!]) -> _) -> _"
+    {|fun move(a!) { ignore(a) }
+fun apply_move(move): move([0])
+apply_move(move)
+|}
+
 let test_record_clear () =
   test "t" "type t = { x : int, y : int }; {x = 2, y = 2}"
 
@@ -1449,6 +1462,8 @@ let () =
           case "capture annot" test_func_capture_annot;
           case "capture annot wrong" test_func_capture_annot_wrong;
           case "unused rec" test_func_unused_rec;
+          case "missing move known" test_func_missing_move_known;
+          case "missing move unknown" test_func_missing_move_unknown;
         ] );
       ( "records",
         [

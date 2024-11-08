@@ -581,6 +581,21 @@ end = struct
 
   let string_typ = Tconstr (Path.Pmod ("string", Path.Pid "t"), [])
 
+  let mapi_with_callee_params f args callee =
+    let params = match repr callee.typ with Tfun (ps, _, _) -> ps | _ -> [] in
+    let rec aux i acc args params =
+      match (args, params) with
+      | [], _ -> List.rev acc
+      | arg :: atl, [] ->
+          let acc = f i arg None :: acc in
+          aux (i + 1) acc atl []
+      | arg :: atl, p :: ptl ->
+          let acc = f i arg (Some p.pattr) :: acc in
+          aux (i + 1) acc atl ptl
+    in
+
+    aux 0 [] args params
+
   let rec convert env expr = convert_annot env None expr
 
   and convert_annot env annot = function
@@ -952,15 +967,24 @@ end = struct
 
     let annots = param_annots callee.typ in
     let typed_exprs =
-      List.mapi
-        (fun i (a : Ast.argument) ->
+      mapi_with_callee_params
+        (fun i (a : Ast.argument) callee_attr ->
           let e =
             pass_mut_helper env a.aloc a.apass (fun () ->
                 convert_annot env (param_annot annots i) a.aexpr)
           in
           (* We also care about whether the argument _can_ be mutable, for array-get *)
-          (e, a.apass, e.attr.mut))
-        args
+          let attr =
+            match (a.apass, callee_attr) with
+            | Dnorm, Some Dmove ->
+                (* Allow move specifier [!] to be left out when calling known
+                   functions. If we don't know the function type, the argument
+                   needs to be passed by move explicitly. *)
+                Dmove
+            | attr, _ -> attr
+          in
+          (e, attr, e.attr.mut))
+        args callee
     in
 
     let args =
