@@ -1,0 +1,80 @@
+signature {
+  type promise['a]
+  type future['a]
+
+  val return : ('a!) -> future['a]
+  val wait : () -> (future['a], promise['a])
+  val promise_resolve : (promise['a]&, 'a!) -> unit
+
+  val bind : (future['a], ('a) -> future['b]!) -> future['b]
+
+  -- val exec : (float, command) -> future[status]
+}
+
+type prom_state['a] = Pending | Queued(array[('a) -> unit]) | Resolved('a)
+type promise['a] = rc[prom_state['a]]
+type future['a] = promise['a]
+
+fun return(v!): rc/create(!Resolved(v))
+
+fun wait() {
+  let pr = rc/create(!Pending)
+  (copy(pr), pr)
+}
+
+fun promise_resolve(p&, v!) {
+  let s& = &rc/get(p)
+  match s {
+    Resolved(_): ()
+    Pending: {
+      &s = Resolved(v)
+    }
+    Queued(cbs): {
+      array/iter(cbs, fun cb: cb(v))
+      &s = Resolved(v)
+    }
+  }
+}
+
+fun add_cb(fn!) {
+  let fut, pr = wait()
+  let pr& = !pr
+  fun cb(v) {
+    let new& = fn(v)
+    -- this works because future and promise are really the name type
+    match rc/get(new) {
+      Resolved(v): promise_resolve(&pr, !v)
+      Pending: {
+        -- the (user-) returned future is pending. Swap our return future for
+        -- the user one, so when the user promise is resolved, our registered
+        -- callbacks are called
+        match copy(rc/get(pr)) {
+          Resolved(_): failwith("Can this even happen?")
+          Queued(arr): &rc/get(new) = Queued(arr)
+          Pending: ()
+        }
+      }
+      Queued(_): failwith("TODO")
+    }
+  }
+  (fut, cb)
+}
+
+fun bind(fut, fn!) {
+  -- we make a copy to mutate the future. [fut] is really an rc under the
+  -- hood, so we can do this.
+  let cp& = copy(fut)
+  match &rc/get(cp) {
+    Pending: {
+      let fut, cb = add_cb(!fn)
+      &rc/get(cp) = Queued([cb])
+      fut
+    }
+    Queued(cbs&): {
+      let fut, cb = add_cb(!fn)
+      array/push(&cbs, !cb)
+      fut
+    }
+    Resolved(v): fn(v)
+  }
+}

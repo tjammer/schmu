@@ -175,8 +175,6 @@ module Map_canon : Map_module.Map_tree = struct
     map_kind decl.kind;
     (sub, decl)
 
-  let absolute_module_name = absolute_module_name
-
   let map_type ~mname sub typ =
     load_type ~mname typ;
     Map_module.Canonize.canonize sub typ
@@ -185,6 +183,75 @@ module Map_canon : Map_module.Map_tree = struct
 end
 
 module Canon = Map_module.Make (Map_canon)
+
+module Regeneralize = struct
+  let regen = ref None
+
+  type sub = string Smap.t
+
+  let empty_sub () = Smap.empty
+  let change_var ~mname:_ id m _ = (id, m)
+  let map_decl ~mname:_ _ sub decl = (sub, decl)
+
+  let rec map_type ~mname sub = function
+    | Qvar id -> (
+        match Smap.find_opt id sub with
+        | Some s -> (sub, Qvar s)
+        | None ->
+            let ns =
+              match (Option.get !regen) (Qvar id) with
+              | Qvar ns -> ns
+              | _ -> failwith "unreachable"
+            in
+            (Smap.add id ns sub, Qvar ns))
+    | Tvar { contents = Unbound (id, _) } as t -> (
+        match Smap.find_opt id sub with
+        | Some s -> (sub, Qvar s)
+        | None ->
+            let ns =
+              match (Option.get !regen) t with
+              | Qvar ns -> ns
+              | _ -> failwith "unreachable"
+            in
+            (Smap.add id ns sub, Qvar ns))
+    | Tvar { contents = Link t } -> map_type ~mname sub t
+    | Tfun (ps, r, k) ->
+        let sub, ps =
+          List.fold_left_map
+            (fun sub p ->
+              let sub, pt = map_type ~mname sub p.pt in
+              (sub, { p with pt }))
+            sub ps
+        in
+        let sub, r = map_type ~mname sub r in
+        let sub, k =
+          match k with
+          | Simple -> (sub, k)
+          | Closure cl ->
+              let sub, cl =
+                List.fold_left_map
+                  (fun sub c ->
+                    let sub, cltyp = map_type ~mname sub c.cltyp in
+                    (sub, { c with cltyp }))
+                  sub cl
+              in
+              (sub, Closure cl)
+        in
+        (sub, Tfun (ps, r, k))
+    | Ttuple ts ->
+        let sub, ts = List.fold_left_map (map_type ~mname) sub ts in
+        (sub, Ttuple ts)
+    | Tconstr (p, ps) ->
+        let sub, ps = List.fold_left_map (map_type ~mname) sub ps in
+        (sub, Tconstr (p, ps))
+    | Tfixed_array (iv, t) ->
+        let sub, t = map_type ~mname sub t in
+        (sub, Tfixed_array (iv, t))
+
+  let map_callname cn _ = cn
+end
+
+module Regen = Map_module.Make (Regeneralize)
 
 let add_ext_item ~mname t n c =
   ext_funcs :=
@@ -199,10 +266,10 @@ let add_ext_item ~mname t n c =
       }
     :: !ext_funcs
 
-let rec map_item ~mname ~f = function
-  | Mtype (l, n, decl) -> Mtype (l, n, decl)
+let rec map_item ~mname sub = function
+  | Mtype (l, n, decl) -> (sub, Mtype (l, n, decl))
   | Mfun (l, t, n) ->
-      let t = f t in
+      let sub, t = Regeneralize.map_type ~mname sub t in
       ext_funcs :=
         Env.
           {
@@ -214,52 +281,65 @@ let rec map_item ~mname ~f = function
             imported = Some (mname, `Schmu);
           }
         :: !ext_funcs;
-      Mfun (l, t, n)
+      (sub, Mfun (l, t, n))
   | Mext (l, t, n, c) ->
       add_ext_item ~mname t n c;
-      let t = f t in
-      Mext (l, f t, n, c)
+      let sub, t = Regeneralize.map_type ~mname sub t in
+      (sub, Mext (l, t, n, c))
   | Mpoly_fun (l, abs, n, u) ->
+      let sub, abs = Regen.map_abs mname sub () abs in
       let item = (mname, Typed_tree.Tl_function (l, n, u, abs)) in
       poly_funcs := item :: !poly_funcs;
       (* This will be ignored in [add_to_env] *)
-      Mpoly_fun (l, abs, n, u)
+      (sub, Mpoly_fun (l, abs, n, u))
   | Mmutual_rec (l, decls) ->
-      let decls = List.map (fun (l, n, u, t) -> (l, n, u, f t)) decls in
+      let sub, decls =
+        List.fold_left_map
+          (fun sub (l, n, u, t) ->
+            let sub, t = Regeneralize.map_type ~mname sub t in
+            (sub, (l, n, u, t)))
+          sub decls
+      in
       let mname_decls = List.map (fun (_, n, u, t) -> (n, u, t)) decls in
       let item = (mname, Typed_tree.Tl_mutual_rec_decls mname_decls) in
       poly_funcs := item :: !poly_funcs;
-      Mmutual_rec (l, decls)
+      (sub, Mmutual_rec (l, decls))
   | Malias (l, n, tree) ->
       let item = (mname, Typed_tree.Tl_bind (n, tree)) in
       poly_funcs := item :: !poly_funcs;
-      Malias (l, n, tree)
+      (sub, Malias (l, n, tree))
   | Mlocal_module (l, name, t) ->
-      Mlocal_module (l, name, map_t ~mname:(Path.append name mname) ~f t)
+      let sub, t = map_t ~mname:(Path.append name mname) sub t in
+      (sub, Mlocal_module (l, name, t))
   | Mapplied_functor (l, n, mname, t) ->
-      Mapplied_functor (l, n, mname, map_t ~mname ~f t)
+      let sub, t = map_t ~mname sub t in
+      (sub, Mapplied_functor (l, n, mname, t))
   | Mfunctor (l, name, ps, t, m) ->
-      let ps = List.map (fun (n, intf) -> (n, map_intf ~f intf)) ps in
+      let sub, ps =
+        List.fold_left_map
+          (fun sub (n, intf) ->
+            let sub, intf = Regen.map_intf mname sub intf in
+            (sub, (n, intf)))
+          sub ps
+      in
+
       (* Regeneralize on substitution with correct module *)
       (* Mapping here isn't needed. The correct values will be filled when the functor is applied *)
       (* let m = map_t ~mname:(Path.append name mname) ~f m in *)
-      Mfunctor (l, name, ps, t, m)
-  | Mmodule_alias _ as m -> m
-  | Mmodule_type (l, name, intf) -> Mmodule_type (l, name, map_intf ~f intf)
+      (sub, Mfunctor (l, name, ps, t, m))
+  | Mmodule_alias _ as m -> (sub, m)
+  | Mmodule_type (l, name, intf) ->
+      let sub, intf = Regen.map_intf mname sub intf in
+      (sub, Mmodule_type (l, name, intf))
 
-and map_t ~mname ~f m =
-  { m with s = map_intf ~f m.s; i = List.map (map_item ~mname ~f) m.i }
-
-and map_intf ~f intf =
-  List.map
-    (fun (n, l, k) ->
-      let k =
-        match k with
-        | Mvalue (t, n) -> Mvalue (f t, n)
-        | Mtypedef _ as decl -> decl
-      in
-      (n, l, k))
-    intf
+and map_t ~mname sub m =
+  (* Extra implementation because [map_item] does not only map, but do other
+     things, like adding poly funcs *)
+  let sub, i =
+    List.fold_left_map (fun sub item -> map_item ~mname sub item) sub m.i
+  in
+  let sub, s = Regen.map_intf mname sub m.s in
+  (sub, { m with s; i })
 
 let modpath_of_kind = function
   | Clocal p -> p
@@ -455,7 +535,9 @@ and read_module env filename loc ~regeneralize mname =
         load_dep_modules env filename loc t.objects ~regeneralize;
         add_object_names filename t.objects;
         let kind, m =
-          (Cfile (filename, false), map_t ~mname ~f:regeneralize t)
+          Regeneralize.regen := Some regeneralize;
+          let m = map_t ~mname (Regeneralize.empty_sub ()) t |> snd in
+          (Cfile (filename, false), m)
         in
         (* Make module scope *)
         let scope =

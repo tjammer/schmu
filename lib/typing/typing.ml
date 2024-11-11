@@ -1515,8 +1515,6 @@ module Subst_functor_impl (* : Map_module.Map_tree *) = struct
         (id, Some p)
     | None -> (id, m)
 
-  let absolute_module_name = Module.absolute_module_name
-
   let map_type ~mname:_ (find_type, subs, decls) typ =
     let typ =
       List.fold_left
@@ -1556,8 +1554,6 @@ module Resolve_aliases_impl (* : Map_module.Map_tree *) = struct
   let change_var ~mname id m _ =
     ignore mname;
     (id, m)
-
-  let absolute_module_name = Module.absolute_module_name
 
   let map_type ~mname:_ (find_type, subs, decls) typ =
     (* Use aliases if they are available *)

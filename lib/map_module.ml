@@ -9,7 +9,6 @@ module type Map_tree = sig
     mname:Path.t -> string -> Path.t option -> sub -> string * Path.t option
 
   val map_decl : mname:Path.t -> string -> sub -> type_decl -> sub * type_decl
-  val absolute_module_name : mname:Path.t -> string -> string
   val map_type : mname:Path.t -> sub -> typ -> sub * typ
   val map_callname : Module_common.callname -> sub -> Module_common.callname
 end

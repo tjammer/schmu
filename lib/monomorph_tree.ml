@@ -611,7 +611,7 @@ and morph_var mk p v mname typ =
 
   let mono_id =
     match typ with
-    | Tfun _ ->
+    | Tfun _ when is_type_polymorphic typ ->
         (* Save env for later monomorphization *)
         let id = new_id malloc_id in
         Apptbl.add apptbl (string_of_int id) p;
