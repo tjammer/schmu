@@ -2146,15 +2146,15 @@ The lamba passed as array-iter argument is polymorphic
   
   define linkonce_odr void @__fun_schmu1_lCac_ac__(i64 %i, i64 %v, ptr %0) !dbg !19 {
   entry:
-    %delim = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %0, i32 0, i32 2
-    %delim1 = load ptr, ptr %delim, align 8
-    %acc = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %0, i32 0, i32 3
-    %acc2 = load ptr, ptr %acc, align 8
+    %acc = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %0, i32 0, i32 2
+    %acc1 = load ptr, ptr %acc, align 8
+    %delim = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %0, i32 0, i32 3
+    %delim2 = load ptr, ptr %delim, align 8
     %gt = icmp sgt i64 %i, 0
     br i1 %gt, label %then, label %ifcont, !dbg !20
   
   then:                                             ; preds = %entry
-    tail call void @string_append(ptr %acc2, ptr %delim1), !dbg !21
+    tail call void @string_append(ptr %acc1, ptr %delim2), !dbg !21
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -2170,7 +2170,7 @@ The lamba passed as array-iter argument is polymorphic
     %fmt = tail call i32 (ptr, i64, ptr, ...) @snprintf(ptr %data, i64 %2, ptr getelementptr (i8, ptr @0, i64 16), i64 %v)
     %str = alloca ptr, align 8
     store ptr %3, ptr %str, align 8
-    tail call void @string_append(ptr %acc2, ptr %3), !dbg !22
+    tail call void @string_append(ptr %acc1, ptr %3), !dbg !22
     call void @__free_ac_(ptr %str)
     ret void
   }
@@ -2185,10 +2185,10 @@ The lamba passed as array-iter argument is polymorphic
     %__fun_schmu1_lCac_ac__ = alloca %closure, align 8
     store ptr @__fun_schmu1_lCac_ac__, ptr %__fun_schmu1_lCac_ac__, align 8
     %clsr___fun_schmu1_lCac_ac__ = alloca { ptr, ptr, ptr, ptr }, align 8
-    %delim1 = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %clsr___fun_schmu1_lCac_ac__, i32 0, i32 2
-    store ptr %delim, ptr %delim1, align 8
-    %acc = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %clsr___fun_schmu1_lCac_ac__, i32 0, i32 3
+    %acc = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %clsr___fun_schmu1_lCac_ac__, i32 0, i32 2
     store ptr %0, ptr %acc, align 8
+    %delim1 = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %clsr___fun_schmu1_lCac_ac__, i32 0, i32 3
+    store ptr %delim, ptr %delim1, align 8
     store ptr @__ctor_ac_ac2_, ptr %clsr___fun_schmu1_lCac_ac__, align 8
     %dtor = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %clsr___fun_schmu1_lCac_ac__, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
@@ -2292,10 +2292,10 @@ The lamba passed as array-iter argument is polymorphic
   entry:
     %1 = call ptr @malloc(i64 32)
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 32, i1 false)
-    %delim = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %1, i32 0, i32 2
-    call void @__copy_ac_(ptr %delim)
-    %acc = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %1, i32 0, i32 3
+    %acc = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %1, i32 0, i32 2
     call void @__copy_ac_(ptr %acc)
+    %delim = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %1, i32 0, i32 3
+    call void @__copy_ac_(ptr %delim)
     ret ptr %1
   }
   

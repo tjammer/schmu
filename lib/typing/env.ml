@@ -59,9 +59,7 @@ type value_internal = {
 module Used_value = struct
   type t = key * value_internal
 
-  let compare (ak, av) (bk, bv) =
-    let p s = match s with Some p -> Path.show p | None -> "" in
-    String.compare (p av.mname ^ ak) (p bv.mname ^ bk)
+  let compare (ak, av) (bk, bv) = Stdlib.compare (ak, av.mname) (bk, bv.mname)
 end
 
 module Closed_set = Set.Make (Used_value)
