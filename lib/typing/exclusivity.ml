@@ -649,7 +649,10 @@ let get_moved_in_set env_item hist =
 
 let collect_array_move env_item =
   match env_item.imm with
-  | [] -> failwith "unreachable"
+  | [] ->
+      (* This can happen if a pointer is dereffed and moved. Might happen in
+         unsafe code. *)
+      ()
   | [ Bmove (b, _) ] ->
       array_bindings := Idset.add b.borrowed.id !array_bindings
   | _ -> failwith "what else?!"

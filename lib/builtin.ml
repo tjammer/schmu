@@ -24,6 +24,7 @@ type t =
   | Unsafe_nullptr
   | Unsafe_funptr
   | Unsafe_clsptr
+  | Unsafe_leak
   | Is_nullptr
   | Assert
   | Copy
@@ -165,6 +166,8 @@ let tbl =
     (Unsafe_funptr, Tfun ([ { p with pt = Qvar "0" } ], traw_ptr tunit, Simple));
   Hashtbl.add tbl "__unsafe_clsptr"
     (Unsafe_clsptr, Tfun ([ { p with pt = Qvar "0" } ], traw_ptr tunit, Simple));
+  Hashtbl.add tbl "__unsafe_leak"
+    (Unsafe_leak, Tfun ([ { pt = Qvar "0"; pattr = Dmove } ], tunit, Simple));
   Hashtbl.add tbl "is_nullptr"
     (Is_nullptr, Tfun ([ { p with pt = traw_ptr (Qvar "0") } ], tbool, Simple));
   Hashtbl.add tbl "assert"

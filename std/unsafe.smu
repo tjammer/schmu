@@ -9,6 +9,7 @@ signature {
   val addr : ('a&) -> raw_ptr['a]
   val funptr : ('a) -> raw_ptr[unit]
   val clsptr : ('a) -> raw_ptr[unit]
+  val leak : ('a!) -> unit
 }
 
 let nullptr = __unsafe_nullptr
@@ -19,3 +20,4 @@ let reinterpret = __unsafe_ptr_reinterpret
 let addr = __unsafe_addr
 let funptr = __unsafe_funptr
 let clsptr = __unsafe_clsptr
+let leak = __unsafe_leak
