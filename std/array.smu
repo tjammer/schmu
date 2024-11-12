@@ -12,6 +12,20 @@ fun create(len) {
   ret
 }
 
+fun init(len, value!) {
+  let ret& = __unsafe_array_create(len)
+  &__unsafe_array_length(ret) = len
+  fun rec inner(i) {
+    if i == len { () }
+    else {
+      &ret.[i] = copy(value)
+      inner(i + 1)
+    }
+  }
+  inner(0)
+  ret
+}
+
 fun push(arr&, value!) {
   let capacity = __array_capacity(arr)
   let length = length(arr)
