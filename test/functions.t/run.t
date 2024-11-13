@@ -1490,12 +1490,12 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "nested_polymorphic_closures.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 29, type: !4, scopeLine: 29, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 19, column: 5, scope: !2)
-  !7 = !DILocation(line: 20, column: 7, scope: !2)
+  !6 = !DILocation(line: 33, column: 5, scope: !2)
+  !7 = !DILocation(line: 34, column: 7, scope: !2)
   !8 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !9, file: !9, line: 40, type: !4, scopeLine: 40, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !9 = !DIFile(filename: "nested_polymorphic_closures.smu", directory: "")
   !10 = !DILocation(line: 40, column: 23, scope: !8)
@@ -1955,12 +1955,12 @@ Don't copy mutable types in setup of tailrecursive functions
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "tailrec_mutable.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 29, type: !4, scopeLine: 29, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 19, column: 5, scope: !2)
-  !7 = !DILocation(line: 20, column: 7, scope: !2)
+  !6 = !DILocation(line: 33, column: 5, scope: !2)
+  !7 = !DILocation(line: 34, column: 7, scope: !2)
   !8 = distinct !DISubprogram(name: "change_int", linkageName: "schmu_change_int", scope: !9, file: !9, line: 58, type: !4, scopeLine: 58, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !9 = !DIFile(filename: "tailrec_mutable.smu", directory: "")
   !10 = !DILocation(line: 59, column: 5, scope: !8)
@@ -2012,7 +2012,7 @@ The lamba passed as array-iter argument is polymorphic
   
   declare void @string_println(ptr %0)
   
-  define linkonce_odr void @__array_inner__2_Cal_2lru__(i64 %i, ptr %0) !dbg !2 {
+  define linkonce_odr void @__array_inner__3_Cal_2lru__(i64 %i, ptr %0) !dbg !2 {
   entry:
     %arr = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %0, i32 0, i32 2
     %arr1 = load ptr, ptr %arr, align 8
@@ -2048,19 +2048,19 @@ The lamba passed as array-iter argument is polymorphic
   
   define linkonce_odr void @__array_iteri_al_2lru__(ptr %arr, ptr %f) !dbg !8 {
   entry:
-    %__array_inner__2_Cal_2lru__ = alloca %closure, align 8
-    store ptr @__array_inner__2_Cal_2lru__, ptr %__array_inner__2_Cal_2lru__, align 8
-    %clsr___array_inner__2_Cal_2lru__ = alloca { ptr, ptr, ptr, %closure }, align 8
-    %arr1 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__2_Cal_2lru__, i32 0, i32 2
+    %__array_inner__3_Cal_2lru__ = alloca %closure, align 8
+    store ptr @__array_inner__3_Cal_2lru__, ptr %__array_inner__3_Cal_2lru__, align 8
+    %clsr___array_inner__3_Cal_2lru__ = alloca { ptr, ptr, ptr, %closure }, align 8
+    %arr1 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__3_Cal_2lru__, i32 0, i32 2
     store ptr %arr, ptr %arr1, align 8
-    %f2 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__2_Cal_2lru__, i32 0, i32 3
+    %f2 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__3_Cal_2lru__, i32 0, i32 3
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f2, ptr align 1 %f, i64 16, i1 false)
-    store ptr @__ctor_al_2lru2_, ptr %clsr___array_inner__2_Cal_2lru__, align 8
-    %dtor = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__2_Cal_2lru__, i32 0, i32 1
+    store ptr @__ctor_al_2lru2_, ptr %clsr___array_inner__3_Cal_2lru__, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__3_Cal_2lru__, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
-    %envptr = getelementptr inbounds %closure, ptr %__array_inner__2_Cal_2lru__, i32 0, i32 1
-    store ptr %clsr___array_inner__2_Cal_2lru__, ptr %envptr, align 8
-    call void @__array_inner__2_Cal_2lru__(i64 0, ptr %clsr___array_inner__2_Cal_2lru__), !dbg !9
+    %envptr = getelementptr inbounds %closure, ptr %__array_inner__3_Cal_2lru__, i32 0, i32 1
+    store ptr %clsr___array_inner__3_Cal_2lru__, ptr %envptr, align 8
+    call void @__array_inner__3_Cal_2lru__(i64 0, ptr %clsr___array_inner__3_Cal_2lru__), !dbg !9
     ret void
   }
   
@@ -2351,19 +2351,19 @@ The lamba passed as array-iter argument is polymorphic
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "polymorphic_lambda_argument.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner__2_Cal_2lru__", scope: !3, file: !3, line: 45, type: !4, scopeLine: 45, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner__3_Cal_2lru__", scope: !3, file: !3, line: 59, type: !4, scopeLine: 59, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 46, column: 7, scope: !2)
-  !7 = !DILocation(line: 49, column: 6, scope: !2)
-  !8 = distinct !DISubprogram(name: "_array_iteri", linkageName: "__array_iteri_al_2lru__", scope: !3, file: !3, line: 44, type: !4, scopeLine: 44, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !9 = !DILocation(line: 54, column: 2, scope: !8)
-  !10 = distinct !DISubprogram(name: "_array_pop_back", linkageName: "__array_pop_back_ac_rvc__", scope: !3, file: !3, line: 98, type: !4, scopeLine: 98, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !11 = !DILocation(line: 100, column: 5, scope: !10)
-  !12 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_ac_c_", scope: !3, file: !3, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !13 = !DILocation(line: 19, column: 5, scope: !12)
-  !14 = !DILocation(line: 20, column: 7, scope: !12)
+  !6 = !DILocation(line: 60, column: 7, scope: !2)
+  !7 = !DILocation(line: 63, column: 6, scope: !2)
+  !8 = distinct !DISubprogram(name: "_array_iteri", linkageName: "__array_iteri_al_2lru__", scope: !3, file: !3, line: 58, type: !4, scopeLine: 58, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = !DILocation(line: 68, column: 2, scope: !8)
+  !10 = distinct !DISubprogram(name: "_array_pop_back", linkageName: "__array_pop_back_ac_rvc__", scope: !3, file: !3, line: 112, type: !4, scopeLine: 112, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !11 = !DILocation(line: 114, column: 5, scope: !10)
+  !12 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_ac_c_", scope: !3, file: !3, line: 29, type: !4, scopeLine: 29, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !13 = !DILocation(line: 33, column: 5, scope: !12)
+  !14 = !DILocation(line: 34, column: 7, scope: !12)
   !15 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !16, file: !16, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !16 = !DIFile(filename: "polymorphic_lambda_argument.smu", directory: "")
   !17 = !DILocation(line: 5, column: 4, scope: !15)

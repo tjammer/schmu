@@ -586,7 +586,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare void @printf(ptr %0, i64 %1)
   
-  define linkonce_odr void @__array_inner_Cal_lru__(i64 %i, ptr %0) !dbg !2 {
+  define linkonce_odr void @__array_inner__2_Cal_lru__(i64 %i, ptr %0) !dbg !2 {
   entry:
     %arr = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %0, i32 0, i32 2
     %arr1 = load ptr, ptr %arr, align 8
@@ -622,19 +622,19 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define linkonce_odr void @__array_iter_al_lru__(ptr %arr, ptr %f) !dbg !8 {
   entry:
-    %__array_inner_Cal_lru__ = alloca %closure, align 8
-    store ptr @__array_inner_Cal_lru__, ptr %__array_inner_Cal_lru__, align 8
-    %clsr___array_inner_Cal_lru__ = alloca { ptr, ptr, ptr, %closure }, align 8
-    %arr1 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner_Cal_lru__, i32 0, i32 2
+    %__array_inner__2_Cal_lru__ = alloca %closure, align 8
+    store ptr @__array_inner__2_Cal_lru__, ptr %__array_inner__2_Cal_lru__, align 8
+    %clsr___array_inner__2_Cal_lru__ = alloca { ptr, ptr, ptr, %closure }, align 8
+    %arr1 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__2_Cal_lru__, i32 0, i32 2
     store ptr %arr, ptr %arr1, align 8
-    %f2 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner_Cal_lru__, i32 0, i32 3
+    %f2 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__2_Cal_lru__, i32 0, i32 3
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f2, ptr align 1 %f, i64 16, i1 false)
-    store ptr @__ctor_al_lru2_, ptr %clsr___array_inner_Cal_lru__, align 8
-    %dtor = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner_Cal_lru__, i32 0, i32 1
+    store ptr @__ctor_al_lru2_, ptr %clsr___array_inner__2_Cal_lru__, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__2_Cal_lru__, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
-    %envptr = getelementptr inbounds %closure, ptr %__array_inner_Cal_lru__, i32 0, i32 1
-    store ptr %clsr___array_inner_Cal_lru__, ptr %envptr, align 8
-    call void @__array_inner_Cal_lru__(i64 0, ptr %clsr___array_inner_Cal_lru__), !dbg !9
+    %envptr = getelementptr inbounds %closure, ptr %__array_inner__2_Cal_lru__, i32 0, i32 1
+    store ptr %clsr___array_inner__2_Cal_lru__, ptr %envptr, align 8
+    call void @__array_inner__2_Cal_lru__(i64 0, ptr %clsr___array_inner__2_Cal_lru__), !dbg !9
     ret void
   }
   
@@ -719,14 +719,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "use_malloc_some.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner_Cal_lru__", scope: !3, file: !3, line: 32, type: !4, scopeLine: 32, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner__2_Cal_lru__", scope: !3, file: !3, line: 46, type: !4, scopeLine: 46, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 33, column: 7, scope: !2)
-  !7 = !DILocation(line: 36, column: 6, scope: !2)
-  !8 = distinct !DISubprogram(name: "_array_iter", linkageName: "__array_iter_al_lru__", scope: !3, file: !3, line: 31, type: !4, scopeLine: 31, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !9 = !DILocation(line: 41, column: 2, scope: !8)
+  !6 = !DILocation(line: 47, column: 7, scope: !2)
+  !7 = !DILocation(line: 50, column: 6, scope: !2)
+  !8 = distinct !DISubprogram(name: "_array_iter", linkageName: "__array_iter_al_lru__", scope: !3, file: !3, line: 45, type: !4, scopeLine: 45, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = !DILocation(line: 55, column: 2, scope: !8)
   !10 = distinct !DISubprogram(name: "do_something", linkageName: "schmu_do_something", scope: !11, file: !11, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !11 = !DIFile(filename: "use_malloc_some.smu", directory: "")
   !12 = distinct !DISubprogram(name: "printi", linkageName: "schmu_printi", scope: !11, file: !11, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
