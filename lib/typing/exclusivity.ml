@@ -912,7 +912,8 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       | Umove when is_part -> collect_array_move b
       | Umove ->
           raise (Error (tree.loc, "Cannot move out of array with this index"))
-      | Uset | Uread | Umut -> ());
+      | Uset | Umut -> mark_mutated b
+      | Uread -> ());
       let tree =
         { tree with expr = App { callee; args = [ (ar, snd arr); idx ] } }
       in
