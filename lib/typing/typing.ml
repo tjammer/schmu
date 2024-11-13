@@ -134,7 +134,7 @@ let string_of_bop = function
 let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   let fn_kind = if param then Closure [] else Simple in
 
-  let find env t tick =
+  let find env loc t tick =
     match Env.find_type_opt loc t env with
     | Some (decl, path) -> (
         match decl.kind with
@@ -164,17 +164,17 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   in
 
   let rec concrete_type in_list env = function
-    | Ast.Ty_id "array#?" ->
+    | Ast.Ty_id (loc, "array#?") ->
         if not in_list then
           raise (Error (loc, "Type array#? expects 1 type parameter"));
         Tfixed_array (ref (Generalized "u"), Qvar "o")
-    | Ty_id id when String.starts_with ~prefix:"array#" id ->
+    | Ty_id (loc, id) when String.starts_with ~prefix:"array#" id ->
         let size = String.sub id 6 (String.length id - 6) |> int_of_string in
         if not in_list then
           raise (Error (loc, "Type " ^ id ^ " expects 1 type parameter"));
         Tfixed_array (ref (Known size), Qvar "o")
-    | Ty_id t ->
-        let t = find env (Path.Pid t) "" in
+    | Ty_id (loc, t) ->
+        let t = find env loc (Path.Pid t) "" in
         (if not in_list then
            match is_quantified t with
            | Some (name, n) ->
@@ -187,13 +187,13 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
                raise (Error (loc, msg))
            | None -> ());
         t
-    | Ty_var id when typedef -> find env (Path.Pid id) "'"
-    | Ty_var id ->
+    | Ty_var (loc, id) when typedef -> find env loc (Path.Pid id) "'"
+    | Ty_var (_, id) ->
         (* Type annotation in function *)
         Qvar id
     | Ty_func l -> handle_func env l
     | Ty_applied l -> type_list env l
-    | Ty_use_id (_, path) -> find env path ""
+    | Ty_use_id (loc, path) -> find env loc path ""
     | Ty_tuple ts ->
         let ts = List.map (fun t -> concrete_type false env t) ts in
         Ttuple ts
@@ -231,9 +231,9 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   and handle_func env = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ (t, _) ] -> concrete_type false env t
-    | [ (Ast.Ty_id "unit", _); (t, _) ] ->
+    | [ (Ast.Ty_id (_, "unit"), _); (t, _) ] ->
         Tfun ([], concrete_type false env t, fn_kind)
-    | [ (Ast.Ty_applied [ Ast.Ty_id "unit" ], _); (t, _) ] ->
+    | [ (Ast.Ty_applied [ Ast.Ty_id (_, "unit") ], _); (t, _) ] ->
         Tfun ([], concrete_type false env t, fn_kind)
     (* For function definiton and application, 'unit' means an empty list.
        It's easier for typing and codegen to treat unit as a special case here *)

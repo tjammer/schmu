@@ -469,15 +469,15 @@ parens(x):
   | Lpar; items = separated_list(Comma, x); Rpar; { items }
 
 type_spec:
-  | id = Ident { Ty_id id }
-  | id = poly_id { Ty_var id }
-  | id = Ident; Hash; i = Int { Ty_id (id ^ "#" ^ string_of_int i) }
-  | id = Ident; Hash_quest { Ty_id (id ^ "#?") }
+  | id = ident { Ty_id id }
+  | id = poly_id { Ty_var ($loc(id), id) }
+  | id = Ident; Hash; i = Int { Ty_id ($loc(id), id ^ "#" ^ string_of_int i) }
+  | id = Ident; Hash_quest { Ty_id ($loc(id), id ^ "#?") }
   | path = type_path { Ty_use_id ($loc, path) }
   | head = type_spec; Lbrack; tail = separated_nonempty_list(Comma, type_spec); Rbrack
     { Ty_applied (head :: tail) }
   | Lpar; Rpar; Right_arrow; ret = type_spec; %prec Type_application
-    { Ty_func ([Ty_id "unit", Dnorm; ret, Dnorm]) }
+    { Ty_func ([Ty_id ($loc, "unit"), Dnorm; ret, Dnorm]) }
   | Lpar; spec = tup_or_fun { spec }
 
 tup_or_fun:

@@ -28,8 +28,8 @@ type bop =
 type unop = Uminus_i | Uminus_f [@@deriving show, sexp]
 
 type type_spec =
-  | Ty_id of string
-  | Ty_var of string
+  | Ty_id of ident
+  | Ty_var of ident
   | Ty_applied of type_spec list
   | Ty_func of (type_spec * decl_attr) list
   | Ty_use_id of loc * Path.t
