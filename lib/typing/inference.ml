@@ -282,12 +282,13 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
             let ret, sub, b = aux ~strict:true ~in_ps sub l r in
             (Tfun (ps, ret, kind), sub, acc && b)
           with Invalid_argument _ -> (r, sub, false))
-      | Tconstr (name, _), r -> (
+      | Tconstr (name, ps), r -> (
           match Pmap.find_opt name abstracts_map with
           | Some (Tconstr (n, _)) when Path.equal name n ->
               (* Guard for recursion *)
               (r, sub, false)
           | Some typ ->
+              let typ, _ = transfer_params ps typ r in
               let _, _, b = aux ~strict ~in_ps sub typ r in
               if b then
                 (* Use the abstract type here for interfaces *)
@@ -305,5 +306,21 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
         | None -> (Smap.add ("fa" ^ l) ("fa" ^ r) sub, true)
       in
       (refr, sub, pre)
+  and transfer_params ops l r =
+    (* This might break down on more complicated types. For now it works *)
+    match (l, r) with
+    | Tconstr (pl, psl), Tconstr (pr, psr) when Path.equal pl pr ->
+        let revps, ops =
+          try
+            List.fold_left2
+              (fun (ps, ops) l r ->
+                let typ, ops = transfer_params ops l r in
+                (typ :: ps, ops))
+              ([], ops) psl psr
+          with Invalid_argument _ -> (List.rev psr, ops)
+        in
+        (Tconstr (pl, List.rev revps), ops)
+    | r, _ -> ( match ops with t :: tl -> (t, tl) | [] -> (r, []))
   in
+
   aux Smap.empty ~strict:false ~in_ps:true l r

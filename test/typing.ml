@@ -762,6 +762,42 @@ let test_signature_not_unique () =
 signature {
   type t}|}
 
+let test_signature_concrete_of_generic_alias () =
+  test "unit"
+    {|signature {
+  type option['a] = None | Some('a)
+  type thing['a]
+  val use_thing : (thing[unit]) -> unit
+}
+
+type thing['a] = array[option['a]]
+
+fun use_thing(a : thing[unit]) {
+  ignore(a.[0])
+}|}
+
+let test_signature_generic_of_generic_alias () =
+  test_exn
+    "Signatures don't match for value use_generic:\n\
+     expecting ([thing['a]]) -> _\n\
+     but found ([array[option[unit]]]) -> _"
+    {|signature {
+  type option['a] = None | Some('a)
+  type thing['a]
+  val use_thing : (thing[unit]) -> unit
+  val use_generic : (thing['a]) -> unit
+}
+
+type thing['a] = array[option['a]]
+
+fun use_thing(a : thing[unit]) {
+  ignore(a.[0])
+}
+fun use_generic(a : thing[unit]) {
+  ignore(a.[0])
+}
+|}
+
 let test_local_modules_find_local () =
   test "unit" (local_module ^ "let test : nosig/t = { a = 10 }")
 
@@ -1639,6 +1675,10 @@ let () =
           case "namespaces" test_signature_namespaces;
           case "after statement" test_signature_after_statement;
           case "not unique" test_signature_not_unique;
+          case "concrete of generic alias"
+            test_signature_concrete_of_generic_alias;
+          case "generic of generic alias"
+            test_signature_generic_of_generic_alias;
         ] );
       ( "local modules",
         [
