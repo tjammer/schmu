@@ -734,7 +734,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   !14 = !DILocation(line: 11, column: 2, scope: !12)
   !15 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !11, file: !11, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !16 = !DILocation(line: 13, scope: !15)
-  $ ./use_malloc_some
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./use_malloc_some
   0
   1
 

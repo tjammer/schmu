@@ -64,6 +64,7 @@ module type S = sig
   val free_var : Llvm.llvalue -> Llvm.llvalue
   val fmt_str : llvar -> string * Llvm.llvalue
   val set_in_init : bool -> unit
+  val is_in_init : unit -> bool
 
   val assert_fail :
     text:string ->
@@ -794,6 +795,7 @@ struct
         { value; typ; lltyp = get_lltype_def typ; kind = Ptr }
 
   let set_in_init b = in_init := b
+  let is_in_init () = !in_init
 
   let follow_field value index =
     let find_real_index fs =

@@ -55,7 +55,7 @@ end = struct
         finalize_sp dibuilder debug_func;
         Debug.set_subprogram func.value debug_func;
 
-        let vars = { vars with scope = debug_func } in
+        let vars = { vars with scope = debug_func; rec_block = None } in
 
         let start_index, alloca =
           match ret_t with
@@ -112,6 +112,10 @@ end = struct
         | Rtail -> tail_return param tparams start_index
         | Rnone | Rnormal -> ());
         ignore (fun_return name.call ret);
+
+        (* Make sure we don't try to free values of other functions *)
+        (* Save allocations in init for later freeing *)
+        if not (H.is_in_init ()) then Hashtbl.clear free_tbl;
 
         if Llvm_analysis.verify_function func.value |> not then (
           Llvm.dump_module the_module;
