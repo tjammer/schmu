@@ -22,7 +22,7 @@ let format_type_err pre mname t1 t2 =
             let found, ls, rs =
               if String.equal ls rs then (found, "_", "_")
               else if found then (found, ls, rs)
-              else (true, "[" ^ ls ^ "]", "[" ^ rs ^ "]")
+              else (true, ls, rs)
             in
             if i <> 0 then (i + 1, found || accfound, l ^ " " ^ ls, r ^ " " ^ rs)
             else (i + 1, found || accfound, l ^ ls, r ^ rs))
@@ -45,7 +45,7 @@ let format_type_err pre mname t1 t2 =
             let found, ls, rs =
               if String.equal ls rs then (found, "_", "_")
               else if found then (found, ls, rs)
-              else (true, "[" ^ ls ^ "]", "[" ^ rs ^ "]")
+              else (true, ls, rs)
             in
             if i <> 0 then
               (i + 1, found || accfound, l ^ ", " ^ ls, r ^ ", " ^ rs)
@@ -59,8 +59,8 @@ let format_type_err pre mname t1 t2 =
     | Tfun (ls, l, _), Tfun (rs, r, _) ->
         (* If the number of arguments doesn't match, highlight the whole list *)
         if List.length rs <> List.length ls then
-          let ls = "([" ^ plist sotl ls ^ "]) -> _"
-          and rs = "([" ^ plist sotr rs ^ "]) -> _" in
+          let ls = "(" ^ plist sotl ls ^ ") -> _"
+          and rs = "(" ^ plist sotr rs ^ ") -> _" in
           (true, ls, rs)
         else
           let found, ls, rs =
@@ -83,8 +83,8 @@ let format_type_err pre mname t1 t2 =
           if String.equal l r then (found, "_", "_") else (found, l, r)
     | Ttuple ls, Ttuple rs ->
         if List.length ls <> List.length rs then
-          let ls = "[(" ^ tlist sotl ls ^ ")]"
-          and rs = "[(" ^ tlist sotr rs ^ ")]" in
+          let ls = "(" ^ tlist sotl ls ^ ")"
+          and rs = "(" ^ tlist sotr rs ^ ")" in
           (true, ls, rs)
         else
           let found, l, r = difflist ls rs in
@@ -92,8 +92,7 @@ let format_type_err pre mname t1 t2 =
           else (found, "(" ^ l ^ ")", "(" ^ r ^ ")")
     | l, r ->
         let l = sotl l and r = sotr r in
-        if String.equal l r then (false, l, r)
-        else (true, "[" ^ l ^ "]", "[" ^ r ^ "]")
+        if String.equal l r then (false, l, r) else (true, l, r)
   in
   let _, l, r = aux t1 t2 in
   if String.length l + String.length r + String.length pre < 50 then

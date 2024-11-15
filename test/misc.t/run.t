@@ -661,8 +661,8 @@ Allow declaring a c function with a different name
 We can have if without else
   $ schmu if_no_else.smu
   if_no_else.smu:2.1-11: error: A conditional without else branch should evaluato to type unit.
-  expecting [unit]
-  but found [int].
+  expecting unit
+  but found int.
   
   2 | if true{2}
       ^^^^^^^^^^

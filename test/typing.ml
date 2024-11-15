@@ -49,15 +49,14 @@ let test_const_int () = test "int" "let a = 1; a"
 let test_const_neg_int () = test "int" "let a = -1; a"
 
 let test_const_neg_int_wrong () =
-  test_exn "In unary - expecting [int or float] but found [bool]"
-    "let a = - true"
+  test_exn "In unary - expecting int or float but found bool" "let a = - true"
 
 let test_const_neg_int2 () = test "int" "let a = - 1; a"
 let test_const_float () = test "float" "let a = 1.0; a"
 let test_const_neg_float () = test "float" "let a = -1.0; a"
 
 let test_const_neg_float_wrong () =
-  test_exn "In unary -. expecting [float] but found [bool]" "let a = -. true"
+  test_exn "In unary -. expecting float but found bool" "let a = -. true"
 
 let test_const_neg_float2 () = test "float" "let a = -.1.0; a"
 let test_const_bool () = test "bool" "let a = true; a"
@@ -115,8 +114,8 @@ let test_func_missing_move_known () =
 let test_func_missing_move_unknown () =
   test_exn
     "In application\n\
-     expecting (([array[int]]) -> _) -> _\n\
-     but found (([array[int]!]) -> _) -> _"
+     expecting ((array[int]) -> _) -> _\n\
+     but found ((array[int]!) -> _) -> _"
     {|fun move(a!) { ignore(a) }
 fun apply_move(move): move([0])
 apply_move(move)
@@ -147,11 +146,11 @@ let test_record_create_return () =
   test "t" "type t = {x : int}; fun a() {10}; {x = a()}"
 
 let test_record_wrong_type () =
-  test_exn "In record expression expecting [int] but found [bool]"
+  test_exn "In record expression expecting int but found bool"
     "type t = {x : int}; {x = true}"
 
 let test_record_wrong_choose () =
-  test_exn "In record expression expecting [int] but found [bool]"
+  test_exn "In record expression expecting int but found bool"
     "type t1 = {x : int, y : int}; type t2 = {x : int, z : int}; {x = 2, y = \
      true}"
 
@@ -175,11 +174,11 @@ let test_record_nested_field_generic () =
      {x = 12, y = {x = 12}}"
 
 let test_record_field_no_record () =
-  test_exn "Field access of record t expecting [t] but found [int]"
+  test_exn "Field access of record t expecting t but found int"
     "type t = {x : int}; let a = 10; a.x"
 
 let test_record_field_wrong_record () =
-  test_exn "In application expecting ([t1]) -> _ but found ([t2]) -> _"
+  test_exn "In application expecting (t1) -> _ but found (t2) -> _"
     "type t1 = {x : int}; type t2 = {y : int}; fun foo(a) {a.x}; let b = {y = \
      10}; foo(b)"
 
@@ -220,20 +219,19 @@ let test_annot_rc () =
   test "(rc[array[int]]) -> unit" "fun foo(x : rc[array[int]]) {()}; foo"
 
 let test_annot_concrete_fail () =
-  test_exn
-    "Var annotation expecting ([bool]) -> [int] but found ([int]) -> [bool]"
+  test_exn "Var annotation expecting (bool) -> int but found (int) -> bool"
     "let foo : (bool) -> int = fun x {x < 3}; foo"
 
 let test_annot_mix () = test "('a!) -> 'a" "fun pass(x! : 'b) {x}; pass"
 
 let test_annot_mix_fail () =
-  test_exn "Var annotation expecting (_) -> [int] but found (_) -> ['a]"
+  test_exn "Var annotation expecting (_) -> int but found (_) -> 'a"
     "let pass : ('b) -> int = fun x {copy(x)}; pass"
 
 let test_annot_generic () = test "('a!) -> 'a" "fun pass(x! : 'b) {x}; pass"
 
 let test_annot_generic_fail () =
-  test_exn "Var annotation expecting (_) -> ['b] but found (_) -> ['a]"
+  test_exn "Var annotation expecting (_) -> 'b but found (_) -> 'a"
     "let pass : ('a) -> 'b = fun x {copy(x)}; pass"
 
 let test_annot_generic_mut () =
@@ -284,8 +282,8 @@ let test_sequence () =
 let test_sequence_fail () =
   test_exn
     "Left expression in sequence must be of type unit,\n\
-     expecting [unit]\n\
-     but found [int]" "fun add1(x) {x + 1}; add1(20); 1 + 1"
+     expecting unit\n\
+     but found int" "fun add1(x) {x + 1}; add1(20); 1 + 1"
 
 let test_para_instantiate () =
   test "foo[int]"
@@ -312,7 +310,7 @@ let test_para_instance_func () =
      = 17}; apply"
 
 let test_para_instance_wrong_func () =
-  test_exn "In record expression expecting [int] but found [bool]"
+  test_exn "In record expression expecting int but found bool"
     "type foo['a] = {gen : 'a}; fun apply(foo) {foo.gen + 17}; let foo = {gen \
      = 17}; apply({gen = true})"
 
@@ -322,13 +320,13 @@ let test_pipe_head_multi_call () =
   test "int" "fun add1(a) {a + 1}; 10.add1().add1()"
 
 let test_pipe_head_single_wrong_type () =
-  test_exn "In application expecting [(int) -> 'a] but found [int]"
+  test_exn "In application expecting (int) -> 'a but found int"
     "let add1 = 1; 10.add1()"
 
 let test_pipe_head_mult () = test "int" "fun add(a, b) {a + b}; 10.add(12)"
 
 let test_pipe_head_mult_wrong_type () =
-  test_exn "In application expecting ([int, int]) -> _ but found ([int]) -> _"
+  test_exn "In application expecting (int, int) -> _ but found (int) -> _"
     "fun add1(a) {a + 1}; 10.add1(12)"
 
 let test_alias_simple () =
@@ -391,19 +389,19 @@ setf(a, 2)
 a|}
 
 let test_array_different_types () =
-  test_exn "In array literal expecting [int] but found [bool]" "[0, true]"
+  test_exn "In array literal expecting int but found bool" "[0, true]"
 
 let test_array_different_annot () =
-  test_exn "In let binding expecting [array[int]] but found [array[bool]]"
+  test_exn "In let binding expecting array[int] but found array[bool]"
     "let a : array[bool] = [0, 1]; a"
 
 let test_array_different_annot_weak () =
-  test_exn "In application expecting (_, [bool]) -> _ but found (_, [int]) -> _"
+  test_exn "In application expecting (_, bool) -> _ but found (_, int) -> _"
     "external setf : (array['a], 'a) -> unit; let a : array[bool] = []; \
      setf(a, 2)"
 
 let test_array_different_weak () =
-  test_exn "In application expecting (_, [int]) -> _ but found (_, [bool]) -> _"
+  test_exn "In application expecting (_, int) -> _ but found (_, bool) -> _"
     {|external setf : (array['a], 'a) -> unit
 let a = []
 setf(a, 2)
@@ -415,7 +413,7 @@ let test_mutable_set () =
   test "unit" "type foo = { x& : int }; let foo& = {x = 12}; &foo.x = 13"
 
 let test_mutable_set_wrong_type () =
-  test_exn "In mutation expecting [int] but found [bool]"
+  test_exn "In mutation expecting int but found bool"
     "type foo = {x& : int}; let foo& = {x = 12}; &foo.x = true"
 
 let test_mutable_set_non_mut () =
@@ -557,8 +555,8 @@ match None {
 let test_match_column_arity () =
   test_exn
     "Tuple pattern has unexpected type:\n\
-     expecting [(int, int)]\n\
-     but found [(int, int, 'a)]"
+     expecting (int, int)\n\
+     but found (int, int, 'a)"
     {|type option['a] = None | Some('a)
 match (1, 2) {
   (a, b, c): a
@@ -672,8 +670,8 @@ let test_pattern_decl_tuple () = test "float" "let i, f = (12, 5.0); f"
 let test_pattern_decl_tuple_missing () =
   test_exn
     "Tuple pattern has unexpected type:\n\
-     expecting [(int, float, int)]\n\
-     but found [(int, float)]" "let x, f = (12, 5.0, 20); f"
+     expecting (int, float, int)\n\
+     but found (int, float)" "let x, f = (12, 5.0, 20); f"
 
 let test_pattern_decl_wildcard_move () =
   test "('a, 'b!) -> unit" "fun func(_, _!) {()}; func"
@@ -687,7 +685,7 @@ let test_signature_simple () =
   test "unit" "signature{  type t = int}; type t = int"
 
 let test_signature_wrong_typedef () =
-  test_exn "Signatures don't match: expecting [int] but found [float]"
+  test_exn "Signatures don't match: expecting int but found float"
     {|signature{
   type t = int}
 type t = float|}
@@ -707,8 +705,8 @@ fun create_int(x : int) {{x}}|}
 let test_signature_param_mismatch () =
   test_exn
     "Signatures don't match for value create_int:\n\
-     expecting (_) -> [t[int]]\n\
-     but found (_) -> [t['a]]"
+     expecting (_) -> t[int]\n\
+     but found (_) -> t['a]"
     {|signature{
   type t['a]
   val create_int : (int) -> t[int]}
@@ -779,8 +777,8 @@ fun use_thing(a : thing[unit]) {
 let test_signature_generic_of_generic_alias () =
   test_exn
     "Signatures don't match for value use_generic:\n\
-     expecting ([thing['a]]) -> _\n\
-     but found ([array[option[unit]]]) -> _"
+     expecting (thing['a]) -> _\n\
+     but found (array[option[unit]]) -> _"
     {|signature {
   type option['a] = None | Some('a)
   type thing['a]
@@ -805,7 +803,7 @@ let test_local_modules_find_nested () =
   test "unit" (local_module ^ "let test : nosig/nested/t = 0u8")
 
 let test_local_modules_miss_local () =
-  test_exn "In let binding expecting [float] but found [nosig/t]"
+  test_exn "In let binding expecting float but found nosig/t"
     (local_module ^ "let test : nosig/t = 10.0")
 
 let test_local_modules_miss_nested () =
@@ -1206,9 +1204,7 @@ intadder/add_twice(1, 2)|}
 
 let test_functor_apply_use_sgn () =
   test_exn
-    "In application\n\
-     expecting ([inta/t], [inta/t]) -> _\n\
-     but found ([int], [int]) -> _"
+    "In application\nexpecting (inta/t, inta/t) -> _\nbut found (int, int) -> _"
     {|module type sig {
   type t
   val add : (t, t) -> t}
@@ -1226,9 +1222,7 @@ intadder/add_twice(1, 2)|}
 
 let test_functor_abstract_param () =
   test_exn
-    "In application\n\
-     expecting ([inta/t], [inta/t]) -> _\n\
-     but found ([int], [int]) -> _"
+    "In application\nexpecting (inta/t, inta/t) -> _\nbut found (int, int) -> _"
     {|module type sig {
   type t
   val add : (t, t) -> t}
@@ -1274,8 +1268,8 @@ ignore(polyappl/newid(!1.2))|}
 let test_functor_poly_mismatch () =
   test_exn
     "Signatures don't match for value id:\n\
-     expecting (['a]!) -> ['a]\n\
-     but found ([int]!) -> [int]"
+     expecting ('a!) -> 'a\n\
+     but found (int!) -> int"
     {|module type poly {
   val id : ('a!) -> 'a}
 
@@ -1315,14 +1309,14 @@ let test_functor_check_sig () = test "unit" (check_sig_test "'value")
 let test_functor_check_param () =
   test_exn
     "Signatures don't match for value create:\n\
-     expecting (_) -> [t[key]]\n\
-     but found (_) -> [t['a]]" (check_sig_test "key")
+     expecting (_) -> t[key]\n\
+     but found (_) -> t['a]" (check_sig_test "key")
 
 let test_functor_check_concrete () =
   test_exn
     "Signatures don't match for value create:\n\
-     expecting (_) -> [t[int]]\n\
-     but found (_) -> [t['a]]" (check_sig_test "int")
+     expecting (_) -> t[int]\n\
+     but found (_) -> t['a]" (check_sig_test "int")
 
 let test_functor_sgn_only_type () =
   test "unit"
