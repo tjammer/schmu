@@ -375,10 +375,10 @@ struct
         (* Mutable records are passed as pointers into the env *)
         let value = Llvm.build_load ptr_t item_ptr cl.clname builder in
 
-        (value, ptr_t)
+        (value, get_lltype_def typ)
       else if is_struct typ then
         (* For records we want a ptr so that gep and memcpy work *)
-        (item_ptr, ptr_t)
+        (item_ptr, get_lltype_def typ)
       else if cl.clmut && upward then
         (* For upward closures, the mutable value is stored inside the closure
            directly and does not point to some outer value. *)
