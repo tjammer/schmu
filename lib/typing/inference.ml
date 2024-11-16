@@ -307,7 +307,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
       in
       (refr, sub, pre)
   and transfer_params ops l r =
-    (* This might break down on more complicated types. For now it works *)
+    (* This might break down on types with multiple params. For now it works *)
     match (l, r) with
     | Tconstr (pl, psl), Tconstr (pr, psr) when Path.equal pl pr ->
         let revps, ops =
@@ -320,7 +320,10 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
           with Invalid_argument _ -> (List.rev psr, ops)
         in
         (Tconstr (pl, List.rev revps), ops)
-    | r, _ -> ( match ops with t :: tl -> (t, tl) | [] -> (r, []))
+    | Qvar _, _ -> ( match ops with t :: tl -> (t, tl) | [] -> (r, []))
+    | l, _ ->
+        (* If we don't enconter a Qvar, don't transfer *)
+        (l, ops)
   in
 
   aux Smap.empty ~strict:false ~in_ps:true l r
