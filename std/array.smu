@@ -109,6 +109,19 @@ fun map(arr, f) {
   inner(!ret, 0)
 }
 
+fun map_inplace(arr&, f) {
+  fun rec inner(i) {
+    if i == length(arr) {
+      ()
+    } else {
+      f(&arr.[i])
+      inner(i + 1)
+    }
+  }
+
+  inner(0)
+}
+
 fun pop_back(arr&) {
   use option
   if length(arr) == 0 {
