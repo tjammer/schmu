@@ -851,9 +851,7 @@ let validate_module_type env ~loc ~mname find mtype =
           (sub, acc)
         else
           let msg =
-            Error.format_type_err
-              (com ^ " for value " ^ name ^ ":")
-              mn styp ityp
+            Error.format_type_err (com ^ " for value " ^ name ^ ":") mn styp typ
           in
           raise (Error (loc, msg))
     | (None | Some (Mvalue _)), Mtypedef decl -> (
