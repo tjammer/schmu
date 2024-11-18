@@ -16,7 +16,7 @@ struct
 
   let alloc_types ts = function
     | Tarray t -> t :: ts
-    | Trc t -> t :: ts
+    | Trc (_, t) -> t :: ts
     | Trecord (_, Rec_folded, _) -> ts
     | Trecord (_, (Rec_not fields | Rec_top fields), _) ->
         Array.fold_left
@@ -401,7 +401,6 @@ struct
     let v = bring_default_var v in
 
     let rf = Llvm.build_gep int_t v.value [| ci 0 |] "ref" builder in
-
     let rc = Llvm.build_load int_t rf "refc" builder in
 
     (* Get current block *)
@@ -409,29 +408,87 @@ struct
     let parent = Llvm.block_parent start_bb in
 
     let decr_bb = Llvm.append_block context "decr" parent in
-    let free_bb = Llvm.append_block context "free" parent in
+    let free_payload_bb = Llvm.append_block context "free_payload" parent in
+    let free_rc_bb = Llvm.append_block context "free_rc" parent in
+    let decr_weak_bb = Llvm.append_block context "decr_weak" parent in
     let merge_bb = Llvm.append_block context "merge" parent in
 
     let cmp =
       Llvm.(build_icmp Icmp.Eq) rc (Llvm.const_int int_t 1) "" builder
     in
-    ignore (Llvm.build_cond_br cmp free_bb decr_bb builder);
+    (* Always decrease even if we free. Otherwise weak_ptrs cannot know if
+       payload is still reachable. *)
+    let subbed = Llvm.build_sub rc (Llvm.const_int int_t 1) "" builder in
+    ignore (Llvm.build_store subbed rf builder);
+    ignore (Llvm.build_cond_br cmp free_payload_bb decr_bb builder);
 
     (* decr *)
     Llvm.position_at_end decr_bb builder;
-    let added = Llvm.build_sub rc (Llvm.const_int int_t 1) "" builder in
-    ignore (Llvm.build_store added rf builder);
     ignore (Llvm.build_br merge_bb builder);
 
     (* free *)
-    Llvm.position_at_end free_bb builder;
-    let value = Llvm.build_gep int_t v.value [| ci 1 |] "vl" builder in
+    Llvm.position_at_end free_payload_bb builder;
+    let value = Llvm.build_gep int_t v.value [| ci 2 |] "vl" builder in
     (match item_typ with
     | Some item_typ ->
         free_call_only
           { value; typ = item_typ; lltyp = get_lltype_def item_typ; kind = Ptr }
     | None -> ());
+
+    (* Only free rc if there are no weak pointers as well. Since one single weak
+       ptr count is kept for all owning references, we check for 1 weak ref
+       count. If the count is above 1 there are weak pointers still, and we
+       decrease the weak count by one to account for all owning pointers. *)
+    let weakrf = Llvm.build_gep int_t v.value [| ci 1 |] "weakref" builder in
+    let weakrc = Llvm.build_load int_t weakrf "weakrefc" builder in
+
+    let cmp =
+      Llvm.(build_icmp Icmp.Eq) weakrc (Llvm.const_int int_t 1) "" builder
+    in
+    ignore (Llvm.build_cond_br cmp free_rc_bb decr_weak_bb builder);
+
+    (* decr weak *)
+    Llvm.position_at_end decr_weak_bb builder;
+    let wsubbed = Llvm.build_sub weakrc (Llvm.const_int int_t 1) "" builder in
+    ignore (Llvm.build_store wsubbed weakrf builder);
+    ignore (Llvm.build_br merge_bb builder);
+
+    (* free rc *)
+    Llvm.position_at_end free_rc_bb builder;
     free_var v.value |> ignore;
+    ignore (Llvm.build_br merge_bb builder);
+
+    Llvm.position_at_end merge_bb builder
+
+  let free_weak_rc v =
+    let v = bring_default_var v in
+
+    let weakrf = Llvm.build_gep int_t v.value [| ci 1 |] "weakref" builder in
+    let weakrc = Llvm.build_load int_t weakrf "refc" builder in
+
+    (* If the weak count is 1 before we have decreased it, free rc value *)
+    (* Get current block *)
+    let start_bb = Llvm.insertion_block builder in
+    let parent = Llvm.block_parent start_bb in
+
+    let decr_bb = Llvm.append_block context "decr" parent in
+    let free_rc_bb = Llvm.append_block context "free_rc" parent in
+    let merge_bb = Llvm.append_block context "merge" parent in
+
+    let cmp =
+      Llvm.(build_icmp Icmp.Eq) weakrc (Llvm.const_int int_t 1) "" builder
+    in
+    ignore (Llvm.build_cond_br cmp free_rc_bb decr_bb builder);
+
+    (* free *)
+    Llvm.position_at_end free_rc_bb builder;
+    ignore (free_var v.value);
+    ignore (Llvm.build_br merge_bb builder);
+
+    (* decr *)
+    Llvm.position_at_end decr_bb builder;
+    let subbed = Llvm.build_sub weakrc (Llvm.const_int int_t 1) "" builder in
+    ignore (Llvm.build_store subbed weakrf builder);
     ignore (Llvm.build_br merge_bb builder);
 
     Llvm.position_at_end merge_bb builder
@@ -447,7 +504,8 @@ struct
            iter_array_children v sz t free_call_only);
 
         free_var v.value |> ignore
-    | Trc item_typ -> free_rc v (Some item_typ)
+    | Trc (Strong, item_typ) -> free_rc v (Some item_typ)
+    | Trc (Weak, _) -> free_weak_rc v
     | Trecord (_, Rec_folded, _) -> failwith "unreachable"
     | Trecord (_, (Rec_not fields | Rec_top fields), _) ->
         Array.iteri

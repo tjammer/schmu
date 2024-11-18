@@ -1,0 +1,15 @@
+-- free in order
+let a = rc/create("string")
+let b = rc/to_weak(a)
+assert(option/is_some(rc/of_weak(b)))
+
+-- decr weak count when owning go out of scope, and free on weak decr
+fun return_weak() {
+  let a = rc/create("string")
+  rc/to_weak(a)
+}
+
+let w = return_weak()
+let strong = rc/of_weak(w)
+
+assert(option/is_none(strong))

@@ -1064,6 +1064,11 @@ end = struct
         in
         R.gen_rc param e fnc.ret allocref
     | Rc_get -> List.hd args |> bring_default_var |> fun llvar -> R.get llvar
+    | Rc_to_weak ->
+        List.hd args |> bring_default_var |> fun llvar -> R.to_weak llvar
+    | Unsafe_rc_of_weak ->
+        List.hd args |> bring_default_var |> fun llvar -> R.unsafe_of_weak llvar
+    | Rc_cnt -> List.hd args |> bring_default_var |> fun llvar -> R.cnt llvar
     | Any_abort -> (
         let ft, abort =
           Llvm.(

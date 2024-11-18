@@ -100,7 +100,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
                 (0, true, Pset.empty) fs
             in
             (excluded, pset)
-        | Trc t ->
+        | Trc (Strong, t) ->
             if contains_allocation t then
               match pop_index_pset frees (-1) with
               | Not_excl -> (false, Pset.empty)

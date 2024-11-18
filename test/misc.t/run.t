@@ -1402,3 +1402,7 @@ case and don't need to be allocated.
   $ schmu unit_closures.smu
   $ valgrind ./unit_closures 2>&1 | grep allocs | cut -f 5- -d '='
      total heap usage: 2 allocs, 2 frees, 64 bytes allocated
+
+Weak rcs
+  $ schmu weak_rc.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./weak_rc

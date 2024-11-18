@@ -66,6 +66,7 @@ and ti16 = Tconstr (Pid "i16", [])
 and tarray typ = Tconstr (Pid "array", [ typ ])
 and traw_ptr typ = Tconstr (Pid "raw_ptr", [ typ ])
 and trc typ = Tconstr (Pid "rc", [ typ ])
+and tweak_rc typ = Tconstr (Pid "weak_rc", [ typ ])
 
 let rec repr = function
   (* Do path compression *)
@@ -171,13 +172,14 @@ let fold_builtins f init =
       tarray (Qvar "0");
       traw_ptr (Qvar "0");
       trc (Qvar "0");
+      tweak_rc (Qvar "0");
     ]
 
 let is_builtin = function
   | Tconstr
       ( Pid
           ( "int" | "bool" | "unit" | "float" | "u8" | "u16" | "i32" | "f32"
-          | "i8" | "i16" | "u32" | "array" | "raw_ptr" | "rc" ),
+          | "i8" | "i16" | "u32" | "array" | "raw_ptr" | "rc" | "weak_rc" ),
         _ ) ->
       true
   | _ -> false
@@ -390,6 +392,9 @@ let recursion_allowed (get_decl : Path.t -> type_decl) inst_sub ~params name typ
         let nres, t = aux true (set_base res) t in
         (combine nres res, Tconstr (name, [ t ]))
     | Tconstr ((Pid "rc" as name), [ t ]) ->
+        let nres, t = aux true res t in
+        (combine nres res, Tconstr (name, [ t ]))
+    | Tconstr ((Pid "weak_rc" as name), [ t ]) ->
         let nres, t = aux true res t in
         (combine nres res, Tconstr (name, [ t ]))
     | Tconstr (n, ps) as t ->

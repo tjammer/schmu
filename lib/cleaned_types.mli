@@ -17,7 +17,7 @@ type typ =
   | Traw_ptr of typ
   | Tarray of typ
   | Tfixed_array of int * typ
-  | Trc of typ
+  | Trc of rc_kind * typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of closed list
@@ -33,6 +33,8 @@ and closed = {
   clparam : bool;
   clcopy : bool;
 }
+
+and rc_kind = Strong | Weak
 
 val is_type_polymorphic : typ -> bool
 val string_of_type : typ -> string

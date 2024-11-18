@@ -56,6 +56,7 @@ val tu16 : typ
 val tarray : typ -> typ
 val traw_ptr : typ -> typ
 val trc : typ -> typ
+val tweak_rc : typ -> typ
 
 val repr : typ -> typ
 (** Extract real type (follow links) and do path compression *)

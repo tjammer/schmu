@@ -34,6 +34,13 @@ module unsafe = unsafe
 module rc {
   let create = __rc_create
   let get = __rc_get
+  let to_weak = __rc_to_weak
+
+  fun of_weak(wrc) {
+    use prelude
+    if __rc_cnt(wrc) == 0 { None }
+    else { Some(__unsafe_rc_of_weak(wrc)) }
+  }
 }
 
 fun failwith(msg) {

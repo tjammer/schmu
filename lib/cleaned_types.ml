@@ -17,7 +17,7 @@ type typ =
   | Traw_ptr of typ
   | Tarray of typ
   | Tfixed_array of int * typ
-  | Trc of typ
+  | Trc of rc_kind * typ
 [@@deriving show { with_path = false }]
 
 and fun_kind = Simple | Closure of closed list
@@ -33,6 +33,8 @@ and closed = {
   clparam : bool;
   clcopy : bool;
 }
+
+and rc_kind = Strong | Weak
 
 let is_type_polymorphic typ =
   let rec inner acc = function
@@ -53,7 +55,7 @@ let is_type_polymorphic typ =
     | Tu32 ->
         acc
     | Tfixed_array (i, _) when i < 0 -> true
-    | Traw_ptr t | Tarray t | Tfixed_array (_, t) | Trc t -> inner acc t
+    | Traw_ptr t | Tarray t | Tfixed_array (_, t) | Trc (_, t) -> inner acc t
   in
   inner false typ
 
@@ -91,7 +93,8 @@ let rec string_of_type = function
   | Traw_ptr t -> Printf.sprintf "(raw_ptr %s)" (string_of_type t)
   | Tarray t -> Printf.sprintf "(array %s)" (string_of_type t)
   | Tfixed_array (i, t) -> Printf.sprintf "(array#%i %s)" i (string_of_type t)
-  | Trc t -> Printf.sprintf "(rc %s)" (string_of_type t)
+  | Trc (Strong, t) -> Printf.sprintf "(rc %s)" (string_of_type t)
+  | Trc (Weak, t) -> Printf.sprintf "(weak_rc %s)" (string_of_type t)
 
 let is_struct = function
   | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ | Tfixed_array _ -> true

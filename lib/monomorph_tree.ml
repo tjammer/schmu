@@ -200,7 +200,8 @@ let rec cln ss p t =
                 cln_kind ss p kind )
         | Tconstr (Pid "raw_ptr", [ t ]) -> Traw_ptr (cln ss p t)
         | Tconstr (Pid "array", [ t ]) -> Tarray (cln ss p t)
-        | Tconstr (Pid "rc", [ t ]) -> Trc (cln ss p t)
+        | Tconstr (Pid "rc", [ t ]) -> Trc (Strong, cln ss p t)
+        | Tconstr (Pid "weak_rc", [ t ]) -> Trc (Weak, cln ss p t)
         | Tfixed_array ({ contents = Unknown (i, _) | Generalized i }, t) ->
             (* That's a hack. We know the unknown number is a string of an int. This is
                due to an implementation detail in [gen_var] in inference. We need a
