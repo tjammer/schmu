@@ -244,9 +244,9 @@ let rec cln ss p t =
                 let downss = Ss.add psname ss in
 
                 let rec cln_dkind = function
-                  | Drecord (recurs, fields) -> (
+                  | Drecord (meta, fields) -> (
                       let skip =
-                        if recurs && Ss.mem psname ss then
+                        if meta.is_recursive && Ss.mem psname ss then
                           Some (Trecord (ps, Rec_folded, Some nname))
                         else None
                       in
@@ -265,10 +265,10 @@ let rec cln ss p t =
                               sub fields
                           in
                           Trecord (ps, Rec_not fields, Some nname))
-                  | Dvariant (recurs, cts) -> (
+                  | Dvariant (meta, cts) -> (
                       (* If the variant is behind a ptr, we fold it *)
                       let skip =
-                        if recurs && Ss.mem psname ss then
+                        if meta.is_recursive && Ss.mem psname ss then
                           Some (Tvariant (ps, Rec_folded, nname))
                         else None
                       in
@@ -297,7 +297,8 @@ let rec cln ss p t =
                               sub cts
                           in
                           let recurs_kind =
-                            if recurs then Rec_top cts else Rec_not cts
+                            if meta.is_recursive then Rec_top cts
+                            else Rec_not cts
                           in
                           Tvariant (ps, recurs_kind, nname))
                   | Dabstract None ->

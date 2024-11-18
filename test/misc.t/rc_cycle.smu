@@ -1,0 +1,6 @@
+-- make rc cycle
+type any_rc['a] = Strong(rc['a]) | Weak(weak_rc['a])
+type person = { name : string, partner& : option[any_rc[person]] }
+
+let person& = rc/create({ name = "schmu", partner = None })
+&rc/get(person).partner = Some(Weak(rc/to_weak(person)))

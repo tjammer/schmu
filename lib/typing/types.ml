@@ -43,7 +43,12 @@ and closed = {
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
 
 type type_decl = { params : typ list; kind : decl_kind; in_sgn : bool }
-and recursive = bool
+
+and recursive = {
+  is_recursive : bool;
+  has_base : bool;
+  params_behind_ptr : bool;
+}
 
 and decl_kind =
   | Drecord of recursive * field array
@@ -338,111 +343,127 @@ let resolve_alias find_decl typ =
   in
   aux typ
 
-type recurs_state = { recurs : bool; has_base : bool }
-
-let combine a b =
-  (* Something is recursive if one branch is recursive. If both branches are
-     recursive, both must have a base for the whole recursion to have a base. *)
+let merge_rec a b =
+  (* Merge is_recursive info, otherwise take b *)
   match (a, b) with
   | Ok a, Ok b ->
-      Ok
-        (match (a, b) with
-        | { recurs = true; _ }, { recurs = false; _ } -> a
-        | { recurs = false; _ }, { recurs = true; _ } -> b
-        | { recurs = true; has_base = ab }, { recurs = true; has_base = bb } ->
-            { recurs = true; has_base = ab && bb }
-        | { recurs = false; _ }, { recurs = false; _ } ->
-            { recurs = false; has_base = false })
+      let is_recursive = a.is_recursive || b.is_recursive in
+      Ok { b with is_recursive }
   | Error _, _ -> a
   | _, Error _ -> b
 
-let set_base res = Result.map (fun st -> { st with has_base = true }) res
+let combine a b =
+  match (a, b) with
+  | Ok a, Ok b ->
+      let is_recursive = a.is_recursive || b.is_recursive
+      and has_base = a.has_base && b.has_base
+      and params_behind_ptr = a.params_behind_ptr && b.params_behind_ptr in
+      Ok { is_recursive; has_base; params_behind_ptr }
+  | Error _, _ -> a
+  | _, Error _ -> b
 
-let recursion_allowed (get_decl : Path.t -> type_decl) inst_sub ~params name typ
-    =
-  let rec aux behind_ptr res = function
+let add a b =
+  match (a, b) with
+  | Ok a, Ok b ->
+      let is_recursive = a.is_recursive || b.is_recursive
+      and has_base = a.has_base || b.has_base
+      and params_behind_ptr = a.params_behind_ptr || b.params_behind_ptr in
+      Ok { is_recursive; has_base; params_behind_ptr }
+  | Error _, _ -> a
+  | _, Error _ -> b
+
+let set_behind_ptr res =
+  Result.map (fun st -> { st with params_behind_ptr = true }) res
+
+let set_allowed res =
+  Result.map
+    (fun st -> { st with params_behind_ptr = true; has_base = true })
+    res
+
+(* There are two aspects needed for recursion to be allowed: *)
+(* 1. The type most have a base case. Either the type itself has it (option) or
+   it in inherited from used types. *)
+(* 2. The recursion happens behind a pointer *)
+let recursion_allowed (get_decl : Path.t -> type_decl) ~params name typ =
+  let rec aux res = function
     | Ttuple ts ->
         let nres, ts =
-          List.fold_left_map (fun res t -> aux behind_ptr res t) res ts
+          List.fold_left_map
+            (fun accres t ->
+              let nres, typ = aux res t in
+              if is_polymorphic t then
+                (* We only need to combine if the type is actually polymorphic *)
+                (combine nres accres, typ)
+              else (merge_rec accres nres, typ))
+            res ts
         in
-        (combine nres res, Ttuple ts)
+        (nres, Ttuple ts)
     | Tfun (ps, ret, kind) ->
         let nres, ps =
           List.fold_left_map
             (fun res p ->
-              let res = set_base res in
-              let nres, pt = aux true res p.pt in
-              (combine nres res, { p with pt }))
-            res ps
+              let nres, pt = aux res p.pt in
+              (nres, { p with pt }))
+            (set_allowed res) ps
         in
-        let mres, ret =
-          let res = set_base res in
-          aux true res ret
-        in
-        (combine nres res |> combine mres, Tfun (ps, ret, kind))
+        let res, ret = aux nres ret in
+        (res, Tfun (ps, ret, kind))
     | (Qvar _ | Tvar { contents = Unbound _ }) as t -> (res, t)
     | Tvar ({ contents = Link t } as rf) as tvr ->
-        let nres, t = aux behind_ptr res t in
+        let nres, t = aux res t in
         rf := Link t;
-        (combine nres res, tvr)
+        (nres, tvr)
     | Tfixed_array (sz, t) ->
-        let nres, t = aux behind_ptr res t in
-        (combine nres res, Tfixed_array (sz, t))
+        let nres, t = aux res t in
+        (nres, Tfixed_array (sz, t))
     | Tconstr ((Pid ("array" | "raw_ptr") as name), [ t ]) ->
-        let nres, t = aux true (set_base res) t in
-        (combine nres res, Tconstr (name, [ t ]))
+        let nres, t = aux (set_allowed res) t in
+        (nres, Tconstr (name, [ t ]))
     | Tconstr ((Pid "rc" as name), [ t ]) ->
-        let nres, t = aux true res t in
-        (combine nres res, Tconstr (name, [ t ]))
+        let nres, t = aux (set_behind_ptr res) t in
+        (nres, Tconstr (name, [ t ]))
     | Tconstr ((Pid "weak_rc" as name), [ t ]) ->
-        let nres, t = aux true res t in
-        (combine nres res, Tconstr (name, [ t ]))
+        let nres, t = aux (set_behind_ptr res) t in
+        (nres, Tconstr (name, [ t ]))
     | Tconstr (n, ps) as t ->
         if Path.equal n name then
-          if behind_ptr then
-            ( (match res with
-              | Ok { has_base; _ } -> Ok { has_base; recurs = true }
-              | Error _ as err -> err),
-              Tconstr (n, params) )
-          else (Error "Infinite type", t)
+          match res with
+          | Ok ({ params_behind_ptr = true; _ } as res) ->
+              (Ok { res with is_recursive = true }, Tconstr (n, params))
+          | _ -> (Error "Infinite type", t)
         else
-          let res =
+          let base_res =
             let decl = get_decl n in
             let sub = map_params ~inst:ps ~params:decl.params in
-            decl_allowed ~sub behind_ptr res decl.kind
+            decl_allowed ~sub res decl.kind
           in
           let res, ps =
-            List.fold_left_map (fun res t -> aux behind_ptr res t) res ps
+            List.fold_left_map
+              (fun res t ->
+                let newres, typ = aux base_res t in
+                if is_polymorphic t then (combine res newres, typ)
+                else (merge_rec res newres, typ))
+              base_res ps
           in
           (res, Tconstr (n, ps))
-  and decl_allowed ~sub behind_ptr res = function
-    | Dalias typ -> aux behind_ptr res typ |> fst
+  and decl_allowed ~sub res = function
+    | Dalias typ -> aux res typ |> fst
     | Dabstract None -> res
-    | Dabstract (Some kind) -> decl_allowed ~sub behind_ptr res kind
-    | Drecord (recurs, fields) ->
-        if recurs then set_base res
-        else
-          (* We have to check the params to see which one is ours *)
-          Array.fold_left
-            (fun (res, sub) f ->
-              let sub, typ = inst_sub sub f.ftyp in
-              let nres, _ = aux behind_ptr res typ in
-              (combine nres res, sub))
-            (res, sub) fields
-          |> fst
-    | Dvariant (recurs, ctors) ->
-        if recurs then set_base res
-        else
-          let has_base =
-            Array.fold_left
-              (fun has ct -> has || Option.is_none ct.ctyp)
-              false ctors
-          in
-          if has_base then set_base res else res
+    | Dabstract (Some kind) -> decl_allowed ~sub res kind
+    | Drecord (meta, _) ->
+        (* These are further down than [res], so we don't combine, but add. For
+           instance, a rc[option[t]] is valid, even though option itself isn't
+           behind a ptr.*)
+        add (Ok meta) res
+    | Dvariant (meta, _) -> add (Ok meta) res
   in
 
-  let res, typ = aux false (Ok { recurs = false; has_base = false }) typ in
+  let res, typ =
+    aux
+      (Ok { is_recursive = false; has_base = false; params_behind_ptr = false })
+      typ
+  in
   match res with
-  | Ok { recurs = true; has_base } -> Ok (Some (typ, has_base))
-  | Ok { recurs = false; _ } -> Ok None
+  | Ok ({ is_recursive = true; _ } as meta) -> Ok (meta, Some typ)
+  | Ok ({ is_recursive = false; _ } as meta) -> Ok (meta, None)
   | Error _ as err -> err

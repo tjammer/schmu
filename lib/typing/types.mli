@@ -33,7 +33,12 @@ and closed = {
 }
 
 type type_decl = { params : typ list; kind : decl_kind; in_sgn : bool }
-and recursive = bool
+
+and recursive = {
+  is_recursive : bool;
+  has_base : bool;
+  params_behind_ptr : bool;
+}
 
 and decl_kind =
   | Drecord of recursive * field array
@@ -83,8 +88,7 @@ val resolve_alias : (Path.t -> (type_decl * Path.t) option) -> typ -> typ
 
 val recursion_allowed :
   (Path.t -> type_decl) ->
-  (typ Smap.t -> typ -> typ Smap.t * typ) ->
   params:typ list ->
   Path.t ->
   typ ->
-  ((typ * bool (* includes base case *)) option, string) result
+  (recursive * typ option, string) result

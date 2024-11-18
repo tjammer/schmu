@@ -348,13 +348,15 @@ let add_self_recursion env name =
   Env.add_type name decl env
 
 let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
-  let labels, params, recurs =
+  let recurs = ref false in
+  let has_base = ref false in
+  let behind_ptr = ref false in
+  let labels, params =
     (* Temporarily add polymorphic type name to env *)
     let temp_env, params =
       let tmp = add_self_recursion env name in
       add_type_param tmp poly_param
     in
-    let recurs = ref false in
     let absolute_path = Path.append name (Env.modpath env) in
     let labels =
       Array.map
@@ -365,26 +367,34 @@ let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
           let typ = typeof_annot ~typedef:true temp_env loc type_expr in
           let ftyp =
             let get_decl = Hashtbl.find (Env.decl_tbl env) in
-            match
-              recursion_allowed get_decl instantiate_sub ~params absolute_path
-                typ
-            with
-            | Ok (Some (typ, has_base)) ->
-                if not has_base then
-                  raise (Error (loc, "Recursive type has no base case"));
-                recurs := true;
-                typ
-            | Ok None -> typ
+            match recursion_allowed get_decl ~params absolute_path typ with
+            | Ok (meta, sometyp) ->
+                if is_polymorphic typ then (
+                  has_base := meta.has_base;
+                  behind_ptr := meta.params_behind_ptr);
+                if meta.is_recursive then (
+                  if not meta.has_base then
+                    raise (Error (loc, "Recursive type has no base case"));
+                  recurs := true;
+                  Option.get sometyp)
+                else typ
             | Error msg -> raise (Error (loc, msg))
           in
           { fname; ftyp; mut })
         labels
     in
 
-    (labels, params, !recurs)
+    (labels, params)
   in
 
-  let decl = { params; kind = Drecord (recurs, labels); in_sgn } in
+  let meta =
+    {
+      is_recursive = !recurs;
+      has_base = !has_base;
+      params_behind_ptr = !behind_ptr;
+    }
+  in
+  let decl = { params; kind = Drecord (meta, labels); in_sgn } in
   (* Make sure that each type name only appears once per module *)
   check_type_unique ~in_sgn env loc name;
   (Env.add_type name decl env, decl)
@@ -444,6 +454,7 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
 
   let recurs = ref false in
   let has_base = ref false in
+  let behind_ptr = ref None in
   let absolute_path = Path.append name (Env.modpath env) in
   let ctors =
     List.map
@@ -465,17 +476,19 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
             let typ = typeof_annot ~typedef:true temp_env loc annot in
             let typ =
               let get_decl = Hashtbl.find (Env.decl_tbl env) in
-              match
-                recursion_allowed get_decl instantiate_sub ~params absolute_path
-                  typ
-              with
-              | Ok (Some (typ, hasbase)) ->
-                  if hasbase then has_base := true;
-                  recurs := true;
-                  typ
-              | Ok None ->
-                  has_base := true;
-                  typ
+              match recursion_allowed get_decl ~params absolute_path typ with
+              | Ok (meta, sometyp) ->
+                  if is_polymorphic typ then (
+                    has_base := !has_base || meta.has_base;
+                    behind_ptr :=
+                      match !behind_ptr with
+                      | None -> Some meta.params_behind_ptr
+                      | Some b -> Some (b && meta.params_behind_ptr))
+                  else has_base := true;
+                  if meta.is_recursive then (
+                    recurs := true;
+                    Option.get sometyp)
+                  else typ
               | Error msg -> raise (Error (loc, msg))
             in
             {
@@ -489,7 +502,15 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
   if !recurs && not !has_base then
     raise (Error (loc, "Recursive type has no base case"));
 
-  let decl = { params; kind = Dvariant (!recurs, ctors); in_sgn } in
+  let behind_ptr = match !behind_ptr with None -> false | Some b -> b in
+  let meta =
+    {
+      is_recursive = !recurs;
+      has_base = !has_base;
+      params_behind_ptr = behind_ptr;
+    }
+  in
+  let decl = { params; kind = Dvariant (meta, ctors); in_sgn } in
   (* Make sure that each type name only appears once per module *)
   check_type_unique ~in_sgn env loc name;
   (Env.add_type name decl env, decl)

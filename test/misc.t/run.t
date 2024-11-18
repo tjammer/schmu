@@ -1406,3 +1406,7 @@ case and don't need to be allocated.
 Weak rcs
   $ schmu weak_rc.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./weak_rc
+
+Cyclic ref counts
+  $ schmu rc_cycle.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./rc_cycle

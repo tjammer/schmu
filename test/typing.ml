@@ -1446,6 +1446,12 @@ let test_rec_type_record_wrap () =
 type wrap['a] = { a : option['a] }
 type t = { a : rc[wrap[t]] }|}
 
+let test_rec_type_record_wrap_norc () =
+  test_exn "Infinite type"
+    {|type option['a] = None | Some('a)
+type wrap['a] = { a : option['a] }
+type t = { a : option[wrap[t]] }|}
+
 let test_rec_type_record_wrap_twice () =
   test "unit"
     {|type option['a] = None | Some('a)
@@ -1946,6 +1952,7 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "record some nobase" test_rec_type_record_some_nobase;
           case "record variant base" test_rec_type_record_variant_base;
           case "record wrap" test_rec_type_record_wrap;
+          case "record wrap no rc" test_rec_type_record_wrap_norc;
           case "record wrap twice" test_rec_type_record_wrap_twice;
         ] );
     ]
