@@ -1754,10 +1754,21 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
   (* Emit code to file *)
   if release then (
     let pm = Llvm.PassManager.create () in
+
+    Llvm_ipo.add_function_inlining pm;
+    Llvm_ipo.add_dead_arg_elimination pm;
+    Llvm_ipo.add_constant_merge pm;
+    Llvm_ipo.add_global_optimizer pm;
+    Llvm_ipo.add_function_attrs pm;
+
     let bldr = Llvm_passmgr_builder.create () in
     Llvm_passmgr_builder.set_opt_level 2 bldr;
     Llvm_passmgr_builder.populate_module_pass_manager pm bldr;
-    Llvm.PassManager.run_module the_module pm |> ignore);
+
+    (* if not modul then Llvm_ipo.add_internalize pm ~all_but_main:true; *)
+    for _ = 0 to 4 do
+      Llvm.PassManager.run_module the_module pm |> ignore
+    done);
 
   TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile
     (outname ^ ".o") machine
