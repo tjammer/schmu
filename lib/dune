@@ -7,6 +7,7 @@
   llvm.all_backends.static
   llvm.analysis.static
   llvm.debuginfo.static
+  llvm.ipo.static
   llvm.passmgr_builder.static
   llvm.scalar_opts.static
   llvm.target.static
