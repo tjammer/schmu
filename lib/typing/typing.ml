@@ -597,6 +597,17 @@ end = struct
 
     aux 0 [] args params
 
+  let rec extend_arg loc e arg =
+    let open Ast in
+    match e with
+    | App (aloc, callee, args) ->
+        (* Extend location *)
+        let expr = App ((fst aloc, snd loc), callee, args @ [ arg ]) in
+        expr
+    | Extend_arg (iloc, ie, iarg) ->
+        extend_arg loc (extend_arg iloc ie iarg) arg
+    | _ -> raise (Error (loc, "Cannot extend argument of non-call expression"))
+
   let rec convert env expr = convert_annot env None expr
 
   and convert_annot env annot = function
@@ -633,7 +644,7 @@ end = struct
     | Set (loc, expr, value) -> convert_set env loc expr value
     | Do_block stmts -> convert_block_annot ~ret:true env annot stmts |> fst
     | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
-    | Pipe_tail (loc, e1, e2) -> convert_pipe_tail env loc e1 e2
+    | Extend_arg (loc, e, arg) -> convert env (extend_arg loc e arg)
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, pass, expr, cases) -> convert_match env loc pass expr cases
     | Local_use (loc, name, expr) ->
@@ -1055,6 +1066,23 @@ end = struct
           with Error _ ->
             unify (loc, msg) (Tconstr (Path.Pid "int or float", [])) e.typ env;
             failwith "unreachable"))
+    | ">" -> (
+        let (* Curry first argument *)
+        open Ast in
+        let decl =
+          { loc; pattern = Pvar ((loc, "__it"), Dnorm); annot = None }
+        in
+        match expr with
+        | App (aloc, callee, args) ->
+            let fstarg =
+              { apass = Dnorm; aloc = loc; aexpr = Var (loc, "__it") }
+            in
+            let block = Expr (aloc, App (aloc, callee, fstarg :: args)) :: [] in
+            let expr = Lambda (loc, [ decl ], [], None, block) in
+            convert env expr
+        | Extend_arg (loc, e, arg) ->
+            convert_unop env loc unop (extend_arg loc e arg)
+        | _ -> raise (Error (loc, "Cannot curry expression")))
     | _ -> raise (Error (fst unop, "Custom unary operators are not supported"))
 
   and convert_if env loc cond e1 e2 =
@@ -1126,20 +1154,6 @@ end = struct
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1.aexpr) None
     | Pip_expr (Fmt (loc, l)) -> convert_fmt env loc (e1.aexpr :: l)
-    | Pip_expr e2 ->
-        (* Should be a lone id, if not we let it fail in _app *)
-        convert_app ~switch_uni env loc e2 [ e1 ]
-
-  and convert_pipe_tail env loc e1 e2 =
-    let switch_uni = true in
-    match e2 with
-    | Pip_expr (App (loc, callee, args)) ->
-        (* Add e1 to beginnig of args *)
-        convert_app ~switch_uni env loc callee (args @ [ e1 ])
-    | Pip_expr (Ctor (loc, name, expr)) ->
-        if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
-        convert_ctor env loc name (Some e1.aexpr) None
-    | Pip_expr (Fmt (loc, l)) -> convert_fmt env loc (l @ [ e1.aexpr ])
     | Pip_expr e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]

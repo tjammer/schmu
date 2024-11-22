@@ -1,3 +1,4 @@
+import iter
 import option
 import prelude
 
@@ -161,9 +162,9 @@ fun reserve(arr&, size) {
 
 fun reverse(arr&) {
   let length = length(arr)
-  iter_range(0, length / 2, fun i {
+  iter/(range(0, length / 2) ~> iter(fun i {
     swap_items(&arr, i, length - i - 1)
-  })
+  }))
 }
 
 fun empty(arr): length(arr) == 0

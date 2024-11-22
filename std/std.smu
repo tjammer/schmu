@@ -3,6 +3,7 @@ import float
 import hashtbl
 import in_channel
 import int
+import iter
 import option
 import prelude
 import string
@@ -26,6 +27,7 @@ module float = float
 module hashtbl = hashtbl
 module in_channel = in_channel
 module int = int
+module iter = iter
 module option = option
 module string = string
 module sys = sys

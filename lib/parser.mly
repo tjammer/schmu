@@ -56,6 +56,7 @@
 %token <string> Builtin_id
 %token Val
 %token Rec
+%token Tilde
 
 /* ops  */
 
@@ -79,6 +80,8 @@
 %left Plus_op
 %left Mult_op
 %left Dot
+%nonassoc Curry_fst
+%left Tilde
 %left Lcurly
 %left Lbrack
 %left Lpar
@@ -290,7 +293,7 @@ expr_no_ident:
     { let a = {apass = Dnorm; aloc = $loc(a); aexpr = a} in
       let b = {apass = Dnorm; aloc = $loc(b); aexpr = b} in
       App ($loc, Var($loc(infix), infix), [a; b]) }
-  | op = Plus_op; expr = expr { Unop ($loc, ($loc(op), op), expr) }
+  | op = unop; expr = expr; %prec Curry_fst { Unop ($loc, ($loc(op), op), expr) }
   | If; cond = expr; block = block; ifcont = ifcont
     { If($loc, cond, Do_block block, ifcont) }
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
@@ -301,6 +304,8 @@ expr_no_ident:
   | aexpr = expr; Dot; Lpar; callee = expr; Rpar; args = parens(call_arg)
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
+  | expr = expr; Tilde; aexpr = expr
+    { Extend_arg ($loc, expr, { aexpr; apass = Dnorm; aloc = $loc(aexpr) }) }
   | expr = expr; Dot; Fmt; args = parens(expr)
     { Fmt ($loc, expr :: args) }
   | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
@@ -326,6 +331,10 @@ expr_no_ident:
 expr:
   | ident = ident { Var ident }
   | expr = expr_no_ident { expr }
+
+%inline unop:
+  | op = Plus_op { op }
+  | op = Cmp_op { op }
 
 %inline dot_callee:
   | callee = ident { Var callee }

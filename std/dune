@@ -7,7 +7,7 @@
 
 (rule
  (targets array.o array.smi)
- (deps %{bin:schmu} array.smu prelude.smi option.smi)
+ (deps %{bin:schmu} array.smu prelude.smi option.smi iter.smi)
  (action
   (progn
    (run schmu --release -m --no-std array.smu))))
@@ -76,6 +76,13 @@
    (run schmu --release -m --no-std unsafe.smu))))
 
 (rule
+ (targets iter.o iter.smi)
+ (deps %{bin:schmu} iter.smu)
+ (action
+  (progn
+   (run schmu --release -m --no-std iter.smu))))
+
+(rule
  (alias stdlib)
  (targets std.o std.smi)
  (deps
@@ -89,6 +96,7 @@
   prelude.smi
   string.smi
   sys.smi
+  iter.smu
   unsafe.smi)
  (action
   (progn
@@ -129,6 +137,9 @@
   sys.smu
   (sys.smi as std/sys.smi)
   (sys.o as std/sys.o)
+  iter.smu
+  (iter.smi as std/iter.smi)
+  (iter.o as std/iter.o)
   unsafe.smu
   (unsafe.smi as std/unsafe.smi)
   (unsafe.o as std/unsafe.o)))

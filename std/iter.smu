@@ -1,0 +1,78 @@
+import prelude
+
+type exhausted = Continue | Exhausted
+type t['a] = (('a) -> unit) -> exhausted
+
+use prelude
+
+-- iter creators
+fun range(start, limit, consume) {
+ let state& = !start
+  fun aux(f) {
+    f(state)
+    if state == limit - 1 { Exhausted }
+    else {
+      &state = state + 1
+      Continue
+    }
+  }
+  consume(aux)
+}
+
+-- iter manipulators
+fun filter(it, predicate, consume) {
+  fun rec aux(f) {
+    let pass& = true
+    match it(fun v: if predicate(v) { f(v) } else { &pass = false }) {
+      Exhausted: Exhausted
+      Continue: {
+        if pass { Continue } -- value was used, not exhausted
+        else { aux(f) } -- try again
+      }
+    }
+  }
+  consume(aux)
+}
+
+fun take(it, num, consume) {
+  let curr& = 0
+  fun aux(f) {
+    match it(f) {
+      Exhausted: Exhausted
+      Continue: {
+        if curr == num - 1 { Exhausted }
+        else {
+          &curr = curr + 1
+          Continue
+        }
+      }
+    }
+  }
+  consume(aux)
+}
+
+-- iter consumers
+fun fold(it, init!, fn) {
+  fun rec inner(accum!) {
+    let accum& = !accum
+    match it(fun v {
+      let acc = fn(!accum, v)
+      &accum = acc
+    }) {
+      Exhausted: accum
+      Continue: inner(!accum)
+    }
+  }
+  inner(!init)
+}
+
+
+fun iter(it, fn) {
+  fun rec aux() {
+    match it(fn) {
+      Exhausted: ()
+      Continue: aux()
+    }
+  }
+  aux()
+}

@@ -46,7 +46,7 @@ and expr =
   | Set of loc * (loc * expr) * expr
   | Do_block of block
   | Pipe_head of loc * argument * pipeable
-  | Pipe_tail of loc * argument * pipeable
+  | Extend_arg of loc * expr * argument
   | Ctor of loc * ident * expr option
   | Match of loc * decl_attr * expr * (clause * expr) list
   | Local_use of loc * string * expr
