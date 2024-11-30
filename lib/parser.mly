@@ -362,7 +362,11 @@ clause_path:
       |> Option.get }
 
 clause:
-  | path = option(clause_path); pattern = match_pattern; Colon; expr = expr { $loc, path, pattern, expr }
+  | cpath = option(clause_path); cpat = match_pattern; guard = option(guard); Colon; expr = expr
+    { { cloc = $loc; cpath; cpat; guard }, expr }
+
+guard:
+  | And; expr = expr { $loc, expr }
 
 clauses:
   | clause = clause { [ clause ] }

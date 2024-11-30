@@ -109,27 +109,7 @@ let check_unused env unused unmutated =
   in
   List.iter err unused
 
-let string_of_bop = function
-  | Ast.Plus_i -> "+"
-  | Mult_i -> "*"
-  | Div_i -> "/"
-  | Less_i -> "<"
-  | Greater_i -> ">"
-  | Less_eq_i -> "<="
-  | Greater_eq_i -> ">="
-  | Equal_i -> ""
-  | Minus_i -> "-"
-  | Ast.Plus_f -> "+."
-  | Mult_f -> "*."
-  | Div_f -> ">."
-  | Less_f -> "<."
-  | Greater_f -> ">."
-  | Less_eq_f -> "<=."
-  | Greater_eq_f -> ">=."
-  | Equal_f -> "=."
-  | Minus_f -> "-."
-  | And -> "and"
-  | Or -> "or"
+let string_of_bop = function Ast.Equal_i -> "==" | And -> "and" | Or -> "or"
 
 let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   let fn_kind = if param then Closure [] else Simple in
@@ -1048,12 +1028,7 @@ end = struct
 
     let typ, (t1, t2, const) =
       match bop with
-      | Ast.Plus_i | Mult_i | Minus_i | Div_i -> (tint, check tint)
-      | Less_i | Equal_i | Greater_i | Less_eq_i | Greater_eq_i ->
-          (tbool, check tint)
-      | Plus_f | Mult_f | Minus_f | Div_f -> (tfloat, check tfloat)
-      | Less_f | Equal_f | Greater_f | Less_eq_f | Greater_eq_f ->
-          (tbool, check tfloat)
+      | Equal_i -> (tbool, check tint)
       | And | Or -> (tbool, check tbool)
     in
     { typ; expr = Bop (bop, t1, t2); attr = { no_attr with const }; loc }

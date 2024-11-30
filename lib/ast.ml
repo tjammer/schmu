@@ -1,29 +1,8 @@
 type loc = (Lexing.position * Lexing.position[@opaque]) [@@deriving show]
 type ident = loc * string
-
-type bop =
-  | Plus_i
-  | Mult_i
-  | Div_i
-  | Less_i
-  | Greater_i
-  | Less_eq_i
-  | Greater_eq_i
-  | Equal_i
-  | Minus_i
-  | Plus_f
-  | Mult_f
-  | Div_f
-  | Less_f
-  | Greater_f
-  | Less_eq_f
-  | Greater_eq_f
-  | Equal_f
-  | Minus_f
-  | And
-  | Or
-[@@deriving show, sexp]
-(* Eventually, this will be handled differently, hopefully not as hardcoded *)
+type bop = Equal_i | And | Or [@@deriving show, sexp]
+(* Equal_i is used in pattern matches, so we keep it even though it is also
+   defined as a builtin function *)
 
 type unop = Uminus_i | Uminus_f [@@deriving show, sexp]
 
@@ -69,10 +48,16 @@ and expr =
   | Pipe_head of loc * argument * pipeable
   | Pipe_tail of loc * argument * pipeable
   | Ctor of loc * ident * expr option
-  | Match of
-      loc * decl_attr * expr * (loc * Path.t option * pattern * expr) list
+  | Match of loc * decl_attr * expr * (clause * expr) list
   | Local_use of loc * string * expr
   | Fmt of loc * expr list
+
+and clause = {
+  cloc : loc;
+  cpath : Path.t option;
+  cpat : pattern;
+  guard : (loc * expr) option;
+}
 
 and pipeable = Pip_expr of expr
 

@@ -346,55 +346,8 @@ end = struct
     in
     let open Llvm in
     match bop with
-    | Plus_i ->
-        { value = bld build_add "add"; typ = Tint; lltyp = int_t; kind = Imm }
-    | Minus_i ->
-        { value = bld build_sub "sub"; typ = Tint; lltyp = int_t; kind = Imm }
-    | Mult_i ->
-        { value = bld build_mul "mul"; typ = Tint; lltyp = int_t; kind = Imm }
-    | Div_i ->
-        { value = bld build_sdiv "div"; typ = Tint; lltyp = int_t; kind = Imm }
-    | Less_i ->
-        let value = bld (build_icmp Icmp.Slt) "lt" in
-        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
-    | Greater_i ->
-        let value = bld (build_icmp Icmp.Sgt) "gt" in
-        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
-    | Less_eq_i ->
-        let value = bld (build_icmp Icmp.Sle) "le" in
-        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
-    | Greater_eq_i ->
-        let value = bld (build_icmp Icmp.Sge) "ge" in
-        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
     | Equal_i ->
         let value = bld (build_icmp Icmp.Eq) "eq" in
-        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
-    | Plus_f ->
-        let value = bld build_fadd "add" in
-        { value; typ = Tfloat; lltyp = float_t; kind = Imm }
-    | Minus_f ->
-        let value = bld build_fsub "sub" in
-        { value; typ = Tfloat; lltyp = float_t; kind = Imm }
-    | Mult_f ->
-        let value = bld build_fmul "mul" in
-        { value; typ = Tfloat; lltyp = float_t; kind = Imm }
-    | Div_f ->
-        let value = bld build_fdiv "div" in
-        { value; typ = Tfloat; lltyp = float_t; kind = Imm }
-    | Less_f ->
-        let value = bld (build_fcmp Fcmp.Olt) "lt" in
-        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
-    | Greater_f ->
-        let value = bld (build_fcmp Fcmp.Ogt) "gt" in
-        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
-    | Less_eq_f ->
-        let value = bld (build_fcmp Fcmp.Ole) "le" in
-        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
-    | Greater_eq_f ->
-        let value = bld (build_fcmp Fcmp.Oge) "ge" in
-        { value; typ = Tbool; lltyp = bool_t; kind = Imm }
-    | Equal_f ->
-        let value = bld (build_fcmp Fcmp.Oeq) "eq" in
         { value; typ = Tbool; lltyp = bool_t; kind = Imm }
     | And ->
         let cond1 = gen e1 |> bring_default in

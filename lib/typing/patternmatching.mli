@@ -39,7 +39,7 @@ module type S = sig
     Ast.loc ->
     Ast.decl_attr ->
     Ast.expr ->
-    (Ast.loc * Path.t option * Ast.pattern * Ast.expr) list ->
+    (Ast.clause * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val pattern_id : int -> Ast.pattern -> string * Ast.loc * bool * Ast.decl_attr

@@ -781,8 +781,16 @@ struct
     ignore (List.fold_left f start_index params)
 
   let var_index var =
-    let tagptr = Llvm.build_struct_gep var.lltyp var.value 0 "tag" builder in
-    let value = Llvm.build_load i32_t tagptr "index" builder in
+    let value =
+      match var.kind with
+      | Const_ptr | Ptr ->
+          let tagptr =
+            Llvm.build_struct_gep var.lltyp var.value 0 "tag" builder
+          in
+          Llvm.build_load i32_t tagptr "index" builder
+      | Const -> Llvm.(const_extractelement var.value (const_int i32_t 0))
+      | Imm -> failwith "Did not expect Imm in var_index"
+    in
     { value; typ = Ti32; lltyp = i32_t; kind = Imm }
 
   let var_data var typ =

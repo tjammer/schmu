@@ -614,7 +614,7 @@ match Some(10) {Some(1): 1 | Some(10): 10 | Some(_): 0 | None: -1}
 |}
 
 let test_match_int_wildcard_missing () =
-  test_exn "Pattern match is not exhaustive. Missing cases: "
+  test_exn "Pattern match is not exhaustive. Missing cases: Some"
     {|type option['a] = None | Some('a)
 match Some(10) {Some(1): 1 | Some(10): 10 | None: -1}|}
 
@@ -639,7 +639,51 @@ let test_match_or_missing_var () =
 
 let test_match_or_redundant () =
   test_exn "Pattern match case is redundant"
-    "match (1, 2) {(a, 1) | (a, 2) | (a, 1): a | _: -1}"
+    "match (1, 2) { (a, 1) | (a, 2) | (a, 1): a | _: {-1}}"
+
+let test_match_guard_positive () =
+  test "unit"
+    {|type option['a] = None | Some('a)
+match Some(0) {
+  Some(_) and true: { () }
+  Some(_): { () }
+  None: { () }
+}|}
+
+let test_match_guard_after () =
+  test_exn "Pattern match case is redundant"
+    {|type option['a] = None | Some('a)
+match Some(0) {
+  Some(_): { () }
+  Some(_) and true: { () }
+  None: { () }
+}|}
+
+let test_match_guard_missing () =
+  test_exn "Pattern match is not exhaustive. Missing cases: Some"
+    {|type option['a] = None | Some('a)
+match Some(0) {
+  Some(_) and true: { () }
+  None: { () }
+}|}
+
+let test_match_guard_missing_spec () =
+  test_exn "Pattern match is not exhaustive. Missing cases: Some"
+    {|type option['a] = None | Some('a)
+match Some(0) {
+  Some(_) and true: { () }
+  Some(1): { () }
+  None: { () }
+}|}
+
+let test_match_guard_dont_leak_vars () =
+  test_exn "No var named a"
+    {|type option['a] = None | Some('a)
+match Some(0) {
+  Some(a) and true: { ignore(a) }
+  Some(_): a
+  None: { println("none") }
+}|}
 
 let test_multi_record2 () =
   test "foo[int, bool]"
@@ -1644,6 +1688,11 @@ let () =
           case "or" test_match_or;
           case "or missing var" test_match_or_missing_var;
           case "or redundant" test_match_or_redundant;
+          case "guard positive" test_match_guard_positive;
+          case "guard after" test_match_guard_after;
+          case "guard missing" test_match_guard_missing;
+          case "guard missing spec" test_match_guard_missing_spec;
+          case "guard no var leak" test_match_guard_dont_leak_vars;
         ] );
       ( "multi params",
         [

@@ -1010,6 +1010,14 @@ prog: Match False Lcurly Ident Hbar Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Match False Lcurly Ident And With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match False Lcurly Ident And False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Match False Lcurly Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
