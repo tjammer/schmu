@@ -195,7 +195,7 @@ Drop last element
   !12 = !DILocation(line: 5, scope: !7)
   !13 = !DILocation(line: 7, column: 6, scope: !7)
   !14 = !DILocation(line: 7, column: 31, scope: !7)
-  !15 = !DILocation(line: 7, column: 51, scope: !7)
+  !15 = !DILocation(line: 7, column: 50, scope: !7)
   2
   some
   1

@@ -492,11 +492,11 @@ let test_lor_other_variant () =
 
 let test_match_all () =
   test "int"
-    "type option['a] = None | Some('a); match Some(1) { Some(a): a | None: -1}"
+    "type option['a] = None | Some('a); match Some(1) { Some(a): a; None: -1}"
 
 let test_match_redundant () =
   test_exn "Pattern match case is redundant"
-    "type option['a] = None | Some('a); match Some(1){ a: a | None: -1}"
+    "type option['a] = None | Some('a); match Some(1){ a: a; None: -1}"
 
 let test_match_missing () =
   test_exn "Pattern match is not exhaustive. Missing cases: Some"
@@ -517,12 +517,12 @@ match None {
 let test_match_all_after_ctor () =
   test "int"
     {|type option['a] = None | Some('a)
-match Some(1) {None: -1 | a: 0}|}
+match Some(1) {None: -1; a: 0}|}
 
 let test_match_all_before_ctor () =
   test_exn "Pattern match case is redundant"
     {|type option['a] = None | Some('a)
-match Some(1) {a: 0 | None: -1}|}
+match Some(1) {a: 0; None: -1}|}
 
 let test_match_redundant_all_cases () =
   test_exn "Pattern match case is redundant"
@@ -539,7 +539,7 @@ match None {
 let test_match_wildcard () =
   test_exn "Pattern match case is redundant"
     {|type option['a] = None | Some('a)
-match Some(1) {_: 0 | None: -1}|}
+match Some(1) {_: 0; None: -1}|}
 
 let test_match_wildcard_nested () =
   test_exn "Pattern match case is redundant"
@@ -610,36 +610,36 @@ match Some({a = Some(2), b = 53.0}) {
 let test_match_int () =
   test "int"
     {|type option['a] = None | Some('a)
-match Some(10) {Some(1): 1 | Some(10): 10 | Some(_): 0 | None: -1}
+match Some(10) {Some(1): 1; Some(10): 10; Some(_): 0; None: -1}
 |}
 
 let test_match_int_wildcard_missing () =
   test_exn "Pattern match is not exhaustive. Missing cases: Some"
     {|type option['a] = None | Some('a)
-match Some(10) {Some(1): 1 | Some(10): 10 | None: -1}|}
+match Some(10) {Some(1): 1; Some(10): 10; None: -1}|}
 
 let test_match_int_twice () =
   test_exn "Pattern match case is redundant"
     {|
 type option['a] = None | Some('a)
-match Some(10) {Some(1): 1 | Some(10): 10 | Some(10): 10 | Some(_): 0 | None: -1}
+match Some(10) {Some(1): 1; Some(10): 10; Some(10): 10; Some(_): 0; None: -1}
 |}
 
 let test_match_int_after_catchall () =
   test_exn "Pattern match case is redundant"
     {|
 type option['a] = None | Some('a)
-match Some(10) {Some(1): 1 | Some(_): 10 | Some(10): 10 | None: -1}
+match Some(10) {Some(1): 1; Some(_): 10; Some(10): 10; None: -1}
 |}
 
-let test_match_or () = test "int" "match (1, 2) {(a, 1) | (a, 2): a | _: -1}"
+let test_match_or () = test "int" "match (1, 2) {(a, 1) | (a, 2): a;  _: -1}"
 
 let test_match_or_missing_var () =
-  test_exn "No var named a" "match (1, 2) {(a, 1) | (b, 2): a | _: -1}"
+  test_exn "No var named a" "match (1, 2) {(a, 1) | (b, 2): a; _: -1}"
 
 let test_match_or_redundant () =
   test_exn "Pattern match case is redundant"
-    "match (1, 2) { (a, 1) | (a, 2) | (a, 1): a | _: {-1}}"
+    "match (1, 2) { (a, 1) | (a, 2) | (a, 1): a; _: {-1}}"
 
 let test_match_guard_positive () =
   test "unit"

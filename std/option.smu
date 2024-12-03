@@ -34,9 +34,9 @@ fun bind(opt, f) {
 }
 
 fun is_some(opt) {
-  match opt { Some(_): true | None: false }
+  match opt { Some(_): true; None: false }
 }
 
 fun is_none(opt) {
-  match opt { Some(_): false | None: true }
+  match opt { Some(_): false; None: true }
 }

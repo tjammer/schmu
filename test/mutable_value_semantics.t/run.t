@@ -1358,7 +1358,7 @@ Refcounts for members in arrays, records and variants
   !3 = !DIFile(filename: "member_refcounts.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 14, column: 9, scope: !2)
+  !6 = !DILocation(line: 14, column: 10, scope: !2)
   !7 = !DILocation(line: 14, column: 46, scope: !2)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./member_refcounts
   10

@@ -777,8 +777,8 @@ Piping for ctors and field accessors
   !12 = !DILocation(line: 10, column: 6, scope: !8)
   !13 = !DILocation(line: 14, column: 10, scope: !8)
   !14 = !DILocation(line: 15, scope: !8)
-  !15 = !DILocation(line: 17, column: 16, scope: !8)
-  !16 = !DILocation(line: 17, column: 34, scope: !8)
+  !15 = !DILocation(line: 17, scope: !8)
+  !16 = !DILocation(line: 17, column: 33, scope: !8)
   
   2
   1

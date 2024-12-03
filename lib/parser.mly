@@ -47,6 +47,7 @@
 %token Fmt
 %token Hbar
 %token Match
+%token Matches
 %token Quote
 %token Type
 %token External
@@ -73,12 +74,13 @@
 
 %nonassoc Ctor
 
+%left Matches
 %left And Or
 %left Eq_op
 %left Cmp_op
 %left Plus_op
 %left Mult_op
-%left Dot Ampersand Exclamation
+%left Dot
 %left Lcurly
 %left Lbrack
 %left Lpar
@@ -286,6 +288,8 @@ expr_no_ident:
   | ident = infix { Var ($loc(ident), ident) }
   | lit = lit { Lit ($loc, lit) }
   | a = expr; bop = binop; b = expr { Bop ($loc, bop, a, b) }
+  /* | a = expr; Hbar; b = expr { Bop ($loc, And, a, b) } */
+  | a = expr; Matches; pattern { Bop ($loc, And, a, Lit ($loc, Unit)) }
   | a = expr; infix = infix; b = expr
     { let a = {apass = Dnorm; aloc = $loc(a); aexpr = a} in
       let b = {apass = Dnorm; aloc = $loc(b); aexpr = b} in
@@ -300,9 +304,6 @@ expr_no_ident:
       Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
   | aexpr = expr; Dot; Lpar; callee = expr; Rpar; args = parens(call_arg)
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
-      Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
-  | aexpr = expr; apass = decl_attr; callee = dot_callee; args = parens(call_arg)
-    { let arg = {apass; aexpr; aloc = $loc(aexpr)} in
       Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
   | expr = expr; Dot; Fmt; args = parens(expr)
     { Fmt ($loc, expr :: args) }
@@ -320,7 +321,7 @@ expr_no_ident:
   | upcases = upcases { upcases }
   | Lcurly; record = expr; With; items = separated_nonempty_trailing_list(Comma, record_item, Rcurly)
     { Record_update ($loc, record, items) }
-  | Match; expr = passed(expr); Lcurly; option(Hbar); clauses = clauses; Rcurly
+  | Match; expr = passed(expr); Lcurly; clauses = clauses; Rcurly
     { Match (($startpos, $endpos(expr)), fst expr, snd expr, clauses) }
   | Ampersand; expr = expr; Equal; newval = expr; %prec Below_Ampersand
     { Set ($loc, ($loc(expr), expr), newval) }
@@ -370,9 +371,7 @@ guard:
 
 clauses:
   | clause = clause { [ clause ] }
-  | clause = clause; Hbar; clauses = separated_nonempty_list(Hbar, clause)
-    { clause :: clauses }
-  | clause = clause; Semicolon; clauses = separated_nonempty_list(Semicolon, clause)
+  | clause = clause; Semicolon; clauses = clauses
     { clause :: clauses }
 
 special_builtins:
