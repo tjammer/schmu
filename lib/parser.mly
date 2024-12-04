@@ -47,7 +47,6 @@
 %token Fmt
 %token Hbar
 %token Match
-%token Matches
 %token Quote
 %token Type
 %token External
@@ -74,7 +73,6 @@
 
 %nonassoc Ctor
 
-%left Matches
 %left And Or
 %left Eq_op
 %left Cmp_op
@@ -288,8 +286,6 @@ expr_no_ident:
   | ident = infix { Var ($loc(ident), ident) }
   | lit = lit { Lit ($loc, lit) }
   | a = expr; bop = binop; b = expr { Bop ($loc, bop, a, b) }
-  /* | a = expr; Hbar; b = expr { Bop ($loc, And, a, b) } */
-  | a = expr; Matches; pattern { Bop ($loc, And, a, Lit ($loc, Unit)) }
   | a = expr; infix = infix; b = expr
     { let a = {apass = Dnorm; aloc = $loc(a); aexpr = a} in
       let b = {apass = Dnorm; aloc = $loc(b); aexpr = b} in
