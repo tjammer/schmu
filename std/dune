@@ -77,7 +77,7 @@
 
 (rule
  (targets iter.o iter.smi)
- (deps %{bin:schmu} iter.smu)
+ (deps %{bin:schmu} iter.smu prelude.smi)
  (action
   (progn
    (run schmu --release -m --no-std iter.smu))))
