@@ -53,6 +53,7 @@
   %{bin:schmu}
   in_channel.smu
   array.smi
+  iter.smi
   option.smi
   prelude.smi
   string.smi

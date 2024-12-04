@@ -1,12 +1,25 @@
 import prelude
 
-type exhausted = Continue | Exhausted
-type t['a] = (('a) -> unit) -> exhausted
+signature {
+  type exhausted = Continue | Exhausted
+  type t['a] = (('a) -> unit) -> exhausted
+  type consumer['a, 'b] = (t['a]) -> 'b
 
+  -- creators
+  val range : (int, int, consumer[int, 'a]) -> 'a
+
+  -- manipulators
+  val filter : (t['a], ('a) -> bool, consumer['a, 'b]) -> 'b
+  val take : (t['a], int, consumer['a, 'b]) -> 'b
+
+  -- consumers
+  val fold : (t['a], 'b!, ('b!, 'a) -> 'b) -> 'b
+  val iter : (t['a], ('a) -> unit) -> unit
+}
 use prelude
 
 -- iter creators
-fun range(start, limit, consume) {
+fun range(start, limit, consume : consumer[int, 'b]) {
  let state& = !start
   fun aux(f) {
     f(state)
@@ -36,7 +49,7 @@ fun filter(it, predicate, consume) {
 
 fun take(it, num, consume) {
   let curr& = 0
-  fun aux(f) {
+  fun aux(f : ('a) -> unit) {
     match it(f) {
       Exhausted: Exhausted
       Continue: {
@@ -67,7 +80,7 @@ fun fold(it, init!, fn) {
 }
 
 
-fun iter(it, fn) {
+fun iter(it : t['a], fn : ('a) -> unit) {
   fun rec aux() {
     match it(fn) {
       Exhausted: ()
