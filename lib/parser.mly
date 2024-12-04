@@ -56,7 +56,6 @@
 %token <string> Builtin_id
 %token Val
 %token Rec
-%token Tilde
 
 /* ops  */
 
@@ -81,7 +80,7 @@
 %left Mult_op
 %left Dot
 %nonassoc Curry_fst
-%left Tilde
+%left Hbar
 %left Lcurly
 %left Lbrack
 %left Lpar
@@ -304,7 +303,7 @@ expr_no_ident:
   | aexpr = expr; Dot; Lpar; callee = expr; Rpar; args = parens(call_arg)
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
-  | expr = expr; Tilde; aexpr = expr
+  | expr = expr; Hbar; aexpr = expr
     { Extend_arg ($loc, expr, { aexpr; apass = Dnorm; aloc = $loc(aexpr) }) }
   | expr = expr; Dot; Fmt; args = parens(expr)
     { Fmt ($loc, expr :: args) }

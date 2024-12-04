@@ -162,7 +162,7 @@ fun reserve(arr&, size) {
 
 fun reverse(arr&) {
   let length = length(arr)
-  iter/(range(0, length / 2) ~> iter(fun i {
+  iter/(range(0, length / 2) |> iter(fun i {
     swap_items(&arr, i, length - i - 1)
   }))
 }

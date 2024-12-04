@@ -646,11 +646,27 @@ prog: Ampersand False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Tilde With
+prog: False Plus_op With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Tilde False Wildcard
+prog: False Plus_op False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Mult_op With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Mult_op False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Hbar With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Hbar False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -666,19 +682,19 @@ prog: False Hash Lbrack False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Plus_op With
+prog: False Or With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Plus_op False Wildcard
+prog: False Or False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Mult_op With
+prog: False Eq_op With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Mult_op False Wildcard
+prog: False Eq_op False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -699,22 +715,6 @@ prog: False Dot Lpar False Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Dot Lpar False Rpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Or With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Or False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Eq_op With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Eq_op False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

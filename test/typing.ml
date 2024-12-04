@@ -1443,10 +1443,10 @@ A
 let test_syntax_noparens_tuple () = test "(float, int)" "1.0, 1"
 
 let test_syntax_extend_arg () =
-  test "int" "fun add3(a, b, c) { a + b + c }; add3(0, 1) ~ 2"
+  test "int" "fun add3(a, b, c) { a + b + c }; add3(0, 1) | 2"
 
 let test_syntax_extend_arg_mult () =
-  test "int" "fun add3(a, b, c) { a + b + c }; add3(0) ~ 1 ~ 2"
+  test "int" "fun add3(a, b, c) { a + b + c }; add3(0) | 1 | 2"
 
 let test_rec_type_pos () =
   test "unit" "type list['a] = Nil | Cons('a, rc[list])"

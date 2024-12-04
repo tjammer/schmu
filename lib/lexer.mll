@@ -151,7 +151,6 @@ rule read =
   | "rec"    { Rec }
   | '|'      { Hbar }
   | ';'      { Semicolon }
-  | '~'      { Tilde }
   | ident    { Ident (Lexing.lexeme lexbuf) }
   | builtin_id { Builtin_id (Lexing.lexeme lexbuf) }
   | path_id  { Path_id (Lexing.lexeme lexbuf |> mut_of_string) }
