@@ -292,7 +292,8 @@ expr_no_ident:
     { let a = {apass = Dnorm; aloc = $loc(a); aexpr = a} in
       let b = {apass = Dnorm; aloc = $loc(b); aexpr = b} in
       App ($loc, Var($loc(infix), infix), [a; b]) }
-  | op = unop; expr = expr; %prec Curry_fst { Unop ($loc, ($loc(op), op), expr) }
+  | op = Plus_op; expr = expr { Unop ($loc, ($loc(op), op), expr) }
+  | op = Cmp_op; expr = expr; %prec Curry_fst { Unop ($loc, ($loc(op), op), expr) }
   | If; cond = expr; block = block; ifcont = ifcont
     { If($loc, cond, Do_block block, ifcont) }
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
@@ -330,10 +331,6 @@ expr_no_ident:
 expr:
   | ident = ident { Var ident }
   | expr = expr_no_ident { expr }
-
-%inline unop:
-  | op = Plus_op { op }
-  | op = Cmp_op { op }
 
 %inline dot_callee:
   | callee = ident { Var callee }

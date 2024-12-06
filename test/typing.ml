@@ -1448,6 +1448,9 @@ let test_syntax_extend_arg () =
 let test_syntax_extend_arg_mult () =
   test "int" "fun add3(a, b, c) { a + b + c }; add3(0) | 1 | 2"
 
+let test_syntax_minus_field () =
+  test "int" "type a = { a : int }; let a = { a = 10 }; -a.a"
+
 let test_rec_type_pos () =
   test "unit" "type list['a] = Nil | Cons('a, rc[list])"
 
@@ -1994,6 +1997,7 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "noparens tuple" test_syntax_noparens_tuple;
           case "extend arg" test_syntax_extend_arg;
           case "extend arg mult" test_syntax_extend_arg_mult;
+          case "minus field" test_syntax_minus_field;
         ] );
       ( "recursive types",
         [

@@ -27,7 +27,7 @@ In channel module test
      let ic& = !ic
   read 33 bytes
       let buf& = array/create(4096)
-  read 1338 bytes
+  read 1334 bytes
       in_channel/readn(&ic, &buf, 50).ignore()
       let str& = !string/of_array(!buf)
       println(str)
@@ -82,7 +82,7 @@ In channel module test
   match in_channel/open("in_channel.smu") {
     Some(ic): {
       let ic& = !ic
-      in_channel/lines(&ic, fun line {println(line)})
+      in_channel/lines(&ic) |> iter/iter(println)
       in_channel/close(ic)
     }
     None: ()
@@ -146,7 +146,7 @@ In channel module test
   match in_channel/open("in_channel.smu") {
     Some(ic): {
       let ic& = !ic
-      in_channel/lines(&ic, fun line {println(line)})
+      in_channel/lines(&ic) |> iter/iter(println)
       in_channel/close(ic)
     }
     None: ()
@@ -210,7 +210,7 @@ In channel module test
   match in_channel/open("in_channel.smu") {
     Some(ic): {
       let ic& = !ic
-      in_channel/lines(&ic, fun line {println(line)})
+      in_channel/lines(&ic) |> iter/iter(println)
       in_channel/close(ic)
     }
     None: ()
