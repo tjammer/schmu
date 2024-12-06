@@ -220,3 +220,13 @@ Test unsafe/addr
   $ schmu unsafe_addr.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./unsafe_addr
   2
+
+Use iter and print with dot call
+  $ schmu iter_print.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./iter_print
+  0
+  2
+  4
+  6
+  8
+  20

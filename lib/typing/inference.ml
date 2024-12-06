@@ -202,6 +202,7 @@ module Pmap = Map.Make (Path)
    This is true for functions where we want to be as general as possible.
    We need to match everything for weak vars though *)
 let types_match ?(abstracts_map = Pmap.empty) l r =
+  let revmap = ref Smap.empty in
   let rec aux ~strict ~in_ps sub l r =
     if l == r then (r, sub, true)
     else
@@ -215,6 +216,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
           | Some id when String.equal rid id -> (l, sub, true)
           | Some _ -> (l, sub, false)
           | None ->
+              revmap := Smap.add rid l !revmap;
               (* We 'connect' left to right *)
               (l, Smap.add lid rid sub, true))
       | Tvar { contents = Unbound _ }, _ when not strict ->
@@ -324,6 +326,42 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
     | l, _ ->
         (* If we don't enconter a Qvar, don't transfer *)
         (l, ops)
+  and subst_closure = function
+    | Simple -> Simple
+    | Closure cls ->
+        let cls =
+          List.map
+            (fun cl ->
+              let cltyp = subst cl.cltyp in
+              { cl with cltyp })
+            cls
+        in
+        Closure cls
+  and subst = function
+    (* Substitute generic var [id] with [typ] *)
+    | Tvar { contents = Link t } -> subst t
+    | (Qvar id | Tvar { contents = Unbound (id, _) }) as t -> (
+        match Smap.find_opt id !revmap with Some t -> t | None -> t)
+    | Tfun (ps, ret, kind) ->
+        let ps =
+          List.map
+            (fun p ->
+              let pt = subst p.pt in
+              { p with pt })
+            ps
+        in
+        let ret = subst ret in
+        let kind = subst_closure kind in
+        Tfun (ps, ret, kind)
+    | Ttuple ts -> Ttuple (List.map subst ts)
+    | Tconstr (name, ps) ->
+        let ps = List.map subst ps in
+        Tconstr (name, ps)
+    | Tfixed_array (i, t) -> Tfixed_array (i, subst t)
   in
 
-  aux Smap.empty ~strict:false ~in_ps:true l r
+  let typ, sub, b = aux Smap.empty ~strict:false ~in_ps:true l r in
+  (* Wait until all substitutions are known, then substitute the type again.
+     Needed for closures, because the signature type does not have a closure to
+     substitute against. *)
+  (subst typ, sub, b)
