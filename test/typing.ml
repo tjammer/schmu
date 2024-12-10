@@ -840,6 +840,30 @@ fun use_generic(a : thing[unit]) {
 }
 |}
 
+let test_signature_deep_qvar_sg () =
+  test "unit"
+    {|type option['a] = None | Some('a)
+module nullvec {
+  signature {
+    type t['a]
+    val of_array : (array['a]!) -> t['a]
+  }
+
+  type t['a] = option[array['a]]
+
+  fun of_array(arr!): Some(arr)
+}
+
+fun find_missing_deps(_ : array[unit]): ()
+fun enqueue(_! : nullvec/t[unit]): 0
+
+fun deps! {
+  find_missing_deps(deps)
+  enqueue(nullvec/of_array(deps))
+}
+.ignore()
+|}
+
 let test_local_modules_find_local () =
   test "unit" (local_module ^ "let test : nosig/t = { a = 10 }")
 
@@ -1737,6 +1761,7 @@ let () =
             test_signature_concrete_of_generic_alias;
           case "generic of generic alias"
             test_signature_generic_of_generic_alias;
+          case "deep_qvar_sg" test_signature_deep_qvar_sg;
         ] );
       ( "local modules",
         [
