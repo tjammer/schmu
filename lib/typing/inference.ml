@@ -223,9 +223,18 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
           (* Unbound vars match every type *) (r, sub, true)
       | Tvar { contents = Link l }, r | l, Tvar { contents = Link r } ->
           aux ~strict ~in_ps sub l r
-      | Tconstr (n, [ t ]), (Qvar _ as q) when in_ps ->
-          let t, sub, b = aux ~strict ~in_ps sub t q in
-          (Tconstr (n, [ t ]), sub, b)
+      | Tconstr (_, [ _ ]), Qvar q when in_ps -> (
+          (* This case is allowed, but only if we don't violate matches we've
+             seen before. See [test_signature_deep_qvar_sg] and
+             [test_signature_dont_match_qvar] *)
+          match Smap.find_opt q !revmap with
+          | Some t ->
+            (* Don't trigger this case again through [in_ps]. We want to see if
+               the types really match. *)
+            aux ~strict ~in_ps:false sub l t
+          | None ->
+              revmap := Smap.add q l !revmap;
+              (l, sub, true))
       | Tconstr (pl, psl), Tconstr (pr, psr) when Path.equal pl pr ->
           let sub, mtch, revps =
             try

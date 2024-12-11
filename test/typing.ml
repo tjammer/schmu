@@ -864,6 +864,49 @@ fun deps! {
 .ignore()
 |}
 
+let test_signature_dont_match_qvar () =
+  test_exn
+    "Signatures don't match for value run:\n\
+     expecting (_) -> option['a]\n\
+     but found (_) -> 'a"
+    {|type option['a] = None | Some('a)
+module async {
+  signature {
+    type promise['a]
+    type future['a]
+
+    val extract_maybe : (future['a]!) -> option['a]
+  }
+
+  type prom_state['a] =
+  | Pending
+  | Resolved('a)
+
+  type promise['a] = prom_state['a]
+  type future['a] = promise['a]
+
+  fun extract_maybe(fut!) {
+    match fut {
+      Resolved(v): Some(v)
+      Pending: None
+    }
+  }
+}
+
+module auv {
+  signature {
+    val run : (async/future['a]!) -> option['a]
+  }
+
+  fun run(fut!) {
+    match async/extract_maybe(fut) {
+      Some(v): v
+      None: __any_abort()
+    }
+  }
+}
+|}
+
 let test_local_modules_find_local () =
   test "unit" (local_module ^ "let test : nosig/t = { a = 10 }")
 
@@ -1762,6 +1805,7 @@ let () =
           case "generic of generic alias"
             test_signature_generic_of_generic_alias;
           case "deep_qvar_sg" test_signature_deep_qvar_sg;
+          case "don't match qvar" test_signature_dont_match_qvar;
         ] );
       ( "local modules",
         [
