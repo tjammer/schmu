@@ -856,7 +856,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       {
         callee =
           ( { expr = Var ("__rc_get", _); _ }
-          | { expr = Var ("get", Some (Pmod ("std", Pid "rc"))); _ } ) as callee;
+          | { expr = Var ("get", Some (Pid "rc")); _ } ) as callee;
         args = [ arg ];
       } ->
       (* Special case for rc_get. It effectively returns the same allocation as

@@ -84,20 +84,28 @@
    (run schmu --release -m --no-std iter.smu))))
 
 (rule
+ (targets rc.o rc.smi)
+ (deps %{bin:schmu} rc.smu prelude.smi)
+ (action
+  (progn
+   (run schmu --release -m --no-std rc.smu))))
+
+(rule
  (alias stdlib)
  (targets std.o std.smi)
  (deps
   %{bin:schmu}
-  std.smu
   array.smi
   float.smi
   hashtbl.smi
   in_channel.smi
   int.smi
+  iter.smu
   prelude.smi
+  rc.smi
+  std.smu
   string.smi
   sys.smi
-  iter.smu
   unsafe.smi)
  (action
   (progn
@@ -141,6 +149,9 @@
   iter.smu
   (iter.smi as std/iter.smi)
   (iter.o as std/iter.o)
+  rc.smu
+  (rc.smi as std/rc.smi)
+  (rc.o as std/rc.o)
   unsafe.smu
   (unsafe.smi as std/unsafe.smi)
   (unsafe.o as std/unsafe.o)))

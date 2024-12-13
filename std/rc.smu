@@ -1,0 +1,12 @@
+import option
+import prelude
+
+let create = __rc_create
+let get = __rc_get
+let to_weak = __rc_to_weak
+
+  fun of_weak(wrc) {
+    use prelude
+    if __rc_cnt(wrc) == 0 { option/None }
+    else { option/Some(__unsafe_rc_of_weak(wrc)) }
+  }

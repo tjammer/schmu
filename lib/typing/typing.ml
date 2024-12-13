@@ -519,8 +519,7 @@ let builtins_hack callee args =
       match id with "data" -> { no_attr with mut } | _ -> no_attr)
   | Some (Var (("get" | "+>" | "addr"), Some (Path.Pid "unsafe"))) ->
       { no_attr with mut }
-  | Some (Var ("get", Some Path.(Pmod ("std", Pid "rc")))) ->
-      { no_attr with mut }
+  | Some (Var ("get", Some Path.(Pid "rc"))) -> { no_attr with mut }
   | Some _ | None -> no_attr
 
 let fold_decl cont (id, e) = { cont with expr = Bind (id, e, cont) }

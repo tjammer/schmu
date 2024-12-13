@@ -229,9 +229,9 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
              [test_signature_dont_match_qvar] *)
           match Smap.find_opt q !revmap with
           | Some t ->
-            (* Don't trigger this case again through [in_ps]. We want to see if
-               the types really match. *)
-            aux ~strict ~in_ps:false sub l t
+              (* Don't trigger this case again through [in_ps]. We want to see if
+                 the types really match. *)
+              aux ~strict ~in_ps:false sub l t
           | None ->
               revmap := Smap.add q l !revmap;
               (l, sub, true))
