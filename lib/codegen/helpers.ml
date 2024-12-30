@@ -555,7 +555,7 @@ struct
         (fun (env, i) (name, id) p ->
           let typ = p.pt in
           match typ with
-          | Tunit -> (Vars.add name dummy_fn_value env, i + 1)
+          | Tunit -> (Vars.add name dummy_fn_value env, i)
           | _ ->
               let value, i = get_value i p.pmut typ in
               let kind = if p.pmut then Ptr else default_kind typ in
@@ -662,7 +662,7 @@ struct
             (fun (env, i) (name, _) p ->
               let typ = p.pt in
               match typ with
-              | Tunit -> (env, i)
+              | Tunit -> (Vars.add name dummy_fn_value env, i)
               | _ ->
                   let i = get_index i p.pmut typ in
                   let llvar = Vars.find (name_of_alloc_param i) env in
@@ -772,11 +772,14 @@ struct
 
   let tail_return param params start_index =
     let f i p =
-      let i = get_index i p.pmut p.pt in
-      let alloca = Vars.find (name_of_alloc_param i) param.vars in
+      match p.pt with
+      | Tunit -> i
+      | _ ->
+          let i = get_index i p.pmut p.pt in
+          let alloca = Vars.find (name_of_alloc_param i) param.vars in
 
-      if not p.pmoved then tail_decr_param param alloca i p.pmut;
-      i + 1
+          if not p.pmoved then tail_decr_param param alloca i p.pmut;
+          i + 1
     in
     ignore (List.fold_left f start_index params)
 

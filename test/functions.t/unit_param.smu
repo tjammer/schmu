@@ -1,0 +1,1 @@
+array/fold([0], !(), fun (acc!, _i): acc)

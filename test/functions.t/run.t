@@ -2591,3 +2591,7 @@ Monomorphize functions as variables
   $ valgrind -q --leak-check=yes --show-reachable=yes ./monomorph_variable
   0
   0
+
+Unit parameters in folds
+  $ schmu unit_param.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./unit_param
