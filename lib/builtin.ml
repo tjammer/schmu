@@ -55,10 +55,11 @@ type t =
   | Equalf
   | Nequalf
   | Rc_create
-  | Rc_get
+  | Unsafe_rc_get
   | Rc_to_weak
   | Unsafe_rc_of_weak
   | Rc_cnt
+  | Rc_wcnt
   | Any_abort
 [@@deriving show]
 
@@ -257,8 +258,8 @@ let tbl =
   Hashtbl.add tbl "__rc_create"
     ( Rc_create,
       Tfun ([ { pt = Qvar "0"; pattr = Dmove } ], trc (Qvar "0"), Simple) );
-  Hashtbl.add tbl "__rc_get"
-    (Rc_get, Tfun ([ { p with pt = trc (Qvar "0") } ], Qvar "0", Simple));
+  Hashtbl.add tbl "__unsafe_rc_get"
+    (Unsafe_rc_get, Tfun ([ { p with pt = trc (Qvar "0") } ], Qvar "0", Simple));
   Hashtbl.add tbl "__rc_to_weak"
     ( Rc_to_weak,
       Tfun ([ { p with pt = trc (Qvar "0") } ], tweak_rc (Qvar "0"), Simple) );
@@ -266,7 +267,9 @@ let tbl =
     ( Unsafe_rc_of_weak,
       Tfun ([ { p with pt = tweak_rc (Qvar "0") } ], trc (Qvar "0"), Simple) );
   Hashtbl.add tbl "__rc_cnt"
-    (Rc_cnt, Tfun ([ { p with pt = tweak_rc (Qvar "0") } ], tint, Simple));
+    (Rc_cnt, Tfun ([ { p with pt = trc (Qvar "0") } ], tint, Simple));
+  Hashtbl.add tbl "__rc_cntw"
+    (Rc_wcnt, Tfun ([ { p with pt = tweak_rc (Qvar "0") } ], tint, Simple));
   Hashtbl.add tbl "__any_abort" (Any_abort, Tfun ([], Qvar "0", Simple));
 
   let castable_types =

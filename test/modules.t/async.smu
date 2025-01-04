@@ -23,7 +23,7 @@ fun wait() {
 }
 
 fun promise_resolve(p&, v!) {
-  let s& = &rc/get(p)
+  let s& = &__unsafe_rc_get(p)
   match s {
     Resolved(_): ()
     Pending: {
@@ -42,15 +42,15 @@ fun add_cb(fn!) {
   fun cb(v) {
     let new& = fn(v)
     -- this works because future and promise are really the name type
-    match rc/get(new) {
+    match __unsafe_rc_get(new) {
       Resolved(v): promise_resolve(&pr, !v)
       Pending: {
         -- the (user-) returned future is pending. Swap our return future for
         -- the user one, so when the user promise is resolved, our registered
         -- callbacks are called
-        match copy(rc/get(pr)) {
+        match copy(__unsafe_rc_get(pr)) {
           Resolved(_): failwith("Can this even happen?")
-          Queued(arr): &rc/get(new) = Queued(arr)
+          Queued(arr): &__unsafe_rc_get(new) = Queued(arr)
           Pending: ()
         }
       }
@@ -64,10 +64,10 @@ fun bind(fut, fn!) {
   -- we make a copy to mutate the future. [fut] is really an rc under the
   -- hood, so we can do this.
   let cp& = copy(fut)
-  match &rc/get(cp) {
+  match &__unsafe_rc_get(cp) {
     Pending: {
       let fut, cb = add_cb(!fn)
-      &rc/get(cp) = Queued([cb])
+      &__unsafe_rc_get(cp) = Queued([cb])
       fut
     }
     Queued(cbs&): {

@@ -85,7 +85,7 @@
 
 (rule
  (targets rc.o rc.smi)
- (deps %{bin:schmu} rc.smu prelude.smi)
+ (deps %{bin:schmu} rc.smu prelude.smi option.smi)
  (action
   (progn
    (run schmu --release -m --no-std rc.smu))))

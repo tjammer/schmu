@@ -212,7 +212,7 @@ end = struct
         in
 
         (match callee.monomorph with
-        | Builtin (Rc_get, _) ->
+        | Builtin (Unsafe_rc_get, _) ->
             (* Don't add frees. They would overwrite the rc frees. Think record
                field: We don't add the child frees either. *)
             ()
@@ -1016,12 +1016,14 @@ end = struct
           | _ -> failwith "Internal Error: Arity mismatch in builder"
         in
         R.gen_rc param e fnc.ret allocref
-    | Rc_get -> List.hd args |> bring_default_var |> fun llvar -> R.get llvar
+    | Unsafe_rc_get ->
+        List.hd args |> bring_default_var |> fun llvar -> R.get llvar
     | Rc_to_weak ->
         List.hd args |> bring_default_var |> fun llvar -> R.to_weak llvar
     | Unsafe_rc_of_weak ->
         List.hd args |> bring_default_var |> fun llvar -> R.unsafe_of_weak llvar
-    | Rc_cnt -> List.hd args |> bring_default_var |> fun llvar -> R.cnt llvar
+    | Rc_cnt | Rc_wcnt ->
+        List.hd args |> bring_default_var |> fun llvar -> R.cnt llvar
     | Any_abort -> (
         let ft, abort =
           Llvm.(

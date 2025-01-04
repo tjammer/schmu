@@ -7,4 +7,4 @@ copy(variant).ignore()
 type thing = { a : option[array[int]] }
 let record& = rc/create(!{a = Some([1])})
 
-&rc/get(record) = { a = None }
+rc/mut(&record, fun inner&: &inner = { a = None })

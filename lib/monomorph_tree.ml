@@ -595,7 +595,9 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
         if contains_allocation e.typ then Mallocs.remove func.malloc p.mallocs
         else p.mallocs
       in
-      ({ p with mallocs }, e, { func with malloc = No_malloc })
+      (* Return unchange [func] so we don't loose parent information. This is
+         needed for moves (and re-sets) in pattern matches. *)
+      ({ p with mallocs }, e, func)
 
 and morph_var mk p v mname typ =
   let (v, kind), var =
@@ -641,8 +643,6 @@ and morph_array mk p a typ =
     let p, e, var = morph_expr param e in
     (* (In codegen), we provide the data ptr to the initializers to construct inplace *)
     set_alloca p var.alloc;
-    (* Should have been moved *)
-    assert (var.malloc = No_malloc);
     (p, e)
   in
   let p, a = List.fold_left_map f p a in
@@ -665,8 +665,6 @@ and morph_fixed_array mk p a typ =
   let f param e =
     let p, e, var = morph_expr param e in
     set_alloca p var.alloc;
-    (* Should have been moved *)
-    assert (var.malloc = No_malloc);
     (p, e)
   in
   let p, a = List.fold_left_map f p a in
@@ -862,8 +860,10 @@ and prep_let p id uniq e pass toplvl =
   let ms, malloc, mallocs =
     match pass with
     | Dmove ->
+        (* Propagate parent through *)
+        let parent = get_parent func.malloc in
         let mid = new_id malloc_id in
-        let id = Mid.{ mid; typ = e1.typ; parent = None } in
+        let id = Mid.{ mid; typ = e1.typ; parent } in
         ([ mid ], Malloc.Single id, Mallocs.add (Single id) p.mallocs)
     | Dset | Dmut | Dnorm -> ([], func.malloc, p.mallocs)
   in
@@ -912,8 +912,6 @@ and morph_record mk p labels typ =
   let f param (id, e) =
     let p, e, var = morph_expr param e in
     if is_struct e.typ then set_alloca p var.alloc;
-    (* Should have been moved *)
-    assert (var.malloc = No_malloc);
     (p, (id, e))
   in
   let p, labels = List.fold_left_map f p labels in
@@ -1310,7 +1308,7 @@ and morph_app mk p callee args ret_typ =
     match callee.monomorph with
     | Builtin ((Array_get | Fixed_array_get | Unsafe_ptr_get), _) ->
         (Malloc.No_malloc, p.mallocs)
-    | Builtin (Rc_get, _) ->
+    | Builtin (Unsafe_rc_get, _) ->
         let malloc = malloc_add_index (-1) (Option.get !fst_arg_malloc) in
         (malloc, p.mallocs)
     | _ ->
@@ -1340,8 +1338,6 @@ and morph_ctor mk p variant index expr typ =
         (* Similar to [morph_record], collect mallocs in data *)
         let p, e, var = morph_expr p expr in
         if is_struct e.typ then set_alloca p var.alloc;
-        (* Should have been moved *)
-        assert (var.malloc = No_malloc);
         (p, (variant, index, Some e))
     | None -> (p, (variant, index, None))
   in

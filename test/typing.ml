@@ -1151,7 +1151,7 @@ let test_excl_track_rc_get () =
 fun higher_lvl(thing&, f) {()}
 
 fun process_state(state&) {
-  let fst& = &__rc_get(state).fst
+  let fst& = &__unsafe_rc_get(state).fst
   higher_lvl(&state, fun i {&fst = copy(i)})
 }|}
 

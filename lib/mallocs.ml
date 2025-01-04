@@ -129,6 +129,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
   module Mallocs : sig
     type t
 
+    val show : t -> string
     val empty : malloc_scope -> t
     val push : malloc_scope -> t -> t
     val pop : t -> malloc_id list * t
@@ -140,10 +141,28 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     val empty_func : monod_tree -> t -> t * monod_tree
     val diff_func : t -> t -> Pset.t Imap.t
   end = struct
-    (* type pmap = Pset.t Imap.t *)
     open Malloc
 
     type t = (malloc_scope * pmap) list
+
+    let show t =
+      "["
+      ^ String.concat "\n::\n"
+          (List.map
+             (fun (scope, pmap) ->
+               match scope with
+               | Mfunc -> "Mfunc"
+               | Mlocal ->
+                   "Mlocal"
+                   ^ (Imap.to_seq pmap
+                     |> Seq.map (fun (mid, set) ->
+                            Mid.show mid ^ ": {"
+                            ^ (Pset.to_seq set |> Seq.map Mpath.show
+                             |> List.of_seq |> String.concat " and ")
+                            ^ "}")
+                     |> List.of_seq |> String.concat "\n"))
+             t)
+      ^ "]"
 
     let empty scope = [ (scope, Imap.empty) ]
     let push kind ms = (kind, Imap.empty) :: ms
@@ -206,8 +225,23 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       let rec aux a ms =
         match (a, ms) with
         | _, [] -> []
-        | (Single a | Param a), (scope, ms) :: tl ->
-            (scope, Imap.add a Pset.empty ms) :: tl
+        | (Param a as mlc), (Mlocal, ms) :: tl ->
+            (* If we reenter a parent, delete moved children from map *)
+            let ms =
+              Imap.filter_map
+                (fun mid thing ->
+                  match mid.parent with
+                  | Some p -> (
+                      match mid_of_malloc p with
+                      | Some p when Mid.compare p a = 0 -> None
+                      | Some _ | None -> Some thing)
+                  | None -> Some thing)
+                ms
+            in
+
+            (Mlocal, ms) :: aux mlc tl
+        | Param a, (Mfunc, ms) :: tl -> (Mfunc, Imap.add a Pset.empty ms) :: tl
+        | Single a, (scope, ms) :: tl -> (scope, Imap.add a Pset.empty ms) :: tl
         | No_malloc, _ -> ms
         | Path ((Single i | Param i), p), (scope, ms) :: tl ->
             let found, ms =

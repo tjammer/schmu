@@ -32,6 +32,17 @@ end = struct
   let compare a b = Int.compare a.mid b.mid
 end
 
+let rec get_parent = function
+  | Malloc.Single { parent; _ } -> parent
+  | Param { parent; _ } -> parent
+  | No_malloc -> None
+  | Path (p, _) -> get_parent p
+
+let rec mid_of_malloc = function
+  | Malloc.Single m | Param m -> Some m
+  | Path (p, _) -> mid_of_malloc p
+  | No_malloc -> None
+
 module Imap = Map.Make (Mid)
 module Pset = Set.Make (Mpath)
 
