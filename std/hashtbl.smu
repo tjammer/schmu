@@ -71,9 +71,12 @@ functor make : sig(m : key) {
           &item.pathlen = pathlen
           &tbl.data.[curr] = Some(item)
           redist(&tbl, !new_item, next, other_pathlen + 1)
-        } else {
+        }
+        else {
           redist(&tbl, !item, next, pathlen + 1)
-        }}}
+        }
+      }
+    }
   }
 
   let load_limit = 0.75
@@ -86,13 +89,17 @@ functor make : sig(m : key) {
     fun rec inner(i) {
       if i == array/length(data) {
         &__unsafe_array_length(data) = 0
-      } else {
+      }
+      else {
         match __unsafe_ptr_get(array/data(data), i) {
           None: inner(i + 1)
           Some({key, value, pathlen = _}): {
             f(!key, !value)
             inner(i + 1)
-          }}}}
+          }
+        }
+      }
+    }
     inner(0)
   }
 
@@ -125,7 +132,8 @@ functor make : sig(m : key) {
           if m/equal(key, other.key) {
             -- overwrite
             &tbl.data.[i] = Some({key, value, pathlen})
-          } else {
+          }
+          else {
             let next = next_wrapped(i, size)
             if pathlen > other.pathlen {
               let other_pathlen = copy(other.pathlen)
@@ -134,9 +142,14 @@ functor make : sig(m : key) {
               &tbl.data.[i] = Some({key, value, pathlen})
               &tbl.nitems = tbl.nitems + 1
               redist(&tbl, !other_item, next, other_pathlen + 1)
-            } else {
+            }
+            else {
               insert(next, pathlen + 1, !key, !value)
-            }}}}}
+            }
+          }
+        }
+      }
+    }
     insert(hash, 0, !key, !value)
   }
 
@@ -231,11 +244,15 @@ functor make : sig(m : key) {
     fun rec inner(i, acc!) {
       if array/length(tbl.data) == i {
         acc
-      } else { match tbl.data.[i] {
-        None: inner(i + 1, !acc)
-        Some({key, value, pathlen = _}):
+      }
+      else {
+        match tbl.data.[i] {
+          None: inner(i + 1, !acc)
+          Some({key, value, pathlen = _}):
           inner(i + 1, !f(!acc, key, value))
-        }}}
+        }
+      }
+    }
     inner(0, !init)
   }
 
@@ -253,7 +270,10 @@ functor make : sig(m : key) {
           Some({key, value, pathlen = _}): {
             f(key, value)
             inner(i + 1)
-          }}}}
+          }
+        }
+      }
+    }
     inner(0)
   }
 
