@@ -1,0 +1,70 @@
+module async {
+  type prom_state['a] =
+  | Pending
+  | Queued1(('a) -> unit)
+  | Resolved(a)
+  fun return(v!): rc/create(Resolved(v))
+  fun wait() {
+    let pr = rc/create(Pending)
+    copy(pr), pr
+  }
+  fun resolve(p&, v!) {
+    rc/mut_with(&p, v, fun (inner&, v!) {
+      match inner {
+        Queued1(cb): {
+          let _b = !cb
+          &inner = Resolved(v)
+        }
+        _b:
+          &inner = Pending
+    }})
+  }
+  fun add_cb(fn!) {
+    let fut, pr = wait()
+    let pr& = !pr
+    let weak = rc/to_weak(pr)
+    fun cb(v) {
+      let new& = fn(v)
+      rc/mut(&new, fun inner& {
+        match inner {
+          Resolved(_v):
+            match rc/of_weak(weak) {
+              Some(_pr):
+                &inner = Pending
+              None: ()
+            }
+          Pending: {
+            let cpy& = copy(pr)
+            rc/mut(&pr, fun _prinner& {
+              &inner = Queued1(fun _v [cpy] {
+                resolve(&cpy, ())
+              })
+            })
+          }
+          _: ()
+        }
+      })
+    }
+    fut, cb
+  }
+  fun bind(fut, fn!) {
+    let cp& = copy(fut)
+    rc/mut_with(&cp, fn, fun (cp&, fn!) {
+      match cp {
+        Pending: {
+          let _fut, cb = add_cb(fn)
+          &cp = Queued1(cb)
+        }
+        _: ()
+      }
+    })
+  }
+}
+{
+  let future, promise = async/wait()
+  async/bind(future, fun _v {
+    async/return(0)
+  })
+  let pr& = !promise  
+  async/resolve(&pr, 3)
+}

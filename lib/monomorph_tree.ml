@@ -595,9 +595,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
         if contains_allocation e.typ then Mallocs.remove func.malloc p.mallocs
         else p.mallocs
       in
-      (* Return unchange [func] so we don't loose parent information. This is
-         needed for moves (and re-sets) in pattern matches. *)
-      ({ p with mallocs }, e, func)
+      ({ p with mallocs }, e, { func with malloc = No_malloc })
 
 and morph_var mk p v mname typ =
   let (v, kind), var =

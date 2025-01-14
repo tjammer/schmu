@@ -3170,3 +3170,7 @@ Leak builtin
 Fix double free
   $ schmu match_partial_move.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./match_partial_move
+
+Fix leak after fix above
+  $ schmu match_partial_move_followup_leak.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./match_partial_move_followup_leak
