@@ -748,7 +748,9 @@ end = struct
             print_endline (show_typ t);
             failwith "Internal Error: Not a function for clsptr")
     | Unsafe_leak -> dummy_fn_value
-    | Unsafe_addr -> { (List.hd args) with kind = Imm }
+    | Unsafe_addr ->
+        let value = List.hd args in
+        { value with kind = Imm; typ = Traw_ptr value.typ; lltyp = ptr_t }
     | Mod -> (
         match args with
         | [ value; md ] ->
