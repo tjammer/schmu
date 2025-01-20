@@ -230,3 +230,7 @@ Use iter and print with dot call
   6
   8
   20
+
+Reverse an empty array
+  $ schmu array.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./array

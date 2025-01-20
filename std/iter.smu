@@ -23,9 +23,11 @@ use prelude
 fun range(start, limit, consume : consumer[int, 'b]) {
  let state& = !start
   fun aux(f) {
-    f(state)
-    if state == limit - 1 { Exhausted }
+    -- Only call function after limit check.
+    -- Otherwise we'd call on an empty range.
+    if state == limit { Exhausted }
     else {
+      f(state)
       &state = state + 1
       Continue
     }
