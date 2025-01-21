@@ -5,12 +5,16 @@ steps:
       - opam install . -y --deps-only --with-test
       - opam exec -- dune build
       - opam exec -- dune runtest -f
+    when:
+      - event: push
 
   deploy:
     image: tjammer/ocaml-llvm:20240308
     commands:
       - bash .woodpecker_release.sh
-    secrets: [ release ]
+    environment:
+      RELEASE:
+        from_secret: release
     when:
       - branch: main
         event: push
