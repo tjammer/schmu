@@ -841,7 +841,6 @@ end = struct
        and use it in the function body *)
     let unique = uniq_name name in
 
-    let used = if inrec then Env.get_used name env else false in
     enter_level ();
     let env, nparams =
       if inrec || not is_rec then
@@ -868,6 +867,7 @@ end = struct
             |> add_callname ~key:name (name, Some (modpath env), unique)),
           nparams )
     in
+    let used = if inrec || is_rec then Env.get_used name env else false in
 
     (* We duplicate some lambda code due to naming *)
     let env = Env.open_function env in
@@ -925,7 +925,7 @@ end = struct
 
     (* For mutually recursive functions, we generalize at the end of the rec
        block. Otherwise calls to the not-last function in the set will not
-       work*)
+       work *)
     let typ = if inrec then typ else generalize typ in
 
     match typ with
@@ -939,8 +939,8 @@ end = struct
               |> add_callname ~key:name (name, Some (modpath env), unique))
         in
         (* Discard usage of internal recursive calls *)
-        let used = Env.set_used name env used in
-        if (not used) && is_rec && not inrec then
+        let changed = Env.set_used name env used in
+        if ((not changed) && not used) && is_rec && not inrec then
           raise (Error (nameloc, "Unused rec flag"));
 
         (match ret_annot with
