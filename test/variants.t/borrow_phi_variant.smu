@@ -1,0 +1,20 @@
+module raylib {
+  type mouse_button = Left
+  external window_should_close : () -> bool
+  external is_button_down : (mouse_button) -> bool
+}
+let attack_ofs =  160.0
+type tex = Neutral | Attack
+fun rec _loop(neutral, attack) {
+  if raylib/window_should_close() {
+    use raylib
+    let curr = if is_button_down(Left) { Attack } else { Neutral }
+    let tex, _ofs =
+    match curr {
+      Neutral: neutral
+      Attack: (attack, attack_ofs)
+    }
+    let _scale = float_of_i32(tex)
+    _loop(neutral, attack)
+  }
+}

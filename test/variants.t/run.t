@@ -586,3 +586,6 @@ Regression test for tuple match
   $ ./tuple_match_regression
   c
   none
+
+Regression for borrowed ifs (phi nodes). Just make sure it doesn't segfault
+ $ schmu -c borrow_phi_variant.smu

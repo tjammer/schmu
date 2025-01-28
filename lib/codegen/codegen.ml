@@ -1127,7 +1127,20 @@ end = struct
                 Llvm.position_at_end (Lazy.force merge_bb) builder;
                 let incoming = [ (e1.value, e1_bb); (e2.value, e2_bb) ] in
                 let value = Llvm.build_phi incoming "iftmp" builder in
-                { value; typ = e1.typ; lltyp = e2.lltyp; kind = e1.kind })
+
+                let ret =
+                  { value; typ = e1.typ; lltyp = e2.lltyp; kind = e1.kind }
+                in
+                (* If a phi node is const, turn it into an actual value. We
+                   cannot deal with the phi node otherwise, e.g. for
+                   [const_extractelement]. It's only needed if the type is a
+                   record or variant. *)
+                match e1.kind with
+                | Const when is_struct e2.typ ->
+                    let alloca = alloca param e2.lltyp "" in
+                    Llvm.build_store value alloca builder |> ignore;
+                    { ret with value = alloca; kind = Ptr }
+                | _ -> ret)
               else e1)
     in
 
