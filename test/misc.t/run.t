@@ -1295,12 +1295,12 @@ Using unit values
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "unit_values.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_au_u_", scope: !3, file: !3, line: 30, type: !4, scopeLine: 30, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_au_u_", scope: !3, file: !3, line: 29, type: !4, scopeLine: 29, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 34, column: 5, scope: !2)
-  !7 = !DILocation(line: 35, column: 7, scope: !2)
+  !6 = !DILocation(line: 33, column: 5, scope: !2)
+  !7 = !DILocation(line: 34, column: 7, scope: !2)
   !8 = distinct !DISubprogram(name: "a", linkageName: "schmu_a__2", scope: !9, file: !9, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !9 = !DIFile(filename: "unit_values.smu", directory: "")
   !10 = distinct !DISubprogram(name: "t", linkageName: "schmu_t__2", scope: !9, file: !9, line: 16, type: !4, scopeLine: 16, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)

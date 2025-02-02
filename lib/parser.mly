@@ -79,8 +79,6 @@
 %left Plus_op
 %left Mult_op
 %left Dot
-%nonassoc Curry_fst
-%left Hbar
 %left Lcurly
 %left Lbrack
 %left Lpar
@@ -293,7 +291,6 @@ expr_no_ident:
       let b = {apass = Dnorm; aloc = $loc(b); aexpr = b} in
       App ($loc, Var($loc(infix), infix), [a; b]) }
   | op = Plus_op; expr = expr { Unop ($loc, ($loc(op), op), expr) }
-  | op = Cmp_op; expr = expr; %prec Curry_fst { Unop ($loc, ($loc(op), op), expr) }
   | If; cond = expr; block = block; ifcont = ifcont
     { If($loc, cond, Do_block block, ifcont) }
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
@@ -304,8 +301,6 @@ expr_no_ident:
   | aexpr = expr; Dot; Lpar; callee = expr; Rpar; args = parens(call_arg)
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
       Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
-  | expr = expr; Hbar; aexpr = expr
-    { Extend_arg ($loc, expr, { aexpr; apass = Dnorm; aloc = $loc(aexpr) }) }
   | expr = expr; Dot; Fmt; args = parens(expr)
     { Fmt ($loc, expr :: args) }
   | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
@@ -372,8 +367,12 @@ guard:
 
 clauses:
   | clause = clause { [ clause ] }
-  | clause = clause; Semicolon; clauses = clauses
+  | clause = clause; clause_sep; clauses = clauses
     { clause :: clauses }
+
+clause_sep:
+  | Semicolon {  }
+  | Hbar {  }
 
 special_builtins:
   | e = expr; Dot; Lbrack; i = expr; Rbrack

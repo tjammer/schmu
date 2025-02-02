@@ -978,12 +978,12 @@ Modify in function
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "modify_in_fn.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 30, type: !4, scopeLine: 30, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 29, type: !4, scopeLine: 29, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 34, column: 5, scope: !2)
-  !7 = !DILocation(line: 35, column: 7, scope: !2)
+  !6 = !DILocation(line: 33, column: 5, scope: !2)
+  !7 = !DILocation(line: 34, column: 7, scope: !2)
   !8 = distinct !DISubprogram(name: "mod2", linkageName: "schmu_mod2", scope: !9, file: !9, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !9 = !DIFile(filename: "modify_in_fn.smu", directory: "")
   !10 = !DILocation(line: 5, column: 14, scope: !8)
@@ -1109,12 +1109,12 @@ Make sure variable ids are correctly propagated
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "varid_propagate.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 30, type: !4, scopeLine: 30, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 29, type: !4, scopeLine: 29, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 34, column: 5, scope: !2)
-  !7 = !DILocation(line: 35, column: 7, scope: !2)
+  !6 = !DILocation(line: 33, column: 5, scope: !2)
+  !7 = !DILocation(line: 34, column: 7, scope: !2)
   !8 = distinct !DISubprogram(name: "f1", linkageName: "__schmu_f1_al_lral__", scope: !9, file: !9, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !9 = !DIFile(filename: "varid_propagate.smu", directory: "")
   !10 = !DILocation(line: 3, column: 2, scope: !8)

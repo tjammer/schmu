@@ -56,7 +56,8 @@ match in_channel/open("in_channel.smu") {
 match in_channel/open("in_channel.smu") {
   Some(ic): {
     let ic& = !ic
-    in_channel/lines(&ic) |> iter/iter(println)
+    -- in_channel/lines(&ic) |> iter/iter(println)
+    in_channel/lines(&ic, fun line {println(line)})
     in_channel/close(ic)
   }
   None: ()

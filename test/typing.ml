@@ -1509,12 +1509,6 @@ A
 
 let test_syntax_noparens_tuple () = test "(float, int)" "1.0, 1"
 
-let test_syntax_extend_arg () =
-  test "int" "fun add3(a, b, c) { a + b + c }; add3(0, 1) | 2"
-
-let test_syntax_extend_arg_mult () =
-  test "int" "fun add3(a, b, c) { a + b + c }; add3(0) | 1 | 2"
-
 let test_syntax_minus_field () =
   test "int" "type a = { a : int }; let a = { a = 10 }; -a.a"
 
@@ -2064,8 +2058,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "multiline variant ctor after"
             test_syntax_multiline_variant_ctor_after;
           case "noparens tuple" test_syntax_noparens_tuple;
-          case "extend arg" test_syntax_extend_arg;
-          case "extend arg mult" test_syntax_extend_arg_mult;
           case "minus field" test_syntax_minus_field;
         ] );
       ( "recursive types",

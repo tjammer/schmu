@@ -622,10 +622,6 @@ prog: Ctor Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Cmp_op Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Builtin_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -659,14 +655,6 @@ prog: False Mult_op With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Mult_op False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Hbar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Hbar False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -783,10 +771,6 @@ prog: False Lpar False Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Lpar False Comma With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Cmp_op False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1014,7 +998,7 @@ prog: Match False Lcurly Ident Colon False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match False Lcurly Ident Colon False Semicolon With
+prog: Match False Lcurly Ident Colon False Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

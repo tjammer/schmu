@@ -3,4 +3,4 @@ fun dont_be_global(_) {
   println(fmt(localmut))
   if not(localmut) {&localmut = true}
 }
-iter/(range(0, 3) |> iter(dont_be_global))
+iter_range(0, 3, dont_be_global)
