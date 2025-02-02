@@ -180,7 +180,8 @@ rule read =
   | "#?"     { Hash_quest }
   | '#'      { Hash }
   | "->"     { Right_arrow }
-  | "--"      { line_comment lexbuf }
+  | "|>"     { Pipe }
+  | "--"     { line_comment lexbuf }
   | eq_op    { Eq_op (Lexing.lexeme lexbuf) }
   | cmp_op   { Cmp_op (Lexing.lexeme lexbuf) }
   | plus_op  { Plus_op (Lexing.lexeme lexbuf) }

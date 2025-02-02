@@ -145,7 +145,7 @@ fun clear(arr&) {
     if 0 == length(arr) {
       ()
     } else {
-      pop_back(&arr).ignore()
+      pop_back(&arr) |> ignore
       inner()
     }
   }

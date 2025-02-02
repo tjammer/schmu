@@ -13,7 +13,7 @@ fun move_out() {
   match __unsafe_rc_get(rc) {
     Some(v): (v, 0)
     None: ("", 0)
-  }.ignore()
+  }|> ignore
 }
 
 move_out()

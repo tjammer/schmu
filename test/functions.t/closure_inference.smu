@@ -20,7 +20,7 @@ fun string_of_view(view) {
     array/push(&ret, !string/get(view.pbuf, c))
   })
   array/push(&ret, !'\000')
-  array/pop_back(&ret).ignore()
+  array/pop_back(&ret) |> ignore
   ret
 }
 
@@ -35,7 +35,8 @@ fun print_result(res) {
         string_of_view(mtch), "\")")
     Err(lexbuf):
       fmt("\"", string_of_view(view_of_lexbuf(lexbuf)), "\", \"")
-  }.println()
+  }
+  |> println
 }
 
 fun alt(a, b) {

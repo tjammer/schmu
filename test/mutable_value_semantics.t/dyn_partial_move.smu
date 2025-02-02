@@ -13,4 +13,4 @@ fun remove(optarr&, index) {
 }
 let optarr& = [Some({a = "thing"})]
 
-remove(&optarr, {a = 0}).ignore()
+remove(&optarr, {a = 0}) |> ignore

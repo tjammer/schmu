@@ -2,7 +2,7 @@ module inner {
   external tmpfile : () -> raw_ptr[u8]
 
   fun use_it() {
-    tmpfile().ignore()
+    tmpfile()|> ignore
   }
 }
 

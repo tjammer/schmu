@@ -670,6 +670,18 @@ prog: False Hash Lbrack False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: False Pipe With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Pipe Fmt Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Pipe False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: False Or With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -690,19 +702,11 @@ prog: False Dot With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Dot Path_id With
+prog: False Dot Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Dot Lpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Dot Lpar False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Dot Lpar False Rpar With
+prog: False Dot Lbrack False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -719,30 +723,6 @@ prog: False And With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False And False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Dot Lbrack With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Dot Lbrack False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Dot Fmt With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Dot Path_id Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Dot Path_id Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Dot Ident Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -967,6 +947,10 @@ prog: Match False Semicolon
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match False Lcurly With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match False Lcurly Path_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

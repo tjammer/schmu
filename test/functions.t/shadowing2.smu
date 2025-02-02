@@ -5,4 +5,4 @@ let _ = {
   diff
 }
 
-diff(10, 12).ignore()
+diff(10, 12) |> ignore

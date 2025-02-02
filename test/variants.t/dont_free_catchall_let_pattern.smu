@@ -8,4 +8,4 @@ fun alt(a, b) {
     some: some
   }
 }
-alt((fun () {None}), fun () {None}).ignore()
+alt((fun () {None}), fun () {None}) |> ignore

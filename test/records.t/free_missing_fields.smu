@@ -4,5 +4,6 @@ type record['a] = {int : int, thing : 'a}
   match(Some(r)) {
     Some(r): {int = r.int, thing = 0}
     None: {int = 0, thing = 0}
-  }.ignore()
+  }
+  |> ignore
 }

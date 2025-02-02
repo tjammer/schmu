@@ -631,7 +631,7 @@ end = struct
     | Field (loc, expr, id) -> convert_field env loc expr id
     | Set (loc, expr, value) -> convert_set env loc expr value
     | Do_block stmts -> convert_block_annot ~ret:true env annot stmts |> fst
-    | Pipe_head (loc, e1, e2) -> convert_pipe_head env loc e1 e2
+    | Pipe (loc, arg, ex) -> convert_pipe env loc arg ex
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, pass, expr, cases) -> convert_match env loc pass expr cases
     | Local_use (loc, name, expr) ->
@@ -1114,17 +1114,17 @@ end = struct
     let moved = Snot_moved (* will be set in excl pass *) in
     { typ = tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
 
-  and convert_pipe_head env loc e1 e2 =
+  and convert_pipe env loc e1 e2 =
     let switch_uni = true in
     match e2 with
-    | Pip_expr (App (loc, callee, args)) ->
+    | App (_, callee, args) ->
         (* Add e1 to beginnig of args *)
         convert_app ~switch_uni env loc callee (e1 :: args)
-    | Pip_expr (Ctor (loc, name, expr)) ->
+    | Ctor (_, name, expr) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1.aexpr) None
-    | Pip_expr (Fmt (loc, l)) -> convert_fmt env loc (e1.aexpr :: l)
-    | Pip_expr e2 ->
+    | Fmt (loc, l) -> convert_fmt env loc (e1.aexpr :: l)
+    | e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~switch_uni env loc e2 [ e1 ]
 

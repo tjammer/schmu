@@ -45,7 +45,7 @@ and expr =
   | Field of loc * expr * string
   | Set of loc * (loc * expr) * expr
   | Do_block of block
-  | Pipe_head of loc * argument * pipeable
+  | Pipe of loc * argument * expr
   | Ctor of loc * ident * expr option
   | Match of loc * decl_attr * expr * (clause * expr) list
   | Local_use of loc * string * expr
@@ -57,8 +57,6 @@ and clause = {
   cpat : pattern;
   guard : (loc * expr) option;
 }
-
-and pipeable = Pip_expr of expr
 
 and pattern =
   | Pctor of ident * pattern option

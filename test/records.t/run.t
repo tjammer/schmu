@@ -843,9 +843,9 @@ A return of a field should not be preallocated
   !12 = !DILocation(line: 17, column: 11, scope: !11)
   !13 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !14 = !DILocation(line: 24, scope: !13)
-  !15 = !DILocation(line: 24, column: 17, scope: !13)
+  !15 = !DILocation(line: 24, column: 20, scope: !13)
   !16 = !DILocation(line: 25, scope: !13)
-  !17 = !DILocation(line: 25, column: 21, scope: !13)
+  !17 = !DILocation(line: 25, column: 24, scope: !13)
   2
   12
 

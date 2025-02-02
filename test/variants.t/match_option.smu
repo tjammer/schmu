@@ -5,14 +5,14 @@ fun match_opt(p) {
     None: 0
   }
 }
-match_opt(Some(1)).fmt().println()
-match_opt(None).fmt().println()
+match_opt(Some(1)) |> fmt |> println
+match_opt(None) |> fmt |> println
 
 -- switch ctors
 fun opt_match(p) {match p { None: 0; Some(thing): thing}}
 
-opt_match(Some(1)).fmt().println()
-opt_match(None).fmt().println()
+opt_match(Some(1)) |> fmt |> println
+opt_match(None) |> fmt |> println
 
 -- some, catchall
 fun some_all( p){
@@ -21,11 +21,11 @@ fun some_all( p){
     _: 0
   }
 }
-some_all(Some(1)).fmt().println()
-some_all(None).fmt().println()
+some_all(Some(1)) |> fmt |> println
+some_all(None) |> fmt |> println
 
-fun none_all(p) {match p {None: 0; _: 1}}
+fun none_all(p) {match p {None: 0 | _: 1}}
 
-none_all(Some(1)).fmt().println()
+none_all(Some(1)) |> fmt |> println
 let none_int : option[int] = None
-none_all(none_int).fmt().println()
+none_all(none_int) |> fmt |> println

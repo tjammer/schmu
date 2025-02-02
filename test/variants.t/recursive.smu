@@ -8,7 +8,7 @@ type list['a] = Nil | Cons('a, option[rc[list]])
 
 let _ = rc/create(!Cons(1, None))
 let fst = rc/create(!Cons(1, Some(rc/create(!Nil))))
-let _ = Cons(0, Some(fst.copy()))
+let _ = Cons(0, Some(fst |> copy))
 
 -- recursive record
 type container['a] = { a : 'a }

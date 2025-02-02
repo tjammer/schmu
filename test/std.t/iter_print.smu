@@ -6,4 +6,4 @@ range(0, 10)
 |> fold(!0, fun (acc!, i) {
   println(fmt(i))
   acc + i
-}).fmt().println()
+})|> fmt |> println

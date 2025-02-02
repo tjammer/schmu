@@ -50,7 +50,7 @@ fun mut_array() {
   let tbl& = keytbl/create(512)
   keytbl/insert(&tbl, !A1, ![])
   assert(keytbl/find_mut(&tbl, A2, fun (arr&) {array/push(&arr, !1)})
-    .not())
+    |> not)
   assert(keytbl/find_mut(&tbl, A1, fun (arr&) {array/push(&arr, !1)}))
   match keytbl/find_map(tbl, A1, fun arr {array/length(arr)}) {
     Some(v): assert(v == 1)

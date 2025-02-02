@@ -36,6 +36,6 @@ ignore (submixed4 ({x = 1.0, y = 10.0, z = 100.0, k = 1 }))
 ignore (subtrailv2 ({a = 1, b = 2, c = 1.0, d = 2.0 }))
 ignore (subf2s ({fx = 2.0f32, fy = 3.0f32}))
 ignore (subf3s ({fx = 2.0f32, fy = 3.0f32, fz = 5.0f32}))
-load_shader("a".cstr(), "b".cstr()).ignore()
+load_shader("a" |> cstr, "b" |> cstr) |> ignore
 set_shader_value({id = 0i32, locs = __unsafe_ptr_reinterpret(__unsafe_nullptr())},
   0i32, {x = 1.0, y = 10.0, z = 100.0, w = 1000.0})

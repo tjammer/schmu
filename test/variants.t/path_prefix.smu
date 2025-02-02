@@ -8,4 +8,5 @@ fun a {
     local/Thing: ()
     Other: ()
   }
-}.ignore()
+}
+|> ignore

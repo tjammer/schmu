@@ -21,5 +21,5 @@ fun test_thing_mut() {
     vector_loop(0)
     test.wrapped
 }
-test_thing().dat.printi()
-test_thing_mut().dat.printi()
+test_thing().dat |> printi
+test_thing_mut().dat |> printi

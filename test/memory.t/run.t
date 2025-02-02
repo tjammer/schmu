@@ -2198,8 +2198,8 @@ Regression test for issue #19
   !6 = distinct !DISubprogram(name: "v3_scale", linkageName: "schmu_v3_scale", scope: !3, file: !3, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !7 = distinct !DISubprogram(name: "wrap", linkageName: "schmu_wrap", scope: !3, file: !3, line: 11, type: !4, scopeLine: 11, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !8 = !DILocation(line: 12, column: 2, scope: !7)
-  !9 = !DILocation(line: 13, column: 10, scope: !7)
-  !10 = !DILocation(line: 13, column: 3, scope: !7)
+  !9 = !DILocation(line: 13, column: 12, scope: !7)
+  !10 = !DILocation(line: 13, column: 5, scope: !7)
   !11 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !12 = !DILocation(line: 16, column: 7, scope: !11)
 

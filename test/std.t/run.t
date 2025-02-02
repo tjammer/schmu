@@ -27,14 +27,14 @@ In channel module test
      let ic& = !ic
   read 33 bytes
       let buf& = array/create(4096)
-  read 1389 bytes
-      in_channel/readn(&ic, &buf, 50).ignore()
+  read 1391 bytes
+      in_channel/readn(&ic, &buf, 50) |> ignore
       let str& = !string/of_array(!buf)
       println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
-      in_channel/readn(&ic, &buf, 6).ignore()
+      in_channel/readn(&ic, &buf, 6) |> ignore
       &str = string/of_array(!buf)
       println(str)
   
@@ -93,13 +93,13 @@ In channel module test
     Some(ic):{
       let ic& = !ic
       let buf& = array/create(4096)
-      in_channel/readn(&ic, &buf, 50).ignore()
+      in_channel/readn(&ic, &buf, 50) |> ignore
       let str& = !string/of_array(!buf)
       println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
-      in_channel/readn(&ic, &buf, 6).ignore()
+      in_channel/readn(&ic, &buf, 6) |> ignore
       &str = string/of_array(!buf)
       println(str)
   
@@ -158,13 +158,13 @@ In channel module test
     Some(ic):{
       let ic& = !ic
       let buf& = array/create(4096)
-      in_channel/readn(&ic, &buf, 50).ignore()
+      in_channel/readn(&ic, &buf, 50) |> ignore
       let str& = !string/of_array(!buf)
       println(str)
   
       &buf = string/to_array(!str)
       array/clear(&buf)
-      in_channel/readn(&ic, &buf, 6).ignore()
+      in_channel/readn(&ic, &buf, 6) |> ignore
       &str = string/of_array(!buf)
       println(str)
   

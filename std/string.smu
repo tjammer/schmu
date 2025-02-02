@@ -72,7 +72,7 @@ fun concat(delim, strings) {
     append(&ret, str)
   })
   array/push(&ret, !'\000')
-  array/pop_back(&ret).ignore()
+  array/pop_back(&ret) |> ignore
   ret
 }
 
@@ -116,7 +116,7 @@ fun boyer_moore_horspool(pattern, str) {
       if char_equal(last_patchar, last_windowchar)
          and (memcmp(array/data(pattern),
            __unsafe_ptr_at(strptr, istr), patlen1)
-          .int_of_i32()) == 0 {
+          |> int_of_i32) == 0 {
         Some(istr)
       } else {
         let skip = skips#[int_of_u8(last_windowchar)]

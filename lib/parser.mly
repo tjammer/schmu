@@ -43,6 +43,7 @@
 %token Hash_quest
 %token Semicolon
 %token Right_arrow
+%token Pipe
 %token With
 %token Fmt
 %token Hbar
@@ -73,6 +74,8 @@
 
 %nonassoc Ctor
 
+%left Pipe
+%nonassoc Fmt
 %left And Or
 %left Eq_op
 %left Cmp_op
@@ -295,14 +298,13 @@ expr_no_ident:
     { If($loc, cond, Do_block block, ifcont) }
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
   | callee = Builtin_id; args = parens(call_arg) { App ($loc, Var($loc(callee), callee), args) }
-  | aexpr = expr; Dot; callee = dot_callee; args = parens(call_arg)
+  | aexpr = expr; Pipe; pipeable = expr
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
-      Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
-  | aexpr = expr; Dot; Lpar; callee = expr; Rpar; args = parens(call_arg)
-    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
-      Pipe_head ($loc, arg, Pip_expr (App ($loc, callee, args)))}
-  | expr = expr; Dot; Fmt; args = parens(expr)
-    { Fmt ($loc, expr :: args) }
+      Pipe ($loc, arg, pipeable) }
+  | aexpr = expr; Pipe; fmt = Fmt
+    { ignore(fmt);
+      let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
+      Pipe ($loc, arg, Fmt($loc(fmt), [])) }
   | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
   | Fmt; args = parens(expr) { Fmt ($loc, args) }
   | lambda = lambda { lambda }
@@ -327,10 +329,6 @@ expr:
   | ident = ident { Var ident }
   | expr = expr_no_ident { expr }
 
-%inline dot_callee:
-  | callee = ident { Var callee }
-  | callee = path_ident { callee }
-
 block_cont:
   | Rcurly { [] }
   | Semicolon; block = separated_nonempty_list(Semicolon, stmt); Rcurly { block }
@@ -348,10 +346,6 @@ lambda:
   | Fun; param = only_one_param; attr = loption(capture_copies); Colon; body = expr; %prec Below_expr
     { let body = [Expr ($loc(body), body)] in
       Lambda ($loc, [param], attr, None, body) }
-
-path_ident:
-  | paths = nonempty_list(Path_id); callee = ident
-    { List.fold_right (fun path expr -> Local_use ($loc, path, expr)) paths (Var callee) }
 
 clause_path:
   | paths = nonempty_list(Path_id)

@@ -17,7 +17,7 @@ and odd(i) {
 
 fun rec pop(arr&) {
   println("pop")
-  array/pop_back(&arr).ignore()
+  array/pop_back(&arr) |> ignore
   pop_all(&arr)
 }
 and pop_all(arr&) {

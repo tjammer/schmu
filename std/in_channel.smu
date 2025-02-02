@@ -52,7 +52,7 @@ fun open(name) {
 }
 
 fun close(ic) {
-  fclose(ic.file).ignore()
+  fclose(ic.file) |> ignore
 }
 
 fun with_open(name, f) {
@@ -75,7 +75,7 @@ fun fill(buf&, icbuf, lower, upper) {
   -- We call [fill] often in [readall] so we allocate eagerly
   array/reserve(&buf, prelude/power_2_above(16, len + diff))
 
-  memcpy(array/data(buf).unsafe/at(len), array/fixed/data(icbuf).unsafe/at(lower), diff)
+  memcpy(array/data(buf) |> unsafe/at(len), array/fixed/data(icbuf) |> unsafe/at(lower), diff)
   &__unsafe_array_length(buf) = len + diff
 }
 

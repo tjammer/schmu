@@ -376,12 +376,12 @@ First class functions
   !16 = distinct !DISubprogram(name: "makefalse", linkageName: "schmu_makefalse", scope: !3, file: !3, line: 13, type: !4, scopeLine: 13, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !17 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !18 = !DILocation(line: 21, scope: !17)
-  !19 = !DILocation(line: 21, column: 15, scope: !17)
+  !19 = !DILocation(line: 21, column: 18, scope: !17)
   !20 = !DILocation(line: 22, scope: !17)
-  !21 = !DILocation(line: 22, column: 24, scope: !17)
-  !22 = !DILocation(line: 23, column: 5, scope: !17)
-  !23 = !DILocation(line: 23, column: 22, scope: !17)
-  !24 = !DILocation(line: 23, column: 36, scope: !17)
+  !21 = !DILocation(line: 22, column: 27, scope: !17)
+  !22 = !DILocation(line: 23, column: 8, scope: !17)
+  !23 = !DILocation(line: 23, column: 28, scope: !17)
+  !24 = !DILocation(line: 23, column: 43, scope: !17)
   !25 = !DILocation(line: 24, column: 7, scope: !17)
   !26 = !DILocation(line: 24, scope: !17)
   !27 = !DILocation(line: 25, column: 7, scope: !17)
@@ -757,8 +757,8 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   !35 = !DILocation(line: 49, scope: !25)
   !36 = !DILocation(line: 50, column: 7, scope: !25)
   !37 = !DILocation(line: 50, scope: !25)
-  !38 = !DILocation(line: 52, column: 4, scope: !25)
-  !39 = !DILocation(line: 52, column: 23, scope: !25)
+  !38 = !DILocation(line: 52, column: 7, scope: !25)
+  !39 = !DILocation(line: 52, column: 27, scope: !25)
   21
   22
   23
@@ -866,7 +866,7 @@ A generic pass function. This example is not 100% correct, but works due to call
   !12 = !DILocation(line: 8, column: 7, scope: !11)
   !13 = !DILocation(line: 8, scope: !11)
   !14 = !DILocation(line: 9, column: 1, scope: !11)
-  !15 = !DILocation(line: 9, column: 38, scope: !11)
+  !15 = !DILocation(line: 9, column: 41, scope: !11)
   20
   700
 

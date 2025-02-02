@@ -2,7 +2,7 @@ let nested& = [[0, 1], [2, 3]]
 println(fmt(array/length(nested)))
 match array/pop_back(&nested) { Some(_): println("some"); None: () }
 println(fmt(array/length(nested)))
-array/pop_back(&nested).ignore()
+array/pop_back(&nested) |> ignore
 println(fmt(array/length(nested)))
 match array/pop_back(&nested){ Some(_): (); None: println("none") }
 println(fmt(array/length(nested)))

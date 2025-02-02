@@ -18,9 +18,9 @@ fun int_of_bool(b) {if b {1} else {0}}
 
 -- TODO polymorphic recursion example
 
-apply(0, add1).printi()
-apply(1, fun x {x + 1}).printi()
-true.apply(makefalse).int_of_bool().printi()
+apply(0, add1) |> printi
+apply(1, fun x {x + 1}) |> printi
+true |> apply(makefalse) |> int_of_bool |> printi()
 printi(apply(3, fun x {copy(x)}))
 printi(apply(4, pass))
 printi(apply(5, pass2))

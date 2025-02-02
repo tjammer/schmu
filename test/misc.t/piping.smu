@@ -1,17 +1,18 @@
 external printi : (int) -> unit = "Printi"
 
 -- pipe into normal function
-1.(fun x {x + 1})().printi()
+1 |> fun x {x + 1} |> printi
 
 Some(1)
-.(fun x {match x {
+|> fun x {match x {
   Some(a): a
   None: 0
-}})().printi()
+}}
+|> printi
 
 -- pipe field accessor (this isn't supported anymore, but works naturally with .x)
 type foo = {x : int}
-{x = 1}.x.printi()
+{x = 1}.x |> printi()
 println("")
-10.fmt().println()
-string/of_array(['a', 'b', 'c']).string/get(1).fmt().println()
+10 |> fmt |> println
+string/of_array(['a', 'b', 'c']) |> string/get(1) |> fmt |> println

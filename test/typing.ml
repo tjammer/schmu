@@ -314,20 +314,22 @@ let test_para_instance_wrong_func () =
     "type foo['a] = {gen : 'a}; fun apply(foo) {foo.gen + 17}; let foo = {gen \
      = 17}; apply({gen = true})"
 
-let test_pipe_head_single () = test "int" "fun add1(a) {a + 1}; 10.add1()"
+let test_pipe_head_single () = test "int" "fun add1(a) {a + 1}; 10 |> add1"
+
+let test_pipe_head_single_call () = test "int" "fun add1(a) {a + 1}; 10 |> add1()"
 
 let test_pipe_head_multi_call () =
-  test "int" "fun add1(a) {a + 1}; 10.add1().add1()"
+  test "int" "fun add1(a) {a + 1}; 10 |> add1 |> add1"
 
 let test_pipe_head_single_wrong_type () =
   test_exn "In application expecting (int) -> 'a but found int"
-    "let add1 = 1; 10.add1()"
+    "let add1 = 1; 10 |> add1"
 
-let test_pipe_head_mult () = test "int" "fun add(a, b) {a + b}; 10.add(12)"
+let test_pipe_head_mult () = test "int" "fun add(a, b) {a + b}; 10 |> add(12)"
 
 let test_pipe_head_mult_wrong_type () =
   test_exn "In application expecting (int, int) -> _ but found (int) -> _"
-    "fun add1(a) {a + 1}; 10.add1(12)"
+    "fun add1(a) {a + 1}; 10 |> add1(12)"
 
 let test_alias_simple () =
   test "(int) -> unit" "type foo = int; external f : (foo) -> unit; f"
@@ -484,11 +486,11 @@ fun map(p, f, buf, view){
 let test_variants_nameclash () =
   test_exn "Two constructors are named None" "type t = None | Some | None"
 
-let test_lor_clike_variant () = test "int" "type clike = A | B; B.lor(A)"
+let test_lor_clike_variant () = test "int" "type clike = A | B; B |> lor(A)"
 
 let test_lor_other_variant () =
   test_exn "Expecting int, not a variant type"
-    "type clike = A(int) | B; B.lor(A)"
+    "type clike = A(int) | B; B |> lor(A)"
 
 let test_match_all () =
   test "int"
@@ -508,7 +510,7 @@ let test_match_missing_nested () =
     {|type option['a] = None | Some('a)
 type test = Float(float) | Int(int) | Non
 match None {
-  Some(Float(f)): f.int_of_float()
+  Some(Float(f)): f |> int_of_float
   -- Some(Int(i))
   -- Some Non
   None: 0
@@ -522,14 +524,14 @@ match Some(1) {None: -1; a: 0}|}
 let test_match_all_before_ctor () =
   test_exn "Pattern match case is redundant"
     {|type option['a] = None | Some('a)
-match Some(1) {a: 0; None: -1}|}
+match Some(1) {a: 0 | None: -1}|}
 
 let test_match_redundant_all_cases () =
   test_exn "Pattern match case is redundant"
     {|type option['a] = None | Some('a)
 type test = Float(float) | Int(int) | Non
 match None {
-  Some(Float(f)): f.int_of_float()
+  Some(Float(f)): f |> int_of_float
   Some(Int(i)): i
   Some(Non): 1
   None: 0
@@ -546,7 +548,7 @@ let test_match_wildcard_nested () =
     {|type option['a] = None | Some('a)
 type test = Float(float) | Int(int) | Non
 match None {
-  Some(Float(f)): f.int_of_float()
+  Some(Float(f)): f |> int_of_float
   Some(_): -2
   Some(Non): 1
   None: 0
@@ -861,7 +863,7 @@ fun deps! {
   find_missing_deps(deps)
   enqueue(nullvec/of_array(deps))
 }
-.ignore()
+|> ignore
 |}
 
 let test_signature_dont_match_qvar () =
@@ -1681,6 +1683,7 @@ let () =
       ( "piping",
         [
           case "head_single" test_pipe_head_single;
+          case "head_single call" test_pipe_head_single_call;
           case "head_multi_call" test_pipe_head_multi_call;
           case "head_single_wrong_type" test_pipe_head_single_wrong_type;
           case "head_mult" test_pipe_head_mult;

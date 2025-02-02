@@ -2,7 +2,7 @@ let thing = rc/create(![0, 1])
 let _ = copy(thing)
 
 let variant = rc/create(!Some("string"))
-copy(variant).ignore()
+copy(variant)|> ignore
 
 type thing = { a : option[array[int]] }
 let record& = rc/create(!{a = Some([1])})
