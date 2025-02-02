@@ -16,7 +16,9 @@ module Cmap = Map.Make (Col_path)
 module type Core = sig
   val convert : Env.t -> Ast.expr -> typed_expr
   val convert_var : Env.t -> Ast.loc -> Path.t -> typed_expr
-  val convert_block : ?ret:bool -> Env.t -> Ast.block -> typed_expr * Env.t
+
+  val convert_block :
+    ?ret:bool -> pipe:bool -> Env.t -> Ast.block -> typed_expr * Env.t
 
   val pass_mut_helper :
     Env.t -> Ast.loc -> dattr -> (unit -> typed_expr) -> typed_expr

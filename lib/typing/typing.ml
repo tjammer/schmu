@@ -553,10 +553,12 @@ module rec Core : sig
   val convert : Env.t -> Ast.expr -> typed_expr
 
   val convert_annot :
-    Env.t -> Types.typ option -> Ast.expr -> Typed_tree.typed_expr
+    Env.t -> Types.typ option -> bool -> Ast.expr -> Typed_tree.typed_expr
 
   val convert_var : Env.t -> Ast.loc -> Path.t -> typed_expr
-  val convert_block : ?ret:bool -> Env.t -> Ast.block -> typed_expr * Env.t
+
+  val convert_block :
+    ?ret:bool -> pipe:bool -> Env.t -> Ast.block -> typed_expr * Env.t
 
   val pass_mut_helper :
     Env.t -> Ast.loc -> dattr -> (unit -> typed_expr) -> typed_expr
@@ -596,9 +598,9 @@ end = struct
 
     aux 0 [] args params
 
-  let rec convert env expr = convert_annot env None expr
+  let rec convert env expr = convert_annot env None false expr
 
-  and convert_annot env annot = function
+  and convert_annot env annot pipe = function
     | Ast.Var (loc, id) -> convert_var env loc (Path.Pid id)
     | Lit (loc, Int i) -> convert_simple_lit loc tint (Int i)
     | Lit (loc, Bool b) -> convert_simple_lit loc tbool (Bool b)
@@ -619,8 +621,9 @@ end = struct
     | Lit (loc, Unit) ->
         let attr = { no_attr with const = true } in
         { typ = tunit; expr = Const Unit; attr; loc }
-    | Lambda (loc, id, attr, ret, e) -> convert_lambda env loc id attr ret e
-    | App (loc, e1, e2) -> convert_app ~switch_uni:false env loc e1 e2
+    | Lambda (loc, id, attr, ret, e) ->
+        convert_lambda env loc pipe id attr ret e
+    | App (loc, e1, e2) -> convert_app ~pipe env loc e1 e2
     | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
     | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
@@ -630,7 +633,8 @@ end = struct
         convert_record_update env loc annot record items
     | Field (loc, expr, id) -> convert_field env loc expr id
     | Set (loc, expr, value) -> convert_set env loc expr value
-    | Do_block stmts -> convert_block_annot ~ret:true env annot stmts |> fst
+    | Do_block stmts ->
+        convert_block_annot ~ret:true env annot pipe stmts |> fst
     | Pipe (loc, arg, ex) -> convert_pipe env loc arg ex
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, pass, expr, cases) -> convert_match env loc pass expr cases
@@ -712,7 +716,7 @@ end = struct
         { t with typ }
     | Some annot ->
         let t_annot = typeof_annot env loc annot in
-        let t = convert_annot env (Some t_annot) block in
+        let t = convert_annot env (Some t_annot) false block in
         leave_level ();
 
         let typ =
@@ -746,7 +750,7 @@ end = struct
     let expr = { e1 with attr = { global; const; mut } } in
     (env, id, idloc, expr, e1.attr.mut, pat_exprs)
 
-  and convert_lambda env loc params attr ret_annot body =
+  and convert_lambda env loc pipe params attr ret_annot body =
     let env = Env.open_function env in
     enter_level ();
     let env, params_t, qparams, ret_annot =
@@ -762,7 +766,7 @@ end = struct
 
     let env, param_exprs = convert_decl env params in
 
-    let body = convert_block env body |> fst in
+    let body = convert_block ~pipe env body |> fst in
     let body = List.fold_left fold_decl body param_exprs in
 
     leave_level ();
@@ -865,7 +869,7 @@ end = struct
 
     let body_env, param_exprs = convert_decl body_env params in
 
-    let body = convert_block body_env body |> fst in
+    let body = convert_block ~pipe:false body_env body |> fst in
     (* Add bindings from patterns *)
     let body = List.fold_left fold_decl body param_exprs in
     leave_level ();
@@ -961,16 +965,20 @@ end = struct
     | Dmove | Dnorm -> ());
     e
 
-  and convert_app ~switch_uni env loc e1 args =
-    let callee = convert env e1 in
-
+  and convert_app_impl ~pipe env loc callee args =
     let annots = param_annots callee.typ in
     let typed_exprs =
       mapi_with_callee_params
         (fun i (a : Ast.argument) callee_attr ->
           let e =
             pass_mut_helper env a.aloc a.apass (fun () ->
-                convert_annot env (param_annot annots i) a.aexpr)
+                (* If we are in a pipe (= [pipe] is true) the first
+                   argument was piped into this call. If it is a call itself, we
+                   automatically curry it. *)
+                match a.aexpr with
+                | App (loc, callee, args) when pipe && Int.equal 0 i ->
+                    convert_app ~pipe env loc callee args
+                | _ -> convert_annot env (param_annot annots i) pipe a.aexpr)
           in
           (* We also care about whether the argument _can_ be mutable, for array-get *)
           let attr =
@@ -995,7 +1003,7 @@ end = struct
     let targs = List.map2 apply args typed_exprs in
 
     let res_t = newvar () in
-    if switch_uni then
+    if pipe then
       unify (loc, "In application") (Tfun (args, res_t, Simple)) callee.typ env
     else
       unify (loc, "In application") callee.typ (Tfun (args, res_t, Simple)) env;
@@ -1013,6 +1021,37 @@ end = struct
 
     (* For now, we don't support const functions *)
     { typ; expr = App { callee; args = targs }; attr; loc }
+
+  and curry_app env loc callee args left_args =
+    (* Create a lambda expr with [left args] parameters. The body just calls the
+       normal callee *)
+    let open Ast in
+    let p i = "__curry" ^ string_of_int i in
+    let decls =
+      List.init left_args (fun i ->
+          let pattern = Pvar ((loc, p i), Dnorm) in
+          { loc; pattern; annot = None })
+    in
+    let curry_args =
+      List.init left_args (fun i ->
+          { apass = Dnorm; aloc = loc; aexpr = Var (loc, p i) })
+    in
+    let block = Expr (loc, App (loc, callee, args @ curry_args)) :: [] in
+    let expr = Lambda (loc, decls, [], None, block) in
+    convert_annot env None true expr
+
+  and convert_app ~pipe env loc e1 args =
+    let callee = convert env e1 in
+
+    (* Automatically curry calls in pipes *)
+    match callee.typ with
+    | Tfun (ps, _, _) ->
+        let missing_args = List.length ps - List.length args in
+        if pipe && missing_args > 0 then
+          (* We convert e1 twice. Hopefully not a problem *)
+          curry_app env loc e1 args missing_args
+        else convert_app_impl ~pipe env loc callee args
+    | _ -> convert_app_impl ~pipe env loc callee args
 
   and convert_bop env loc bop e1 e2 =
     let check typ =
@@ -1115,18 +1154,18 @@ end = struct
     { typ = tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
 
   and convert_pipe env loc e1 e2 =
-    let switch_uni = true in
+    let pipe = true in
     match e2 with
     | App (_, callee, args) ->
         (* Add e1 to beginnig of args *)
-        convert_app ~switch_uni env loc callee (e1 :: args)
+        convert_app ~pipe env loc callee (e1 :: args)
     | Ctor (_, name, expr) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1.aexpr) None
     | Fmt (loc, l) -> convert_fmt env loc (e1.aexpr :: l)
     | e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
-        convert_app ~switch_uni env loc e2 [ e1 ]
+        convert_app ~pipe env loc e2 [ e1 ]
 
   and convert_tuple env loc exprs =
     let (_, const), exprs =
@@ -1161,7 +1200,7 @@ end = struct
     let typ = string_typ in
     { typ; expr = Fmt exprs; attr = no_attr; loc }
 
-  and convert_block_annot ~ret env annot stmts =
+  and convert_block_annot ~ret env annot pipe stmts =
     let loc = Lexing.(dummy_pos, dummy_pos) in
 
     let check env (loc, typ) =
@@ -1225,7 +1264,7 @@ end = struct
       | [ Expr (loc, e) ] ->
           last_loc := loc;
           check env old_type;
-          (convert_annot env annot e, env)
+          (convert_annot env annot pipe e, env)
       | Expr (l1, e1) :: tl ->
           check env old_type;
           let expr = convert env e1 in
@@ -1239,8 +1278,8 @@ end = struct
     in
     to_expr env (loc, tunit) stmts
 
-  and convert_block ?(ret = true) env stmts =
-    convert_block_annot ~ret env None stmts
+  and convert_block ?(ret = true) ~pipe env stmts =
+    convert_block_annot ~ret env None pipe stmts
 
   and disambiguate_uses env loc annot path = function
     | Ast.Local_use (_, id, tl) ->
@@ -1248,7 +1287,7 @@ end = struct
     | Var (_, id) -> convert_var env loc (Path.append id path)
     | expr ->
         let env = Env.use_module env loc path in
-        convert_annot env annot expr
+        convert_annot env annot false expr
 end
 
 and Records : Recs.S = Recs.Make (Core)

@@ -1,0 +1,12 @@
+-- curry in pipe test
+fun four(a, b, c, d) {
+  println(fmt("a: ", a, " b: ", b, " c: ", c, " d: ", d))
+}
+
+(10 |> four(12))(1, 2)
+
+-- curry first call in pipe
+fun cont(a, b): println(fmt("[cont] a: ", a, " b: ", b))
+fun call(k, a): k(a)
+
+cont(10) |> call(11)

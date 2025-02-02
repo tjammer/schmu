@@ -1410,3 +1410,9 @@ Weak rcs
 Cyclic ref counts
   $ schmu rc_cycle.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./rc_cycle
+
+Currying in pipes
+  $ schmu curry_pipe.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./curry_pipe
+  a: 10 b: 12 c: 1 d: 2
+  [cont] a: 10 b: 11

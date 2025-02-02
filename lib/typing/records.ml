@@ -7,7 +7,7 @@ module type Core = sig
   val convert : Env.t -> Ast.expr -> Typed_tree.typed_expr
 
   val convert_annot :
-    Env.t -> Types.typ option -> Ast.expr -> Typed_tree.typed_expr
+    Env.t -> Types.typ option -> bool -> Ast.expr -> Typed_tree.typed_expr
 end
 
 module type S = sig
@@ -136,7 +136,7 @@ module Make (C : Core) = struct
                 | Qvar _ -> failwith "unreachable"
                 | _ -> Some typ
               in
-              let expr = convert_annot env annot expr in
+              let expr = convert_annot env annot false expr in
               unify (loc, "In record expression") typ expr.typ env;
               (label, expr)
             in

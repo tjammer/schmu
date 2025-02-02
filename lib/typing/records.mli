@@ -2,7 +2,7 @@ module type Core = sig
   val convert : Env.t -> Ast.expr -> Typed_tree.typed_expr
 
   val convert_annot :
-    Env.t -> Types.typ option -> Ast.expr -> Typed_tree.typed_expr
+    Env.t -> Types.typ option -> bool -> Ast.expr -> Typed_tree.typed_expr
 end
 
 module type S = sig

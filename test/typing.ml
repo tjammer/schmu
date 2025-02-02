@@ -316,7 +316,8 @@ let test_para_instance_wrong_func () =
 
 let test_pipe_head_single () = test "int" "fun add1(a) {a + 1}; 10 |> add1"
 
-let test_pipe_head_single_call () = test "int" "fun add1(a) {a + 1}; 10 |> add1()"
+let test_pipe_head_single_call () =
+  test "int" "fun add1(a) {a + 1}; 10 |> add1()"
 
 let test_pipe_head_multi_call () =
   test "int" "fun add1(a) {a + 1}; 10 |> add1 |> add1"
@@ -1514,6 +1515,22 @@ let test_syntax_noparens_tuple () = test "(float, int)" "1.0, 1"
 let test_syntax_minus_field () =
   test "int" "type a = { a : int }; let a = { a = 10 }; -a.a"
 
+let test_syntax_pipe_curry_right () =
+  test "int"
+    {|fun four(a, b, c, d) {
+  a + b + c + d
+}
+
+(10 |> four(12))(1, 2)|}
+
+let test_syntax_pipe_curry_left () =
+  test "int"
+    {|fun cont(a, b): a + b
+fun call(k, a): k(a)
+
+cont(10) |> call(11)
+|}
+
 let test_rec_type_pos () =
   test "unit" "type list['a] = Nil | Cons('a, rc[list])"
 
@@ -2062,6 +2079,8 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
             test_syntax_multiline_variant_ctor_after;
           case "noparens tuple" test_syntax_noparens_tuple;
           case "minus field" test_syntax_minus_field;
+          case "pipe curry right" test_syntax_pipe_curry_right;
+          case "pipe curry left" test_syntax_pipe_curry_left;
         ] );
       ( "recursive types",
         [
