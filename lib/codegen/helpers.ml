@@ -310,6 +310,7 @@ struct
         if value.value <> ptr then
           let size = sizeof_typ value.typ |> llval_of_size in
           memcpy ~dst:ptr ~src:value ~size
+    | Tunit -> ()
     | _ -> ignore (Llvm.build_store (bring_default value) ptr builder)
 
   let mangle name = function C -> name | Schmu n -> n ^ "_" ^ name

@@ -262,9 +262,10 @@ end = struct
                   v)
           | Const -> dst)
       | None -> (
-          match kind with
-          | Lborrow -> gen_expr param rhs
-          | Lowned ->
+          match (kind, rhs.typ) with
+          | Lborrow, _ -> gen_expr param rhs
+          | Lowned, Tunit -> gen_expr param rhs
+          | Lowned, _ ->
               let dst = alloca param (get_lltype_def rhs.typ) "" in
               let v = gen_expr { param with alloca = Some dst } rhs in
               let src = bring_default_var v in
