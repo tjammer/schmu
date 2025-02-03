@@ -207,6 +207,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
     if l == r then (r, sub, true)
     else
       match (l, r) with
+      | Qvar lid, Qvar rid when String.equal lid rid -> (l, sub, true)
       | ( Tvar { contents = Unbound (lid, _) },
           Tvar { contents = Unbound (rid, _) } )
       | Qvar lid, Qvar rid

@@ -4,7 +4,7 @@ fun rec consume(storage, opt) {
   match storage.[opt] {
     None: println("none")
     Some(arr): {
-      array/iter(arr, fun ((str, expr)) {
+      array/iter(arr) |> iter/iter(fun ((str, expr)) {
         println(str)
         consume(storage, expr)
       })

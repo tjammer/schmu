@@ -10,4 +10,4 @@ external printf : (string/cstr, int) -> unit
 fun printi(i) {
   printf(string/data("%i\n"), i)
 }
-array/iter(malloc_some/vtest, printi)
+array/iter(malloc_some/vtest) |> iter/iter(printi)

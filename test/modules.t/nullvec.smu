@@ -30,6 +30,6 @@ fun push(arr&, value!){ match &arr {
 fun iter(arr, f) {
   match arr {
     None: ()
-    Some(arr): array/iter(arr, f)
+    Some(arr): array/iter(arr) |> iter/iter(f)
   }
 }

@@ -30,7 +30,7 @@ fun promise_resolve(p&, v!) {
       &s = Resolved(v)
     }
     Queued(cbs): {
-      array/iter(cbs, fun cb: cb(v))
+      array/iter(cbs) |> iter/iter(fun cb: cb(v))
       &s = Resolved(v)
     }
   }

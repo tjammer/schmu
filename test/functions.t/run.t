@@ -1490,12 +1490,12 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "nested_polymorphic_closures.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 29, type: !4, scopeLine: 29, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 30, type: !4, scopeLine: 30, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 33, column: 5, scope: !2)
-  !7 = !DILocation(line: 34, column: 7, scope: !2)
+  !6 = !DILocation(line: 34, column: 5, scope: !2)
+  !7 = !DILocation(line: 35, column: 7, scope: !2)
   !8 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !9, file: !9, line: 40, type: !4, scopeLine: 40, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !9 = !DIFile(filename: "nested_polymorphic_closures.smu", directory: "")
   !10 = !DILocation(line: 40, column: 23, scope: !8)
@@ -1955,12 +1955,12 @@ Don't copy mutable types in setup of tailrecursive functions
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "tailrec_mutable.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 29, type: !4, scopeLine: 29, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_al_l_", scope: !3, file: !3, line: 30, type: !4, scopeLine: 30, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 33, column: 5, scope: !2)
-  !7 = !DILocation(line: 34, column: 7, scope: !2)
+  !6 = !DILocation(line: 34, column: 5, scope: !2)
+  !7 = !DILocation(line: 35, column: 7, scope: !2)
   !8 = distinct !DISubprogram(name: "change_int", linkageName: "schmu_change_int", scope: !9, file: !9, line: 58, type: !4, scopeLine: 58, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !9 = !DIFile(filename: "tailrec_mutable.smu", directory: "")
   !10 = !DILocation(line: 59, column: 5, scope: !8)
@@ -2012,7 +2012,7 @@ The lamba passed as array-iter argument is polymorphic
   
   declare void @string_println(ptr %0)
   
-  define linkonce_odr void @__array_inner__3_Cal_2lru__(i64 %i, ptr %0) !dbg !2 {
+  define linkonce_odr i1 @__array_inner__2_Cal_lrb__(i64 %i, ptr %0) !dbg !2 {
   entry:
     %arr = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %0, i32 0, i32 2
     %arr1 = load ptr, ptr %arr, align 8
@@ -2021,47 +2021,50 @@ The lamba passed as array-iter argument is polymorphic
     %2 = add i64 %i, 1
     br label %rec
   
-  rec:                                              ; preds = %else, %entry
-    %lsr.iv = phi i64 [ %lsr.iv.next, %else ], [ %2, %entry ]
+  rec:                                              ; preds = %then3, %entry
+    %lsr.iv = phi i64 [ %lsr.iv.next, %then3 ], [ %2, %entry ]
     %3 = add i64 %lsr.iv, -1
     %4 = load i64, ptr %arr1, align 8
     %eq = icmp eq i64 %3, %4
-    br i1 %eq, label %then, label %else, !dbg !6
-  
-  then:                                             ; preds = %rec
-    ret void
+    br i1 %eq, label %ifcont5, label %else, !dbg !6
   
   else:                                             ; preds = %rec
     %5 = shl i64 %lsr.iv, 3
     %uglygep = getelementptr i8, ptr %arr1, i64 %5
-    %uglygep3 = getelementptr i8, ptr %uglygep, i64 8
-    %6 = load i64, ptr %uglygep3, align 8
+    %uglygep6 = getelementptr i8, ptr %uglygep, i64 8
+    %6 = load i64, ptr %uglygep6, align 8
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 24
     %loadtmp = load ptr, ptr %sunkaddr, align 8
-    %sunkaddr4 = getelementptr inbounds i8, ptr %0, i64 32
-    %loadtmp2 = load ptr, ptr %sunkaddr4, align 8
-    tail call void %loadtmp(i64 %3, i64 %6, ptr %loadtmp2), !dbg !7
+    %sunkaddr7 = getelementptr inbounds i8, ptr %0, i64 32
+    %loadtmp2 = load ptr, ptr %sunkaddr7, align 8
+    %7 = tail call i1 %loadtmp(i64 %6, ptr %loadtmp2), !dbg !7
+    br i1 %7, label %then3, label %ifcont5, !dbg !7
+  
+  then3:                                            ; preds = %else
     store i64 %lsr.iv, ptr %1, align 8
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec
+  
+  ifcont5:                                          ; preds = %else, %rec
+    ret i1 false
   }
   
-  define linkonce_odr void @__array_iteri_al_2lru__(ptr %arr, ptr %f) !dbg !8 {
+  define linkonce_odr i1 @__array_iter_al_lrb__(ptr %arr, ptr %cont) !dbg !8 {
   entry:
-    %__array_inner__3_Cal_2lru__ = alloca %closure, align 8
-    store ptr @__array_inner__3_Cal_2lru__, ptr %__array_inner__3_Cal_2lru__, align 8
-    %clsr___array_inner__3_Cal_2lru__ = alloca { ptr, ptr, ptr, %closure }, align 8
-    %arr1 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__3_Cal_2lru__, i32 0, i32 2
+    %__array_inner__2_Cal_lrb__ = alloca %closure, align 8
+    store ptr @__array_inner__2_Cal_lrb__, ptr %__array_inner__2_Cal_lrb__, align 8
+    %clsr___array_inner__2_Cal_lrb__ = alloca { ptr, ptr, ptr, %closure }, align 8
+    %arr1 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__2_Cal_lrb__, i32 0, i32 2
     store ptr %arr, ptr %arr1, align 8
-    %f2 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__3_Cal_2lru__, i32 0, i32 3
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f2, ptr align 1 %f, i64 16, i1 false)
-    store ptr @__ctor_al_2lru2_, ptr %clsr___array_inner__3_Cal_2lru__, align 8
-    %dtor = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__3_Cal_2lru__, i32 0, i32 1
+    %cont2 = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__2_Cal_lrb__, i32 0, i32 3
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %cont2, ptr align 1 %cont, i64 16, i1 false)
+    store ptr @__ctor_al_lrb2_, ptr %clsr___array_inner__2_Cal_lrb__, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %clsr___array_inner__2_Cal_lrb__, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
-    %envptr = getelementptr inbounds %closure, ptr %__array_inner__3_Cal_2lru__, i32 0, i32 1
-    store ptr %clsr___array_inner__3_Cal_2lru__, ptr %envptr, align 8
-    call void @__array_inner__3_Cal_2lru__(i64 0, ptr %clsr___array_inner__3_Cal_2lru__), !dbg !9
-    ret void
+    %envptr = getelementptr inbounds %closure, ptr %__array_inner__2_Cal_lrb__, i32 0, i32 1
+    store ptr %clsr___array_inner__2_Cal_lrb__, ptr %envptr, align 8
+    %0 = call i1 @__array_inner__2_Cal_lrb__(i64 0, ptr %clsr___array_inner__2_Cal_lrb__), !dbg !9
+    ret i1 %0
   }
   
   define linkonce_odr i64 @__array_pop_back_ac_rvc__(ptr noalias %arr) !dbg !10 {
@@ -2135,26 +2138,50 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define void @__fun_schmu0(ptr noalias %arr) !dbg !15 {
+  define linkonce_odr i1 @__fun_iter6_lC2lru_l_(i64 %x, ptr %0) !dbg !15 {
   entry:
-    tail call void @__array_push_ac_c_(ptr %arr, i8 0), !dbg !17
+    %f = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %0, i32 0, i32 2
+    %_iter_i = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %0, i32 0, i32 3
+    %_iter_i1 = load ptr, ptr %_iter_i, align 8
+    %1 = load i64, ptr %_iter_i1, align 8
+    %loadtmp = load ptr, ptr %f, align 8
+    %envptr = getelementptr inbounds %closure, ptr %f, i32 0, i32 1
+    %loadtmp2 = load ptr, ptr %envptr, align 8
+    tail call void %loadtmp(i64 %1, i64 %x, ptr %loadtmp2), !dbg !17
+    %2 = load i64, ptr %_iter_i1, align 8
+    %add = add i64 %2, 1
+    store i64 %add, ptr %_iter_i1, align 8
+    ret i1 true
+  }
+  
+  define void @__fun_schmu0(ptr noalias %arr) !dbg !18 {
+  entry:
+    tail call void @__array_push_ac_c_(ptr %arr, i8 0), !dbg !20
     %ret = alloca %option.tc_, align 8
-    %0 = tail call i64 @__array_pop_back_ac_rvc__(ptr %arr), !dbg !18
+    %0 = tail call i64 @__array_pop_back_ac_rvc__(ptr %arr), !dbg !21
     store i64 %0, ptr %ret, align 8
     ret void
   }
   
-  define linkonce_odr void @__fun_schmu1_lCac_ac__(i64 %i, i64 %v, ptr %0) !dbg !19 {
+  define linkonce_odr i1 @__fun_schmu1_lrb_Cal__(ptr %__curry0, ptr %0) !dbg !22 {
+  entry:
+    %arr = getelementptr inbounds { ptr, ptr, ptr }, ptr %0, i32 0, i32 2
+    %arr1 = load ptr, ptr %arr, align 8
+    %1 = tail call i1 @__array_iter_al_lrb__(ptr %arr1, ptr %__curry0), !dbg !23
+    ret i1 %1
+  }
+  
+  define linkonce_odr void @__fun_schmu2_lCac_ac__(i64 %i, i64 %v, ptr %0) !dbg !24 {
   entry:
     %acc = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %0, i32 0, i32 2
     %acc1 = load ptr, ptr %acc, align 8
     %delim = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %0, i32 0, i32 3
     %delim2 = load ptr, ptr %delim, align 8
     %gt = icmp sgt i64 %i, 0
-    br i1 %gt, label %then, label %ifcont, !dbg !20
+    br i1 %gt, label %then, label %ifcont, !dbg !25
   
   then:                                             ; preds = %entry
-    tail call void @string_append(ptr %acc1, ptr %delim2), !dbg !21
+    tail call void @string_append(ptr %acc1, ptr %delim2), !dbg !26
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
@@ -2170,57 +2197,90 @@ The lamba passed as array-iter argument is polymorphic
     %fmt = tail call i32 (ptr, i64, ptr, ...) @snprintf(ptr %data, i64 %2, ptr getelementptr (i8, ptr @0, i64 16), i64 %v)
     %str = alloca ptr, align 8
     store ptr %3, ptr %str, align 8
-    tail call void @string_append(ptr %acc1, ptr %3), !dbg !22
+    tail call void @string_append(ptr %acc1, ptr %3), !dbg !27
     call void @__free_ac_(ptr %str)
     ret void
   }
   
-  define linkonce_odr ptr @__schmu_string_concat_al__(ptr %arr, ptr %delim) !dbg !23 {
+  define linkonce_odr void @__iter_iteri_lrb_rb_2lru__(ptr %it, ptr %f) !dbg !28 {
+  entry:
+    %0 = alloca i64, align 8
+    store i64 0, ptr %0, align 8
+    %__fun_iter6_lC2lru_l_ = alloca %closure, align 8
+    store ptr @__fun_iter6_lC2lru_l_, ptr %__fun_iter6_lC2lru_l_, align 8
+    %clsr___fun_iter6_lC2lru_l_ = alloca { ptr, ptr, %closure, ptr }, align 8
+    %f1 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_iter6_lC2lru_l_, i32 0, i32 2
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f1, ptr align 1 %f, i64 16, i1 false)
+    %_iter_i = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_iter6_lC2lru_l_, i32 0, i32 3
+    store ptr %0, ptr %_iter_i, align 8
+    store ptr @__ctor_2lru_l_, ptr %clsr___fun_iter6_lC2lru_l_, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_iter6_lC2lru_l_, i32 0, i32 1
+    store ptr null, ptr %dtor, align 8
+    %envptr = getelementptr inbounds %closure, ptr %__fun_iter6_lC2lru_l_, i32 0, i32 1
+    store ptr %clsr___fun_iter6_lC2lru_l_, ptr %envptr, align 8
+    %loadtmp = load ptr, ptr %it, align 8
+    %envptr2 = getelementptr inbounds %closure, ptr %it, i32 0, i32 1
+    %loadtmp3 = load ptr, ptr %envptr2, align 8
+    %1 = call i1 %loadtmp(ptr %__fun_iter6_lC2lru_l_, ptr %loadtmp3), !dbg !29
+    ret void
+  }
+  
+  define linkonce_odr ptr @__schmu_string_concat_al__(ptr %arr, ptr %delim) !dbg !30 {
   entry:
     %0 = alloca ptr, align 8
     %1 = alloca ptr, align 8
     store ptr @1, ptr %1, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %0, ptr align 8 %1, i64 8, i1 false)
     call void @__copy_ac_(ptr %0)
-    %__fun_schmu1_lCac_ac__ = alloca %closure, align 8
-    store ptr @__fun_schmu1_lCac_ac__, ptr %__fun_schmu1_lCac_ac__, align 8
-    %clsr___fun_schmu1_lCac_ac__ = alloca { ptr, ptr, ptr, ptr }, align 8
-    %acc = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %clsr___fun_schmu1_lCac_ac__, i32 0, i32 2
-    store ptr %0, ptr %acc, align 8
-    %delim1 = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %clsr___fun_schmu1_lCac_ac__, i32 0, i32 3
-    store ptr %delim, ptr %delim1, align 8
-    store ptr @__ctor_ac_ac2_, ptr %clsr___fun_schmu1_lCac_ac__, align 8
-    %dtor = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %clsr___fun_schmu1_lCac_ac__, i32 0, i32 1
+    %__fun_schmu1_lrb_Cal__ = alloca %closure, align 8
+    store ptr @__fun_schmu1_lrb_Cal__, ptr %__fun_schmu1_lrb_Cal__, align 8
+    %clsr___fun_schmu1_lrb_Cal__ = alloca { ptr, ptr, ptr }, align 8
+    %arr1 = getelementptr inbounds { ptr, ptr, ptr }, ptr %clsr___fun_schmu1_lrb_Cal__, i32 0, i32 2
+    store ptr %arr, ptr %arr1, align 8
+    store ptr @__ctor_al2_, ptr %clsr___fun_schmu1_lrb_Cal__, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, ptr }, ptr %clsr___fun_schmu1_lrb_Cal__, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
-    %envptr = getelementptr inbounds %closure, ptr %__fun_schmu1_lCac_ac__, i32 0, i32 1
-    store ptr %clsr___fun_schmu1_lCac_ac__, ptr %envptr, align 8
-    call void @__array_iteri_al_2lru__(ptr %arr, ptr %__fun_schmu1_lCac_ac__), !dbg !24
-    call void @schmu_string_add_null(ptr %0), !dbg !25
+    %envptr = getelementptr inbounds %closure, ptr %__fun_schmu1_lrb_Cal__, i32 0, i32 1
+    store ptr %clsr___fun_schmu1_lrb_Cal__, ptr %envptr, align 8
+    %__fun_schmu2_lCac_ac__ = alloca %closure, align 8
+    store ptr @__fun_schmu2_lCac_ac__, ptr %__fun_schmu2_lCac_ac__, align 8
+    %clsr___fun_schmu2_lCac_ac__ = alloca { ptr, ptr, ptr, ptr }, align 8
+    %acc = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %clsr___fun_schmu2_lCac_ac__, i32 0, i32 2
+    store ptr %0, ptr %acc, align 8
+    %delim3 = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %clsr___fun_schmu2_lCac_ac__, i32 0, i32 3
+    store ptr %delim, ptr %delim3, align 8
+    store ptr @__ctor_ac_ac2_, ptr %clsr___fun_schmu2_lCac_ac__, align 8
+    %dtor5 = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %clsr___fun_schmu2_lCac_ac__, i32 0, i32 1
+    store ptr null, ptr %dtor5, align 8
+    %envptr6 = getelementptr inbounds %closure, ptr %__fun_schmu2_lCac_ac__, i32 0, i32 1
+    store ptr %clsr___fun_schmu2_lCac_ac__, ptr %envptr6, align 8
+    call void @__iter_iteri_lrb_rb_2lru__(ptr %__fun_schmu1_lrb_Cal__, ptr %__fun_schmu2_lCac_ac__), !dbg !31
+    call void @schmu_string_add_null(ptr %0), !dbg !32
     %2 = load ptr, ptr %0, align 8
     ret ptr %2
   }
   
-  define void @schmu_string_add_null(ptr noalias %str) !dbg !26 {
+  define void @schmu_string_add_null(ptr noalias %str) !dbg !33 {
   entry:
     %clstmp = alloca %closure, align 8
     store ptr @__fun_schmu0, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @string_modify_buf(ptr %str, ptr %clstmp), !dbg !27
+    call void @string_modify_buf(ptr %str, ptr %clstmp), !dbg !34
     ret void
   }
   
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr ptr @__ctor_al_2lru2_(ptr %0) {
+  define linkonce_odr ptr @__ctor_al_lrb2_(ptr %0) {
   entry:
     %1 = call ptr @malloc(i64 40)
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
     %arr = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %1, i32 0, i32 2
     call void @__copy_al_(ptr %arr)
-    %f = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %1, i32 0, i32 3
-    call void @__copy_2lru_(ptr %f)
+    %cont = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %1, i32 0, i32 3
+    call void @__copy_lrb_(ptr %cont)
     ret ptr %1
   }
   
@@ -2241,7 +2301,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define linkonce_odr void @__copy_2lru_(ptr %0) {
+  define linkonce_odr void @__copy_lrb_(ptr %0) {
   entry:
     %1 = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     %2 = load ptr, ptr %1, align 8
@@ -2271,6 +2331,34 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
+  define linkonce_odr ptr @__ctor_2lru_l_(ptr %0) {
+  entry:
+    %1 = call ptr @malloc(i64 40)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
+    %f = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 2
+    call void @__copy_2lru_(ptr %f)
+    ret ptr %1
+  }
+  
+  define linkonce_odr void @__copy_2lru_(ptr %0) {
+  entry:
+    %1 = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %2 = load ptr, ptr %1, align 8
+    %3 = icmp eq ptr %2, null
+    br i1 %3, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %ctor2 = bitcast ptr %2 to ptr
+    %ctor1 = load ptr, ptr %ctor2, align 8
+    %4 = call ptr %ctor1(ptr %2)
+    %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
+    store ptr %4, ptr %sunkaddr, align 8
+    br label %ret
+  
+  ret:                                              ; preds = %notnull, %entry
+    ret void
+  }
+  
   define linkonce_odr void @__copy_ac_(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
@@ -2288,6 +2376,15 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
+  define linkonce_odr ptr @__ctor_al2_(ptr %0) {
+  entry:
+    %1 = call ptr @malloc(i64 24)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 24, i1 false)
+    %arr = getelementptr inbounds { ptr, ptr, ptr }, ptr %1, i32 0, i32 2
+    call void @__copy_al_(ptr %arr)
+    ret ptr %1
+  }
+  
   define linkonce_odr ptr @__ctor_ac_ac2_(ptr %0) {
   entry:
     %1 = call ptr @malloc(i64 32)
@@ -2299,7 +2396,7 @@ The lamba passed as array-iter argument is polymorphic
     ret ptr %1
   }
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !28 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !35 {
   entry:
     %0 = tail call ptr @malloc(i64 96)
     store ptr %0, ptr @schmu_arr, align 8
@@ -2327,8 +2424,8 @@ The lamba passed as array-iter argument is polymorphic
     %"9" = getelementptr i64, ptr %1, i64 9
     store i64 10, ptr %"9", align 8
     %2 = load ptr, ptr @schmu_arr, align 8
-    %3 = tail call ptr @__schmu_string_concat_al__(ptr %2, ptr @2), !dbg !29
-    tail call void @string_println(ptr %3), !dbg !30
+    %3 = tail call ptr @__schmu_string_concat_al__(ptr %2, ptr @2), !dbg !36
+    tail call void @string_println(ptr %3), !dbg !37
     %4 = alloca ptr, align 8
     store ptr %3, ptr %4, align 8
     call void @__free_ac_(ptr %4)
@@ -2351,35 +2448,42 @@ The lamba passed as array-iter argument is polymorphic
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "polymorphic_lambda_argument.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner__3_Cal_2lru__", scope: !3, file: !3, line: 59, type: !4, scopeLine: 59, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner__2_Cal_lrb__", scope: !3, file: !3, line: 47, type: !4, scopeLine: 47, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 60, column: 7, scope: !2)
-  !7 = !DILocation(line: 63, column: 6, scope: !2)
-  !8 = distinct !DISubprogram(name: "_array_iteri", linkageName: "__array_iteri_al_2lru__", scope: !3, file: !3, line: 58, type: !4, scopeLine: 58, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !9 = !DILocation(line: 68, column: 2, scope: !8)
-  !10 = distinct !DISubprogram(name: "_array_pop_back", linkageName: "__array_pop_back_ac_rvc__", scope: !3, file: !3, line: 125, type: !4, scopeLine: 125, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !11 = !DILocation(line: 127, column: 5, scope: !10)
-  !12 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_ac_c_", scope: !3, file: !3, line: 29, type: !4, scopeLine: 29, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !13 = !DILocation(line: 33, column: 5, scope: !12)
-  !14 = !DILocation(line: 34, column: 7, scope: !12)
-  !15 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !16, file: !16, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !16 = !DIFile(filename: "polymorphic_lambda_argument.smu", directory: "")
-  !17 = !DILocation(line: 5, column: 4, scope: !15)
-  !18 = !DILocation(line: 6, column: 4, scope: !15)
-  !19 = distinct !DISubprogram(name: "__fun_schmu1", linkageName: "__fun_schmu1_lCac_ac__", scope: !16, file: !16, line: 12, type: !4, scopeLine: 12, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !20 = !DILocation(line: 13, column: 7, scope: !19)
-  !21 = !DILocation(line: 13, column: 14, scope: !19)
-  !22 = !DILocation(line: 14, column: 4, scope: !19)
-  !23 = distinct !DISubprogram(name: "string_concat", linkageName: "__schmu_string_concat_al__", scope: !16, file: !16, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !24 = !DILocation(line: 12, column: 2, scope: !23)
-  !25 = !DILocation(line: 16, column: 2, scope: !23)
-  !26 = distinct !DISubprogram(name: "string_add_null", linkageName: "schmu_string_add_null", scope: !16, file: !16, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !27 = !DILocation(line: 4, column: 2, scope: !26)
-  !28 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !16, file: !16, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !29 = !DILocation(line: 20, column: 8, scope: !28)
-  !30 = !DILocation(line: 20, scope: !28)
+  !6 = !DILocation(line: 48, column: 7, scope: !2)
+  !7 = !DILocation(line: 50, column: 9, scope: !2)
+  !8 = distinct !DISubprogram(name: "_array_iter", linkageName: "__array_iter_al_lrb__", scope: !3, file: !3, line: 46, type: !4, scopeLine: 46, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = !DILocation(line: 54, column: 2, scope: !8)
+  !10 = distinct !DISubprogram(name: "_array_pop_back", linkageName: "__array_pop_back_ac_rvc__", scope: !3, file: !3, line: 85, type: !4, scopeLine: 85, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !11 = !DILocation(line: 87, column: 5, scope: !10)
+  !12 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_ac_c_", scope: !3, file: !3, line: 30, type: !4, scopeLine: 30, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !13 = !DILocation(line: 34, column: 5, scope: !12)
+  !14 = !DILocation(line: 35, column: 7, scope: !12)
+  !15 = distinct !DISubprogram(name: "__fun_iter6", linkageName: "__fun_iter6_lC2lru_l_", scope: !16, file: !16, line: 93, type: !4, scopeLine: 93, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !16 = !DIFile(filename: "iter.smu", directory: "")
+  !17 = !DILocation(line: 94, column: 4, scope: !15)
+  !18 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !19, file: !19, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !19 = !DIFile(filename: "polymorphic_lambda_argument.smu", directory: "")
+  !20 = !DILocation(line: 5, column: 4, scope: !18)
+  !21 = !DILocation(line: 6, column: 4, scope: !18)
+  !22 = distinct !DISubprogram(name: "__fun_schmu1", linkageName: "__fun_schmu1_lrb_Cal__", scope: !19, file: !19, line: 12, type: !4, scopeLine: 12, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !23 = !DILocation(line: 12, column: 2, scope: !22)
+  !24 = distinct !DISubprogram(name: "__fun_schmu2", linkageName: "__fun_schmu2_lCac_ac__", scope: !19, file: !19, line: 12, type: !4, scopeLine: 12, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !25 = !DILocation(line: 13, column: 7, scope: !24)
+  !26 = !DILocation(line: 13, column: 14, scope: !24)
+  !27 = !DILocation(line: 14, column: 4, scope: !24)
+  !28 = distinct !DISubprogram(name: "_iter_iteri", linkageName: "__iter_iteri_lrb_rb_2lru__", scope: !16, file: !16, line: 91, type: !4, scopeLine: 91, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !29 = !DILocation(line: 93, column: 2, scope: !28)
+  !30 = distinct !DISubprogram(name: "string_concat", linkageName: "__schmu_string_concat_al__", scope: !19, file: !19, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !31 = !DILocation(line: 12, column: 21, scope: !30)
+  !32 = !DILocation(line: 16, column: 2, scope: !30)
+  !33 = distinct !DISubprogram(name: "string_add_null", linkageName: "schmu_string_add_null", scope: !19, file: !19, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !34 = !DILocation(line: 4, column: 2, scope: !33)
+  !35 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !19, file: !19, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !36 = !DILocation(line: 20, column: 8, scope: !35)
+  !37 = !DILocation(line: 20, scope: !35)
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 
 Infer type in upward closure

@@ -1,7 +1,7 @@
 let a = "indirect"
 
 fun hmm() {
-  array/iter([], fun(i : int) {ignore(i)})
+  array/iter([]) |> iter/iter(fun(i : int) {ignore(i)})
 }
 let some_lambda = {
   let a = "lol"

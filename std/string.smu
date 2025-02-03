@@ -1,4 +1,5 @@
 import array
+import iter
 import option
 import prelude
 
@@ -47,8 +48,10 @@ fun hash(str) {
   --         hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
   --     return hash;
   -- }
-  array/fold(str, !5381, fun (hash!, c) {
-    (hash * 33) + int_of_u8(c)})
+  use iter
+  array/iter(str) |> fold(!5381, fun (hash!, c) {
+    (hash * 33) + int_of_u8(c)
+  })
 }
 
 external memcmp : (raw_ptr[u8], raw_ptr[u8], int) -> i32
@@ -62,12 +65,13 @@ fun equal(l, r) {
 }
 
 fun append(str&, other) {
-  array/iter(other, fun(c : u8) { array/push(&str, !c) })
+  use iter
+  array/iter(other) |> iter(fun(c : u8) { array/push(&str, !c) })
 }
 
 fun concat(delim, strings) {
   let ret& = array/create(32)
-  array/iteri(strings, fun(i, str) {
+  array/iter(strings) |> iter/iteri(fun(i, str) {
     if not(i == 0) { append(&ret, delim) }
     append(&ret, str)
   })
@@ -95,7 +99,7 @@ fun substr(str : t, start, end) {
 fun make_skips(pattern) {
   let len = array/length(pattern)
   let skips& = #256[len]
-  array/iteri(pattern, fun(i, c) {
+  array/iter(pattern) |> iter/iteri(fun(i, c) {
     if not(i == len - 1) { -- ignore last char
       &skips#[int_of_u8(c)] = len - 1 - i
     }

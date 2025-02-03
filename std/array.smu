@@ -1,3 +1,4 @@
+import iter
 import option
 import prelude
 
@@ -42,56 +43,15 @@ fun push(arr&, value!) {
   &__unsafe_array_length(arr) = length + 1
 }
 
-fun iter(arr, f) {
+fun iter(arr, cont) {
   fun rec inner(i) {
-    if i == length(arr) {
-      ()
-    } else {
-      f(arr.[i])
-      inner(i + 1)
+    if i == length(arr) { false }
+    else {
+      if cont(arr.[i]) { inner(i + 1) }
+      else { false }
     }
   }
-
   inner(0)
-}
-
-fun iteri(arr, f) {
-  fun rec inner(i) {
-    if i == length(arr) {
-      ()
-    } else {
-      f(i, arr.[i])
-      inner(i + 1)
-    }
-  }
-
-  inner(0)
-}
-
-fun fold(arr, init!, f) {
-  fun rec inner(i, acc!) {
-    if i == length(arr) {
-      acc
-    } else {
-      let acc = f(!acc, arr.[i])
-      inner(i + 1, !acc)
-    }
-  }
-
-  inner(0, !init)
-}
-
-fun foldi(arr, init!, f) {
-  fun rec inner(i, acc!) {
-    if i == length(arr) {
-      acc
-    } else {
-      let acc = f(i, !acc, arr.[i])
-      inner(i + 1, !acc)
-    }
-  }
-
-  inner(0, !init)
 }
 
 fun map(arr, f) {

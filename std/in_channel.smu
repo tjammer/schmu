@@ -1,4 +1,5 @@
 import array
+import iter
 import option
 import prelude
 import string
@@ -13,7 +14,7 @@ signature {
   -- high level interface
   val with_open : (string/t, (t&) -> 'a) -> option/t['a]
   val readall : (t&) -> string/t
-  val lines : (t&, (string/t) -> unit) -> unit
+  val lines : (t&, iter/consumer[string/t]) -> iter/continue
   val size : (t) -> int
 
   -- low level interface
@@ -185,19 +186,22 @@ fun readall(ic&) {
   }
 }
 
-fun lines(ic&, f) {
+fun lines(ic&, cont) {
   let buf& = array/create(bufsize)
   fun rec aux() {
     match readline(&ic, &buf) {
       Some(_): {
         let str = string/of_array(!buf)
-        f(str)
-        &buf = string/to_array(!str)
-        array/clear(&buf)
-        aux()
+        if cont(str) {
+          &buf = string/to_array(!str)
+          array/clear(&buf)
+          aux()
+        }
+        else { false }
       }
-      None: ()
-    }}
+      None: false
+    }
+  }
   aux()
 }
 

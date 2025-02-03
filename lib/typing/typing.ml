@@ -920,6 +920,7 @@ end = struct
        work *)
     let typ = if inrec then typ else generalize typ in
 
+    (* TODO check annot by unifying before generalization, see iter/filter function *)
     match typ with
     | Tfun (tparams, ret, kind) ->
         (* Add the generalized type to the env to keep the closure there *)

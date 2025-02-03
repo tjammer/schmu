@@ -1,13 +1,13 @@
 (rule
  (targets string.o string.smi)
- (deps %{bin:schmu} string.smu prelude.smi array.smi option.smi)
+ (deps %{bin:schmu} string.smu prelude.smi array.smi option.smi iter.smi)
  (action
   (progn
    (run schmu --release -m --no-std string.smu))))
 
 (rule
  (targets array.o array.smi)
- (deps %{bin:schmu} array.smu prelude.smi option.smi)
+ (deps %{bin:schmu} array.smu prelude.smi option.smi iter.smi)
  (action
   (progn
    (run schmu --release -m --no-std array.smu))))
@@ -53,6 +53,7 @@
   %{bin:schmu}
   in_channel.smu
   array.smi
+  iter.smi
   option.smi
   prelude.smi
   string.smi
@@ -99,7 +100,7 @@
   hashtbl.smi
   in_channel.smi
   int.smi
-  iter.smu
+  iter.smi
   prelude.smi
   rc.smi
   std.smu

@@ -1,94 +1,98 @@
 import prelude
 
 signature {
-  type exhausted = Continue | Exhausted
-  type t['a] = (('a) -> unit) -> exhausted
-  type consumer['a, 'b] = (t['a]) -> 'b
+  type continue = bool
+  type t['a] = (('a) -> continue) -> continue
+  type consumer['a] = ('a) -> continue
 
   -- creators
-  val range : (int, int, consumer[int, 'a]) -> 'a
+  val range : (int, int, consumer[int]) -> continue
 
   -- manipulators
-  val filter : (t['a], ('a) -> bool, consumer['a, 'b]) -> 'b
-  val take : (t['a], int, consumer['a, 'b]) -> 'b
+  val map : (t['a], ('a) -> 'b, consumer['b]) -> continue
+  val filter : (t['a], ('a) -> bool, consumer['a]) -> continue
+  val take : (t['a], int, consumer['b]) -> continue
 
   -- consumers
-  val fold : (t['a], 'b!, ('b!, 'a) -> 'b) -> 'b
   val iter : (t['a], ('a) -> unit) -> unit
+  val iteri : (t['a], (int, 'a) -> unit) -> unit
+  val fold : (t['a], 'b!, ('b!, 'a) -> 'b) -> 'b
+  val foldi : (t['a], 'b!, (int, 'b!, 'a) -> 'b) -> 'b
 }
 
 use prelude
 
 -- iter creators
-fun range(start, limit, consume : consumer[int, 'b]) {
- let state& = !start
-  fun aux(f) {
-    -- Only call function after limit check.
-    -- Otherwise we'd call on an empty range.
-    if state == limit { Exhausted }
+fun range(from, to, cont) {
+  fun rec inner(i) {
+    if i == to { false }
     else {
-      f(state)
-      &state = state + 1
-      Continue
+      if cont(i) { inner(i + 1) }
+      else { false }
     }
   }
-  consume(aux)
+  inner(from)
 }
 
 -- iter manipulators
-fun filter(it, predicate, consume) {
-  fun rec aux(f) {
-    let pass& = true
-    match it(fun v: if predicate(v) { f(v) } else { &pass = false }) {
-      Exhausted: Exhausted
-      Continue: {
-        if pass { Continue } -- value was used, not exhausted
-        else { aux(f) } -- try again
-      }
-    }
-  }
-  consume(aux)
+fun map(it : t['a], f, cont : consumer['b]){
+  it(fun x { cont(f(x)) })
 }
 
-fun take(it, num, consume) {
+fun filter(it : t['a], f, cont){
+  it(fun x {
+    if f(x) { cont(x) }
+    else { true }
+  })
+}
+
+fun take(it : t['a], stop, cont) {
   let curr& = 0
-  fun aux(f : ('a) -> unit) {
-    match it(f) {
-      Exhausted: Exhausted
-      Continue: {
-        if curr == num - 1 { Exhausted }
-        else {
-          &curr = curr + 1
-          Continue
-        }
+  it(fun x {
+    if curr == stop { false }
+    else {
+      if cont(x) {
+        &curr = curr + 1
+        true
       }
+      else { false }
     }
-  }
-  consume(aux)
+  })
 }
 
 -- iter consumers
-fun fold(it, init!, fn) {
-  fun rec inner(accum!) {
-    let accum& = !accum
-    match it(fun v {
-      let acc = fn(!accum, v)
-      &accum = acc
-    }) {
-      Exhausted: accum
-      Continue: inner(!accum)
-    }
-  }
-  inner(!init)
+fun fold(it : t['a], init!, f) {
+  let r& = !init
+  it(fun x {
+    &r = f(!r, x)
+    true
+  }) |> ignore
+  r
 }
 
+fun foldi(it : t['a], init!, f) {
+  let r& = !init
+  let i& = 0
+  it(fun x {
+    &r = f(i, !r, x)
+    &i = i + 1
+    true
+  }) |> ignore
+  r
+}
 
-fun iter(it : t['a], fn : ('a) -> unit) {
-  fun rec aux() {
-    match it(fn) {
-      Exhausted: ()
-      Continue: aux()
-    }
-  }
-  aux()
+fun iter(it : t['a], f) {
+  it(fun x {
+    f(x)
+    true
+  }) |> ignore
+}
+
+fun iteri(it : t['a], f) {
+  let i& = 0
+  it(fun x {
+    f(i, x)
+    &i = i + 1
+    true
+  }) |> ignore
 }
