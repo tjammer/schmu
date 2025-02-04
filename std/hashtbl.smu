@@ -19,6 +19,8 @@ module type sig {
   val find : (t['value], key) -> option/t['value]
   val find_map : (t['value], key, ('value) -> 'a) -> option/t['a]
   val find_mut : (t['value]&, key, ('value&) -> unit) -> bool
+  -- Need this until we have functions with 'once' mode
+  val find_mut_with : (t['value]&, key, 'a!, ('value&, 'a!) -> unit) -> bool
   val mem : (t['value], key) -> bool
   val fold : (t['value], 'b!, ('b!, key, 'value) -> 'c) -> 'c
   val clear : (t['value]&) -> unit
@@ -196,6 +198,20 @@ functor make : sig(m : key) {
       Some(i): match &tbl.data.[i] {
         Some(item&): {
           f(&item.value)
+          true
+        }
+        None: false
+      }
+      None: false
+    }
+  }
+
+  fun find_mut_with(tbl&, key, mv!, f) {
+    let hash = idx(tbl, key)
+    match find_index(hash, tbl, key, 0) {
+      Some(i): match &tbl.data.[i] {
+        Some(item&): {
+          f(&item.value, !mv)
           true
         }
         None: false
