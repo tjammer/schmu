@@ -827,7 +827,14 @@ let validate_module_type env ~loc ~mname find mtype =
               let kind =
                 match sdecl.kind with
                 | Dabstract None ->
-                    Mtypedef { sdecl with kind = Dabstract (Some dkind) }
+                    Mtypedef
+                      {
+                        sdecl with
+                        kind = Dabstract (Some dkind);
+                        (* Since we return the impl decl kind, we have to match
+                           its params *)
+                        params = idecl.params;
+                      }
                 | _ -> kind
               in
               (Pmap.add path typ sub, kind)
