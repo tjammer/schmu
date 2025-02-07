@@ -20,6 +20,13 @@
    (run schmu --release -m --no-std int.smu))))
 
 (rule
+ (targets fmt.o fmt.smi)
+ (deps %{bin:schmu} fmt.smu array.smi string.smi prelude.smi)
+ (action
+  (progn
+   (run schmu --release -m --no-std fmt.smu))))
+
+(rule
  (targets float.o float.smi)
  (deps %{bin:schmu} float.smu)
  (action
@@ -106,7 +113,8 @@
   std.smu
   string.smi
   sys.smi
-  unsafe.smi)
+  unsafe.smi
+  fmt.smi)
  (action
   (progn
    (run schmu --release -m --no-std std.smu))))
@@ -154,4 +162,7 @@
   (rc.o as std/rc.o)
   unsafe.smu
   (unsafe.smi as std/unsafe.smi)
-  (unsafe.o as std/unsafe.o)))
+  (unsafe.o as std/unsafe.o)
+  fmt.smu
+  (fmt.smi as std/fmt.smi)
+  (fmt.o as std/fmt.o)))

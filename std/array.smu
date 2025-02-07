@@ -132,4 +132,20 @@ module fixed {
   let get = __fixed_array_get
   let length = __fixed_array_length
   let data = __fixed_array_data
+
+  fun swap_items(arr&, i, j) {
+    if not (i == j) {
+      let itmp = !arr#[i]
+      &arr#[i] = arr#[j]
+      &arr#[j] = itmp
+    }
+  }
+
+  fun reverse(arr&) {
+    let length = length(arr)
+    iter_range(0, length / 2, fun i {
+      swap_items(&arr, i, length - i - 1)
+    })
+  }
+
 }

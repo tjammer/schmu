@@ -1,5 +1,6 @@
 import array
 import float
+import fmt
 import hashtbl
 import in_channel
 import int
@@ -25,6 +26,7 @@ let iter_range = prelude/iter_range
 
 module array = array
 module float = float
+module fmt = fmt
 module hashtbl = hashtbl
 module in_channel = in_channel
 module int = int

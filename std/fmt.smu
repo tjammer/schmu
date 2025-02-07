@@ -1,0 +1,95 @@
+import array
+import prelude
+import string
+
+use prelude
+
+module  formatter {
+  signature {
+    type t['a]
+
+    val format : (t['a]!, raw_ptr[u8], int) -> t['a]
+    val extract : (t['a]!) -> 'a
+
+    val create : (('a&, raw_ptr[u8], int) -> unit!, 'a!) -> t['a]
+  }
+
+  type t['a] = { fn : ('a&, raw_ptr[u8], int) -> unit, data& : 'a }
+
+  fun format(fm!, ptr, len) {
+    let fm& = !fm
+    fm.fn(&fm.data, ptr, len)
+    fm
+  }
+
+  fun extract(fm!) {
+    fm.data
+  }
+
+  fun create(fn!, data!) {
+    { fn, data }
+  }
+}
+
+type file = raw_ptr[u8]
+external stdout : file
+external stderr : file
+external fwrite : (raw_ptr[u8], int, int, file) -> unit
+
+fun pr() {
+  formatter/create(
+    fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, stdout) }, ()
+  )
+}
+
+fun prerr() {
+  formatter/create(
+    fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, stderr) }, ()
+  )
+}
+
+fun int_base(p!, value, base) {
+  let arr& = #64['\000']
+  if (base < 2 or base > 36) {
+    formatter/format(p, array/fixed/data(arr), 1)
+  }
+  else {
+    fun rec aux(value, index) {
+      let tmp_value = value
+      let value = value / base
+      let helper = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"
+      &arr#[index] = string/get(helper, 35 + (tmp_value - (value * base)))
+      if (value <> 0) { aux(value, index + 1) }
+      else {
+        -- sign
+        if tmp_value < 0 {
+          &arr#[index + 1] = '-'
+          index + 1
+        }
+        else { index }
+      }
+    }
+    let length = aux(value, 0) + 1
+
+    -- reverse
+    iter_range(0, length / 2, fun i {
+      array/fixed/swap_items(&arr, i, length - i - 1)
+    })
+
+    formatter/format(p, array/fixed/data(arr), 35)
+  }
+}
+
+fun int(p!, i) {
+  int_base(p, i, 10)
+}
+
+fun str(p!, str) {
+  formatter/format(p, string/data(str), string/len(str))
+}
+
+fun endl(p!) {
+  let newline = #['\n']
+  formatter/format(p, array/fixed/data(newline), 1)
+  |> formatter/extract
+}
