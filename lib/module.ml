@@ -476,6 +476,17 @@ let rec add_to_env env foreign (mname, m) =
                 match register_applied_functor env loc key p m with
                 | Ok _ -> ()
                 | Error () -> raise (Error (loc, "Cannot apply functor")))
+            | Mlocal_module (loc, key, m) -> (
+                let mname = Path.append key mname in
+                match Hashtbl.find_opt module_cache mname with
+                | None -> (
+                    (* Add to cache *)
+                    match register_module env loc mname m with
+                    | Ok _ -> ()
+                    | Error () -> raise (Error (loc, "Cannot add module")))
+                | Some cached ->
+                    Env.add_module ~key (envmodule_of_cached mname cached) env
+                    |> ignore)
             | _ -> ())
           m.i;
         env

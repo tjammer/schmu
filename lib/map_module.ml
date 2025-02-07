@@ -252,7 +252,22 @@ module Make (C : Map_tree) = struct
             sub decls
         in
         ((nsub, sub), Tl_mutual_rec_decls decls)
-    | (Tl_module _ | Tl_module_alias _) as todo -> ((nsub, sub), todo)
+    | Tl_module items ->
+        let (nsub, sub), items =
+          List.fold_left_map
+            (fun (nsub, sub) (p, item) ->
+              (* We can abuse the one implementation of map_callname to get the
+                 correct mname. *)
+              let p =
+                C.map_callname ("", Some p, None) sub |> fun (_, p, _) ->
+                Option.get p
+              in
+              let (nsub, sub), item = map_tl_item p nsub sub item in
+              ((nsub, sub), (p, item)))
+            (nsub, sub) items
+        in
+        ((nsub, sub), Tl_module items)
+    | Tl_module_alias _ as todo -> ((nsub, sub), todo)
 
   open Module_common
 
@@ -289,7 +304,7 @@ module Make (C : Map_tree) = struct
         ((sub, nsub), Malias (l, n, tree))
     (* Substitutions from inner modules shouldn't be carried outward *)
     | Mlocal_module (loc, n, t) ->
-        let _, t = map_module (Path.append n mname) sub t in
+        let sub, t = map_module (Path.append n mname) sub t in
         ((sub, nsub), Mlocal_module (loc, n, t))
     | Mapplied_functor (loc, n, p, t) ->
         let _, t = map_module p sub t in

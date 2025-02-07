@@ -1446,3 +1446,7 @@ type could change during monomorphization due to overlapping qvar ids.
   resolved to 3
   resolving second promise
   resolved later to a string
+
+
+Support functor with inner modules
+  $ schmu functor_inner_module.smu

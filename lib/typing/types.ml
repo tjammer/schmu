@@ -304,9 +304,14 @@ let rec get_generic_ids = function
   | Tvar { contents = Link t } -> get_generic_ids t
   | Tfixed_array (_, t) -> get_generic_ids t
   | Tfun (ps, ret, _) ->
-      List.fold_left
-        (fun l p -> get_generic_ids p.pt @ l)
-        (get_generic_ids ret) ps
+      (* Use set to dedup *)
+      let s =
+        List.fold_left
+          (fun l p -> Sset.union l (Sset.of_list (get_generic_ids p.pt)))
+          (Sset.of_list (get_generic_ids ret))
+          ps
+      in
+      Sset.to_seq s |> List.of_seq
 
 let typ_of_decl decl name =
   match decl.kind with

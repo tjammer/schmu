@@ -1,0 +1,18 @@
+module type concrete_formatter { type return }
+functor make_printer(m : concrete_formatter) {
+  signature {
+    val other : () -> int
+  }
+  module impl {
+    type iter_kind = Str(int)
+    fun inner(a) { a + 1 }
+  }
+  fun helper_printn(a) {
+    match a { impl/Str(_): inner(0) }
+  }
+  fun other() {
+    helper_printn(Str(0))
+  }
+}
+module stdout { type return = unit }
+module pr = make_printer(stdout)
