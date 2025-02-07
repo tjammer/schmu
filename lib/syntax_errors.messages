@@ -606,14 +606,6 @@ prog: Fun Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fmt With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fmt Lpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Ctor Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -670,15 +662,11 @@ prog: False Hash Lbrack False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Pipe With
+prog: False Pipe_last With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Pipe Fmt Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Pipe False Wildcard
+prog: False Pipe_last False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -707,6 +695,14 @@ prog: False Dot Lbrack With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Dot Lbrack False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Pipe With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: False Pipe False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -771,10 +767,6 @@ prog: False Comma False Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Comma False Comma With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fmt Lpar False Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

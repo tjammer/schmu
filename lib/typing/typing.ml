@@ -635,7 +635,7 @@ end = struct
     | Set (loc, expr, value) -> convert_set env loc expr value
     | Do_block stmts ->
         convert_block_annot ~ret:true env annot pipe stmts |> fst
-    | Pipe (loc, arg, ex) -> convert_pipe env loc arg ex
+    | Pipe (loc, arg, ex, inverse) -> convert_pipe env loc arg ex inverse
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, pass, expr, cases) -> convert_match env loc pass expr cases
     | Local_use (loc, name, expr) ->
@@ -1154,12 +1154,13 @@ end = struct
     let moved = Snot_moved (* will be set in excl pass *) in
     { typ = tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
 
-  and convert_pipe env loc e1 e2 =
+  and convert_pipe env loc e1 e2 inverse =
     let pipe = true in
     match e2 with
     | App (_, callee, args) ->
         (* Add e1 to beginnig of args *)
-        convert_app ~pipe env loc callee (e1 :: args)
+        convert_app ~pipe env loc callee
+          (if not inverse then e1 :: args else args @ [ e1 ])
     | Ctor (_, name, expr) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1.aexpr) None

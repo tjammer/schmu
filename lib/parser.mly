@@ -44,8 +44,8 @@
 %token Semicolon
 %token Right_arrow
 %token Pipe
+%token Pipe_last
 %token With
-%token Fmt
 %token Hbar
 %token Match
 %token Quote
@@ -74,8 +74,7 @@
 
 %nonassoc Ctor
 
-%left Pipe
-%nonassoc Fmt
+%left Pipe Pipe_last
 %left And Or
 %left Eq_op
 %left Cmp_op
@@ -298,15 +297,10 @@ expr_no_ident:
     { If($loc, cond, Do_block block, ifcont) }
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
   | callee = Builtin_id; args = parens(call_arg) { App ($loc, Var($loc(callee), callee), args) }
-  | aexpr = expr; Pipe; pipeable = expr
+  | aexpr = expr; inverse = pipe; pipeable = expr
     { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
-      Pipe ($loc, arg, pipeable) }
-  | aexpr = expr; Pipe; fmt = Fmt
-    { ignore(fmt);
-      let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
-      Pipe ($loc, arg, Fmt($loc(fmt), [])) }
+      Pipe ($loc, arg, pipeable, inverse) }
   | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
-  | Fmt; args = parens(expr) { Fmt ($loc, args) }
   | lambda = lambda { lambda }
   | special = special_builtins { special }
   | Lcurly; items = separated_nonempty_trailing_list(Comma, record_item, Rcurly)
@@ -324,6 +318,10 @@ expr_no_ident:
   | Ampersand; expr = expr; Equal; newval = expr; %prec Below_Ampersand
     { Set ($loc, ($loc(expr), expr), newval) }
   | id = Path_id; expr = expr; %prec Path { Local_use ($loc, id, expr) }
+
+%inline pipe:
+  | Pipe { false }
+  | Pipe_last { true }
 
 expr:
   | ident = ident { Var ident }

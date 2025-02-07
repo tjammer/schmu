@@ -145,7 +145,6 @@ rule read =
   | "signature" { Signature }
   | "module" { Module }
   | "functor" { Functor }
-  | "fmt"    { Fmt }
   | "with"   { With }
   | "val"    { Val }
   | "rec"    { Rec }
@@ -181,6 +180,7 @@ rule read =
   | '#'      { Hash }
   | "->"     { Right_arrow }
   | "|>"     { Pipe }
+  | "|>>"    { Pipe_last }
   | "--"     { line_comment lexbuf }
   | eq_op    { Eq_op (Lexing.lexeme lexbuf) }
   | cmp_op   { Cmp_op (Lexing.lexeme lexbuf) }
