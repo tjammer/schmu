@@ -77,7 +77,7 @@ fun int_base(p!, value, base) {
       array/fixed/swap_items(&arr, i, length - i - 1)
     })
 
-    formatter/format(p, array/fixed/data(arr), 35)
+    formatter/format(p, array/fixed/data(arr), length)
   }
 }
 
