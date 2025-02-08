@@ -287,3 +287,16 @@ module stdout {
 }
 
 module pr = make_printer(stdout)
+
+-- We cannot 'export' modules yet
+let print = pr/print
+let println = pr/println
+let print_newline = pr/print_newline
+
+let print1 = pr/print1
+let print2 = pr/print2
+let print3 = pr/print3
+let print4 = pr/print4
+let print5 = pr/print5
+
+let print_int = pr/print_int

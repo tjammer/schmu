@@ -10,7 +10,12 @@ fun use_concrete(a) {
   }
 
 functor define ( m : empty_t ) {
+  signature {
+    val use_this : ('a) -> int
+    val dont_use : (int) -> int
+  }
   fun use_this(a): use_concrete(a)
+  fun dont_use(a): a + 1
 }
 
 module empty {
@@ -21,4 +26,6 @@ module empty {
   use_concrete(1.0) |> ignore
 }
 
--- module applied = define(empty)
+module applied = define(empty)
+
+let aliased = applied/dont_use

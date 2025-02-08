@@ -1,7 +1,6 @@
 import redefine_symbol_functor
 
-module applied = redefine_symbol_functor/define(
-  redefine_symbol_functor/empty
-)
+redefine_symbol_functor/applied/use_this(0)
+|> ignore
 
-applied/use_this(0)
+redefine_symbol_functor/aliased(0)

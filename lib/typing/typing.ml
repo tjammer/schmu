@@ -976,8 +976,9 @@ end = struct
                 (* If we are in a pipe (= [pipe] is true) the first
                    argument was piped into this call. If it is a call itself, we
                    automatically curry it. *)
-                match a.aexpr with
-                | App (loc, callee, args) when pipe && Int.equal 0 i ->
+                let env, expr = follow_uses env a.aloc None a.aexpr in
+                match expr with
+                | Ast.App (loc, callee, args) when pipe && Int.equal 0 i ->
                     convert_app ~pipe env loc callee args
                 | _ -> convert_annot env (param_annot annots i) pipe a.aexpr)
           in
@@ -1156,8 +1157,9 @@ end = struct
 
   and convert_pipe env loc e1 e2 inverse =
     let pipe = true in
+    let env, e2 = follow_uses env loc None e2 in
     match e2 with
-    | App (_, callee, args) ->
+    | Ast.App (_, callee, args) ->
         (* Add e1 to beginnig of args *)
         convert_app ~pipe env loc callee
           (if not inverse then e1 :: args else args @ [ e1 ])
@@ -1290,6 +1292,16 @@ end = struct
     | expr ->
         let env = Env.use_module env loc path in
         convert_annot env annot false expr
+
+  and follow_uses env loc ?(use = false) path = function
+    | Ast.Local_use (loc, id, tl) when use ->
+        follow_uses env loc ~use (Some (Path.append id (Option.get path))) tl
+    | Ast.Local_use (loc, id, tl) ->
+        follow_uses env loc ~use:true (Some (Path.Pid id)) tl
+    | expr when use ->
+        let env = Env.use_module env loc (Option.get path) in
+        (env, expr)
+    | expr -> (env, expr)
 end
 
 and Records : Recs.S = Recs.Make (Core)

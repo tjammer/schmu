@@ -302,12 +302,12 @@ module Make (C : Map_tree) = struct
     | Malias (l, n, tree) ->
         let sub, tree = map_body mname nsub sub tree in
         ((sub, nsub), Malias (l, n, tree))
-    (* Substitutions from inner modules shouldn't be carried outward *)
+    (* Substitutions from inner modules shouldn't be carried outward. Or maybe they should. *)
     | Mlocal_module (loc, n, t) ->
         let sub, t = map_module (Path.append n mname) sub t in
         ((sub, nsub), Mlocal_module (loc, n, t))
     | Mapplied_functor (loc, n, p, t) ->
-        let _, t = map_module p sub t in
+        let sub, t = map_module p sub t in
         ((sub, nsub), Mapplied_functor (loc, n, p, t))
     | Mfunctor (loc, n, ps, t, m) ->
         let mname = Path.append n mname in
@@ -315,11 +315,10 @@ module Make (C : Map_tree) = struct
           let sub, intf = map_intf mname sub intf in
           (sub, (n, intf))
         in
-        let osub = sub in
         let sub, ps = List.fold_left_map f sub ps in
         let sub, t = map_tl_items mname nsub sub t in
-        let _, m = map_module mname sub m in
-        ((osub, nsub), Mfunctor (loc, n, ps, t, m))
+        let sub, m = map_module mname sub m in
+        ((sub, nsub), Mfunctor (loc, n, ps, t, m))
     | Mmodule_alias _ as m -> ((sub, nsub), m)
     | Mmodule_type (loc, n, intf) ->
         let _, intf = map_intf mname sub intf in
@@ -341,6 +340,7 @@ module Make (C : Map_tree) = struct
         (sub, Mtypedef decl)
     | Mvalue (typ, cn) ->
         let sub, typ = C.map_type ~mname sub typ in
+        let cn = Option.map (fun call -> C.map_callname call sub) cn in
         (sub, Mvalue (typ, cn))
 
   and map_intf mname sub intf =
