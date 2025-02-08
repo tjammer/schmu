@@ -567,7 +567,7 @@ and add_object_names fname objects =
   let objs =
     List.fold_left
       (fun set (name, _) ->
-        let o = make_path fname name ^ ".o" in
+        let o = make_path fname name ^ ".o" |> Unix.realpath in
         Sset.add o set)
       Sset.empty objects
   in
@@ -717,7 +717,7 @@ let object_names () =
       (fun _ cached set ->
         match cached with
         | Cached (Cfile (name, _), _, _) ->
-            Sset.add (normalize_path (name ^ ".o")) set
+            Sset.add (normalize_path (name ^ ".o") |> Unix.realpath) set
         | Cached (Clocal _, _, _) | Functor _ -> set
         | Located _ -> set)
       module_cache Sset.empty

@@ -1,0 +1,24 @@
+module type empty_t {
+  type t
+}
+
+
+fun use_concrete(a) {
+    ignore(a)
+  fun concrete(a): a + 1
+  concrete(0)
+  }
+
+functor define ( m : empty_t ) {
+  fun use_this(a): use_concrete(a)
+}
+
+module empty {
+  type t = int
+}
+
+{
+  use_concrete(1.0) |> ignore
+}
+
+-- module applied = define(empty)

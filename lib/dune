@@ -13,7 +13,8 @@
   llvm.target.static
   menhirLib
   sexplib0
-  csexp)
+  csexp
+  unix)
  (foreign_archives byval))
 
 (rule

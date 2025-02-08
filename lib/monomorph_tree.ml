@@ -993,6 +993,17 @@ and prep_func p func_loc (usrname, uniq, abs) =
     reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule usrname
   in
 
+  (* In this case, the function is not really monomorphized, but might be
+     defined already in another module. Setting it 'monomorphized' will cause it
+     to be linked as [Once_odr] in codegen. *)
+  let monomorphized =
+    if
+      (not (is_type_polymorphic ftyp))
+      && not (Path.share_base p.mname p.mainmodule)
+    then true
+    else false
+  in
+
   let alloca = ref (request p) in
   let alloc = Value alloca in
   let upward =
@@ -1084,9 +1095,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
 
     let abs = { func; pnames; body } in
     let name = { user = username; call } in
-    let gen_func =
-      { abs; name; recursive; upward; monomorphized = false; func_loc }
-    in
+    let gen_func = { abs; name; recursive; upward; monomorphized; func_loc } in
 
     let p =
       if inline then
@@ -1117,6 +1126,17 @@ and morph_lambda mk typ p func_loc id abs =
 
   (* TODO fix lambdas for nested modules *)
   let name = Module.lambda_name ~mname:p.mname id in
+
+  (* In this case, the function is not really monomorphized, but might be
+     defined already in another module. Setting it 'monomorphized' will cause it
+     to be linked as [Once_odr] in codegen. *)
+  let monomorphized =
+    if
+      (not (is_type_polymorphic ftyp))
+      && not (Path.share_base p.mname p.mainmodule)
+    then true
+    else false
+  in
 
   (* Function can be returned themselves. In that case, a closure object will be
      generated, so treat it the same as any local allocation *)
@@ -1192,7 +1212,6 @@ and morph_lambda mk typ p func_loc id abs =
     let abs = { func; pnames; body } in
     (* lambdas have no username, so we just repeat the call name *)
     let names = { call = name; user = name } in
-    let monomorphized = false in
     let gen_func =
       { abs; name = names; recursive; upward; monomorphized; func_loc }
     in

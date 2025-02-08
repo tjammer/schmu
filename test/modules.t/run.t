@@ -1450,3 +1450,7 @@ type could change during monomorphization due to overlapping qvar ids.
 
 Support functor with inner modules
   $ schmu functor_inner_module.smu
+
+Ensure no dups when linking
+  $ schmu -m test/modules.t/redefine_symbol_functor.smu
+  $ schmu test/modules.t/use_redefine_symbol_functor.smu

@@ -1,0 +1,7 @@
+import redefine_symbol_functor
+
+module applied = redefine_symbol_functor/define(
+  redefine_symbol_functor/empty
+)
+
+applied/use_this(0)
