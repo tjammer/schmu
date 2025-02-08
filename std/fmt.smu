@@ -1,4 +1,5 @@
 import array
+import iter
 import prelude
 import string
 
@@ -93,3 +94,196 @@ fun endl(p!) {
   formatter/format(p, array/fixed/data(newline), 1)
   |> formatter/extract
 }
+
+module type concrete_formatter {
+  type return
+  val create : () -> formatter/t[return]
+}
+
+functor make_printer(m : concrete_formatter) {
+  signature {
+    val print : (string/t) -> m/return
+    val println : (string/t) -> m/return
+    val print_newline : () -> m/return
+
+    type pp['a] = (formatter/t[m/return]!, 'a) -> formatter/t[m/return]
+    val print1 : (string/t, pp['a], 'a) -> m/return
+    val print2 : (string/t, pp['a], 'a, pp['b], 'b) -> m/return
+    val print3 : (string/t, pp['a], 'a, pp['b], 'b, pp['c], 'c) -> m/return
+    val print4 : (string/t, pp['a], 'a, pp['b], 'b, pp['c], 'c, pp['d], 'd) -> m/return
+    val print5 : (string/t, pp['a], 'a, pp['b], 'b, pp['c], 'c, pp['d], 'd, pp['e], 'e) -> m/return
+
+    val print_int : (int) -> m/return
+  }
+  module impl {
+    fun fmt_fail_missing() {
+      prerr() |> str("Missing argument for format str: ")
+      |> endl
+      __any_abort()
+    }
+
+    fun fmt_fail_too_many() {
+      prerr() |> str("Too many arguments for format str: ")
+      |> endl
+      __any_abort()
+    }
+
+    type slice = { start : int, len : int }
+    type iter_kind = Str(slice) | Fmt(int)
+    type escape = Escape | No_escape
+
+    fun iter_fmt(str, cont) {
+      let length = string/len(str)
+      fun rec aux(start, len, num_fmts, escape) {
+        if (start + len) < length {
+          -- we have not reached the end of the format string yet
+          match string/get(str, start + len) {
+            123u8: {
+              -- '{'
+              match escape {
+                No_escape: {
+                  -- peek at next char
+                  if (start + len + 1) < length
+                  and char_equal(string/get(str, start + len + 1), 125u8) {
+                    -- print the string up to here
+                    assert(cont(Str({ start, len })))
+                    -- then print the formatted item
+                    assert(cont(Fmt(num_fmts)))
+                    aux(start + len + 2, 0, num_fmts + 1, No_escape)
+                  }
+                  else {
+                    assert(cont(Str({ start, len = len + 1 })))
+                  }
+                }
+                Escape: {
+                  -- continue
+                  aux(start, len + 1, num_fmts, escape)
+                }
+              }
+            }
+            _: aux(start, len + 1, num_fmts, escape)
+          }
+        }
+        -- we have reached the end
+        else if len > 0 {
+          assert(cont(Str({ start, len })))
+        }
+      }
+      aux(0, 0, 0, No_escape)
+      false
+    }
+  }
+
+  fun print(string) {
+    str(m/create(), string) |> formatter/extract
+  }
+
+  fun println(string) {
+    str(m/create(), string) |> endl
+  }
+
+  fun helper_printn(fmtstr, cb) {
+    let formatter& = m/create()
+    let fmtnum& = 0
+    impl/iter_fmt(fmtstr) |> iter/iter(fun f {
+      match f {
+        impl/Str({ start, len }): {
+          let ptr = string/data(fmtstr) |> __unsafe_ptr_at(start)
+          &formatter = formatter/format(formatter, ptr, len)
+        }
+        Fmt(num): {
+          &fmtnum = num + 1
+          &formatter = cb(!formatter, num)
+        }
+      }
+    })
+    fmtnum, formatter
+  }
+
+  fun print1(fmtstr, f0, v0) {
+    let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
+      match i {
+        0: f0(!fmter, v0)
+        _: impl/fmt_fail_missing()
+      }
+    })
+    if fmtnum <> 1 {
+      impl/fmt_fail_too_many()
+    }
+    else { formatter/extract(ret) }
+  }
+
+  fun print2(fmtstr, f0, v0, f1, v1) {
+    let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
+      match i {
+        0: f0(!fmter, v0)
+        1: f1(!fmter, v1)
+        _: impl/fmt_fail_missing()
+      }
+    })
+    if fmtnum <> 2 { impl/fmt_fail_too_many() }
+    else { formatter/extract(ret) }
+  }
+
+  fun print3(fmtstr, f0, v0, f1, v1, f2, v2) {
+    let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
+      match i {
+        0: f0(!fmter, v0)
+        1: f1(!fmter, v1)
+        2: f2(!fmter, v2)
+        _: impl/fmt_fail_missing()
+      }
+    })
+    if fmtnum <> 3 { impl/fmt_fail_too_many() }
+    else { formatter/extract(ret) }
+  }
+
+  fun print4(fmtstr, f0, v0, f1, v1, f2, v2, f3, v3) {
+    let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
+      match i {
+        0: f0(!fmter, v0)
+        1: f1(!fmter, v1)
+        2: f2(!fmter, v2)
+        3: f3(!fmter, v3)
+        _: impl/fmt_fail_missing()
+      }
+    })
+    if fmtnum <> 4 { impl/fmt_fail_too_many() }
+    else { formatter/extract(ret) }
+  }
+
+  fun print5(fmtstr, f0, v0, f1, v1, f2, v2, f3, v3, f4, v4) {
+    let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
+      match i {
+        0: f0(!fmter, v0)
+        1: f1(!fmter, v1)
+        2: f2(!fmter, v2)
+        3: f3(!fmter, v3)
+        4: f4(!fmter, v4)
+        _: impl/fmt_fail_missing()
+      }
+    })
+    if fmtnum <> 5 { impl/fmt_fail_too_many() }
+    else { formatter/extract(ret) }
+  }
+
+  fun print_int(i) {
+    int(m/create(), i) |> formatter/extract
+  }
+
+  fun print_newline() {
+    endl(m/create())
+  }
+}
+
+module stdout {
+  type return = unit
+
+  fun create() {
+    formatter/create(
+      fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, stdout) }, ()
+    )
+  }
+}
+
+module pr = make_printer(stdout)

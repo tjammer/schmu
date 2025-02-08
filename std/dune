@@ -21,7 +21,7 @@
 
 (rule
  (targets fmt.o fmt.smi)
- (deps %{bin:schmu} fmt.smu array.smi string.smi prelude.smi)
+ (deps %{bin:schmu} fmt.smu array.smi string.smi prelude.smi iter.smi)
  (action
   (progn
    (run schmu --release -m --no-std fmt.smu))))
