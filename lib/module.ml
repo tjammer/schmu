@@ -726,7 +726,7 @@ let object_names () =
 
 let uses_args () =
   object_names ()
-  |> List.find_opt (String.ends_with ~suffix:"/std/std/sys.o")
+  |> List.find_opt (String.ends_with ~suffix:"/std/sys.o")
   |> Option.is_some
 
 let to_channel c ~outname m =
