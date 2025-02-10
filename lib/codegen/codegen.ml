@@ -233,9 +233,6 @@ end = struct
             gen_ctor_const param ctor typed_expr.typ allocref typed_expr.return)
     | Mvar_index expr -> gen_var_index param expr |> fin
     | Mvar_data (expr, mid) -> gen_var_data param expr mid typed_expr.typ |> fin
-    | Mfmt (fmts, allocref, id) ->
-        gen_fmt_str param fmts typed_expr.typ allocref id |> fin
-    | Mprint_str (fmts, ln) -> gen_print_str param fmts ln |> fin
     | Mfree_after (expr, fs) -> gen_free param expr fs
 
   and gen_let param id rhs kind gn ms cont =
@@ -537,10 +534,10 @@ end = struct
                 box_record ~size ~alloc:(Some retval) ~snd_val:None t call
               in
               (ret, lltyp, default_kind t))
-      | t when (H.is_in_init() && contains_allocation t) ->
-        (* We have to [alloca] these types, because otherwise, when adding to
-           the free_tbl, we would add function-local variables which we cannot
-           refer to in deinit. *)
+      | t when H.is_in_init () && contains_allocation t ->
+          (* We have to [alloca] these types, because otherwise, when adding to
+             the free_tbl, we would add function-local variables which we cannot
+             refer to in deinit. *)
           let args = args ++ envarg |> Array.of_seq in
           let retval = get_prealloc !allocref param lltyp "ret" in
           let call = Llvm.build_call ft funcval args "" builder in
@@ -1348,99 +1345,6 @@ end = struct
     let llvar = var_data var typ in
     (match mid with Some id -> Hashtbl.replace free_tbl id llvar | None -> ());
     llvar
-
-  and gen_fmt_str param exprs typ allocref id =
-    let snprintf =
-      lazy
-        Llvm.(
-          let ft = var_arg_function_type i32_t [| ptr_t; int_t; ptr_t |] in
-          (ft, declare_function "snprintf" ft the_module))
-    in
-    let lltyp = get_lltype_def typ in
-
-    let f (fmtstr, args) expr =
-      match expr with
-      | Monomorph_tree.Fstr s -> (fmtstr ^ s, args)
-      | Fexpr e ->
-          let value = gen_expr param e in
-          let str, value = fmt_str value in
-          (fmtstr ^ str, value :: args)
-    in
-    let fmt, args = List.fold_left f ("", []) exprs in
-    (* Calculate size *)
-    let fmtptr =
-      get_const_string fmt |> fun value ->
-      array_data [ { value; kind = Imm; typ; lltyp } ]
-    in
-    let itemargs = List.rev args in
-    let args =
-      Llvm.const_pointer_null ptr_t
-      :: Llvm.const_int int_t 0 :: fmtptr.value :: itemargs
-      |> Array.of_list
-    in
-    let ft, f = Lazy.force snprintf in
-    let ssize = Llvm.build_call ft f args "fmtsize" builder in
-    (* Add null terminator (and rc head) *)
-    let _, _, head_size, _ = item_type_head_size typ in
-    let size =
-      Llvm.build_add ssize (Llvm.const_int i32_t (head_size + 1)) "" builder
-    in
-    let size = Llvm.build_intcast size int_t "" builder in
-    let arr_ptr =
-      malloc ~size |> fun ptr -> Llvm.build_bitcast ptr lltyp "" builder
-    in
-
-    (* Initialize counts *)
-    let ci i = Llvm.const_int int_t i in
-    let dst = Llvm.build_gep int_t arr_ptr [| ci 0 |] "size" builder in
-    let ssize = Llvm.build_intcast ssize int_t "" builder in
-    ignore (Llvm.build_store ssize dst builder);
-    let dst = Llvm.build_gep int_t arr_ptr [| ci 1 |] "cap" builder in
-    ignore (Llvm.build_store ssize dst builder);
-    let ptr = Llvm.build_gep int_t arr_ptr [| ci 2 |] "data" builder in
-
-    (* Format string *)
-    (* [size] argument here is not really correct (head_size is added),
-       but we made sure it's enough *)
-    let args = ptr :: size :: fmtptr.value :: itemargs |> Array.of_list in
-    ignore (Llvm.build_call ft f args "fmt" builder);
-
-    (* Build string record *)
-    let string = get_prealloc !allocref param lltyp "str" in
-    ignore (Llvm.build_store arr_ptr string builder);
-
-    let v = { value = string; typ; lltyp; kind = Ptr } in
-    Hashtbl.replace free_tbl id v;
-    v
-
-  and gen_print_str param exprs ln =
-    let printf =
-      lazy
-        Llvm.(
-          let ft = var_arg_function_type unit_t [| ptr_t |] in
-          (ft, declare_function "printf" ft the_module))
-    in
-    let f (fmtstr, args) expr =
-      match expr with
-      | Monomorph_tree.Fstr s -> (fmtstr ^ s, args)
-      | Fexpr e ->
-          let value = gen_expr param e in
-          let str, value = fmt_str value in
-          (fmtstr ^ str, value :: args)
-    in
-    let fmt, args = List.fold_left f ("", []) exprs in
-    let fmtptr =
-      let typ = Tarray Tu8 in
-      let lltyp = get_lltype_def typ in
-      let nl = if ln then "\n" else "" in
-      get_const_string (fmt ^ nl) |> fun value ->
-      array_data [ { value; kind = Imm; typ; lltyp } ]
-    in
-    let itemargs = List.rev args in
-    let args = fmtptr.value :: itemargs |> Array.of_list in
-    let ft, f = Lazy.force printf in
-    Llvm.build_call ft f args "" builder |> ignore;
-    { dummy_fn_value with lltyp = unit_t }
 
   and gen_free param expr fs =
     let open Malloc_types in

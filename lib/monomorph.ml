@@ -104,7 +104,6 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         | Some (Normal thing) -> thing.fn
         | _ -> No_function)
     | Mlet _ | Mbind _ -> No_function (* TODO cont? Didn't work on quick test *)
-    | Mfmt _ -> No_function
     | Mfree_after (e, _) | Mseq (_, e) -> find_function_expr vars e.expr
     | e ->
         print_endline (show_expr e);
@@ -611,20 +610,6 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           let expr = sub expr in
           let cont = sub cont in
           { tree with typ = cont.typ; expr = Mseq (expr, cont) }
-      | Mfmt (fmts, alloca, id) ->
-          let fmts =
-            List.map
-              (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s)
-              fmts
-          in
-          { tree with expr = Mfmt (fmts, alloca, id) }
-      | Mprint_str (fmts, ln) ->
-          let fmts =
-            List.map
-              (function Fexpr e -> Fexpr (sub e) | Fstr s -> Fstr s)
-              fmts
-          in
-          { tree with expr = Mprint_str (fmts, ln) }
       | Mfree_after (e, fs) ->
           let e = sub e in
           { tree with expr = Mfree_after (e, fs) }

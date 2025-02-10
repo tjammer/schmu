@@ -49,7 +49,6 @@ and expr =
   | Ctor of loc * ident * expr option
   | Match of loc * decl_attr * expr * (clause * expr) list
   | Local_use of loc * string * expr
-  | Fmt of loc * expr list
 
 and clause = {
   cloc : loc;

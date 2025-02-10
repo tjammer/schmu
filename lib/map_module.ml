@@ -167,19 +167,6 @@ module Make (C : Map_tree) = struct
     | Variant_data e ->
         let sub, e = (map_body mname nsub) sub e in
         (sub, Variant_data e)
-    | Fmt fs ->
-        let sub, fs =
-          List.fold_left_map
-            Typed_tree.(
-              fun sub e ->
-                match e with
-                | Fstr s -> (sub, Fstr s)
-                | Fexpr e ->
-                    let sub, e = (map_body mname nsub) sub e in
-                    (sub, Fexpr e))
-            sub fs
-        in
-        (sub, Fmt fs)
     | Move e ->
         let sub, e = (map_body mname nsub) sub e in
         (sub, Move e)

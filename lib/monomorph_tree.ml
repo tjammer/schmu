@@ -29,8 +29,6 @@ module Mtree = struct
     | Mctor of (string * int * monod_tree option) * alloca * malloc_list
     | Mvar_index of monod_tree
     | Mvar_data of monod_tree * int option
-    | Mfmt of fmt list * alloca * int
-    | Mprint_str of fmt list * bool (* add newline *)
     | Mfree_after of monod_tree * free_list
   [@@deriving show]
 
@@ -563,27 +561,12 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let p = List.fold_left rec_fs_to_env param decls in
       morph_expr p cont
   | Lambda (id, abs) -> morph_lambda make texpr.typ param texpr.loc id abs
-  | App
-      {
-        callee =
-          {
-            expr =
-              Var
-                ( (("print" | "println") as str),
-                  Some (Path.Pid ("std" | "string")) );
-            _;
-          };
-        args = [ ({ expr = Fmt es; _ }, _) ];
-      } ->
-      let add_newline = match str with "print" -> false | _ -> true in
-      morph_print_str make param es add_newline
   | App { callee; args } ->
       morph_app make param callee args (cln param texpr.typ)
   | Ctor (variant, index, dataexpr) ->
       morph_ctor make param variant index dataexpr (cln param texpr.typ)
   | Variant_index expr -> morph_var_index make param expr
   | Variant_data expr -> morph_var_data make param expr (cln param texpr.typ)
-  | Fmt exprs -> morph_fmt make param exprs
   | Move e ->
       let p, e, func = morph_expr param e in
       (* Whenever a function is moved, we mark it as upward. Upward closures
@@ -1401,45 +1384,6 @@ and morph_var_data mk p expr typ =
     else func
   in
   ({ p with ret }, mk (Mvar_data (e, mid)) ret, { func with malloc })
-
-and morph_fmt mk p exprs =
-  let ret = p.ret in
-  let p = { p with ret = false } in
-
-  let f p = function
-    | Typed_tree.Fexpr e ->
-        let p, e, _ = morph_expr p e in
-        (p, Fexpr e)
-    | Fstr s -> (p, Fstr s)
-  in
-  let p = enter_level p in
-  let p, es = List.fold_left_map f p exprs in
-  let p = leave_level p in
-
-  let alloca = ref (request p) in
-  let mid = new_id malloc_id in
-  let malloc = Malloc.Single { mid; typ = Tarray Tu8; parent = None } in
-  let mallocs = Mallocs.add malloc p.mallocs in
-
-  ( { p with ret; mallocs },
-    mk (Mfmt (es, alloca, mid)) ret,
-    { no_var with alloc = Value alloca; malloc } )
-
-and morph_print_str mk p exprs ln =
-  let ret = p.ret in
-  let p = { p with ret = false } in
-
-  let f p = function
-    | Typed_tree.Fexpr e ->
-        let p, e, _ = morph_expr p e in
-        (p, Fexpr e)
-    | Fstr s -> (p, Fstr s)
-  in
-  let p = enter_level p in
-  let p, es = List.fold_left_map f p exprs in
-  let p = leave_level p in
-
-  ({ p with ret }, mk (Mprint_str (es, ln)) ret, no_var)
 
 let rec morph_toplvl param items =
   let rec aux param = function

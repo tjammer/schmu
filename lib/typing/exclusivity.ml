@@ -1020,18 +1020,6 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let e, v, hs = check_tree env mut bdata e hist in
       let expr = Variant_data e in
       ({ tree with expr }, v, hs)
-  | Fmt fs ->
-      let hs, fs =
-        List.fold_left_map
-          (fun hs -> function
-            | Fstr _ as str -> (hs, str)
-            | Fexpr e ->
-                let e, v, hs = check_tree env Uread no_bdata e hs in
-                (add_hist v hs, Fexpr e))
-          hist fs
-      in
-      let expr = Fmt fs in
-      ({ tree with expr }, imm [], hs)
   | Mutual_rec_decls (decls, cont) ->
       let cont, v, hs = check_tree env mut bdata cont hist in
       let expr = Mutual_rec_decls (decls, cont) in

@@ -32,12 +32,10 @@ type expr =
   | Ctor of (string * int * typed_expr option)
   | Variant_index of typed_expr
   | Variant_data of typed_expr
-  | Fmt of fmt list
   | Move of typed_expr
 [@@deriving show, sexp]
 
 and typed_expr = { typ : typ; expr : expr; attr : attr; loc : loc }
-and fmt = Fstr of string | Fexpr of typed_expr
 
 and let_data = {
   id : string;
@@ -120,8 +118,7 @@ type t = {
 
 let rec follow_expr = function
   | ( Var _ | Const _ | Bop _ | Unop _ | Lambda _ | App _ | Record _ | Field _
-    | Set _ | Ctor _ | Variant_index _ | Variant_data _ | Fmt _ | Move _ ) as e
-    ->
+    | Set _ | Ctor _ | Variant_index _ | Variant_data _ | Move _ ) as e ->
       Some e
   | If _ -> None
   | Let l -> follow_expr l.cont.expr

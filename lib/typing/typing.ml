@@ -524,31 +524,6 @@ let builtins_hack callee args =
 
 let fold_decl cont (id, e) = { cont with expr = Bind (id, e, cont) }
 
-let is_formattable = function
-  | Const (String _), _ -> true
-  | ( _,
-      Tconstr
-        ( Pid "array",
-          [
-            ( Tconstr (Pid "u8", [])
-            (* Might be a string later *)
-            | Tvar { contents = Unbound _ } );
-          ] ) ) ->
-      true
-  | _, Tconstr (p, []) when Path.equal p (Path.Pmod ("string", Path.Pid "t")) ->
-      true
-  | ( _,
-      Tconstr
-        ( Pid
-            ( "int" | "bool" | "float" | "u8" | "i32" | "f32" | "i8" | "i16"
-            | "u16" | "u32" ),
-          _ ) ) ->
-      true
-  | _, Tconstr (Path.Pmod ("string", Path.Pid "t"), []) -> true
-  | _, Tvar { contents = Unbound _ } -> true (* Might be the right type later *)
-  | _, Tconstr (Pid "raw_ptr", [ Tconstr (Pid "u8", []) ]) -> true
-  | _, _ -> false
-
 module rec Core : sig
   val convert : Env.t -> Ast.expr -> typed_expr
 
@@ -640,7 +615,6 @@ end = struct
     | Match (loc, pass, expr, cases) -> convert_match env loc pass expr cases
     | Local_use (loc, name, expr) ->
         disambiguate_uses env loc annot (Path.Pid name) expr
-    | Fmt (loc, exprs) -> convert_fmt env loc exprs
 
   and convert_var env loc id =
     match Env.query_val_opt loc id env with
@@ -1166,7 +1140,6 @@ end = struct
     | Ctor (_, name, expr) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some e1.aexpr) None
-    | Fmt (loc, l) -> convert_fmt env loc (e1.aexpr :: l)
     | e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~pipe env loc e2 [ e1 ]
@@ -1191,18 +1164,6 @@ end = struct
     let typ = Ttuple ts in
     let attr = { const; global = false; mut = false } in
     { typ; expr = Record exprs; attr; loc }
-
-  and convert_fmt env loc exprs =
-    let f expr =
-      let e = convert env expr in
-      match e.expr with
-      (* Concrete type will be checked in weak var check *)
-      | Const (String s) -> Fstr s
-      | _ -> Fexpr e
-    in
-    let exprs = List.map f exprs in
-    let typ = string_typ in
-    { typ; expr = Fmt exprs; attr = no_attr; loc }
 
   and convert_block_annot ~ret env annot pipe stmts =
     let loc = Lexing.(dummy_pos, dummy_pos) in
@@ -1426,19 +1387,6 @@ and catch_weak_expr env sub e =
       List.iter (fun a -> catch_weak_expr env sub (fst a)) args
   | Record fs -> List.iter (fun f -> catch_weak_expr env sub (snd f)) fs
   | Ctor _ -> ()
-  | Fmt fmt ->
-      List.iter
-        (function
-          | Fstr _ -> ()
-          | Fexpr e ->
-              (if not (is_formattable (e.expr, repr e.typ)) then
-                 let msg =
-                   "Don't know how to format "
-                   ^ string_of_type (Env.modpath env) e.typ
-                 in
-                 raise (Error (e.loc, msg)));
-              catch_weak_expr env sub e)
-        fmt
 
 let check_module_annot env loc ~mname m annot =
   match annot with
