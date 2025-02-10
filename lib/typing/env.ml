@@ -810,14 +810,43 @@ let externals env =
 let open_mutation env = incr env.in_mut
 let close_mutation env = decr env.in_mut
 let modpath env = env.modpath
+let rec last = function [ _ ] as l -> l | _ :: hd -> last hd | [] as l -> l
+
+let rec find_tail name = function
+  | { kind = Smodule { name = nm; _ }; _ } :: _ as l
+    when Path.share_base name nm ->
+      l
+  | [ _ ] as l -> l
+  | { kind = Stoplevel _ | Sfunc _ | Smodule _ | Scont _; _ } :: tl ->
+      find_tail name tl
+  | [] -> failwith "Unexpected end of list"
 
 let open_module_scope env loc name =
   let used = ref false in
-  {
-    env with
-    values = empty_scope (Smodule { name; loc; used }) :: env.values;
-    modpath = name;
-  }
+  (* If we have local module (= share_base) we just add the scope to the head.
+     If we encounter a toplevel module, it's foreign and we create a scope where
+     only the std is available to guard against interference from later modules,
+     like another `string` module. If we have a local module from a foreign
+     module, we add it to its parent scope, based on path. *)
+  if Path.share_base env.modpath name then
+    {
+      env with
+      values = empty_scope (Smodule { name; loc; used }) :: env.values;
+      modpath = name;
+    }
+  else if Path.is_head_only name then
+    {
+      env with
+      values = empty_scope (Smodule { name; loc; used }) :: last env.values;
+      modpath = name;
+    }
+  else
+    let values = find_tail name env.values in
+    {
+      env with
+      values = empty_scope (Smodule { name; loc; used }) :: values;
+      modpath = name;
+    }
 
 let pop_scope env =
   match env.values with

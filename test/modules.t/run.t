@@ -3065,7 +3065,7 @@ Simple functor
     store ptr @__fmt_str_upc_lru_u_rupc_lru_u__, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    %0 = tail call ptr @schmu_string1_to_string(ptr %this), !dbg !36
+    %0 = tail call ptr @schmu_string_to_string(ptr %this), !dbg !36
     call void @__fmt_stdout_print2_upc_lru_u_ac_rupc_lru_u2_ac_upc_lru_u_ac_rupc_lru_u2_ac__(ptr @0, ptr %clstmp, ptr %0, ptr %fmt, ptr %other), !dbg !37
     %1 = alloca %s.otherac__, align 8
     store ptr %this, ptr %1, align 8
@@ -3078,7 +3078,7 @@ Simple functor
     ret { i64, i64 } %unbox
   }
   
-  define ptr @schmu_string1_to_string(ptr %t) !dbg !38 {
+  define ptr @schmu_string_to_string(ptr %t) !dbg !38 {
   entry:
     %0 = alloca ptr, align 8
     store ptr %t, ptr %0, align 8
@@ -3271,7 +3271,7 @@ Simple functor
   !35 = !DIFile(filename: "simple_functor.smu", directory: "")
   !36 = !DILocation(line: 11, column: 43, scope: !34)
   !37 = !DILocation(line: 11, column: 4, scope: !34)
-  !38 = distinct !DISubprogram(name: "_schmu_string1_to_string", linkageName: "schmu_string1_to_string", scope: !39, file: !39, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !38 = distinct !DISubprogram(name: "_schmu_string_to_string", linkageName: "schmu_string_to_string", scope: !39, file: !39, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !39 = !DIFile(filename: "use_simple_functor.smu", directory: "")
   !40 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !39, file: !39, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !41 = !DILocation(line: 12, column: 7, scope: !40)
