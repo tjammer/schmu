@@ -512,10 +512,10 @@ end = struct
               (func.value, func.lltyp, Seq.return env_ptr))
     in
 
-    let value, lltyp =
+    let value, lltyp, kind =
+      let lltyp = get_lltype_def ret_t in
       match ret_t with
       | t when is_struct t -> (
-          let lltyp = get_lltype_def ret_t in
           match pkind_of_typ false t with
           | Boxed ->
               let retval = get_prealloc !allocref param lltyp "ret" in
@@ -525,7 +525,7 @@ end = struct
               Debug.instr_set_debug_loc call (Some (di_loc param loc));
               ignore loc;
               ignore call;
-              (retval, lltyp)
+              (retval, lltyp, default_kind t)
           | Unboxed size ->
               (* Boxed representation *)
               let retval = get_prealloc !allocref param lltyp "ret" in
@@ -536,15 +536,26 @@ end = struct
               let ret =
                 box_record ~size ~alloc:(Some retval) ~snd_val:None t call
               in
-              (ret, lltyp))
+              (ret, lltyp, default_kind t))
+      | t when (H.is_in_init() && contains_allocation t) ->
+        (* We have to [alloca] these types, because otherwise, when adding to
+           the free_tbl, we would add function-local variables which we cannot
+           refer to in deinit. *)
+          let args = args ++ envarg |> Array.of_seq in
+          let retval = get_prealloc !allocref param lltyp "ret" in
+          let call = Llvm.build_call ft funcval args "" builder in
+          Debug.instr_set_debug_loc call (Some (di_loc param loc));
+          (* No struct, must be a simple type *)
+          ignore (Llvm.build_store call retval builder);
+          (retval, get_lltype_param false t, Ptr)
       | t ->
           let args = args ++ envarg |> Array.of_seq in
           let retval = Llvm.build_call ft funcval args "" builder in
           Debug.instr_set_debug_loc retval (Some (di_loc param loc));
-          (retval, get_lltype_param false t)
+          (retval, get_lltype_param false t, default_kind t)
     in
 
-    { value; typ = ret; lltyp; kind = default_kind ret }
+    { value; typ = ret; lltyp; kind }
 
   and gen_app_tailrec param callee args rec_block ret_t =
     (* We evaluate, there might be side-effects *)
