@@ -9,8 +9,8 @@ fun ret_lambda(b) {
 
 let f = ret_fn(13)
 let f2 = ret_fn(35)
-println(fmt(f(12)))
-println(fmt(f2(12)))
+fmt/(println(int, f(12)))
+fmt/(println(int, f2(12)))
 
 let f = ret_lambda(134)
-println(fmt(f(12)))
+fmt/(println(int, f(12)))

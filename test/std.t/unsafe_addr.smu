@@ -6,6 +6,6 @@ fun in() {
 
   unsafe/(assert(((array/data(arr) |> reinterpret) +> 0) == (addr(&arr.[0]) +> 0)))
   unsafe/(assert(((array/data(arr) |> unsafe/at(1) |> reinterpret) +> 0) == ((thing |> reinterpret) +> 0)))
-  println(fmt(arr.[1]))
+  fmt/(println(int, arr.[1]))
 }
 in()

@@ -34,7 +34,7 @@ fun sort(arr&, cmp) {
 
 let arr& = [9, 30, 0, 50, 2030, 34]
 sort(&arr, fun(a, b) {a - b})
-array/iter(arr) |> iter/iter(fun i {println(fmt(i))})
+array/iter(arr) |> iter/iter(fun i { fmt/(println(int, i)) })
 
 -- These functions have different call names. Make sure this works as well
 fun sort(arr&, cmp) {
@@ -73,4 +73,4 @@ fun sort(arr&, cmp) {
 }
 let arr& = [9, 30, 0, 50, 2030, 34]
 sort(&arr, fun(a, b) {a - b})
-array/iter(arr) |> iter/iter(fun i {println(fmt(i))})
+array/iter(arr) |> iter/iter(fun i { fmt/(println(int, i)) })

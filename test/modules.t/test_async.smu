@@ -7,12 +7,12 @@ import async
   let >>= = async/bind
 
   let _ = future >>= fun v {
-    async/return(!fmt("resolved to ", v))
+    async/return(!fmt/(str/print1("resolved to {}", int, v)))
   } >>= fun v {
     println(v)
     copy(f2)
   } >>= fun v {
-    println(fmt("resolved later to ", v))
+    fmt/(print1("resolved later to {}\n", str, v))
     async/return(())
   }
 

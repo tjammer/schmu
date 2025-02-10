@@ -3,8 +3,8 @@ let b = copy(a)
 
 array/push(&a, !30)
 
-println(fmt(array/length(a)))
-println(fmt(array/length(b)))
+fmt/(println(int, array/length(a)))
+fmt/(println(int, array/length(b)))
 
 fun in_fun() {
   let a& = [10, 20]
@@ -12,8 +12,8 @@ fun in_fun() {
 
   array/push(&a, !30)
 
-  println(fmt(array/length(a)))
-  println(fmt(array/length(b)))
+  fmt/(println(int, array/length(a)))
+  fmt/(println(int, array/length(b)))
 }
 
 in_fun()

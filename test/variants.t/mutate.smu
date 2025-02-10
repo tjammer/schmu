@@ -2,7 +2,7 @@ let a& = 10
 match &a {
   b&: &b = 11
 }
-println(fmt(a))
+fmt/(println(int, a))
 
 type record = {a& : int, b : float}
 let a& = Some(10)
@@ -11,6 +11,6 @@ match &a {
   None: ()
 }
 match a {
-  Some(a): println(fmt(a))
+  Some(a): fmt/(println(int, a))
   None: println("none")
 }

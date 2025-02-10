@@ -5,7 +5,7 @@ import string
 
 use prelude
 
-module  formatter {
+module formatter {
   signature {
     type t['a]
 
@@ -49,6 +49,8 @@ fun prerr() {
   )
 }
 
+let int_digits = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"
+
 fun int_base(p!, value, base) {
   let arr& = #64['\000']
   if (base < 2 or base > 36) {
@@ -58,8 +60,7 @@ fun int_base(p!, value, base) {
     fun rec aux(value, index) {
       let tmp_value = value
       let value = value / base
-      let helper = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"
-      &arr#[index] = string/get(helper, 35 + (tmp_value - (value * base)))
+      &arr#[index] = string/get(int_digits, 35 + (tmp_value - (value * base)))
       if (value <> 0) { aux(value, index + 1) }
       else {
         -- sign
@@ -89,6 +90,15 @@ fun str(p!, str) {
   formatter/format(p, string/data(str), string/len(str))
 }
 
+fun u8(p!, u) {
+  int(p, int_of_u8(u)) |> str("u8")
+}
+
+fun bool(p!, b) {
+  if b { str(p, "true") }
+  else { str(p, "false") }
+}
+
 fun endl(p!) {
   let newline = #['\n']
   formatter/format(p, array/fixed/data(newline), 1)
@@ -102,28 +112,29 @@ module type concrete_formatter {
 
 functor make_printer(m : concrete_formatter) {
   signature {
-    val print : (string/t) -> m/return
-    val println : (string/t) -> m/return
+    type printer['a] = (formatter/t[m/return]!, 'a) -> formatter/t[m/return]
+    val print : (printer['a], 'a) -> m/return
+    val println : (printer['a], 'a) -> m/return
     val print_newline : () -> m/return
 
-    type pp['a] = (formatter/t[m/return]!, 'a) -> formatter/t[m/return]
-    val print1 : (string/t, pp['a], 'a) -> m/return
-    val print2 : (string/t, pp['a], 'a, pp['b], 'b) -> m/return
-    val print3 : (string/t, pp['a], 'a, pp['b], 'b, pp['c], 'c) -> m/return
-    val print4 : (string/t, pp['a], 'a, pp['b], 'b, pp['c], 'c, pp['d], 'd) -> m/return
-    val print5 : (string/t, pp['a], 'a, pp['b], 'b, pp['c], 'c, pp['d], 'd, pp['e], 'e) -> m/return
-
-    val print_int : (int) -> m/return
+    val print1 : (string/t, printer['a], 'a) -> m/return
+    val print2 : (string/t, printer['a], 'a, printer['b], 'b) -> m/return
+    val print3 : (string/t, printer['a], 'a, printer['b], 'b, printer['c], 'c) -> m/return
+    val print4 : (string/t, printer['a], 'a, printer['b], 'b, printer['c], 'c, printer['d], 'd) -> m/return
+    val print5 : (string/t, printer['a], 'a, printer['b], 'b, printer['c], 'c, printer['d], 'd, printer['e], 'e) -> m/return
   }
+  let missing_arg_msg = "Missing argument for format str: "
+  let too_many_arg_msg = "Too many arguments for format str: "
+
   module impl {
     fun fmt_fail_missing() {
-      prerr() |> str("Missing argument for format str: ")
+      prerr() |> str(missing_arg_msg)
       |> endl
       __any_abort()
     }
 
     fun fmt_fail_too_many() {
-      prerr() |> str("Too many arguments for format str: ")
+      prerr() |> str(too_many_arg_msg)
       |> endl
       __any_abort()
     }
@@ -174,12 +185,12 @@ functor make_printer(m : concrete_formatter) {
     }
   }
 
-  fun print(string) {
-    str(m/create(), string) |> formatter/extract
+  fun print(fmt : printer['a], value) {
+    fmt(!m/create(), value) |> formatter/extract
   }
 
-  fun println(string) {
-    str(m/create(), string) |> endl
+  fun println(fmt : printer['a], value) {
+    fmt(!m/create(), value) |> endl
   }
 
   fun helper_printn(fmtstr, cb) {
@@ -267,16 +278,12 @@ functor make_printer(m : concrete_formatter) {
     else { formatter/extract(ret) }
   }
 
-  fun print_int(i) {
-    int(m/create(), i) |> formatter/extract
-  }
-
   fun print_newline() {
     endl(m/create())
   }
 }
 
-module stdout {
+module fmt_stdout {
   type return = unit
 
   fun create() {
@@ -286,17 +293,52 @@ module stdout {
   }
 }
 
-module pr = make_printer(stdout)
+module fmt_stderr {
+  type return = unit
+
+  fun create() {
+    formatter/create(
+      fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, stderr) }, ()
+    )
+  }
+}
+
+module fmt_str {
+  type return = string/t
+
+  external memcpy : (raw_ptr[u8], raw_ptr[u8], int) -> unit
+  fun create() {
+    formatter/create(
+      fun(s&, ptr, len) {
+        let arr& = string/to_array(s)
+        let arrlen = array/length(arr)
+        array/reserve(&arr, arrlen + len + 1)
+
+        let dst = array/data(arr) |> __unsafe_ptr_at(arrlen)
+        memcpy(dst, ptr, len)
+        let size = arrlen + len
+        &arr.[size] = '\000'
+        &__unsafe_array_length(arr) = size
+
+        &s = string/of_array(arr)
+      },
+      array/create(128) |> string/of_array
+    )
+  }
+}
+
+module stdout = make_printer(fmt_stdout)
 
 -- We cannot 'export' modules yet
-let print = pr/print
-let println = pr/println
-let print_newline = pr/print_newline
+let print = stdout/print
+let println = stdout/println
+let print_newline = stdout/print_newline
 
-let print1 = pr/print1
-let print2 = pr/print2
-let print3 = pr/print3
-let print4 = pr/print4
-let print5 = pr/print5
+let print1 = stdout/print1
+let print2 = stdout/print2
+let print3 = stdout/print3
+let print4 = stdout/print4
+let print5 = stdout/print5
 
-let print_int = pr/print_int
+module stderr = make_printer(fmt_stderr)
+module str = make_printer(fmt_str)

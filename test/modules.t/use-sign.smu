@@ -16,7 +16,7 @@ assert(t == 200)
 int(t)
 
 -- Use poly_int
-println(fmt(poly_int(20.2)))
+fmt/(println(int, poly_int(20.2) |> int_of_float)) -- TODO format float
 
 fun use_hidden () {
   ignore(create_use_hidden())

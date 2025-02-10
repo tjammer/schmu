@@ -21,7 +21,7 @@ fun string_of_view(view) {
   })
   array/push(&ret, !'\000')
   array/pop_back(&ret) |> ignore
-  ret
+  string/of_array(ret)
 }
 
 fun view_of_lexbuf(lb) {
@@ -29,14 +29,20 @@ fun view_of_lexbuf(lb) {
 }
 
 fun print_result(res) {
+  use fmt
   match res {
-    Ok({rem, mtch}):
-      fmt("(\"", string_of_view(view_of_lexbuf(rem)), "\", \"",
-        string_of_view(mtch), "\")")
-    Err(lexbuf):
-      fmt("\"", string_of_view(view_of_lexbuf(lexbuf)), "\", \"")
+    Ok({rem, mtch}): {
+      print2("(\"{}\", \"{}\")\n",
+             str,
+             string_of_view(view_of_lexbuf(rem)),
+             str,
+             string_of_view(mtch)
+             )
+    }
+    Err(lexbuf): {
+      print1("\"{}\"\n", str, string_of_view(view_of_lexbuf(lexbuf)))
+    }
   }
-  |> println
 }
 
 fun alt(a, b) {

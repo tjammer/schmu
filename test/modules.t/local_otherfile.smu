@@ -5,7 +5,7 @@ module local {
   signature {
     type t
     val test : () -> unit
-    val poly_test : ('a) -> unit
+    val poly_test : (fmt/stdout/printer['a], 'a) -> unit
     val value : string
   }
   module nested {
@@ -15,15 +15,15 @@ module local {
   fun test() {
     println("hey thing")
   }
-  fun poly_test(a) {
-    println(fmt("hey poly ", a))
+  fun poly_test(pr, a) {
+    fmt/print1("hey poly {}\n", pr, a)
   }
   let value = "test"
 }
 test()
 
 local/test()
-local/poly_test("test")
+local/poly_test(fmt/str, "test")
 
 module nosig {
   type t = {a : int}

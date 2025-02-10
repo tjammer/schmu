@@ -33,48 +33,322 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
+  %fmt.formatter.tu_ = type { %closure }
+  %closure = type { ptr, ptr }
+  
+  @fmt_int_digits = external global ptr
+  @fmt_newline = internal constant [1 x i8] c"\0A"
+  
+  declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
+  
+  declare i8 @string_get(ptr %0, i64 %1)
   
   declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
   
-  define i64 @schmu_doo(i32 %0) !dbg !2 {
+  declare void @fmt_fmt_stdout_create(ptr noalias %0)
+  
+  define linkonce_odr void @__array_fixed_swap_items_A64c__(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
+  entry:
+    %eq = icmp eq i64 %i, %j
+    %0 = xor i1 %eq, true
+    br i1 %0, label %then, label %ifcont, !dbg !6
+  
+  then:                                             ; preds = %entry
+    %1 = alloca i8, align 1
+    %2 = getelementptr i8, ptr %arr, i64 %i
+    %3 = load i8, ptr %2, align 1
+    store i8 %3, ptr %1, align 1
+    %4 = getelementptr i8, ptr %arr, i64 %j
+    %5 = load i8, ptr %4, align 1
+    store i8 %5, ptr %2, align 1
+    store i8 %3, ptr %4, align 1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_endl_upc_lru_u_ru_(ptr %p) !dbg !7 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
+    call void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %ret), !dbg !10
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %fm) !dbg !11 {
+  entry:
+    tail call void @__free_except1_upc_lru_u_(ptr %fm)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
+  entry:
+    %1 = alloca %fmt.formatter.tu_, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
+    %loadtmp = load ptr, ptr %1, align 8
+    %envptr = getelementptr inbounds %closure, ptr %1, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    tail call void %loadtmp(ptr %ptr, i64 %len, ptr %loadtmp1), !dbg !13
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 16, i1 false)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
+  entry:
+    %1 = alloca [64 x i8], align 1
+    store [64 x i8] zeroinitializer, ptr %1, align 1
+    %lt = icmp slt i64 %base, 2
+    br i1 %lt, label %cont, label %false1
+  
+  false1:                                           ; preds = %entry
+    %gt = icmp sgt i64 %base, 36
+    br i1 %gt, label %cont, label %false2
+  
+  false2:                                           ; preds = %false1
+    br label %cont
+  
+  cont:                                             ; preds = %false2, %false1, %entry
+    %andtmp = phi i1 [ true, %entry ], [ true, %false1 ], [ false, %false2 ]
+    br i1 %andtmp, label %then, label %else, !dbg !15
+  
+  then:                                             ; preds = %cont
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
+    br label %ifcont
+  
+  else:                                             ; preds = %cont
+    %fmt_aux = alloca %closure, align 8
+    store ptr @fmt_aux, ptr %fmt_aux, align 8
+    %clsr_fmt_aux = alloca { ptr, ptr, ptr, i64 }, align 8
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 2
+    store ptr %1, ptr %_fmt_arr, align 8
+    %base1 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 3
+    store i64 %base, ptr %base1, align 8
+    store ptr @__ctor_A64c_l_, ptr %clsr_fmt_aux, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 1
+    store ptr null, ptr %dtor, align 8
+    %envptr = getelementptr inbounds %closure, ptr %fmt_aux, i32 0, i32 1
+    store ptr %clsr_fmt_aux, ptr %envptr, align 8
+    %2 = call i64 @fmt_aux(i64 %value, i64 0, ptr %clsr_fmt_aux), !dbg !17
+    %add = add i64 %2, 1
+    %div = sdiv i64 %add, 2
+    %__fun_fmt2 = alloca %closure, align 8
+    store ptr @__fun_fmt2, ptr %__fun_fmt2, align 8
+    %clsr___fun_fmt2 = alloca { ptr, ptr, ptr, i64 }, align 8
+    %_fmt_arr5 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 2
+    store ptr %1, ptr %_fmt_arr5, align 8
+    %_fmt_length = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 3
+    store i64 %add, ptr %_fmt_length, align 8
+    store ptr @__ctor_A64c_l_, ptr %clsr___fun_fmt2, align 8
+    %dtor7 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 1
+    store ptr null, ptr %dtor7, align 8
+    %envptr8 = getelementptr inbounds %closure, ptr %__fun_fmt2, i32 0, i32 1
+    store ptr %clsr___fun_fmt2, ptr %envptr8, align 8
+    call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !18
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_int_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
+  entry:
+    tail call void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %fmt, i64 %value) !dbg !22 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @fmt_fmt_stdout_create(ptr %ret), !dbg !23
+    %loadtmp = load ptr, ptr %fmt, align 8
+    %envptr = getelementptr inbounds %closure, ptr %fmt, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    %ret2 = alloca %fmt.formatter.tu_, align 8
+    call void %loadtmp(ptr %ret2, ptr %ret, i64 %value, ptr %loadtmp1), !dbg !24
+    call void @__fmt_endl_upc_lru_u_ru_(ptr %ret2), !dbg !25
+    ret void
+  }
+  
+  define linkonce_odr void @__fun_fmt2(i64 %i, ptr %0) !dbg !26 {
+  entry:
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
+    %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
+    %_fmt_length = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 3
+    %_fmt_length2 = load i64, ptr %_fmt_length, align 8
+    %sub = sub i64 %_fmt_length2, %i
+    %sub3 = sub i64 %sub, 1
+    tail call void @__array_fixed_swap_items_A64c__(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
+    ret void
+  }
+  
+  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !28 {
+  entry:
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
+    %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
+    %base = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 3
+    %base2 = load i64, ptr %base, align 8
+    %1 = alloca i64, align 8
+    store i64 %value, ptr %1, align 8
+    %2 = alloca i64, align 8
+    store i64 %index, ptr %2, align 8
+    %3 = add i64 %index, 1
+    br label %rec
+  
+  rec:                                              ; preds = %then, %entry
+    %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
+    %4 = phi i64 [ %div, %then ], [ %value, %entry ]
+    %div = sdiv i64 %4, %base2
+    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %5 = load ptr, ptr @fmt_int_digits, align 8
+    %mul = mul i64 %div, %base2
+    %sub = sub i64 %4, %mul
+    %add = add i64 35, %sub
+    %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
+    store i8 %6, ptr %uglygep10, align 1
+    %ne = icmp ne i64 %div, 0
+    br i1 %ne, label %then, label %else, !dbg !30
+  
+  then:                                             ; preds = %rec
+    store i64 %div, ptr %1, align 8
+    store i64 %lsr.iv, ptr %2, align 8
+    %lsr.iv.next = add i64 %lsr.iv, 1
+    br label %rec
+  
+  else:                                             ; preds = %rec
+    %lt = icmp slt i64 %4, 0
+    %7 = add i64 %lsr.iv, -1, !dbg !31
+    br i1 %lt, label %then4, label %ifcont, !dbg !31
+  
+  then4:                                            ; preds = %else
+    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %uglygep, align 1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then4
+    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %7, %else ]
+    ret i64 %iftmp
+  }
+  
+  define i64 @schmu_doo(i32 %0) !dbg !32 {
   entry:
     %a = alloca i32, align 4
     store i32 %0, ptr %a, align 4
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %then, label %else, !dbg !6
+    br i1 %eq, label %then, label %else, !dbg !34
   
   then:                                             ; preds = %entry
-    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5), !dbg !7
+    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5), !dbg !35
     ret i64 %1
   
   else:                                             ; preds = %entry
-    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5), !dbg !8
+    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5), !dbg !36
     ret i64 %2
   }
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
+  define linkonce_odr void @__free_upc_lru_(ptr %0) {
   entry:
-    %0 = tail call i64 @schmu_doo(i32 0), !dbg !10
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
+    %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %env = load ptr, ptr %envptr, align 8
+    %1 = icmp eq ptr %env, null
+    br i1 %1, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %2 = getelementptr inbounds { ptr, ptr }, ptr %env, i32 0, i32 1
+    %dtor1 = load ptr, ptr %2, align 8
+    %3 = icmp eq ptr %dtor1, null
+    br i1 %3, label %just_free, label %dtor
+  
+  ret:                                              ; preds = %just_free, %dtor, %entry
+    ret void
+  
+  dtor:                                             ; preds = %notnull
+    call void %dtor1(ptr %env)
+    br label %ret
+  
+  just_free:                                        ; preds = %notnull
+    call void @free(ptr %env)
+    br label %ret
+  }
+  
+  define linkonce_odr void @__free_except1_upc_lru_u_(ptr %0) {
+  entry:
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_upc_lru_(ptr %1)
+    ret void
+  }
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define linkonce_odr ptr @__ctor_A64c_l_(ptr %0) {
+  entry:
+    %1 = call ptr @malloc(i64 88)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    ret ptr %1
+  }
+  
+  declare ptr @malloc(i64 %0)
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !37 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    %0 = tail call i64 @schmu_doo(i32 0), !dbg !38
+    call void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %clstmp, i64 %0), !dbg !39
     ret i64 0
   }
   
-  declare void @printf(ptr %0, ...)
+  declare void @free(ptr %0)
+  
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   
   !llvm.dbg.cu = !{!0}
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "import_nonpoly_func.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "doo", linkageName: "schmu_doo", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "import_nonpoly_func.smu", directory: "")
+  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64c__", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 6, column: 3, scope: !2)
-  !7 = !DILocation(line: 6, column: 9, scope: !2)
-  !8 = !DILocation(line: 7, column: 10, scope: !2)
-  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !10 = !DILocation(line: 10, scope: !9)
+  !6 = !DILocation(line: 140, column: 7, scope: !2)
+  !7 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_upc_lru_u_ru_", scope: !8, file: !8, line: 102, type: !4, scopeLine: 102, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = !DIFile(filename: "fmt.smu", directory: "")
+  !9 = !DILocation(line: 104, column: 2, scope: !7)
+  !10 = !DILocation(line: 105, column: 15, scope: !7)
+  !11 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_upc_lru_u_ru_", scope: !8, file: !8, line: 26, type: !4, scopeLine: 26, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 20, type: !4, scopeLine: 20, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !13 = !DILocation(line: 22, column: 4, scope: !12)
+  !14 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 54, type: !4, scopeLine: 54, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !15 = !DILocation(line: 56, column: 6, scope: !14)
+  !16 = !DILocation(line: 57, column: 4, scope: !14)
+  !17 = !DILocation(line: 74, column: 17, scope: !14)
+  !18 = !DILocation(line: 77, column: 4, scope: !14)
+  !19 = !DILocation(line: 81, column: 4, scope: !14)
+  !20 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 85, type: !4, scopeLine: 85, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !21 = !DILocation(line: 86, column: 2, scope: !20)
+  !22 = distinct !DISubprogram(name: "_fmt_stdout_println", linkageName: "__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_", scope: !8, file: !8, line: 192, type: !4, scopeLine: 192, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !23 = !DILocation(line: 193, column: 9, scope: !22)
+  !24 = !DILocation(line: 193, column: 4, scope: !22)
+  !25 = !DILocation(line: 193, column: 31, scope: !22)
+  !26 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !8, file: !8, line: 77, type: !4, scopeLine: 77, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !27 = !DILocation(line: 78, column: 6, scope: !26)
+  !28 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !8, file: !8, line: 60, type: !4, scopeLine: 60, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !29 = !DILocation(line: 63, column: 21, scope: !28)
+  !30 = !DILocation(line: 64, column: 10, scope: !28)
+  !31 = !DILocation(line: 67, column: 11, scope: !28)
+  !32 = distinct !DISubprogram(name: "doo", linkageName: "schmu_doo", scope: !33, file: !33, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !33 = !DIFile(filename: "import_nonpoly_func.smu", directory: "")
+  !34 = !DILocation(line: 6, column: 3, scope: !32)
+  !35 = !DILocation(line: 6, column: 9, scope: !32)
+  !36 = !DILocation(line: 7, column: 10, scope: !32)
+  !37 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !33, file: !33, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !38 = !DILocation(line: 10, scope: !37)
+  !39 = !DILocation(line: 10, column: 18, scope: !37)
   $ ./import_nonpoly_func
   5
 
@@ -83,71 +357,350 @@ Simplest module with 1 type and 1 nonpolymorphic function
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
+  %fmt.formatter.tu_ = type { %closure }
+  %closure = type { ptr, ptr }
+  
+  @fmt_int_digits = external global ptr
+  @fmt_newline = internal constant [1 x i8] c"\0A"
+  
+  declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
+  
+  declare i8 @string_get(ptr %0, i64 %1)
   
   declare i64 @nonpoly_func_add_ints(i64 %0, i64 %1)
   
-  define i64 @schmu_do2(i32 %0) !dbg !2 {
+  declare void @fmt_fmt_stdout_create(ptr noalias %0)
+  
+  define linkonce_odr void @__array_fixed_swap_items_A64c__(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
+  entry:
+    %eq = icmp eq i64 %i, %j
+    %0 = xor i1 %eq, true
+    br i1 %0, label %then, label %ifcont, !dbg !6
+  
+  then:                                             ; preds = %entry
+    %1 = alloca i8, align 1
+    %2 = getelementptr i8, ptr %arr, i64 %i
+    %3 = load i8, ptr %2, align 1
+    store i8 %3, ptr %1, align 1
+    %4 = getelementptr i8, ptr %arr, i64 %j
+    %5 = load i8, ptr %4, align 1
+    store i8 %5, ptr %2, align 1
+    store i8 %3, ptr %4, align 1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_endl_upc_lru_u_ru_(ptr %p) !dbg !7 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
+    call void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %ret), !dbg !10
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %fm) !dbg !11 {
+  entry:
+    tail call void @__free_except1_upc_lru_u_(ptr %fm)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
+  entry:
+    %1 = alloca %fmt.formatter.tu_, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
+    %loadtmp = load ptr, ptr %1, align 8
+    %envptr = getelementptr inbounds %closure, ptr %1, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    tail call void %loadtmp(ptr %ptr, i64 %len, ptr %loadtmp1), !dbg !13
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 16, i1 false)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
+  entry:
+    %1 = alloca [64 x i8], align 1
+    store [64 x i8] zeroinitializer, ptr %1, align 1
+    %lt = icmp slt i64 %base, 2
+    br i1 %lt, label %cont, label %false1
+  
+  false1:                                           ; preds = %entry
+    %gt = icmp sgt i64 %base, 36
+    br i1 %gt, label %cont, label %false2
+  
+  false2:                                           ; preds = %false1
+    br label %cont
+  
+  cont:                                             ; preds = %false2, %false1, %entry
+    %andtmp = phi i1 [ true, %entry ], [ true, %false1 ], [ false, %false2 ]
+    br i1 %andtmp, label %then, label %else, !dbg !15
+  
+  then:                                             ; preds = %cont
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
+    br label %ifcont
+  
+  else:                                             ; preds = %cont
+    %fmt_aux = alloca %closure, align 8
+    store ptr @fmt_aux, ptr %fmt_aux, align 8
+    %clsr_fmt_aux = alloca { ptr, ptr, ptr, i64 }, align 8
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 2
+    store ptr %1, ptr %_fmt_arr, align 8
+    %base1 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 3
+    store i64 %base, ptr %base1, align 8
+    store ptr @__ctor_A64c_l_, ptr %clsr_fmt_aux, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 1
+    store ptr null, ptr %dtor, align 8
+    %envptr = getelementptr inbounds %closure, ptr %fmt_aux, i32 0, i32 1
+    store ptr %clsr_fmt_aux, ptr %envptr, align 8
+    %2 = call i64 @fmt_aux(i64 %value, i64 0, ptr %clsr_fmt_aux), !dbg !17
+    %add = add i64 %2, 1
+    %div = sdiv i64 %add, 2
+    %__fun_fmt2 = alloca %closure, align 8
+    store ptr @__fun_fmt2, ptr %__fun_fmt2, align 8
+    %clsr___fun_fmt2 = alloca { ptr, ptr, ptr, i64 }, align 8
+    %_fmt_arr5 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 2
+    store ptr %1, ptr %_fmt_arr5, align 8
+    %_fmt_length = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 3
+    store i64 %add, ptr %_fmt_length, align 8
+    store ptr @__ctor_A64c_l_, ptr %clsr___fun_fmt2, align 8
+    %dtor7 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 1
+    store ptr null, ptr %dtor7, align 8
+    %envptr8 = getelementptr inbounds %closure, ptr %__fun_fmt2, i32 0, i32 1
+    store ptr %clsr___fun_fmt2, ptr %envptr8, align 8
+    call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !18
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_int_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
+  entry:
+    tail call void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %fmt, i64 %value) !dbg !22 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @fmt_fmt_stdout_create(ptr %ret), !dbg !23
+    %loadtmp = load ptr, ptr %fmt, align 8
+    %envptr = getelementptr inbounds %closure, ptr %fmt, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    %ret2 = alloca %fmt.formatter.tu_, align 8
+    call void %loadtmp(ptr %ret2, ptr %ret, i64 %value, ptr %loadtmp1), !dbg !24
+    call void @__fmt_endl_upc_lru_u_ru_(ptr %ret2), !dbg !25
+    ret void
+  }
+  
+  define linkonce_odr void @__fun_fmt2(i64 %i, ptr %0) !dbg !26 {
+  entry:
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
+    %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
+    %_fmt_length = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 3
+    %_fmt_length2 = load i64, ptr %_fmt_length, align 8
+    %sub = sub i64 %_fmt_length2, %i
+    %sub3 = sub i64 %sub, 1
+    tail call void @__array_fixed_swap_items_A64c__(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
+    ret void
+  }
+  
+  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !28 {
+  entry:
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
+    %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
+    %base = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 3
+    %base2 = load i64, ptr %base, align 8
+    %1 = alloca i64, align 8
+    store i64 %value, ptr %1, align 8
+    %2 = alloca i64, align 8
+    store i64 %index, ptr %2, align 8
+    %3 = add i64 %index, 1
+    br label %rec
+  
+  rec:                                              ; preds = %then, %entry
+    %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
+    %4 = phi i64 [ %div, %then ], [ %value, %entry ]
+    %div = sdiv i64 %4, %base2
+    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %5 = load ptr, ptr @fmt_int_digits, align 8
+    %mul = mul i64 %div, %base2
+    %sub = sub i64 %4, %mul
+    %add = add i64 35, %sub
+    %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
+    store i8 %6, ptr %uglygep10, align 1
+    %ne = icmp ne i64 %div, 0
+    br i1 %ne, label %then, label %else, !dbg !30
+  
+  then:                                             ; preds = %rec
+    store i64 %div, ptr %1, align 8
+    store i64 %lsr.iv, ptr %2, align 8
+    %lsr.iv.next = add i64 %lsr.iv, 1
+    br label %rec
+  
+  else:                                             ; preds = %rec
+    %lt = icmp slt i64 %4, 0
+    %7 = add i64 %lsr.iv, -1, !dbg !31
+    br i1 %lt, label %then4, label %ifcont, !dbg !31
+  
+  then4:                                            ; preds = %else
+    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %uglygep, align 1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then4
+    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %7, %else ]
+    ret i64 %iftmp
+  }
+  
+  define i64 @schmu_do2(i32 %0) !dbg !32 {
   entry:
     %a = alloca i32, align 4
     store i32 %0, ptr %a, align 4
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %then, label %else, !dbg !6
+    br i1 %eq, label %then, label %else, !dbg !34
   
   then:                                             ; preds = %entry
-    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5), !dbg !7
+    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5), !dbg !35
     ret i64 %1
   
   else:                                             ; preds = %entry
-    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5), !dbg !8
+    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5), !dbg !36
     ret i64 %2
   }
   
-  define i64 @schmu_doo(i32 %0) !dbg !9 {
+  define i64 @schmu_doo(i32 %0) !dbg !37 {
   entry:
     %a = alloca i32, align 4
     store i32 %0, ptr %a, align 4
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %then, label %else, !dbg !10
+    br i1 %eq, label %then, label %else, !dbg !38
   
   then:                                             ; preds = %entry
-    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5), !dbg !11
+    %1 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 5), !dbg !39
     ret i64 %1
   
   else:                                             ; preds = %entry
-    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5), !dbg !12
+    %2 = tail call i64 @nonpoly_func_add_ints(i64 0, i64 -5), !dbg !40
     ret i64 %2
   }
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !13 {
+  define linkonce_odr void @__free_upc_lru_(ptr %0) {
   entry:
-    %0 = tail call i64 @schmu_doo(i32 0), !dbg !14
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
-    %1 = tail call i64 @schmu_do2(i32 0), !dbg !15
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
+    %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %env = load ptr, ptr %envptr, align 8
+    %1 = icmp eq ptr %env, null
+    br i1 %1, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %2 = getelementptr inbounds { ptr, ptr }, ptr %env, i32 0, i32 1
+    %dtor1 = load ptr, ptr %2, align 8
+    %3 = icmp eq ptr %dtor1, null
+    br i1 %3, label %just_free, label %dtor
+  
+  ret:                                              ; preds = %just_free, %dtor, %entry
+    ret void
+  
+  dtor:                                             ; preds = %notnull
+    call void %dtor1(ptr %env)
+    br label %ret
+  
+  just_free:                                        ; preds = %notnull
+    call void @free(ptr %env)
+    br label %ret
+  }
+  
+  define linkonce_odr void @__free_except1_upc_lru_u_(ptr %0) {
+  entry:
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_upc_lru_(ptr %1)
+    ret void
+  }
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define linkonce_odr ptr @__ctor_A64c_l_(ptr %0) {
+  entry:
+    %1 = call ptr @malloc(i64 88)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    ret ptr %1
+  }
+  
+  declare ptr @malloc(i64 %0)
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !41 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    %0 = tail call i64 @schmu_doo(i32 0), !dbg !42
+    call void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %clstmp, i64 %0), !dbg !43
+    %clstmp1 = alloca %closure, align 8
+    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp1, align 8
+    %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
+    store ptr null, ptr %envptr3, align 8
+    %1 = call i64 @schmu_do2(i32 0), !dbg !44
+    call void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %clstmp1, i64 %1), !dbg !45
     ret i64 0
   }
   
-  declare void @printf(ptr %0, ...)
+  declare void @free(ptr %0)
+  
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   
   !llvm.dbg.cu = !{!0}
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "local_import_nonpoly_func.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "do2", linkageName: "schmu_do2", scope: !3, file: !3, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "local_import_nonpoly_func.smu", directory: "")
+  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64c__", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 13, column: 4, scope: !2)
-  !7 = !DILocation(line: 13, column: 10, scope: !2)
-  !8 = !DILocation(line: 14, column: 11, scope: !2)
-  !9 = distinct !DISubprogram(name: "doo", linkageName: "schmu_doo", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !10 = !DILocation(line: 6, column: 4, scope: !9)
-  !11 = !DILocation(line: 6, column: 10, scope: !9)
-  !12 = !DILocation(line: 7, column: 11, scope: !9)
-  !13 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !14 = !DILocation(line: 17, scope: !13)
-  !15 = !DILocation(line: 18, scope: !13)
+  !6 = !DILocation(line: 140, column: 7, scope: !2)
+  !7 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_upc_lru_u_ru_", scope: !8, file: !8, line: 102, type: !4, scopeLine: 102, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = !DIFile(filename: "fmt.smu", directory: "")
+  !9 = !DILocation(line: 104, column: 2, scope: !7)
+  !10 = !DILocation(line: 105, column: 15, scope: !7)
+  !11 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_upc_lru_u_ru_", scope: !8, file: !8, line: 26, type: !4, scopeLine: 26, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 20, type: !4, scopeLine: 20, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !13 = !DILocation(line: 22, column: 4, scope: !12)
+  !14 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 54, type: !4, scopeLine: 54, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !15 = !DILocation(line: 56, column: 6, scope: !14)
+  !16 = !DILocation(line: 57, column: 4, scope: !14)
+  !17 = !DILocation(line: 74, column: 17, scope: !14)
+  !18 = !DILocation(line: 77, column: 4, scope: !14)
+  !19 = !DILocation(line: 81, column: 4, scope: !14)
+  !20 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 85, type: !4, scopeLine: 85, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !21 = !DILocation(line: 86, column: 2, scope: !20)
+  !22 = distinct !DISubprogram(name: "_fmt_stdout_println", linkageName: "__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_", scope: !8, file: !8, line: 192, type: !4, scopeLine: 192, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !23 = !DILocation(line: 193, column: 9, scope: !22)
+  !24 = !DILocation(line: 193, column: 4, scope: !22)
+  !25 = !DILocation(line: 193, column: 31, scope: !22)
+  !26 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !8, file: !8, line: 77, type: !4, scopeLine: 77, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !27 = !DILocation(line: 78, column: 6, scope: !26)
+  !28 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !8, file: !8, line: 60, type: !4, scopeLine: 60, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !29 = !DILocation(line: 63, column: 21, scope: !28)
+  !30 = !DILocation(line: 64, column: 10, scope: !28)
+  !31 = !DILocation(line: 67, column: 11, scope: !28)
+  !32 = distinct !DISubprogram(name: "do2", linkageName: "schmu_do2", scope: !33, file: !33, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !33 = !DIFile(filename: "local_import_nonpoly_func.smu", directory: "")
+  !34 = !DILocation(line: 13, column: 4, scope: !32)
+  !35 = !DILocation(line: 13, column: 10, scope: !32)
+  !36 = !DILocation(line: 14, column: 11, scope: !32)
+  !37 = distinct !DISubprogram(name: "doo", linkageName: "schmu_doo", scope: !33, file: !33, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !38 = !DILocation(line: 6, column: 4, scope: !37)
+  !39 = !DILocation(line: 6, column: 10, scope: !37)
+  !40 = !DILocation(line: 7, column: 11, scope: !37)
+  !41 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !33, file: !33, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !42 = !DILocation(line: 17, scope: !41)
+  !43 = !DILocation(line: 17, column: 31, scope: !41)
+  !44 = !DILocation(line: 18, scope: !41)
+  !45 = !DILocation(line: 18, column: 31, scope: !41)
   $ ./local_import_nonpoly_func
   5
   5
@@ -321,19 +874,164 @@ Simplest module with 1 type and 1 nonpolymorphic function
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %poly_func.optiond_ = type { i32, double }
+  %fmt.formatter.tu_ = type { %closure }
+  %closure = type { ptr, ptr }
   %poly_func.optionl_ = type { i32, i64 }
   
+  @fmt_int_digits = external global ptr
+  @fmt_newline = internal constant [1 x i8] c"\0A"
   @schmu_none = constant %poly_func.optiond_ { i32 1, double undef }
-  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  define linkonce_odr i64 @__poly_func_classify_vd__(i32 %0, double %1) !dbg !2 {
+  declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
+  
+  declare i8 @string_get(ptr %0, i64 %1)
+  
+  declare void @fmt_fmt_stdout_create(ptr noalias %0)
+  
+  define linkonce_odr void @__array_fixed_swap_items_A64c__(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
+  entry:
+    %eq = icmp eq i64 %i, %j
+    %0 = xor i1 %eq, true
+    br i1 %0, label %then, label %ifcont, !dbg !6
+  
+  then:                                             ; preds = %entry
+    %1 = alloca i8, align 1
+    %2 = getelementptr i8, ptr %arr, i64 %i
+    %3 = load i8, ptr %2, align 1
+    store i8 %3, ptr %1, align 1
+    %4 = getelementptr i8, ptr %arr, i64 %j
+    %5 = load i8, ptr %4, align 1
+    store i8 %5, ptr %2, align 1
+    store i8 %3, ptr %4, align 1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_endl_upc_lru_u_ru_(ptr %p) !dbg !7 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
+    call void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %ret), !dbg !10
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %fm) !dbg !11 {
+  entry:
+    tail call void @__free_except1_upc_lru_u_(ptr %fm)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
+  entry:
+    %1 = alloca %fmt.formatter.tu_, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
+    %loadtmp = load ptr, ptr %1, align 8
+    %envptr = getelementptr inbounds %closure, ptr %1, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    tail call void %loadtmp(ptr %ptr, i64 %len, ptr %loadtmp1), !dbg !13
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 16, i1 false)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
+  entry:
+    %1 = alloca [64 x i8], align 1
+    store [64 x i8] zeroinitializer, ptr %1, align 1
+    %lt = icmp slt i64 %base, 2
+    br i1 %lt, label %cont, label %false1
+  
+  false1:                                           ; preds = %entry
+    %gt = icmp sgt i64 %base, 36
+    br i1 %gt, label %cont, label %false2
+  
+  false2:                                           ; preds = %false1
+    br label %cont
+  
+  cont:                                             ; preds = %false2, %false1, %entry
+    %andtmp = phi i1 [ true, %entry ], [ true, %false1 ], [ false, %false2 ]
+    br i1 %andtmp, label %then, label %else, !dbg !15
+  
+  then:                                             ; preds = %cont
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
+    br label %ifcont
+  
+  else:                                             ; preds = %cont
+    %fmt_aux = alloca %closure, align 8
+    store ptr @fmt_aux, ptr %fmt_aux, align 8
+    %clsr_fmt_aux = alloca { ptr, ptr, ptr, i64 }, align 8
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 2
+    store ptr %1, ptr %_fmt_arr, align 8
+    %base1 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 3
+    store i64 %base, ptr %base1, align 8
+    store ptr @__ctor_A64c_l_, ptr %clsr_fmt_aux, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 1
+    store ptr null, ptr %dtor, align 8
+    %envptr = getelementptr inbounds %closure, ptr %fmt_aux, i32 0, i32 1
+    store ptr %clsr_fmt_aux, ptr %envptr, align 8
+    %2 = call i64 @fmt_aux(i64 %value, i64 0, ptr %clsr_fmt_aux), !dbg !17
+    %add = add i64 %2, 1
+    %div = sdiv i64 %add, 2
+    %__fun_fmt2 = alloca %closure, align 8
+    store ptr @__fun_fmt2, ptr %__fun_fmt2, align 8
+    %clsr___fun_fmt2 = alloca { ptr, ptr, ptr, i64 }, align 8
+    %_fmt_arr5 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 2
+    store ptr %1, ptr %_fmt_arr5, align 8
+    %_fmt_length = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 3
+    store i64 %add, ptr %_fmt_length, align 8
+    store ptr @__ctor_A64c_l_, ptr %clsr___fun_fmt2, align 8
+    %dtor7 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 1
+    store ptr null, ptr %dtor7, align 8
+    %envptr8 = getelementptr inbounds %closure, ptr %__fun_fmt2, i32 0, i32 1
+    store ptr %clsr___fun_fmt2, ptr %envptr8, align 8
+    call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !18
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_int_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
+  entry:
+    tail call void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %fmt, i64 %value) !dbg !22 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @fmt_fmt_stdout_create(ptr %ret), !dbg !23
+    %loadtmp = load ptr, ptr %fmt, align 8
+    %envptr = getelementptr inbounds %closure, ptr %fmt, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    %ret2 = alloca %fmt.formatter.tu_, align 8
+    call void %loadtmp(ptr %ret2, ptr %ret, i64 %value, ptr %loadtmp1), !dbg !24
+    call void @__fmt_endl_upc_lru_u_ru_(ptr %ret2), !dbg !25
+    ret void
+  }
+  
+  define linkonce_odr void @__fun_fmt2(i64 %i, ptr %0) !dbg !26 {
+  entry:
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
+    %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
+    %_fmt_length = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 3
+    %_fmt_length2 = load i64, ptr %_fmt_length, align 8
+    %sub = sub i64 %_fmt_length2, %i
+    %sub3 = sub i64 %sub, 1
+    tail call void @__array_fixed_swap_items_A64c__(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
+    ret void
+  }
+  
+  define linkonce_odr i64 @__poly_func_classify_vd__(i32 %0, double %1) !dbg !28 {
   entry:
     %thing = alloca { i32, double }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, double }, ptr %thing, i32 0, i32 1
     store double %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else, !dbg !6
+    br i1 %eq, label %ifcont, label %else, !dbg !30
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -343,14 +1041,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__poly_func_classify_vl__(i32 %0, i64 %1) !dbg !7 {
+  define linkonce_odr i64 @__poly_func_classify_vl__(i32 %0, i64 %1) !dbg !31 {
   entry:
     %thing = alloca { i32, i64 }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %thing, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else, !dbg !8
+    br i1 %eq, label %ifcont, label %else, !dbg !32
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -360,45 +1058,183 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
+  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !33 {
   entry:
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
+    %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
+    %base = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 3
+    %base2 = load i64, ptr %base, align 8
+    %1 = alloca i64, align 8
+    store i64 %value, ptr %1, align 8
+    %2 = alloca i64, align 8
+    store i64 %index, ptr %2, align 8
+    %3 = add i64 %index, 1
+    br label %rec
+  
+  rec:                                              ; preds = %then, %entry
+    %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
+    %4 = phi i64 [ %div, %then ], [ %value, %entry ]
+    %div = sdiv i64 %4, %base2
+    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %5 = load ptr, ptr @fmt_int_digits, align 8
+    %mul = mul i64 %div, %base2
+    %sub = sub i64 %4, %mul
+    %add = add i64 35, %sub
+    %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !34
+    store i8 %6, ptr %uglygep10, align 1
+    %ne = icmp ne i64 %div, 0
+    br i1 %ne, label %then, label %else, !dbg !35
+  
+  then:                                             ; preds = %rec
+    store i64 %div, ptr %1, align 8
+    store i64 %lsr.iv, ptr %2, align 8
+    %lsr.iv.next = add i64 %lsr.iv, 1
+    br label %rec
+  
+  else:                                             ; preds = %rec
+    %lt = icmp slt i64 %4, 0
+    %7 = add i64 %lsr.iv, -1, !dbg !36
+    br i1 %lt, label %then4, label %ifcont, !dbg !36
+  
+  then4:                                            ; preds = %else
+    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %uglygep, align 1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then4
+    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %7, %else ]
+    ret i64 %iftmp
+  }
+  
+  define linkonce_odr void @__free_upc_lru_(ptr %0) {
+  entry:
+    %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %env = load ptr, ptr %envptr, align 8
+    %1 = icmp eq ptr %env, null
+    br i1 %1, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %2 = getelementptr inbounds { ptr, ptr }, ptr %env, i32 0, i32 1
+    %dtor1 = load ptr, ptr %2, align 8
+    %3 = icmp eq ptr %dtor1, null
+    br i1 %3, label %just_free, label %dtor
+  
+  ret:                                              ; preds = %just_free, %dtor, %entry
+    ret void
+  
+  dtor:                                             ; preds = %notnull
+    call void %dtor1(ptr %env)
+    br label %ret
+  
+  just_free:                                        ; preds = %notnull
+    call void @free(ptr %env)
+    br label %ret
+  }
+  
+  define linkonce_odr void @__free_except1_upc_lru_u_(ptr %0) {
+  entry:
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_upc_lru_(ptr %1)
+    ret void
+  }
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define linkonce_odr ptr @__ctor_A64c_l_(ptr %0) {
+  entry:
+    %1 = call ptr @malloc(i64 88)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    ret ptr %1
+  }
+  
+  declare ptr @malloc(i64 %0)
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !37 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
     %boxconst = alloca %poly_func.optionl_, align 8
     store %poly_func.optionl_ { i32 0, i64 3 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
-    %0 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2), !dbg !11
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
-    %boxconst3 = alloca %poly_func.optiond_, align 8
-    store %poly_func.optiond_ { i32 0, double 3.000000e+00 }, ptr %boxconst3, align 8
-    %fst5 = load i32, ptr %boxconst3, align 4
-    %snd6 = getelementptr inbounds { i32, double }, ptr %boxconst3, i32 0, i32 1
-    %snd7 = load double, ptr %snd6, align 8
-    %1 = tail call i64 @__poly_func_classify_vd__(i32 %fst5, double %snd7), !dbg !12
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
-    %2 = tail call i64 @__poly_func_classify_vd__(i32 1, double undef), !dbg !13
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %2)
+    %0 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2), !dbg !39
+    call void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %clstmp, i64 %0), !dbg !40
+    %clstmp3 = alloca %closure, align 8
+    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp3, align 8
+    %envptr5 = getelementptr inbounds %closure, ptr %clstmp3, i32 0, i32 1
+    store ptr null, ptr %envptr5, align 8
+    %boxconst6 = alloca %poly_func.optiond_, align 8
+    store %poly_func.optiond_ { i32 0, double 3.000000e+00 }, ptr %boxconst6, align 8
+    %fst8 = load i32, ptr %boxconst6, align 4
+    %snd9 = getelementptr inbounds { i32, double }, ptr %boxconst6, i32 0, i32 1
+    %snd10 = load double, ptr %snd9, align 8
+    %1 = call i64 @__poly_func_classify_vd__(i32 %fst8, double %snd10), !dbg !41
+    call void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %clstmp3, i64 %1), !dbg !42
+    %clstmp11 = alloca %closure, align 8
+    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp11, align 8
+    %envptr13 = getelementptr inbounds %closure, ptr %clstmp11, i32 0, i32 1
+    store ptr null, ptr %envptr13, align 8
+    %2 = call i64 @__poly_func_classify_vd__(i32 1, double undef), !dbg !43
+    call void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %clstmp11, i64 %2), !dbg !44
     ret i64 0
   }
   
-  declare void @printf(ptr %0, ...)
+  declare void @free(ptr %0)
+  
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   
   !llvm.dbg.cu = !{!0}
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "import_poly_func.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vd__", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "poly_func.smu", directory: "")
+  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64c__", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 6, column: 4, scope: !2)
-  !7 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vl__", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DILocation(line: 6, column: 4, scope: !7)
-  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !10, file: !10, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !10 = !DIFile(filename: "import_poly_func.smu", directory: "")
-  !11 = !DILocation(line: 5, scope: !9)
-  !12 = !DILocation(line: 6, scope: !9)
-  !13 = !DILocation(line: 8, scope: !9)
+  !6 = !DILocation(line: 140, column: 7, scope: !2)
+  !7 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_upc_lru_u_ru_", scope: !8, file: !8, line: 102, type: !4, scopeLine: 102, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = !DIFile(filename: "fmt.smu", directory: "")
+  !9 = !DILocation(line: 104, column: 2, scope: !7)
+  !10 = !DILocation(line: 105, column: 15, scope: !7)
+  !11 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_upc_lru_u_ru_", scope: !8, file: !8, line: 26, type: !4, scopeLine: 26, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 20, type: !4, scopeLine: 20, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !13 = !DILocation(line: 22, column: 4, scope: !12)
+  !14 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 54, type: !4, scopeLine: 54, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !15 = !DILocation(line: 56, column: 6, scope: !14)
+  !16 = !DILocation(line: 57, column: 4, scope: !14)
+  !17 = !DILocation(line: 74, column: 17, scope: !14)
+  !18 = !DILocation(line: 77, column: 4, scope: !14)
+  !19 = !DILocation(line: 81, column: 4, scope: !14)
+  !20 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 85, type: !4, scopeLine: 85, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !21 = !DILocation(line: 86, column: 2, scope: !20)
+  !22 = distinct !DISubprogram(name: "_fmt_stdout_println", linkageName: "__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_", scope: !8, file: !8, line: 192, type: !4, scopeLine: 192, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !23 = !DILocation(line: 193, column: 9, scope: !22)
+  !24 = !DILocation(line: 193, column: 4, scope: !22)
+  !25 = !DILocation(line: 193, column: 31, scope: !22)
+  !26 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !8, file: !8, line: 77, type: !4, scopeLine: 77, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !27 = !DILocation(line: 78, column: 6, scope: !26)
+  !28 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vd__", scope: !29, file: !29, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !29 = !DIFile(filename: "poly_func.smu", directory: "")
+  !30 = !DILocation(line: 6, column: 4, scope: !28)
+  !31 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vl__", scope: !29, file: !29, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !32 = !DILocation(line: 6, column: 4, scope: !31)
+  !33 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !8, file: !8, line: 60, type: !4, scopeLine: 60, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !34 = !DILocation(line: 63, column: 21, scope: !33)
+  !35 = !DILocation(line: 64, column: 10, scope: !33)
+  !36 = !DILocation(line: 67, column: 11, scope: !33)
+  !37 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !38, file: !38, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !38 = !DIFile(filename: "import_poly_func.smu", directory: "")
+  !39 = !DILocation(line: 5, scope: !37)
+  !40 = !DILocation(line: 5, column: 27, scope: !37)
+  !41 = !DILocation(line: 6, scope: !37)
+  !42 = !DILocation(line: 6, column: 29, scope: !37)
+  !43 = !DILocation(line: 8, scope: !37)
+  !44 = !DILocation(line: 8, column: 24, scope: !37)
   $ ./import_poly_func
   0
   0
@@ -410,19 +1246,164 @@ Simplest module with 1 type and 1 nonpolymorphic function
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %poly_func.optiond_ = type { i32, double }
+  %fmt.formatter.tu_ = type { %closure }
+  %closure = type { ptr, ptr }
   %poly_func.optionl_ = type { i32, i64 }
   
+  @fmt_int_digits = external global ptr
+  @fmt_newline = internal constant [1 x i8] c"\0A"
   @schmu_none = constant %poly_func.optiond_ { i32 1, double undef }
-  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
   
-  define linkonce_odr i64 @__poly_func_classify_vd__(i32 %0, double %1) !dbg !2 {
+  declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
+  
+  declare i8 @string_get(ptr %0, i64 %1)
+  
+  declare void @fmt_fmt_stdout_create(ptr noalias %0)
+  
+  define linkonce_odr void @__array_fixed_swap_items_A64c__(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
+  entry:
+    %eq = icmp eq i64 %i, %j
+    %0 = xor i1 %eq, true
+    br i1 %0, label %then, label %ifcont, !dbg !6
+  
+  then:                                             ; preds = %entry
+    %1 = alloca i8, align 1
+    %2 = getelementptr i8, ptr %arr, i64 %i
+    %3 = load i8, ptr %2, align 1
+    store i8 %3, ptr %1, align 1
+    %4 = getelementptr i8, ptr %arr, i64 %j
+    %5 = load i8, ptr %4, align 1
+    store i8 %5, ptr %2, align 1
+    store i8 %3, ptr %4, align 1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_endl_upc_lru_u_ru_(ptr %p) !dbg !7 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
+    call void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %ret), !dbg !10
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %fm) !dbg !11 {
+  entry:
+    tail call void @__free_except1_upc_lru_u_(ptr %fm)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
+  entry:
+    %1 = alloca %fmt.formatter.tu_, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
+    %loadtmp = load ptr, ptr %1, align 8
+    %envptr = getelementptr inbounds %closure, ptr %1, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    tail call void %loadtmp(ptr %ptr, i64 %len, ptr %loadtmp1), !dbg !13
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 16, i1 false)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
+  entry:
+    %1 = alloca [64 x i8], align 1
+    store [64 x i8] zeroinitializer, ptr %1, align 1
+    %lt = icmp slt i64 %base, 2
+    br i1 %lt, label %cont, label %false1
+  
+  false1:                                           ; preds = %entry
+    %gt = icmp sgt i64 %base, 36
+    br i1 %gt, label %cont, label %false2
+  
+  false2:                                           ; preds = %false1
+    br label %cont
+  
+  cont:                                             ; preds = %false2, %false1, %entry
+    %andtmp = phi i1 [ true, %entry ], [ true, %false1 ], [ false, %false2 ]
+    br i1 %andtmp, label %then, label %else, !dbg !15
+  
+  then:                                             ; preds = %cont
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
+    br label %ifcont
+  
+  else:                                             ; preds = %cont
+    %fmt_aux = alloca %closure, align 8
+    store ptr @fmt_aux, ptr %fmt_aux, align 8
+    %clsr_fmt_aux = alloca { ptr, ptr, ptr, i64 }, align 8
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 2
+    store ptr %1, ptr %_fmt_arr, align 8
+    %base1 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 3
+    store i64 %base, ptr %base1, align 8
+    store ptr @__ctor_A64c_l_, ptr %clsr_fmt_aux, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 1
+    store ptr null, ptr %dtor, align 8
+    %envptr = getelementptr inbounds %closure, ptr %fmt_aux, i32 0, i32 1
+    store ptr %clsr_fmt_aux, ptr %envptr, align 8
+    %2 = call i64 @fmt_aux(i64 %value, i64 0, ptr %clsr_fmt_aux), !dbg !17
+    %add = add i64 %2, 1
+    %div = sdiv i64 %add, 2
+    %__fun_fmt2 = alloca %closure, align 8
+    store ptr @__fun_fmt2, ptr %__fun_fmt2, align 8
+    %clsr___fun_fmt2 = alloca { ptr, ptr, ptr, i64 }, align 8
+    %_fmt_arr5 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 2
+    store ptr %1, ptr %_fmt_arr5, align 8
+    %_fmt_length = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 3
+    store i64 %add, ptr %_fmt_length, align 8
+    store ptr @__ctor_A64c_l_, ptr %clsr___fun_fmt2, align 8
+    %dtor7 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 1
+    store ptr null, ptr %dtor7, align 8
+    %envptr8 = getelementptr inbounds %closure, ptr %__fun_fmt2, i32 0, i32 1
+    store ptr %clsr___fun_fmt2, ptr %envptr8, align 8
+    call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !18
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_int_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
+  entry:
+    tail call void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %fmt, i64 %value) !dbg !22 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @fmt_fmt_stdout_create(ptr %ret), !dbg !23
+    %loadtmp = load ptr, ptr %fmt, align 8
+    %envptr = getelementptr inbounds %closure, ptr %fmt, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    %ret2 = alloca %fmt.formatter.tu_, align 8
+    call void %loadtmp(ptr %ret2, ptr %ret, i64 %value, ptr %loadtmp1), !dbg !24
+    call void @__fmt_endl_upc_lru_u_ru_(ptr %ret2), !dbg !25
+    ret void
+  }
+  
+  define linkonce_odr void @__fun_fmt2(i64 %i, ptr %0) !dbg !26 {
+  entry:
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
+    %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
+    %_fmt_length = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 3
+    %_fmt_length2 = load i64, ptr %_fmt_length, align 8
+    %sub = sub i64 %_fmt_length2, %i
+    %sub3 = sub i64 %sub, 1
+    tail call void @__array_fixed_swap_items_A64c__(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
+    ret void
+  }
+  
+  define linkonce_odr i64 @__poly_func_classify_vd__(i32 %0, double %1) !dbg !28 {
   entry:
     %thing = alloca { i32, double }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, double }, ptr %thing, i32 0, i32 1
     store double %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else, !dbg !6
+    br i1 %eq, label %ifcont, label %else, !dbg !30
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -432,14 +1413,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__poly_func_classify_vl__(i32 %0, i64 %1) !dbg !7 {
+  define linkonce_odr i64 @__poly_func_classify_vl__(i32 %0, i64 %1) !dbg !31 {
   entry:
     %thing = alloca { i32, i64 }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %thing, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else, !dbg !8
+    br i1 %eq, label %ifcont, label %else, !dbg !32
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -449,45 +1430,183 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
+  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !33 {
   entry:
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
+    %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
+    %base = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 3
+    %base2 = load i64, ptr %base, align 8
+    %1 = alloca i64, align 8
+    store i64 %value, ptr %1, align 8
+    %2 = alloca i64, align 8
+    store i64 %index, ptr %2, align 8
+    %3 = add i64 %index, 1
+    br label %rec
+  
+  rec:                                              ; preds = %then, %entry
+    %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
+    %4 = phi i64 [ %div, %then ], [ %value, %entry ]
+    %div = sdiv i64 %4, %base2
+    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %5 = load ptr, ptr @fmt_int_digits, align 8
+    %mul = mul i64 %div, %base2
+    %sub = sub i64 %4, %mul
+    %add = add i64 35, %sub
+    %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !34
+    store i8 %6, ptr %uglygep10, align 1
+    %ne = icmp ne i64 %div, 0
+    br i1 %ne, label %then, label %else, !dbg !35
+  
+  then:                                             ; preds = %rec
+    store i64 %div, ptr %1, align 8
+    store i64 %lsr.iv, ptr %2, align 8
+    %lsr.iv.next = add i64 %lsr.iv, 1
+    br label %rec
+  
+  else:                                             ; preds = %rec
+    %lt = icmp slt i64 %4, 0
+    %7 = add i64 %lsr.iv, -1, !dbg !36
+    br i1 %lt, label %then4, label %ifcont, !dbg !36
+  
+  then4:                                            ; preds = %else
+    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %uglygep, align 1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then4
+    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %7, %else ]
+    ret i64 %iftmp
+  }
+  
+  define linkonce_odr void @__free_upc_lru_(ptr %0) {
+  entry:
+    %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %env = load ptr, ptr %envptr, align 8
+    %1 = icmp eq ptr %env, null
+    br i1 %1, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %2 = getelementptr inbounds { ptr, ptr }, ptr %env, i32 0, i32 1
+    %dtor1 = load ptr, ptr %2, align 8
+    %3 = icmp eq ptr %dtor1, null
+    br i1 %3, label %just_free, label %dtor
+  
+  ret:                                              ; preds = %just_free, %dtor, %entry
+    ret void
+  
+  dtor:                                             ; preds = %notnull
+    call void %dtor1(ptr %env)
+    br label %ret
+  
+  just_free:                                        ; preds = %notnull
+    call void @free(ptr %env)
+    br label %ret
+  }
+  
+  define linkonce_odr void @__free_except1_upc_lru_u_(ptr %0) {
+  entry:
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_upc_lru_(ptr %1)
+    ret void
+  }
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define linkonce_odr ptr @__ctor_A64c_l_(ptr %0) {
+  entry:
+    %1 = call ptr @malloc(i64 88)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    ret ptr %1
+  }
+  
+  declare ptr @malloc(i64 %0)
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !37 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
     %boxconst = alloca %poly_func.optionl_, align 8
     store %poly_func.optionl_ { i32 0, i64 3 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
-    %0 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2), !dbg !11
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
-    %boxconst3 = alloca %poly_func.optiond_, align 8
-    store %poly_func.optiond_ { i32 0, double 3.000000e+00 }, ptr %boxconst3, align 8
-    %fst5 = load i32, ptr %boxconst3, align 4
-    %snd6 = getelementptr inbounds { i32, double }, ptr %boxconst3, i32 0, i32 1
-    %snd7 = load double, ptr %snd6, align 8
-    %1 = tail call i64 @__poly_func_classify_vd__(i32 %fst5, double %snd7), !dbg !12
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %1)
-    %2 = tail call i64 @__poly_func_classify_vd__(i32 1, double undef), !dbg !13
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %2)
+    %0 = tail call i64 @__poly_func_classify_vl__(i32 %fst1, i64 %snd2), !dbg !39
+    call void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %clstmp, i64 %0), !dbg !40
+    %clstmp3 = alloca %closure, align 8
+    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp3, align 8
+    %envptr5 = getelementptr inbounds %closure, ptr %clstmp3, i32 0, i32 1
+    store ptr null, ptr %envptr5, align 8
+    %boxconst6 = alloca %poly_func.optiond_, align 8
+    store %poly_func.optiond_ { i32 0, double 3.000000e+00 }, ptr %boxconst6, align 8
+    %fst8 = load i32, ptr %boxconst6, align 4
+    %snd9 = getelementptr inbounds { i32, double }, ptr %boxconst6, i32 0, i32 1
+    %snd10 = load double, ptr %snd9, align 8
+    %1 = call i64 @__poly_func_classify_vd__(i32 %fst8, double %snd10), !dbg !41
+    call void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %clstmp3, i64 %1), !dbg !42
+    %clstmp11 = alloca %closure, align 8
+    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp11, align 8
+    %envptr13 = getelementptr inbounds %closure, ptr %clstmp11, i32 0, i32 1
+    store ptr null, ptr %envptr13, align 8
+    %2 = call i64 @__poly_func_classify_vd__(i32 1, double undef), !dbg !43
+    call void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %clstmp11, i64 %2), !dbg !44
     ret i64 0
   }
   
-  declare void @printf(ptr %0, ...)
+  declare void @free(ptr %0)
+  
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   
   !llvm.dbg.cu = !{!0}
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "local_import_poly_func.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vd__", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "poly_func.smu", directory: "")
+  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64c__", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 6, column: 4, scope: !2)
-  !7 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vl__", scope: !3, file: !3, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DILocation(line: 6, column: 4, scope: !7)
-  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !10, file: !10, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !10 = !DIFile(filename: "local_import_poly_func.smu", directory: "")
-  !11 = !DILocation(line: 3, scope: !9)
-  !12 = !DILocation(line: 4, scope: !9)
-  !13 = !DILocation(line: 6, column: 11, scope: !9)
+  !6 = !DILocation(line: 140, column: 7, scope: !2)
+  !7 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_upc_lru_u_ru_", scope: !8, file: !8, line: 102, type: !4, scopeLine: 102, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = !DIFile(filename: "fmt.smu", directory: "")
+  !9 = !DILocation(line: 104, column: 2, scope: !7)
+  !10 = !DILocation(line: 105, column: 15, scope: !7)
+  !11 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_upc_lru_u_ru_", scope: !8, file: !8, line: 26, type: !4, scopeLine: 26, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 20, type: !4, scopeLine: 20, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !13 = !DILocation(line: 22, column: 4, scope: !12)
+  !14 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 54, type: !4, scopeLine: 54, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !15 = !DILocation(line: 56, column: 6, scope: !14)
+  !16 = !DILocation(line: 57, column: 4, scope: !14)
+  !17 = !DILocation(line: 74, column: 17, scope: !14)
+  !18 = !DILocation(line: 77, column: 4, scope: !14)
+  !19 = !DILocation(line: 81, column: 4, scope: !14)
+  !20 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 85, type: !4, scopeLine: 85, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !21 = !DILocation(line: 86, column: 2, scope: !20)
+  !22 = distinct !DISubprogram(name: "_fmt_stdout_println", linkageName: "__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_", scope: !8, file: !8, line: 192, type: !4, scopeLine: 192, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !23 = !DILocation(line: 193, column: 9, scope: !22)
+  !24 = !DILocation(line: 193, column: 4, scope: !22)
+  !25 = !DILocation(line: 193, column: 31, scope: !22)
+  !26 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !8, file: !8, line: 77, type: !4, scopeLine: 77, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !27 = !DILocation(line: 78, column: 6, scope: !26)
+  !28 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vd__", scope: !29, file: !29, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !29 = !DIFile(filename: "poly_func.smu", directory: "")
+  !30 = !DILocation(line: 6, column: 4, scope: !28)
+  !31 = distinct !DISubprogram(name: "_poly_func_classify", linkageName: "__poly_func_classify_vl__", scope: !29, file: !29, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !32 = !DILocation(line: 6, column: 4, scope: !31)
+  !33 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !8, file: !8, line: 60, type: !4, scopeLine: 60, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !34 = !DILocation(line: 63, column: 21, scope: !33)
+  !35 = !DILocation(line: 64, column: 10, scope: !33)
+  !36 = !DILocation(line: 67, column: 11, scope: !33)
+  !37 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !38, file: !38, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !38 = !DIFile(filename: "local_import_poly_func.smu", directory: "")
+  !39 = !DILocation(line: 3, scope: !37)
+  !40 = !DILocation(line: 3, column: 37, scope: !37)
+  !41 = !DILocation(line: 4, scope: !37)
+  !42 = !DILocation(line: 4, column: 39, scope: !37)
+  !43 = !DILocation(line: 6, column: 11, scope: !37)
+  !44 = !DILocation(line: 6, column: 36, scope: !37)
   $ ./local_import_poly_func
   0
   0
@@ -861,7 +1980,7 @@ Test signature
   $ ./use-sign
   hello 20
   200
-  20.2
+  20
   $ schmu use-sign-hidden.smu
   use-sign-hidden.smu:6.1-7: error: No var named hidden.
   
@@ -889,72 +2008,327 @@ Local modules
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %nosig.t_ = type { i64 }
+  %fmt.formatter.tu_ = type { %closure }
+  %closure = type { ptr, ptr }
+  %lupc_lru_u2_ = type { i64, %fmt.formatter.tu_ }
   
+  @fmt_stdout_missing_arg_msg = external global ptr
+  @fmt_stdout_too_many_arg_msg = external global ptr
   @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"test\00" }
   @schmu_local_value = constant ptr @0
+  @fmt_newline = internal constant [1 x i8] c"\0A"
   @schmu_test__2 = constant %nosig.t_ { i64 10 }
-  @1 = private unnamed_addr constant { i64, i64, [13 x i8] } { i64 12, i64 12, [13 x i8] c"hey poly %s\0A\00" }
+  @1 = private unnamed_addr constant { i64, i64, [13 x i8] } { i64 12, i64 12, [13 x i8] c"hey poly {}\0A\00" }
   @2 = private unnamed_addr constant { i64, i64, [10 x i8] } { i64 9, i64 9, [10 x i8] c"hey thing\00" }
   @3 = private unnamed_addr constant { i64, i64, [11 x i8] } { i64 10, i64 10, [11 x i8] c"i'm nested\00" }
   @4 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"hey test\00" }
   
+  declare i64 @string_len(ptr %0)
+  
+  declare ptr @string_data(ptr %0)
+  
   declare void @string_println(ptr %0)
   
-  define linkonce_odr void @__schmu_local_poly_test_ac__(ptr %a) !dbg !2 {
+  declare void @fmt_prerr(ptr noalias %0)
+  
+  declare void @fmt_stdout_helper_printn(ptr noalias %0, ptr %1, ptr %2)
+  
+  define linkonce_odr void @__fmt_endl_upc_lru_u_ru_(ptr %p) !dbg !2 {
   entry:
-    %0 = getelementptr i8, ptr %a, i64 16
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @1, i64 16), ptr %0)
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !6
+    call void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %ret), !dbg !7
     ret void
   }
   
-  define void @schmu_local_test() !dbg !6 {
+  define linkonce_odr void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %fm) !dbg !8 {
   entry:
-    tail call void @string_println(ptr @2), !dbg !7
+    tail call void @__free_except1_upc_lru_u_(ptr %fm)
     ret void
   }
   
-  define void @schmu_nosig_nested_nested() !dbg !8 {
+  define linkonce_odr void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !9 {
   entry:
-    tail call void @string_println(ptr @3), !dbg !9
+    %1 = alloca %fmt.formatter.tu_, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
+    %loadtmp = load ptr, ptr %1, align 8
+    %envptr = getelementptr inbounds %closure, ptr %1, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    tail call void %loadtmp(ptr %ptr, i64 %len, ptr %loadtmp1), !dbg !10
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 16, i1 false)
     ret void
   }
   
-  define void @schmu_test() !dbg !10 {
+  define linkonce_odr void @__fmt_stdout_impl_fmt_fail_missing_rupc_lru_u__(ptr noalias %0) !dbg !11 {
   entry:
-    tail call void @string_println(ptr @4), !dbg !11
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @fmt_prerr(ptr %ret), !dbg !12
+    %1 = load ptr, ptr @fmt_stdout_missing_arg_msg, align 8
+    %ret1 = alloca %fmt.formatter.tu_, align 8
+    call void @__fmt_str_upc_lru_u_rupc_lru_u__(ptr %ret1, ptr %ret, ptr %1), !dbg !13
+    call void @__fmt_endl_upc_lru_u_ru_(ptr %ret1), !dbg !14
+    call void @abort()
+    %failwith = alloca ptr, align 8
     ret void
   }
   
-  declare void @printf(ptr %0, ...)
-  
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !12 {
+  define linkonce_odr void @__fmt_stdout_impl_fmt_fail_too_many_ru_() !dbg !15 {
   entry:
-    tail call void @schmu_test(), !dbg !13
-    tail call void @schmu_local_test(), !dbg !14
-    tail call void @__schmu_local_poly_test_ac__(ptr @0), !dbg !15
-    tail call void @schmu_nosig_nested_nested(), !dbg !16
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @fmt_prerr(ptr %ret), !dbg !16
+    %0 = load ptr, ptr @fmt_stdout_too_many_arg_msg, align 8
+    %ret1 = alloca %fmt.formatter.tu_, align 8
+    call void @__fmt_str_upc_lru_u_rupc_lru_u__(ptr %ret1, ptr %ret, ptr %0), !dbg !17
+    call void @__fmt_endl_upc_lru_u_ru_(ptr %ret1), !dbg !18
+    call void @abort()
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_stdout_print1_upc_lru_u_ac_rupc_lru_u2_ac__(ptr %fmtstr, ptr %f0, ptr %v0) !dbg !19 {
+  entry:
+    %__fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__ = alloca %closure, align 8
+    store ptr @__fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__, ptr %__fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__, align 8
+    %clsr___fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__ = alloca { ptr, ptr, %closure, ptr }, align 8
+    %f01 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__, i32 0, i32 2
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f01, ptr align 1 %f0, i64 16, i1 false)
+    %v02 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__, i32 0, i32 3
+    store ptr %v0, ptr %v02, align 8
+    store ptr @__ctor_upc_lru_u_ac_rupc_lru_u2_ac2_, ptr %clsr___fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__, i32 0, i32 1
+    store ptr null, ptr %dtor, align 8
+    %envptr = getelementptr inbounds %closure, ptr %__fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__, i32 0, i32 1
+    store ptr %clsr___fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__, ptr %envptr, align 8
+    %ret = alloca %lupc_lru_u2_, align 8
+    call void @fmt_stdout_helper_printn(ptr %ret, ptr %fmtstr, ptr %__fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__), !dbg !20
+    %0 = getelementptr inbounds %lupc_lru_u2_, ptr %ret, i32 0, i32 1
+    %1 = load i64, ptr %ret, align 8
+    %ne = icmp ne i64 %1, 1
+    br i1 %ne, label %then, label %else, !dbg !21
+  
+  then:                                             ; preds = %entry
+    call void @__fmt_stdout_impl_fmt_fail_too_many_ru_(), !dbg !22
+    call void @__free_upc_lru_u_(ptr %0)
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    call void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %0), !dbg !23
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_str_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, ptr %str) !dbg !24 {
+  entry:
+    %1 = tail call ptr @string_data(ptr %str), !dbg !25
+    %2 = tail call i64 @string_len(ptr %str), !dbg !26
+    tail call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 %2), !dbg !27
+    ret void
+  }
+  
+  define linkonce_odr void @__fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__(ptr noalias %0, ptr %fmter, i64 %i, ptr %1) !dbg !28 {
+  entry:
+    %v0 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 3
+    %v01 = load ptr, ptr %v0, align 8
+    %eq = icmp eq i64 %i, 0
+    br i1 %eq, label %then, label %else, !dbg !29
+  
+  then:                                             ; preds = %entry
+    %sunkaddr = getelementptr inbounds i8, ptr %1, i64 16
+    %loadtmp = load ptr, ptr %sunkaddr, align 8
+    %sunkaddr3 = getelementptr inbounds i8, ptr %1, i64 24
+    %loadtmp2 = load ptr, ptr %sunkaddr3, align 8
+    tail call void %loadtmp(ptr %0, ptr %fmter, ptr %v01, ptr %loadtmp2), !dbg !30
+    ret void
+  
+  else:                                             ; preds = %entry
+    tail call void @__fmt_stdout_impl_fmt_fail_missing_rupc_lru_u__(ptr %0), !dbg !31
+    tail call void @__free_upc_lru_u_(ptr %fmter)
+    ret void
+  }
+  
+  define linkonce_odr void @__schmu_local_poly_test_upc_lru_u_ac_rupc_lru_u2_ac__(ptr %pr, ptr %a) !dbg !32 {
+  entry:
+    tail call void @__fmt_stdout_print1_upc_lru_u_ac_rupc_lru_u2_ac__(ptr @1, ptr %pr, ptr %a), !dbg !34
+    ret void
+  }
+  
+  define void @schmu_local_test() !dbg !35 {
+  entry:
+    tail call void @string_println(ptr @2), !dbg !36
+    ret void
+  }
+  
+  define void @schmu_nosig_nested_nested() !dbg !37 {
+  entry:
+    tail call void @string_println(ptr @3), !dbg !38
+    ret void
+  }
+  
+  define void @schmu_test() !dbg !39 {
+  entry:
+    tail call void @string_println(ptr @4), !dbg !40
+    ret void
+  }
+  
+  define linkonce_odr void @__free_upc_lru_(ptr %0) {
+  entry:
+    %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %env = load ptr, ptr %envptr, align 8
+    %1 = icmp eq ptr %env, null
+    br i1 %1, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %2 = getelementptr inbounds { ptr, ptr }, ptr %env, i32 0, i32 1
+    %dtor1 = load ptr, ptr %2, align 8
+    %3 = icmp eq ptr %dtor1, null
+    br i1 %3, label %just_free, label %dtor
+  
+  ret:                                              ; preds = %just_free, %dtor, %entry
+    ret void
+  
+  dtor:                                             ; preds = %notnull
+    call void %dtor1(ptr %env)
+    br label %ret
+  
+  just_free:                                        ; preds = %notnull
+    call void @free(ptr %env)
+    br label %ret
+  }
+  
+  define linkonce_odr void @__free_except1_upc_lru_u_(ptr %0) {
+  entry:
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_upc_lru_(ptr %1)
+    ret void
+  }
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  declare void @abort()
+  
+  define linkonce_odr ptr @__ctor_upc_lru_u_ac_rupc_lru_u2_ac2_(ptr %0) {
+  entry:
+    %1 = call ptr @malloc(i64 40)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
+    %f0 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 2
+    call void @__copy_upc_lru_u_ac_rupc_lru_u2_(ptr %f0)
+    %v0 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 3
+    call void @__copy_ac_(ptr %v0)
+    ret ptr %1
+  }
+  
+  declare ptr @malloc(i64 %0)
+  
+  define linkonce_odr void @__copy_upc_lru_u_ac_rupc_lru_u2_(ptr %0) {
+  entry:
+    %1 = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %2 = load ptr, ptr %1, align 8
+    %3 = icmp eq ptr %2, null
+    br i1 %3, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %ctor2 = bitcast ptr %2 to ptr
+    %ctor1 = load ptr, ptr %ctor2, align 8
+    %4 = call ptr %ctor1(ptr %2)
+    %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
+    store ptr %4, ptr %sunkaddr, align 8
+    br label %ret
+  
+  ret:                                              ; preds = %notnull, %entry
+    ret void
+  }
+  
+  define linkonce_odr void @__copy_ac_(ptr %0) {
+  entry:
+    %1 = load ptr, ptr %0, align 8
+    %sz1 = bitcast ptr %1 to ptr
+    %size = load i64, ptr %sz1, align 8
+    %2 = add i64 %size, 17
+    %3 = call ptr @malloc(i64 %2)
+    %4 = sub i64 %2, 1
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
+    %newcap = getelementptr i64, ptr %3, i64 1
+    store i64 %size, ptr %newcap, align 8
+    %5 = getelementptr i8, ptr %3, i64 %4
+    store i8 0, ptr %5, align 1
+    store ptr %3, ptr %0, align 8
+    ret void
+  }
+  
+  define linkonce_odr void @__free_upc_lru_u_(ptr %0) {
+  entry:
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_upc_lru_(ptr %1)
+    ret void
+  }
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !41 {
+  entry:
+    tail call void @schmu_test(), !dbg !42
+    tail call void @schmu_local_test(), !dbg !43
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_str_upc_lru_u_rupc_lru_u__, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    call void @__schmu_local_poly_test_upc_lru_u_ac_rupc_lru_u2_ac__(ptr %clstmp, ptr @0), !dbg !44
+    call void @schmu_nosig_nested_nested(), !dbg !45
     ret i64 0
   }
+  
+  declare void @free(ptr %0)
+  
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   
   !llvm.dbg.cu = !{!0}
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "local_module.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_schmu_local_poly_test", linkageName: "__schmu_local_poly_test_ac__", scope: !3, file: !3, line: 17, type: !4, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "local_module.smu", directory: "")
+  !2 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_upc_lru_u_ru_", scope: !3, file: !3, line: 102, type: !4, scopeLine: 102, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "fmt.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = distinct !DISubprogram(name: "_schmu_local_test", linkageName: "schmu_local_test", scope: !3, file: !3, line: 14, type: !4, scopeLine: 14, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !7 = !DILocation(line: 15, column: 4, scope: !6)
-  !8 = distinct !DISubprogram(name: "_schmu_nosig_nested_nested", linkageName: "schmu_nosig_nested_nested", scope: !3, file: !3, line: 32, type: !4, scopeLine: 32, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !9 = !DILocation(line: 33, column: 6, scope: !8)
-  !10 = distinct !DISubprogram(name: "test", linkageName: "schmu_test", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !11 = !DILocation(line: 1, column: 12, scope: !10)
-  !12 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !13 = !DILocation(line: 23, scope: !12)
-  !14 = !DILocation(line: 25, scope: !12)
-  !15 = !DILocation(line: 26, scope: !12)
-  !16 = !DILocation(line: 40, scope: !12)
+  !6 = !DILocation(line: 104, column: 2, scope: !2)
+  !7 = !DILocation(line: 105, column: 15, scope: !2)
+  !8 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_upc_lru_u_ru_", scope: !3, file: !3, line: 26, type: !4, scopeLine: 26, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_upc_lru_u_rupc_lru_u__", scope: !3, file: !3, line: 20, type: !4, scopeLine: 20, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !10 = !DILocation(line: 22, column: 4, scope: !9)
+  !11 = distinct !DISubprogram(name: "_fmt_stdout_impl_fmt_fail_missing", linkageName: "__fmt_stdout_impl_fmt_fail_missing_rupc_lru_u__", scope: !3, file: !3, line: 130, type: !4, scopeLine: 130, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = !DILocation(line: 131, column: 6, scope: !11)
+  !13 = !DILocation(line: 131, column: 17, scope: !11)
+  !14 = !DILocation(line: 132, column: 9, scope: !11)
+  !15 = distinct !DISubprogram(name: "_fmt_stdout_impl_fmt_fail_too_many", linkageName: "__fmt_stdout_impl_fmt_fail_too_many_ru_", scope: !3, file: !3, line: 136, type: !4, scopeLine: 136, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !16 = !DILocation(line: 137, column: 6, scope: !15)
+  !17 = !DILocation(line: 137, column: 17, scope: !15)
+  !18 = !DILocation(line: 138, column: 9, scope: !15)
+  !19 = distinct !DISubprogram(name: "_fmt_stdout_print1", linkageName: "__fmt_stdout_print1_upc_lru_u_ac_rupc_lru_u2_ac__", scope: !3, file: !3, line: 214, type: !4, scopeLine: 214, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !20 = !DILocation(line: 215, column: 22, scope: !19)
+  !21 = !DILocation(line: 221, column: 7, scope: !19)
+  !22 = !DILocation(line: 222, column: 6, scope: !19)
+  !23 = !DILocation(line: 224, column: 11, scope: !19)
+  !24 = distinct !DISubprogram(name: "_fmt_str", linkageName: "__fmt_str_upc_lru_u_rupc_lru_u__", scope: !3, file: !3, line: 89, type: !4, scopeLine: 89, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !25 = !DILocation(line: 90, column: 22, scope: !24)
+  !26 = !DILocation(line: 90, column: 40, scope: !24)
+  !27 = !DILocation(line: 90, column: 2, scope: !24)
+  !28 = distinct !DISubprogram(name: "__fun_fmt_stdout2", linkageName: "__fun_fmt_stdout2_Cupc_lru_u_ac_rupc_lru_u2_ac__", scope: !3, file: !3, line: 215, type: !4, scopeLine: 215, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !29 = !DILocation(line: 217, column: 8, scope: !28)
+  !30 = !DILocation(line: 217, column: 11, scope: !28)
+  !31 = !DILocation(line: 218, column: 11, scope: !28)
+  !32 = distinct !DISubprogram(name: "_schmu_local_poly_test", linkageName: "__schmu_local_poly_test_upc_lru_u_ac_rupc_lru_u2_ac__", scope: !33, file: !33, line: 17, type: !4, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !33 = !DIFile(filename: "local_module.smu", directory: "")
+  !34 = !DILocation(line: 18, column: 4, scope: !32)
+  !35 = distinct !DISubprogram(name: "_schmu_local_test", linkageName: "schmu_local_test", scope: !33, file: !33, line: 14, type: !4, scopeLine: 14, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !36 = !DILocation(line: 15, column: 4, scope: !35)
+  !37 = distinct !DISubprogram(name: "_schmu_nosig_nested_nested", linkageName: "schmu_nosig_nested_nested", scope: !33, file: !33, line: 32, type: !4, scopeLine: 32, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !38 = !DILocation(line: 33, column: 6, scope: !37)
+  !39 = distinct !DISubprogram(name: "test", linkageName: "schmu_test", scope: !33, file: !33, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !40 = !DILocation(line: 1, column: 12, scope: !39)
+  !41 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !33, file: !33, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !42 = !DILocation(line: 23, scope: !41)
+  !43 = !DILocation(line: 25, scope: !41)
+  !44 = !DILocation(line: 26, scope: !41)
+  !45 = !DILocation(line: 40, scope: !41)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./local_module
   hey test
   hey thing
@@ -965,10 +2339,10 @@ Fix shadowing for local modules
   $ schmu local_module_shadowing.smu
   $ ./local_module_shadowing
   i'm in a module
-  a
+  97u8
   10
-  a
-  a
+  97u8
+  97u8
   10
 
 Prefix type names in nested polymorphic functions
@@ -1104,39 +2478,232 @@ Apply local functors
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %fmt.formatter.tu_ = type { %closure }
+  %closure = type { ptr, ptr }
   %outer.t_ = type { i64 }
   %somerec.t_ = type { i64, i64 }
   
-  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"%li\0A\00" }
-  @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"%.9g\0A\00" }
+  @fmt_int_digits = external global ptr
+  @fmt_newline = internal constant [1 x i8] c"\0A"
   
-  define double @schmu_floata_add(double %a, double %b) !dbg !2 {
+  declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
+  
+  declare i8 @string_get(ptr %0, i64 %1)
+  
+  declare void @fmt_fmt_stdout_create(ptr noalias %0)
+  
+  define linkonce_odr void @__array_fixed_swap_items_A64c__(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
+  entry:
+    %eq = icmp eq i64 %i, %j
+    %0 = xor i1 %eq, true
+    br i1 %0, label %then, label %ifcont, !dbg !6
+  
+  then:                                             ; preds = %entry
+    %1 = alloca i8, align 1
+    %2 = getelementptr i8, ptr %arr, i64 %i
+    %3 = load i8, ptr %2, align 1
+    store i8 %3, ptr %1, align 1
+    %4 = getelementptr i8, ptr %arr, i64 %j
+    %5 = load i8, ptr %4, align 1
+    store i8 %5, ptr %2, align 1
+    store i8 %3, ptr %4, align 1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_endl_upc_lru_u_ru_(ptr %p) !dbg !7 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
+    call void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %ret), !dbg !10
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %fm) !dbg !11 {
+  entry:
+    tail call void @__free_except1_upc_lru_u_(ptr %fm)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
+  entry:
+    %1 = alloca %fmt.formatter.tu_, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
+    %loadtmp = load ptr, ptr %1, align 8
+    %envptr = getelementptr inbounds %closure, ptr %1, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    tail call void %loadtmp(ptr %ptr, i64 %len, ptr %loadtmp1), !dbg !13
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 16, i1 false)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
+  entry:
+    %1 = alloca [64 x i8], align 1
+    store [64 x i8] zeroinitializer, ptr %1, align 1
+    %lt = icmp slt i64 %base, 2
+    br i1 %lt, label %cont, label %false1
+  
+  false1:                                           ; preds = %entry
+    %gt = icmp sgt i64 %base, 36
+    br i1 %gt, label %cont, label %false2
+  
+  false2:                                           ; preds = %false1
+    br label %cont
+  
+  cont:                                             ; preds = %false2, %false1, %entry
+    %andtmp = phi i1 [ true, %entry ], [ true, %false1 ], [ false, %false2 ]
+    br i1 %andtmp, label %then, label %else, !dbg !15
+  
+  then:                                             ; preds = %cont
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
+    br label %ifcont
+  
+  else:                                             ; preds = %cont
+    %fmt_aux = alloca %closure, align 8
+    store ptr @fmt_aux, ptr %fmt_aux, align 8
+    %clsr_fmt_aux = alloca { ptr, ptr, ptr, i64 }, align 8
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 2
+    store ptr %1, ptr %_fmt_arr, align 8
+    %base1 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 3
+    store i64 %base, ptr %base1, align 8
+    store ptr @__ctor_A64c_l_, ptr %clsr_fmt_aux, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 1
+    store ptr null, ptr %dtor, align 8
+    %envptr = getelementptr inbounds %closure, ptr %fmt_aux, i32 0, i32 1
+    store ptr %clsr_fmt_aux, ptr %envptr, align 8
+    %2 = call i64 @fmt_aux(i64 %value, i64 0, ptr %clsr_fmt_aux), !dbg !17
+    %add = add i64 %2, 1
+    %div = sdiv i64 %add, 2
+    %__fun_fmt2 = alloca %closure, align 8
+    store ptr @__fun_fmt2, ptr %__fun_fmt2, align 8
+    %clsr___fun_fmt2 = alloca { ptr, ptr, ptr, i64 }, align 8
+    %_fmt_arr5 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 2
+    store ptr %1, ptr %_fmt_arr5, align 8
+    %_fmt_length = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 3
+    store i64 %add, ptr %_fmt_length, align 8
+    store ptr @__ctor_A64c_l_, ptr %clsr___fun_fmt2, align 8
+    %dtor7 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 1
+    store ptr null, ptr %dtor7, align 8
+    %envptr8 = getelementptr inbounds %closure, ptr %__fun_fmt2, i32 0, i32 1
+    store ptr %clsr___fun_fmt2, ptr %envptr8, align 8
+    call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !18
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_int_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
+  entry:
+    tail call void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %fmt, i64 %value) !dbg !22 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @fmt_fmt_stdout_create(ptr %ret), !dbg !23
+    %loadtmp = load ptr, ptr %fmt, align 8
+    %envptr = getelementptr inbounds %closure, ptr %fmt, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    %ret2 = alloca %fmt.formatter.tu_, align 8
+    call void %loadtmp(ptr %ret2, ptr %ret, i64 %value, ptr %loadtmp1), !dbg !24
+    call void @__fmt_endl_upc_lru_u_ru_(ptr %ret2), !dbg !25
+    ret void
+  }
+  
+  define linkonce_odr void @__fun_fmt2(i64 %i, ptr %0) !dbg !26 {
+  entry:
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
+    %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
+    %_fmt_length = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 3
+    %_fmt_length2 = load i64, ptr %_fmt_length, align 8
+    %sub = sub i64 %_fmt_length2, %i
+    %sub3 = sub i64 %sub, 1
+    tail call void @__array_fixed_swap_items_A64c__(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
+    ret void
+  }
+  
+  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !28 {
+  entry:
+    %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
+    %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
+    %base = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 3
+    %base2 = load i64, ptr %base, align 8
+    %1 = alloca i64, align 8
+    store i64 %value, ptr %1, align 8
+    %2 = alloca i64, align 8
+    store i64 %index, ptr %2, align 8
+    %3 = add i64 %index, 1
+    br label %rec
+  
+  rec:                                              ; preds = %then, %entry
+    %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
+    %4 = phi i64 [ %div, %then ], [ %value, %entry ]
+    %div = sdiv i64 %4, %base2
+    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %5 = load ptr, ptr @fmt_int_digits, align 8
+    %mul = mul i64 %div, %base2
+    %sub = sub i64 %4, %mul
+    %add = add i64 35, %sub
+    %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
+    store i8 %6, ptr %uglygep10, align 1
+    %ne = icmp ne i64 %div, 0
+    br i1 %ne, label %then, label %else, !dbg !30
+  
+  then:                                             ; preds = %rec
+    store i64 %div, ptr %1, align 8
+    store i64 %lsr.iv, ptr %2, align 8
+    %lsr.iv.next = add i64 %lsr.iv, 1
+    br label %rec
+  
+  else:                                             ; preds = %rec
+    %lt = icmp slt i64 %4, 0
+    %7 = add i64 %lsr.iv, -1, !dbg !31
+    br i1 %lt, label %then4, label %ifcont, !dbg !31
+  
+  then4:                                            ; preds = %else
+    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %uglygep, align 1
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then4
+    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %7, %else ]
+    ret i64 %iftmp
+  }
+  
+  define double @schmu_floata_add(double %a, double %b) !dbg !32 {
   entry:
     %add = fadd double %a, %b
     ret double %add
   }
   
-  define double @schmu_floatadder_add_twice(double %a, double %b) !dbg !6 {
+  define double @schmu_floatadder_add_twice(double %a, double %b) !dbg !34 {
   entry:
-    %0 = tail call double @schmu_floata_add(double %a, double %b), !dbg !7
-    %1 = tail call double @schmu_floata_add(double %0, double %b), !dbg !8
+    %0 = tail call double @schmu_floata_add(double %a, double %b), !dbg !35
+    %1 = tail call double @schmu_floata_add(double %0, double %b), !dbg !36
     ret double %1
   }
   
-  define i64 @schmu_inta_add(i64 %a, i64 %b) !dbg !9 {
+  define i64 @schmu_inta_add(i64 %a, i64 %b) !dbg !37 {
   entry:
     %add = add i64 %a, %b
     ret i64 %add
   }
   
-  define i64 @schmu_intadder_add_twice(i64 %a, i64 %b) !dbg !10 {
+  define i64 @schmu_intadder_add_twice(i64 %a, i64 %b) !dbg !38 {
   entry:
-    %0 = tail call i64 @schmu_inta_add(i64 %a, i64 %b), !dbg !11
-    %1 = tail call i64 @schmu_inta_add(i64 %0, i64 %b), !dbg !12
+    %0 = tail call i64 @schmu_inta_add(i64 %a, i64 %b), !dbg !39
+    %1 = tail call i64 @schmu_inta_add(i64 %0, i64 %b), !dbg !40
     ret i64 %1
   }
   
-  define i64 @schmu_outa_add(i64 %0, i64 %1) !dbg !13 {
+  define i64 @schmu_outa_add(i64 %0, i64 %1) !dbg !41 {
   entry:
     %a = alloca i64, align 8
     store i64 %0, ptr %a, align 8
@@ -1148,22 +2715,22 @@ Apply local functors
     ret i64 %add
   }
   
-  define i64 @schmu_outeradder_add_twice(i64 %0, i64 %1) !dbg !14 {
+  define i64 @schmu_outeradder_add_twice(i64 %0, i64 %1) !dbg !42 {
   entry:
     %a = alloca i64, align 8
     store i64 %0, ptr %a, align 8
     %b = alloca i64, align 8
     store i64 %1, ptr %b, align 8
     %ret = alloca %outer.t_, align 8
-    %2 = tail call i64 @schmu_outa_add(i64 %0, i64 %1), !dbg !15
+    %2 = tail call i64 @schmu_outa_add(i64 %0, i64 %1), !dbg !43
     store i64 %2, ptr %ret, align 8
     %ret4 = alloca %outer.t_, align 8
-    %3 = tail call i64 @schmu_outa_add(i64 %2, i64 %1), !dbg !16
+    %3 = tail call i64 @schmu_outa_add(i64 %2, i64 %1), !dbg !44
     store i64 %3, ptr %ret4, align 8
     ret i64 %3
   }
   
-  define { i64, i64 } @schmu_recadder_add_twice(i64 %0, i64 %1, i64 %2, i64 %3) !dbg !17 {
+  define { i64, i64 } @schmu_recadder_add_twice(i64 %0, i64 %1, i64 %2, i64 %3) !dbg !45 {
   entry:
     %a = alloca { i64, i64 }, align 8
     store i64 %0, ptr %a, align 8
@@ -1174,18 +2741,18 @@ Apply local functors
     %snd2 = getelementptr inbounds { i64, i64 }, ptr %b, i32 0, i32 1
     store i64 %3, ptr %snd2, align 8
     %ret = alloca %somerec.t_, align 8
-    %4 = tail call { i64, i64 } @schmu_somerec_add(i64 %0, i64 %1, i64 %2, i64 %3), !dbg !18
+    %4 = tail call { i64, i64 } @schmu_somerec_add(i64 %0, i64 %1, i64 %2, i64 %3), !dbg !46
     store { i64, i64 } %4, ptr %ret, align 8
     %fst12 = load i64, ptr %ret, align 8
     %snd13 = getelementptr inbounds { i64, i64 }, ptr %ret, i32 0, i32 1
     %snd14 = load i64, ptr %snd13, align 8
     %ret19 = alloca %somerec.t_, align 8
-    %5 = tail call { i64, i64 } @schmu_somerec_add(i64 %fst12, i64 %snd14, i64 %2, i64 %3), !dbg !19
+    %5 = tail call { i64, i64 } @schmu_somerec_add(i64 %fst12, i64 %snd14, i64 %2, i64 %3), !dbg !47
     store { i64, i64 } %5, ptr %ret19, align 8
     ret { i64, i64 } %5
   }
   
-  define { i64, i64 } @schmu_somerec_add(i64 %0, i64 %1, i64 %2, i64 %3) !dbg !20 {
+  define { i64, i64 } @schmu_somerec_add(i64 %0, i64 %1, i64 %2, i64 %3) !dbg !48 {
   entry:
     %a = alloca { i64, i64 }, align 8
     store i64 %0, ptr %a, align 8
@@ -1205,43 +2772,128 @@ Apply local functors
     ret { i64, i64 } %unbox
   }
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !21 {
+  define linkonce_odr void @__free_upc_lru_(ptr %0) {
   entry:
-    %0 = tail call i64 @schmu_intadder_add_twice(i64 1, i64 2), !dbg !22
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), i64 %0)
-    %1 = tail call double @schmu_floatadder_add_twice(double 1.000000e+00, double 2.000000e+00), !dbg !23
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @1, i64 16), double %1)
+    %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %env = load ptr, ptr %envptr, align 8
+    %1 = icmp eq ptr %env, null
+    br i1 %1, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %2 = getelementptr inbounds { ptr, ptr }, ptr %env, i32 0, i32 1
+    %dtor1 = load ptr, ptr %2, align 8
+    %3 = icmp eq ptr %dtor1, null
+    br i1 %3, label %just_free, label %dtor
+  
+  ret:                                              ; preds = %just_free, %dtor, %entry
+    ret void
+  
+  dtor:                                             ; preds = %notnull
+    call void %dtor1(ptr %env)
+    br label %ret
+  
+  just_free:                                        ; preds = %notnull
+    call void @free(ptr %env)
+    br label %ret
+  }
+  
+  define linkonce_odr void @__free_except1_upc_lru_u_(ptr %0) {
+  entry:
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_upc_lru_(ptr %1)
+    ret void
+  }
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define linkonce_odr ptr @__ctor_A64c_l_(ptr %0) {
+  entry:
+    %1 = call ptr @malloc(i64 88)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    ret ptr %1
+  }
+  
+  declare ptr @malloc(i64 %0)
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !49 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    %0 = tail call i64 @schmu_intadder_add_twice(i64 1, i64 2), !dbg !50
+    call void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %clstmp, i64 %0), !dbg !51
+    %clstmp1 = alloca %closure, align 8
+    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp1, align 8
+    %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
+    store ptr null, ptr %envptr3, align 8
+    %1 = call double @schmu_floatadder_add_twice(double 1.000000e+00, double 2.000000e+00), !dbg !52
+    %2 = fptosi double %1 to i64
+    call void @__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_(ptr %clstmp1, i64 %2), !dbg !53
     ret i64 0
   }
   
-  declare void @printf(ptr %0, ...)
+  declare void @free(ptr %0)
+  
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   
   !llvm.dbg.cu = !{!0}
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "local_functor.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_schmu_floata_add", linkageName: "schmu_floata_add", scope: !3, file: !3, line: 24, type: !4, scopeLine: 24, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "local_functor.smu", directory: "")
+  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64c__", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = distinct !DISubprogram(name: "_schmu_floatadder_add_twice", linkageName: "schmu_floatadder_add_twice", scope: !3, file: !3, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !7 = !DILocation(line: 9, column: 29, scope: !6)
-  !8 = !DILocation(line: 9, column: 23, scope: !6)
-  !9 = distinct !DISubprogram(name: "_schmu_inta_add", linkageName: "schmu_inta_add", scope: !3, file: !3, line: 17, type: !4, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !10 = distinct !DISubprogram(name: "_schmu_intadder_add_twice", linkageName: "schmu_intadder_add_twice", scope: !3, file: !3, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !11 = !DILocation(line: 9, column: 29, scope: !10)
-  !12 = !DILocation(line: 9, column: 23, scope: !10)
-  !13 = distinct !DISubprogram(name: "_schmu_outa_add", linkageName: "schmu_outa_add", scope: !3, file: !3, line: 13, type: !4, scopeLine: 13, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !14 = distinct !DISubprogram(name: "_schmu_outeradder_add_twice", linkageName: "schmu_outeradder_add_twice", scope: !3, file: !3, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !15 = !DILocation(line: 9, column: 29, scope: !14)
-  !16 = !DILocation(line: 9, column: 23, scope: !14)
-  !17 = distinct !DISubprogram(name: "_schmu_recadder_add_twice", linkageName: "schmu_recadder_add_twice", scope: !3, file: !3, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !18 = !DILocation(line: 9, column: 29, scope: !17)
-  !19 = !DILocation(line: 9, column: 23, scope: !17)
-  !20 = distinct !DISubprogram(name: "_schmu_somerec_add", linkageName: "schmu_somerec_add", scope: !3, file: !3, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !21 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !22 = !DILocation(line: 37, column: 12, scope: !21)
-  !23 = !DILocation(line: 38, column: 12, scope: !21)
+  !6 = !DILocation(line: 140, column: 7, scope: !2)
+  !7 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_upc_lru_u_ru_", scope: !8, file: !8, line: 102, type: !4, scopeLine: 102, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !8 = !DIFile(filename: "fmt.smu", directory: "")
+  !9 = !DILocation(line: 104, column: 2, scope: !7)
+  !10 = !DILocation(line: 105, column: 15, scope: !7)
+  !11 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_upc_lru_u_ru_", scope: !8, file: !8, line: 26, type: !4, scopeLine: 26, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 20, type: !4, scopeLine: 20, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !13 = !DILocation(line: 22, column: 4, scope: !12)
+  !14 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 54, type: !4, scopeLine: 54, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !15 = !DILocation(line: 56, column: 6, scope: !14)
+  !16 = !DILocation(line: 57, column: 4, scope: !14)
+  !17 = !DILocation(line: 74, column: 17, scope: !14)
+  !18 = !DILocation(line: 77, column: 4, scope: !14)
+  !19 = !DILocation(line: 81, column: 4, scope: !14)
+  !20 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 85, type: !4, scopeLine: 85, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !21 = !DILocation(line: 86, column: 2, scope: !20)
+  !22 = distinct !DISubprogram(name: "_fmt_stdout_println", linkageName: "__fmt_stdout_println_upc_lru_u_lrupc_lru_u2_l_", scope: !8, file: !8, line: 192, type: !4, scopeLine: 192, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !23 = !DILocation(line: 193, column: 9, scope: !22)
+  !24 = !DILocation(line: 193, column: 4, scope: !22)
+  !25 = !DILocation(line: 193, column: 31, scope: !22)
+  !26 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !8, file: !8, line: 77, type: !4, scopeLine: 77, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !27 = !DILocation(line: 78, column: 6, scope: !26)
+  !28 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !8, file: !8, line: 60, type: !4, scopeLine: 60, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !29 = !DILocation(line: 63, column: 21, scope: !28)
+  !30 = !DILocation(line: 64, column: 10, scope: !28)
+  !31 = !DILocation(line: 67, column: 11, scope: !28)
+  !32 = distinct !DISubprogram(name: "_schmu_floata_add", linkageName: "schmu_floata_add", scope: !33, file: !33, line: 24, type: !4, scopeLine: 24, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !33 = !DIFile(filename: "local_functor.smu", directory: "")
+  !34 = distinct !DISubprogram(name: "_schmu_floatadder_add_twice", linkageName: "schmu_floatadder_add_twice", scope: !33, file: !33, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !35 = !DILocation(line: 9, column: 29, scope: !34)
+  !36 = !DILocation(line: 9, column: 23, scope: !34)
+  !37 = distinct !DISubprogram(name: "_schmu_inta_add", linkageName: "schmu_inta_add", scope: !33, file: !33, line: 17, type: !4, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !38 = distinct !DISubprogram(name: "_schmu_intadder_add_twice", linkageName: "schmu_intadder_add_twice", scope: !33, file: !33, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !39 = !DILocation(line: 9, column: 29, scope: !38)
+  !40 = !DILocation(line: 9, column: 23, scope: !38)
+  !41 = distinct !DISubprogram(name: "_schmu_outa_add", linkageName: "schmu_outa_add", scope: !33, file: !33, line: 13, type: !4, scopeLine: 13, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !42 = distinct !DISubprogram(name: "_schmu_outeradder_add_twice", linkageName: "schmu_outeradder_add_twice", scope: !33, file: !33, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !43 = !DILocation(line: 9, column: 29, scope: !42)
+  !44 = !DILocation(line: 9, column: 23, scope: !42)
+  !45 = distinct !DISubprogram(name: "_schmu_recadder_add_twice", linkageName: "schmu_recadder_add_twice", scope: !33, file: !33, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !46 = !DILocation(line: 9, column: 29, scope: !45)
+  !47 = !DILocation(line: 9, column: 23, scope: !45)
+  !48 = distinct !DISubprogram(name: "_schmu_somerec_add", linkageName: "schmu_somerec_add", scope: !33, file: !33, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !49 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !33, file: !33, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !50 = !DILocation(line: 37, column: 18, scope: !49)
+  !51 = !DILocation(line: 37, column: 5, scope: !49)
+  !52 = !DILocation(line: 38, column: 18, scope: !49)
+  !53 = !DILocation(line: 38, column: 5, scope: !49)
   $ ./local_functor
   5
   5
@@ -1253,32 +2905,180 @@ Simple functor
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
+  %fmt.formatter.tu_ = type { %closure }
+  %closure = type { ptr, ptr }
+  %lupc_lru_u2_ = type { i64, %fmt.formatter.tu_ }
   %s.otherac__ = type { ptr, ptr }
   
-  @0 = private unnamed_addr constant { i64, i64, [15 x i8] } { i64 14, i64 14, [15 x i8] c"create: %s %s\0A\00" }
+  @fmt_stdout_missing_arg_msg = external global ptr
+  @fmt_stdout_too_many_arg_msg = external global ptr
+  @fmt_newline = internal constant [1 x i8] c"\0A"
+  @0 = private unnamed_addr constant { i64, i64, [15 x i8] } { i64 14, i64 14, [15 x i8] c"create: {} {}\0A\00" }
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"this\00" }
   @2 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"other\00" }
   
+  declare i64 @string_len(ptr %0)
+  
+  declare ptr @string_data(ptr %0)
+  
   declare i64 @string_hash(ptr %0)
   
-  define linkonce_odr { i64, i64 } @__schmu_s_create_ac_rac_ac2__(ptr %this, ptr %other) !dbg !2 {
+  declare void @fmt_prerr(ptr noalias %0)
+  
+  declare void @fmt_stdout_helper_printn(ptr noalias %0, ptr %1, ptr %2)
+  
+  define linkonce_odr void @__fmt_endl_upc_lru_u_ru_(ptr %p) !dbg !2 {
   entry:
-    %0 = tail call ptr @schmu_string_to_string(ptr %this), !dbg !6
-    %1 = getelementptr i8, ptr %0, i64 16
-    %2 = getelementptr i8, ptr %other, i64 16
-    tail call void (ptr, ...) @printf(ptr getelementptr (i8, ptr @0, i64 16), ptr %1, ptr %2)
-    %3 = alloca %s.otherac__, align 8
-    store ptr %this, ptr %3, align 8
-    %other2 = getelementptr inbounds %s.otherac__, ptr %3, i32 0, i32 1
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !6
+    call void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %ret), !dbg !7
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %fm) !dbg !8 {
+  entry:
+    tail call void @__free_except1_upc_lru_u_(ptr %fm)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !9 {
+  entry:
+    %1 = alloca %fmt.formatter.tu_, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
+    %loadtmp = load ptr, ptr %1, align 8
+    %envptr = getelementptr inbounds %closure, ptr %1, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    tail call void %loadtmp(ptr %ptr, i64 %len, ptr %loadtmp1), !dbg !10
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 16, i1 false)
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_stdout_impl_fmt_fail_missing_rupc_lru_u__(ptr noalias %0) !dbg !11 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @fmt_prerr(ptr %ret), !dbg !12
+    %1 = load ptr, ptr @fmt_stdout_missing_arg_msg, align 8
+    %ret1 = alloca %fmt.formatter.tu_, align 8
+    call void @__fmt_str_upc_lru_u_rupc_lru_u__(ptr %ret1, ptr %ret, ptr %1), !dbg !13
+    call void @__fmt_endl_upc_lru_u_ru_(ptr %ret1), !dbg !14
+    call void @abort()
+    %failwith = alloca ptr, align 8
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_stdout_impl_fmt_fail_too_many_ru_() !dbg !15 {
+  entry:
+    %ret = alloca %fmt.formatter.tu_, align 8
+    call void @fmt_prerr(ptr %ret), !dbg !16
+    %0 = load ptr, ptr @fmt_stdout_too_many_arg_msg, align 8
+    %ret1 = alloca %fmt.formatter.tu_, align 8
+    call void @__fmt_str_upc_lru_u_rupc_lru_u__(ptr %ret1, ptr %ret, ptr %0), !dbg !17
+    call void @__fmt_endl_upc_lru_u_ru_(ptr %ret1), !dbg !18
+    call void @abort()
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_stdout_print2_upc_lru_u_ac_rupc_lru_u2_ac_upc_lru_u_ac_rupc_lru_u2_ac__(ptr %fmtstr, ptr %f0, ptr %v0, ptr %f1, ptr %v1) !dbg !19 {
+  entry:
+    %__fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__ = alloca %closure, align 8
+    store ptr @__fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__, ptr %__fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__, align 8
+    %clsr___fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__ = alloca { ptr, ptr, %closure, %closure, ptr, ptr }, align 8
+    %f01 = getelementptr inbounds { ptr, ptr, %closure, %closure, ptr, ptr }, ptr %clsr___fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__, i32 0, i32 2
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f01, ptr align 1 %f0, i64 16, i1 false)
+    %f12 = getelementptr inbounds { ptr, ptr, %closure, %closure, ptr, ptr }, ptr %clsr___fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__, i32 0, i32 3
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f12, ptr align 1 %f1, i64 16, i1 false)
+    %v03 = getelementptr inbounds { ptr, ptr, %closure, %closure, ptr, ptr }, ptr %clsr___fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__, i32 0, i32 4
+    store ptr %v0, ptr %v03, align 8
+    %v14 = getelementptr inbounds { ptr, ptr, %closure, %closure, ptr, ptr }, ptr %clsr___fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__, i32 0, i32 5
+    store ptr %v1, ptr %v14, align 8
+    store ptr @__ctor_upc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac2_, ptr %clsr___fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, %closure, %closure, ptr, ptr }, ptr %clsr___fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__, i32 0, i32 1
+    store ptr null, ptr %dtor, align 8
+    %envptr = getelementptr inbounds %closure, ptr %__fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__, i32 0, i32 1
+    store ptr %clsr___fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__, ptr %envptr, align 8
+    %ret = alloca %lupc_lru_u2_, align 8
+    call void @fmt_stdout_helper_printn(ptr %ret, ptr %fmtstr, ptr %__fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__), !dbg !20
+    %0 = getelementptr inbounds %lupc_lru_u2_, ptr %ret, i32 0, i32 1
+    %1 = load i64, ptr %ret, align 8
+    %ne = icmp ne i64 %1, 2
+    br i1 %ne, label %then, label %else, !dbg !21
+  
+  then:                                             ; preds = %entry
+    call void @__fmt_stdout_impl_fmt_fail_too_many_ru_(), !dbg !22
+    call void @__free_upc_lru_u_(ptr %0)
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    call void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %0), !dbg !23
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    ret void
+  }
+  
+  define linkonce_odr void @__fmt_str_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, ptr %str) !dbg !24 {
+  entry:
+    %1 = tail call ptr @string_data(ptr %str), !dbg !25
+    %2 = tail call i64 @string_len(ptr %str), !dbg !26
+    tail call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 %2), !dbg !27
+    ret void
+  }
+  
+  define linkonce_odr void @__fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__(ptr noalias %0, ptr %fmter, i64 %i, ptr %1) !dbg !28 {
+  entry:
+    %v0 = getelementptr inbounds { ptr, ptr, %closure, %closure, ptr, ptr }, ptr %1, i32 0, i32 4
+    %v01 = load ptr, ptr %v0, align 8
+    %v1 = getelementptr inbounds { ptr, ptr, %closure, %closure, ptr, ptr }, ptr %1, i32 0, i32 5
+    %v12 = load ptr, ptr %v1, align 8
+    %eq = icmp eq i64 %i, 0
+    br i1 %eq, label %then, label %else, !dbg !29
+  
+  then:                                             ; preds = %entry
+    %sunkaddr = getelementptr inbounds i8, ptr %1, i64 16
+    %loadtmp = load ptr, ptr %sunkaddr, align 8
+    %sunkaddr12 = getelementptr inbounds i8, ptr %1, i64 24
+    %loadtmp3 = load ptr, ptr %sunkaddr12, align 8
+    tail call void %loadtmp(ptr %0, ptr %fmter, ptr %v01, ptr %loadtmp3), !dbg !30
+    ret void
+  
+  else:                                             ; preds = %entry
+    %eq4 = icmp eq i64 %i, 1
+    br i1 %eq4, label %then5, label %else10, !dbg !31
+  
+  then5:                                            ; preds = %else
+    %sunkaddr13 = getelementptr inbounds i8, ptr %1, i64 32
+    %loadtmp7 = load ptr, ptr %sunkaddr13, align 8
+    %sunkaddr14 = getelementptr inbounds i8, ptr %1, i64 40
+    %loadtmp9 = load ptr, ptr %sunkaddr14, align 8
+    tail call void %loadtmp7(ptr %0, ptr %fmter, ptr %v12, ptr %loadtmp9), !dbg !32
+    ret void
+  
+  else10:                                           ; preds = %else
+    tail call void @__fmt_stdout_impl_fmt_fail_missing_rupc_lru_u__(ptr %0), !dbg !33
+    tail call void @__free_upc_lru_u_(ptr %fmter)
+    ret void
+  }
+  
+  define linkonce_odr { i64, i64 } @__schmu_s_create_ac_upc_lru_u_ac_rupc_lru_u2_rac_ac2__(ptr %this, ptr %other, ptr %fmt) !dbg !34 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_str_upc_lru_u_rupc_lru_u__, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    %0 = tail call ptr @schmu_string1_to_string(ptr %this), !dbg !36
+    call void @__fmt_stdout_print2_upc_lru_u_ac_rupc_lru_u2_ac_upc_lru_u_ac_rupc_lru_u2_ac__(ptr @0, ptr %clstmp, ptr %0, ptr %fmt, ptr %other), !dbg !37
+    %1 = alloca %s.otherac__, align 8
+    store ptr %this, ptr %1, align 8
+    %other2 = getelementptr inbounds %s.otherac__, ptr %1, i32 0, i32 1
     store ptr %other, ptr %other2, align 8
-    %4 = alloca ptr, align 8
-    store ptr %0, ptr %4, align 8
-    call void @__free_ac_(ptr %4)
-    %unbox = load { i64, i64 }, ptr %3, align 8
+    %2 = alloca ptr, align 8
+    store ptr %0, ptr %2, align 8
+    call void @__free_ac_(ptr %2)
+    %unbox = load { i64, i64 }, ptr %1, align 8
     ret { i64, i64 } %unbox
   }
   
-  define ptr @schmu_string_to_string(ptr %t) !dbg !7 {
+  define ptr @schmu_string1_to_string(ptr %t) !dbg !38 {
   entry:
     %0 = alloca ptr, align 8
     store ptr %t, ptr %0, align 8
@@ -1289,12 +3089,76 @@ Simple functor
     ret ptr %2
   }
   
-  declare void @printf(ptr %0, ...)
-  
-  define linkonce_odr void @__free_ac_(ptr %0) {
+  define linkonce_odr void @__free_upc_lru_(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %env = load ptr, ptr %envptr, align 8
+    %1 = icmp eq ptr %env, null
+    br i1 %1, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %2 = getelementptr inbounds { ptr, ptr }, ptr %env, i32 0, i32 1
+    %dtor1 = load ptr, ptr %2, align 8
+    %3 = icmp eq ptr %dtor1, null
+    br i1 %3, label %just_free, label %dtor
+  
+  ret:                                              ; preds = %just_free, %dtor, %entry
+    ret void
+  
+  dtor:                                             ; preds = %notnull
+    call void %dtor1(ptr %env)
+    br label %ret
+  
+  just_free:                                        ; preds = %notnull
+    call void @free(ptr %env)
+    br label %ret
+  }
+  
+  define linkonce_odr void @__free_except1_upc_lru_u_(ptr %0) {
+  entry:
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_upc_lru_(ptr %1)
+    ret void
+  }
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  declare void @abort()
+  
+  define linkonce_odr ptr @__ctor_upc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac2_(ptr %0) {
+  entry:
+    %1 = call ptr @malloc(i64 64)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 64, i1 false)
+    %f0 = getelementptr inbounds { ptr, ptr, %closure, %closure, ptr, ptr }, ptr %1, i32 0, i32 2
+    call void @__copy_upc_lru_u_ac_rupc_lru_u2_(ptr %f0)
+    %f1 = getelementptr inbounds { ptr, ptr, %closure, %closure, ptr, ptr }, ptr %1, i32 0, i32 3
+    call void @__copy_upc_lru_u_ac_rupc_lru_u2_(ptr %f1)
+    %v0 = getelementptr inbounds { ptr, ptr, %closure, %closure, ptr, ptr }, ptr %1, i32 0, i32 4
+    call void @__copy_ac_(ptr %v0)
+    %v1 = getelementptr inbounds { ptr, ptr, %closure, %closure, ptr, ptr }, ptr %1, i32 0, i32 5
+    call void @__copy_ac_(ptr %v1)
+    ret ptr %1
+  }
+  
+  declare ptr @malloc(i64 %0)
+  
+  define linkonce_odr void @__copy_upc_lru_u_ac_rupc_lru_u2_(ptr %0) {
+  entry:
+    %1 = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %2 = load ptr, ptr %1, align 8
+    %3 = icmp eq ptr %2, null
+    br i1 %3, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %ctor2 = bitcast ptr %2 to ptr
+    %ctor1 = load ptr, ptr %ctor2, align 8
+    %4 = call ptr %ctor1(ptr %2)
+    %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
+    store ptr %4, ptr %sunkaddr, align 8
+    br label %ret
+  
+  ret:                                              ; preds = %notnull, %entry
     ret void
   }
   
@@ -1315,10 +3179,21 @@ Simple functor
     ret void
   }
   
-  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
-  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  define linkonce_odr void @__free_upc_lru_u_(ptr %0) {
+  entry:
+    %1 = bitcast ptr %0 to ptr
+    call void @__free_upc_lru_(ptr %1)
+    ret void
+  }
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
+  define linkonce_odr void @__free_ac_(ptr %0) {
+  entry:
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
+    ret void
+  }
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !40 {
   entry:
     %0 = alloca ptr, align 8
     store ptr @1, ptr %0, align 8
@@ -1332,8 +3207,12 @@ Simple functor
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %4, ptr align 8 %3, i64 8, i1 false)
     call void @__copy_ac_(ptr %4)
     %5 = load ptr, ptr %4, align 8
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_str_upc_lru_u_rupc_lru_u__, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
     %ret = alloca %s.otherac__, align 8
-    %6 = call { i64, i64 } @__schmu_s_create_ac_rac_ac2__(ptr %2, ptr %5), !dbg !10
+    %6 = call { i64, i64 } @__schmu_s_create_ac_upc_lru_u_ac_rupc_lru_u2_rac_ac2__(ptr %2, ptr %5, ptr %clstmp), !dbg !41
     store { i64, i64 } %6, ptr %ret, align 8
     call void @__free_ac_ac2_(ptr %ret)
     ret i64 0
@@ -1348,8 +3227,6 @@ Simple functor
     ret void
   }
   
-  declare ptr @malloc(i64 %0)
-  
   declare void @free(ptr %0)
   
   attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
@@ -1358,15 +3235,46 @@ Simple functor
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "use_simple_functor.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_schmu_s_create", linkageName: "__schmu_s_create_ac_rac_ac2__", scope: !3, file: !3, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "simple_functor.smu", directory: "")
+  !2 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_upc_lru_u_ru_", scope: !3, file: !3, line: 102, type: !4, scopeLine: 102, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !3 = !DIFile(filename: "fmt.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 11, column: 28, scope: !2)
-  !7 = distinct !DISubprogram(name: "_schmu_string_to_string", linkageName: "schmu_string_to_string", scope: !8, file: !8, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DIFile(filename: "use_simple_functor.smu", directory: "")
-  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !8, file: !8, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !10 = !DILocation(line: 12, column: 7, scope: !9)
+  !6 = !DILocation(line: 104, column: 2, scope: !2)
+  !7 = !DILocation(line: 105, column: 15, scope: !2)
+  !8 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_upc_lru_u_ru_", scope: !3, file: !3, line: 26, type: !4, scopeLine: 26, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_upc_lru_u_rupc_lru_u__", scope: !3, file: !3, line: 20, type: !4, scopeLine: 20, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !10 = !DILocation(line: 22, column: 4, scope: !9)
+  !11 = distinct !DISubprogram(name: "_fmt_stdout_impl_fmt_fail_missing", linkageName: "__fmt_stdout_impl_fmt_fail_missing_rupc_lru_u__", scope: !3, file: !3, line: 130, type: !4, scopeLine: 130, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = !DILocation(line: 131, column: 6, scope: !11)
+  !13 = !DILocation(line: 131, column: 17, scope: !11)
+  !14 = !DILocation(line: 132, column: 9, scope: !11)
+  !15 = distinct !DISubprogram(name: "_fmt_stdout_impl_fmt_fail_too_many", linkageName: "__fmt_stdout_impl_fmt_fail_too_many_ru_", scope: !3, file: !3, line: 136, type: !4, scopeLine: 136, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !16 = !DILocation(line: 137, column: 6, scope: !15)
+  !17 = !DILocation(line: 137, column: 17, scope: !15)
+  !18 = !DILocation(line: 138, column: 9, scope: !15)
+  !19 = distinct !DISubprogram(name: "_fmt_stdout_print2", linkageName: "__fmt_stdout_print2_upc_lru_u_ac_rupc_lru_u2_ac_upc_lru_u_ac_rupc_lru_u2_ac__", scope: !3, file: !3, line: 227, type: !4, scopeLine: 227, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !20 = !DILocation(line: 228, column: 22, scope: !19)
+  !21 = !DILocation(line: 235, column: 7, scope: !19)
+  !22 = !DILocation(line: 235, column: 21, scope: !19)
+  !23 = !DILocation(line: 236, column: 11, scope: !19)
+  !24 = distinct !DISubprogram(name: "_fmt_str", linkageName: "__fmt_str_upc_lru_u_rupc_lru_u__", scope: !3, file: !3, line: 89, type: !4, scopeLine: 89, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !25 = !DILocation(line: 90, column: 22, scope: !24)
+  !26 = !DILocation(line: 90, column: 40, scope: !24)
+  !27 = !DILocation(line: 90, column: 2, scope: !24)
+  !28 = distinct !DISubprogram(name: "__fun_fmt_stdout3", linkageName: "__fun_fmt_stdout3_Cupc_lru_u_ac_rupc_lru_u2_upc_lru_u_ac_rupc_lru_u2_ac_ac__", scope: !3, file: !3, line: 228, type: !4, scopeLine: 228, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !29 = !DILocation(line: 230, column: 8, scope: !28)
+  !30 = !DILocation(line: 230, column: 11, scope: !28)
+  !31 = !DILocation(line: 231, column: 8, scope: !28)
+  !32 = !DILocation(line: 231, column: 11, scope: !28)
+  !33 = !DILocation(line: 232, column: 11, scope: !28)
+  !34 = distinct !DISubprogram(name: "_schmu_s_create", linkageName: "__schmu_s_create_ac_upc_lru_u_ac_rupc_lru_u2_rac_ac2__", scope: !35, file: !35, line: 10, type: !4, scopeLine: 10, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !35 = !DIFile(filename: "simple_functor.smu", directory: "")
+  !36 = !DILocation(line: 11, column: 43, scope: !34)
+  !37 = !DILocation(line: 11, column: 4, scope: !34)
+  !38 = distinct !DISubprogram(name: "_schmu_string1_to_string", linkageName: "schmu_string1_to_string", scope: !39, file: !39, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !39 = !DIFile(filename: "use_simple_functor.smu", directory: "")
+  !40 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !39, file: !39, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !41 = !DILocation(line: 12, column: 7, scope: !40)
   $ ./use_simple_functor
   create: this other
 
@@ -1452,5 +3360,5 @@ Support functor with inner modules
   $ schmu functor_inner_module.smu
 
 Ensure no dups when linking
-  $ schmu -m test/modules.t/redefine_symbol_functor.smu
-  $ schmu test/modules.t/use_redefine_symbol_functor.smu
+  $ schmu -m redefine_symbol_functor.smu
+  $ schmu use_redefine_symbol_functor.smu

@@ -2,13 +2,13 @@ type r = {a : array[int]}
 let a& = [10]
 let r = {a = copy(a)}
 &a.[0] = 20
-println(fmt(r.a.[0]))
+fmt/(println(int, r.a.[0]))
 
 
 let r = [copy(a)]
 &a.[0] = 30
-println(fmt(r.[0].[0]))
+fmt/(println(int, r.[0].[0]))
 
 let r = Some(copy(a))
 &a.[0] = 40
-match r { Some(a): println(fmt(a.[0])); None: println("none") }
+match r { Some(a): fmt/(println(int, a.[0])); None: println("none") }

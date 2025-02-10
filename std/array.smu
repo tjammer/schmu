@@ -114,9 +114,12 @@ fun clear(arr&) {
 }
 
 fun reserve(arr&, size) {
-  if __array_capacity(arr) < size {
-    __unsafe_array_realloc(&arr, size)
+  fun rec aux(newcap) {
+    if newcap < size { aux(2 * newcap) }
+    else { __unsafe_array_realloc(&arr, newcap) }
   }
+  let cap = __array_capacity(arr)
+  if cap < size { aux(cap * 2) }
 }
 
 fun reverse(arr&) {

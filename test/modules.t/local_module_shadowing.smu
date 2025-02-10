@@ -5,16 +5,16 @@ module a {
   println("i'm in a module")
   module a {
     type t = float
-    println(fmt(a))
+    fmt/(println(u8, a))
     assert(int_of_u8(a) == int_of_u8('a'))
     let a = 10
-    println(fmt(a))
+    fmt/(println(int, a))
     assert(a == 10)
   }
 }
-println(fmt(a))
+fmt/(println(u8, a))
 
 use a
 
-println(fmt(a))
-println(fmt(a/a))
+fmt/(println(u8, a))
+fmt/(println(int, a/a))

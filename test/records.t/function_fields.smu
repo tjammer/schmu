@@ -5,10 +5,10 @@ fun advance(state!) {
 }
 fun rec ten_times(state!) {
   if state.cnt < 10 {
-    println(fmt(state.cnt))
+    fmt/(println(int, state.cnt))
     ten_times(!advance(!state))
   } else {
-    println(fmt(100))
+    fmt/(println(int, 100))
   }
 }
 {

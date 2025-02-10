@@ -15,7 +15,7 @@ match in_channel/open("in_channel.smu") {
     &buf = string/to_array(!str)
     array/clear(&buf)
     match in_channel/readline(&ic, &buf) {
-      Some(n): println(fmt("read ", n, " bytes"))
+      Some(n): fmt/(print1("read {} bytes\n", int, n))
       None: println("read nothing")
     }
     &str = string/of_array(!buf)
@@ -24,7 +24,7 @@ match in_channel/open("in_channel.smu") {
     &buf = string/to_array(!str)
     array/clear(&buf)
     match in_channel/readline(&ic, &buf) {
-      Some(n): println(fmt("read ", n, " bytes"))
+      Some(n): fmt/(print1("read {} bytes\n", int, n))
       None: println("read nothing")
     }
     &str = string/of_array(!buf)
@@ -33,7 +33,7 @@ match in_channel/open("in_channel.smu") {
     &buf = string/to_array(!str)
     array/clear(&buf)
     match in_channel/readrem(&ic, &buf) {
-      Some(n): println(fmt("read ", n, " bytes"))
+      Some(n): fmt/(print1("read {} bytes\n", int, n))
       None: println("read nothing")
     }
     &str = string/of_array(!buf)

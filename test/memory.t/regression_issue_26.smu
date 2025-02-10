@@ -5,7 +5,7 @@ fun rec nested(a, b) {
   if b == limit {nested(a + 1, 0)}
   else if a == limit {()}
   else {
-    println(fmt(a, ", ", b))
+    fmt/(print2("{}, {}\n", int, a, int, b))
     nested(a, b + 1)
   }
 }
@@ -17,7 +17,7 @@ fun rec nested(a, b, c) {
   else if c == limit {nested(a, b + 1, 0)}
   else if a == limit {()}
   else {
-    println(fmt(a, ", ", b, ", ", c))
+    fmt/(print3("{}, {}, {}\n", int, a, int, b, int, c))
     nested(a, b, c + 1)
   }
 }
@@ -27,7 +27,7 @@ fun rec nested(a, b, c) {
   else if a == limit {()}
   else if c == limit {nested(a, b + 1, 0)}
   else {
-    println(fmt(a, ", ", b, ", ", c))
+    fmt/(print3("{}, {}, {}\n", int, a, int, b, int, c))
     nested(a, b, c + 1)
   }
 }

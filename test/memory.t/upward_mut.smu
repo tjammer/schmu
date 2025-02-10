@@ -9,10 +9,10 @@ fun counter() {
 }
 
 let c = counter()
-println(fmt(c()))
-println(fmt(c()))
-println(fmt(c()))
-println(fmt(c()))
+fmt/(println(int, c()))
+fmt/(println(int, c()))
+fmt/(println(int, c()))
+fmt/(println(int, c()))
 
 fun counter() {
   let cnt& = {c = 0}
@@ -23,7 +23,7 @@ fun counter() {
 }
 
 let c = counter()
-println(fmt(c().c))
-println(fmt(c().c))
-println(fmt(c().c))
-println(fmt(c().c))
+fmt/(println(int, c().c))
+fmt/(println(int, c().c))
+fmt/(println(int, c().c))
+fmt/(println(int, c().c))

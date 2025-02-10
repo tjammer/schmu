@@ -1,4 +1,4 @@
-fun print_0th(a) {println(fmt(a.[0]))}
+fun print_0th(a) {fmt/println(fmt/int, a.[0])}
 
 let a& = [10]
 let b = copy(a)

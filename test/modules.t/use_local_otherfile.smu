@@ -6,7 +6,7 @@ fun test() {
 test()
 
 local_otherfile/local/test()
-local_otherfile/local/poly_test("test")
+local_otherfile/local/poly_test(fmt/str, "test")
 
 module nosig {
   type t = {a : int}

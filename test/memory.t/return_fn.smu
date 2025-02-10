@@ -8,7 +8,7 @@ fun ret_named() {
 }
 
 let f = ret_fn()
-println(fmt(f(12)))
+fmt/(println(int, f(12)))
 
 let f = ret_named()
-println(fmt(f(12)))
+fmt/(println(int, f(12)))

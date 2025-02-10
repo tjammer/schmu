@@ -4,17 +4,17 @@ let f = {a = 0}
 let fst& = copy(f)
 let snd = copy(fst)
 &fst.a = 1
-println(fmt(fst.a))
-println(fmt(f.a))
-println(fmt(snd.a))
+fmt/(println(int, fst.a))
+fmt/(println(int, f.a))
+fmt/(println(int, snd.a))
 
 fun new_fun() {
   let f = {a = 0}
   let fst& = copy(f)
   let snd = copy(fst)
   &fst.a = 1
-  println(fmt(fst.a))
-  println(fmt(f.a))
-  println(fmt(snd.a))
+  fmt/(println(int, fst.a))
+  fmt/(println(int, f.a))
+  fmt/(println(int, snd.a))
 }
 new_fun()

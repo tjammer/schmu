@@ -9,7 +9,7 @@ fun apply(param, thing) {
   match param {
     (bar, foo): bind(bar(thing), fun r {
       bind(foo(r), fun r {
-        println(fmt(r))
+        fmt/(println(int, r))
         Some(copy(r))
       })
     })
@@ -22,15 +22,15 @@ ignore(apply((fun i {Some(i + 1)},
 
 -- This here is just a test to make sure that we can alias normal, monomorphized
 -- functions
-fun f(i) {
-  println(fmt("printing ", i))
+fun f(fmt, i) {
+  fmt/(print1("printing {}\n", fmt, i))
 }
 
-fun print_poly(to_print) {
+fun print_poly(fmt, to_print) {
   match f {
-    foo: foo(to_print)
+    foo: foo(fmt, to_print)
   }
 }
 
-print_poly(0)
-print_poly(1.1)
+print_poly(fmt/int, 0)
+print_poly(fmt/str, "1.1") -- TODO format float

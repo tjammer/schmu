@@ -18,12 +18,12 @@ let rf& = {a = false}
 mut_bref(0, &rf)
 
 -- change from false to true
-println(fmt(rf.a))
+fmt/(println(bool, rf.a))
 
 dontmut_bref(0, &rf)
 
 -- don't change
-println(fmt(rf.a))
+fmt/(println(bool, rf.a))
 
 -- some for int record type
 type r = {a& : int}
@@ -36,7 +36,7 @@ fun rec mod_rec(r&, i) {
 {
   let ar& = {a = 20}
   mod_rec(&ar, 0)
-  println(fmt(ar.a))
+  fmt/(println(int, ar.a))
 }
 
 -- array
@@ -51,7 +51,7 @@ fun rec push_twice(a&, i) {
 {
   let a& = [10, 20]
   push_twice(&a, 0)
-  println(fmt(array/length(a)))
+  fmt/(println(int, array/length(a)))
 }
 
 -- int
@@ -62,7 +62,7 @@ fun rec change_int(i&, j) {
 {
   let i& = 0
   change_int (&i, 0)
-  println(fmt(i))
+  fmt/println(fmt/int, i)
 }
 
 -- create bogus objects to tidy up
@@ -83,5 +83,5 @@ fun rec test(a&, i) {
 {
   let a& = []
   test(&a, 0)
-  println(fmt(array/length(a)))
+  fmt/println(fmt/int, array/length(a))
 }

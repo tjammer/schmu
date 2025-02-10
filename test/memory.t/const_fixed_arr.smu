@@ -1,5 +1,5 @@
 let a = 17
 let arr = #[1, a, 3]
 
-println(fmt(arr#[1]))
+fmt/(println(int, arr#[1]))
 let _ = (10, a)

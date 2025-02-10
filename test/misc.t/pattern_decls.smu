@@ -3,11 +3,11 @@ fun hmm((_, (x, _))) {println(x)}
 hmm((10, ("hello", 20.0)))
 
 let i, _ = (20, 30.0)
-println(fmt(i))
+fmt/(println(int, i))
 
 {
   let f, _ = (30.0, 20)
-  println(fmt(f))
+  fmt/(println(int, int_of_float(f))) -- TODO format float
 }
 
 -- pattern matched thing as a closure

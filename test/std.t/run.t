@@ -27,7 +27,7 @@ In channel module test
      let ic& = !ic
   read 33 bytes
       let buf& = array/create(4096)
-  read 1404 bytes
+  read 1419 bytes
       in_channel/readn(&ic, &buf, 50) |> ignore
       let str& = !string/of_array(!buf)
       println(str)
@@ -41,7 +41,7 @@ In channel module test
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf) {
-        Some(n): println(fmt("read ", n, " bytes"))
+        Some(n): fmt/(print1("read {} bytes\n", int, n))
         None: println("read nothing")
       }
       &str = string/of_array(!buf)
@@ -50,7 +50,7 @@ In channel module test
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf) {
-        Some(n): println(fmt("read ", n, " bytes"))
+        Some(n): fmt/(print1("read {} bytes\n", int, n))
         None: println("read nothing")
       }
       &str = string/of_array(!buf)
@@ -59,7 +59,7 @@ In channel module test
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf) {
-        Some(n): println(fmt("read ", n, " bytes"))
+        Some(n): fmt/(print1("read {} bytes\n", int, n))
         None: println("read nothing")
       }
       &str = string/of_array(!buf)
@@ -106,7 +106,7 @@ In channel module test
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf) {
-        Some(n): println(fmt("read ", n, " bytes"))
+        Some(n): fmt/(print1("read {} bytes\n", int, n))
         None: println("read nothing")
       }
       &str = string/of_array(!buf)
@@ -115,7 +115,7 @@ In channel module test
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf) {
-        Some(n): println(fmt("read ", n, " bytes"))
+        Some(n): fmt/(print1("read {} bytes\n", int, n))
         None: println("read nothing")
       }
       &str = string/of_array(!buf)
@@ -124,7 +124,7 @@ In channel module test
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf) {
-        Some(n): println(fmt("read ", n, " bytes"))
+        Some(n): fmt/(print1("read {} bytes\n", int, n))
         None: println("read nothing")
       }
       &str = string/of_array(!buf)
@@ -171,7 +171,7 @@ In channel module test
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf) {
-        Some(n): println(fmt("read ", n, " bytes"))
+        Some(n): fmt/(print1("read {} bytes\n", int, n))
         None: println("read nothing")
       }
       &str = string/of_array(!buf)
@@ -180,7 +180,7 @@ In channel module test
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readline(&ic, &buf) {
-        Some(n): println(fmt("read ", n, " bytes"))
+        Some(n): fmt/(print1("read {} bytes\n", int, n))
         None: println("read nothing")
       }
       &str = string/of_array(!buf)
@@ -189,7 +189,7 @@ In channel module test
       &buf = string/to_array(!str)
       array/clear(&buf)
       match in_channel/readrem(&ic, &buf) {
-        Some(n): println(fmt("read ", n, " bytes"))
+        Some(n): fmt/(print1("read {} bytes\n", int, n))
         None: println("read nothing")
       }
       &str = string/of_array(!buf)
@@ -237,3 +237,16 @@ Use iter and print with dot call
 Reverse an empty array
   $ schmu array.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./array
+
+Formatting
+  $ schmu fmt.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./fmt
+  this prints to stderr
+  heya
+  heya 12 you
+  heya 13
+  14
+  0, heya
+  bla bla 0
+  234u8
+  i can now format a proper string with 1234 and 'h.h.'

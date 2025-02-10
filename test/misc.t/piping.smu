@@ -14,5 +14,5 @@ Some(1)
 type foo = {x : int}
 {x = 1}.x |> printi()
 println("")
-10 |> fmt |> println
-string/of_array(['a', 'b', 'c']) |> string/get(1) |> fmt |> println
+10 |>> fmt/(println(int))
+string/of_array(['a', 'b', 'c']) |> string/get(1) |>> fmt/(println(u8))

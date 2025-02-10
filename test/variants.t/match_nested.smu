@@ -6,7 +6,7 @@ fun doo(m) { match m {
   Some(None): 1
   None: 0
 }}
-doo(Some(Float(3.0))) |> fmt |> println
-doo(Some(Int(2))) |> fmt |> println
-doo(Some(None)) |> fmt |> println
-doo(None) |> fmt |> println
+doo(Some(Float(3.0))) |>> fmt/(println(int))
+doo(Some(Int(2))) |>> fmt/(println(int))
+doo(Some(None)) |>> fmt/(println(int))
+doo(None) |>> fmt/(println(int))

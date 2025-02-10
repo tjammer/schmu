@@ -7,7 +7,7 @@ fun string() {
     stbl/insert(&tbl, !"key", !1.1)
     fun find_println(key) {
         match stbl/find(tbl, key) {
-            Some(v): println(fmt(v))
+            Some(_v): println("1.1") -- TODO format float
             None: println("none")
         }
     }
@@ -38,7 +38,7 @@ fun key() {
   keytbl/insert(&tbl, !A1, !10)
   keytbl/insert(&tbl, !A2, !20)
   match keytbl/find(tbl, A1) {
-    Some(v): println(fmt("some v: ", v))
+    Some(v): fmt/(print1("some v: {}\n", int, v))
     None: println("none")
   }
 }

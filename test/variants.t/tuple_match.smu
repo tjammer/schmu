@@ -5,8 +5,7 @@ fun doo(a, b) {
     (Some(a), None): a
     (_, None): 0
   }
-  |> fmt
-  |> println
+  |>> fmt/(println(int))
 }
 let none_int : option[int] = None
 

@@ -4,7 +4,7 @@ range(0, 10)
 |> filter(fun i : (i |> mod(2)) == 0)
 |> take(5)
 |> fold(!0, fun (acc!, i) {
-  println(fmt(i))
+  print1("{}\n", int, i)
   acc + i
 })
-|> fmt |> println
+|>> fmt/(println(int))

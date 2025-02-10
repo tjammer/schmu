@@ -10,4 +10,4 @@ fun hidden_reference() {match op {
   None: -1
 }}
 -- Should print 1 here, not 2
-println(fmt(hidden_reference()))
+fmt/println(fmt/int, hidden_reference())

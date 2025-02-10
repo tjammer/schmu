@@ -1,15 +1,15 @@
 import m2
 
 m2/{
-  println(fmt(odd(1)))
-  println(fmt(odd(100)))
-  println(fmt(even(100)))
+  fmt/(println(bool, odd(1)))
+  fmt/(println(bool, odd(100)))
+  fmt/(println(bool, even(100)))
 
   let arr& = [0, 1, 2, 3]
   pop(&arr)
   let arr& = [0, 1, 2, 3]
   pop_all(&arr)
-  println(fmt(array/length(arr)))
+  fmt/(println(int, array/length(arr)))
 }
 
 fun rec pop(arr&) {
@@ -26,6 +26,6 @@ let arr& = [0, 1, 2, 3]
 pop(&arr)
 let arr& = [0, 1, 2, 3]
 pop_all(&arr)
-println(fmt(array/length(arr)))
+fmt/(println(int, array/length(arr)))
 
 ignore(m2/test(1))

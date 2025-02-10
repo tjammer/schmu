@@ -34,5 +34,5 @@ module floatadder = make(floata)
 module recadder = make(somerec)
 module outeradder = make(outa)
 
-println(fmt(intadder/add_twice(1, 2)))
-println(fmt(floatadder/add_twice(1.0, 2.0)))
+fmt/(println(int, intadder/add_twice(1, 2)))
+fmt/(println(int, floatadder/add_twice(1.0, 2.0) |> int_of_float)) -- TODO format float

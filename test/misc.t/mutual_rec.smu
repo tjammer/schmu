@@ -13,6 +13,6 @@ and odd(i) {
   }
 }
 
-println(fmt(odd(1)))
-println(fmt(odd(100)))
-println(fmt(even(100)))
+fmt/(println(bool, odd(1)))
+fmt/(println(bool, odd(100)))
+fmt/(println(bool, even(100)))

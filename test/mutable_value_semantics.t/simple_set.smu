@@ -1,13 +1,13 @@
 let b& = 10
 &b = 14
-println(fmt(b))
+fmt/(println(int, b))
 
 fun hmm() {
   let b& = 10
   &b = 15
   b
 }
-println(fmt(hmm()))
+fmt/(println(int, hmm()))
 
 let a& = [[10], [20]]
 let b = copy(a)

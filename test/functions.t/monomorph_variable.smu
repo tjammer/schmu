@@ -1,26 +1,26 @@
 type ctor['a] = Ctor(array['a])
 
-fun any() {
+fun any(fmt!) {
   fun cb(v) {
-    println(fmt(v))
+    fmt/print1("{}\n", fmt, v)
   }
   Ctor([cb])
 }
 
-match any() {
+match any(copy(fmt/int)) {
   Ctor(f): f.[0](0)
 }
 
 type ctor2['a] = Ctor('a)
 
-fun any() {
+fun any(fmt!) {
   fun cb(v) {
-    println(fmt(v))
+    fmt/print1("{}\n", fmt, v)
   }
   -- Moving a function directly into a variant didn't use to work
   Ctor(cb)
 }
 
-match any() {
+match any(copy(fmt/int)) {
   Ctor(f): f(0)
 }

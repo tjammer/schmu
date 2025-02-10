@@ -12,7 +12,7 @@ fun times(limit, f) {
 }
 
 fun test(value) {
-  ignore(if true {copy(value)} else {fmt("/", value)})
+  ignore(if true {copy(value)} else { fmt/(str/print1("/{}", str, value)) })
 }
 
 times(2, test)

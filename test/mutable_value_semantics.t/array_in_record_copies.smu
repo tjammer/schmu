@@ -4,7 +4,7 @@ let a& = {a = [10]}
 let b = copy(a)
 &a.a.[0] = 12
 
-fun print_thing(a) {println(fmt(a.a.[0]))}
+fun print_thing(a) { fmt/println(fmt/int, a.a.[0]) }
 
 print_thing(a)
 print_thing(b)

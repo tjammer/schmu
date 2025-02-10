@@ -8,7 +8,7 @@ let some_lambda = {
   fun () {copy(a)}
 }
 let some_closure = {
-  let a = fmt("lol")
+  let a = fmt/(str/print(str, "lol"))
   fun () {copy(a)}
 }
 -- polymorphic alias

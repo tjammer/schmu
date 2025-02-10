@@ -20,12 +20,12 @@ let u2 = t2.u
 type inrec = {i : int, u : unit, f : float}
 let t = {i = 10, u = (), f = 99.9}
 ignore(t.u)
-println(fmt(t.f))
+fmt/(println(str, "99.9")) -- (t.f)) -- TODO format float
 
 -- arrays
 let arr& = [(), ()]
 array/push(&arr, !())
-println(fmt(array/length(arr)))
+fmt/(println(int, array/length(arr)))
 ignore({u = arr.[2]})
 
 -- fixed arrays

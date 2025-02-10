@@ -1,6 +1,6 @@
 fun return_closure(name) {
   -- create object on heap
-  let n = fmt("++", name)
+  let n = fmt/(str/print1("++{}", fmt/str, name))
   fun () {println(n)}
 }
 

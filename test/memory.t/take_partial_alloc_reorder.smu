@@ -27,7 +27,7 @@ fun many_count(buf) {
   aux(buf, 0)
 }
 
-let s = fmt(" ")
+let s = fmt/(str/print(str, " "))
 
 let inp = view_of_string(s)
 ignore(many_count(inp))

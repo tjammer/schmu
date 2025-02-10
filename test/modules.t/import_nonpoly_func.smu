@@ -7,4 +7,4 @@ fun doo(a) {
    Right: add_ints(0, -5)
   }
 }
-doo(Left)|> fmt |> println
+doo(Left)|>> fmt/(println(int))

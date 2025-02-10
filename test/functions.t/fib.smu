@@ -3,4 +3,4 @@ fun rec fib(n) {
   else {fib(n - 1) + fib(n - 2)}
 }
 
-println(fmt(fib(30)))
+fmt/(println(int, fib(30)))

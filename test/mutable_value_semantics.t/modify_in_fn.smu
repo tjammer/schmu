@@ -6,8 +6,8 @@ fun mod2(a&) {array/push(&a, !20)}
 
 let a& = {a = 20}
 modify(&a)
-println(fmt(a.a))
+fmt/(println(int, a.a))
 
 let b& = [10]
 mod2(&b)
-println(fmt(array/length(b)))
+fmt/(println(int, array/length(b)))

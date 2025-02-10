@@ -1,1 +1,1 @@
-println(fmt(copy("test "), 1))
+fmt/(print1("test {}\n", int, 1))

@@ -1,2 +1,2 @@
-println(fmt(10 - 2 - 3 - 4))
-println(fmt(10 + 2 + 3 + 4))
+fmt/(println(int, 10 - 2 - 3 - 4))
+fmt/(println(int, 10 + 2 + 3 + 4))

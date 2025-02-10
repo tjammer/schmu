@@ -1,0 +1,21 @@
+use fmt
+
+stderr/println(str, "this prints to stderr")
+
+println(str, "heya")
+
+print1("heya {} you\n", int, 12)
+
+print1("heya {}", int, 13)
+print_newline()
+
+print1("{}", int, 14)
+print(str, "\n")
+
+print2("{}, {}\n", int, 0, str, "heya")
+
+print1("bla bla {}\n", int, 0)
+
+println(u8, 234u8)
+
+string/println(str/print2("i can now format a proper string with {} and '{}'",int  , 1234, str, "h.h."))
