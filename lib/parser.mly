@@ -30,7 +30,7 @@
 %token Ampersand
 %token Exclamation
 %token Wildcard
-%token <int> Int
+%token <int64> Int
 %token <char> U8
 %token <int> U16
 %token <float> Float
@@ -179,7 +179,7 @@ ctor:
   | name = ctor_ident { {name; typ_annot = None; index = None} }
   | name = ctor_ident; Lpar; annot = ctor_type_spec; Rpar
     { {name; typ_annot = Some annot; index = None} }
-  | name = ctor_ident; Lpar; index = Int; Rpar { {name; typ_annot = None; index = Some index} }
+  | name = ctor_ident; Lpar; index = Int; Rpar { {name; typ_annot = None; index = Some (Int64.to_int index)} }
 
 record_item_decl:
   | name = Ident; mut = boption(Ampersand); Colon; spec = type_spec { mut, name, spec }
@@ -419,7 +419,7 @@ separated_trailing_list(sep, item, terminator):
 
 fixed_array_lit:
   | Hash; Lbrack; items = separated_nonempty_trailing_list(Comma, expr, Rbrack) { Fixed_array items }
-  | Hash; num = Int; Lbrack; item = expr; Rbrack { Fixed_array_num (num, item) }
+  | Hash; num = Int; Lbrack; item = expr; Rbrack { Fixed_array_num (Int64.to_int num, item) }
 
 call_arg:
   | aexpr = expr { {apass = Dnorm; aexpr; aloc = $loc} }
@@ -466,7 +466,7 @@ parens(x):
 type_spec:
   | id = ident { Ty_id id }
   | id = poly_id { Ty_var ($loc(id), id) }
-  | id = Ident; Hash; i = Int { Ty_id ($loc(id), id ^ "#" ^ string_of_int i) }
+  | id = Ident; Hash; i = Int { Ty_id ($loc(id), id ^ "#" ^ (Int64.to_string i)) }
   | id = Ident; Hash_quest { Ty_id ($loc(id), id ^ "#?") }
   | path = type_path { Ty_use_id ($loc, path) }
   | head = type_spec; Lbrack; tail = separated_nonempty_list(Comma, type_spec); Rbrack

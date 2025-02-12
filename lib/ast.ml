@@ -63,12 +63,12 @@ and pattern =
   | Ptup of loc * (loc * pattern) list * decl_attr
   | Pwildcard of loc * decl_attr
   | Precord of loc * (ident * pattern option) list * decl_attr
-  | Plit_int of loc * int
+  | Plit_int of loc * int64
   | Plit_char of loc * char
   | Por of loc * pattern list
 
 and literal =
-  | Int of int
+  | Int of int64
   | Bool of bool
   | U8 of char
   | U16 of int

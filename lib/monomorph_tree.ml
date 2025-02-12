@@ -33,7 +33,7 @@ module Mtree = struct
   [@@deriving show]
 
   and const =
-    | Int of int
+    | Int of int64
     | Bool of bool
     | U8 of char
     | U16 of int

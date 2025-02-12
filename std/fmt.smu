@@ -82,8 +82,36 @@ fun int_base(p!, value, base) {
   }
 }
 
+fun int_base_unsigned(p!, value, base) {
+  let arr& = #64['\000']
+  if (base < 2 or base > 36) {
+    formatter/format(p, array/fixed/data(arr), 1)
+  }
+  else {
+    fun rec aux(value, index) {
+      let tmp_value = value
+      let value = div_unsigned(value, base)
+      &arr#[index] = string/get(int_digits, 35 + (tmp_value - (value * base)))
+      if (value <> 0) { aux(value, index + 1) }
+      else { index }
+    }
+    let length = aux(value, 0) + 1
+
+    -- reverse
+    iter_range(0, length / 2, fun i {
+      array/fixed/swap_items(&arr, i, length - i - 1)
+    })
+
+    formatter/format(p, array/fixed/data(arr), length)
+  }
+}
+
 fun int(p!, i) {
   int_base(p, i, 10)
+}
+
+fun uint(p!, i) {
+  int_base_unsigned(p, i, 10)
 }
 
 fun str(p!, str) {

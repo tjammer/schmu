@@ -68,7 +68,7 @@ let char_for_backslash = function
   | c   -> c
 
 let int_of_intlit lit =
-  String.split_on_char '\'' lit |> String.concat "" |> Int64.of_string |> Int64.to_int
+  String.split_on_char '\'' lit |> String.concat "" |> Int64.of_string
 
 let int_of_hashnum s = String.sub s 1 (String.length s - 2) |> int_of_intlit
 
@@ -122,7 +122,7 @@ rule read =
   | float    { Float (float_of_string (Lexing.lexeme lexbuf)) }
   | u8       { U8 (u8_of_string (Lexing.lexeme lexbuf)) }
   | u16      { U16 (u16_of_string (Lexing.lexeme lexbuf)) }
-  | i32      { I32 (f_of_string int_of_intlit (Lexing.lexeme lexbuf)) }
+  | i32      { I32 (f_of_string (fun s -> int_of_intlit s |> Int64.to_int) (Lexing.lexeme lexbuf)) }
   | f32      { F32 (f_of_string float_of_string (Lexing.lexeme lexbuf)) }
   | "true"   { True }
   | "false"  { False }

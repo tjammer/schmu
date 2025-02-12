@@ -12,6 +12,8 @@ let == = __equali
 let >. = __greatereqf
 let <> = __nequali
 
+let div_unsigned = __diviu
+
 fun iter_range(from, to, f) {
   fun rec inner(i) {
     if i == to { () } else {

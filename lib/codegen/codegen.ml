@@ -279,7 +279,7 @@ end = struct
 
   and gen_const = function
     | Int i ->
-        let value = Llvm.const_int int_t i in
+        let value = Llvm.const_of_int64 int_t i true in
         { value; typ = Tint; lltyp = int_t; kind = Const }
     | Bool b ->
         let value = Llvm.const_int bool_t (Bool.to_int b) in
@@ -956,6 +956,10 @@ end = struct
         let a, b = binary () in
         let value = Llvm.build_sdiv a b "div" builder in
         { value; lltyp = int_t; typ = Tint; kind = Imm }
+    | Diviu ->
+        let a, b = binary () in
+        let value = Llvm.build_udiv a b "divu" builder in
+        { value; lltyp = int_t; typ = Tint; kind = Imm }
     | Addf ->
         let a, b = binary () in
         let value = Llvm.build_fadd a b "add" builder in
@@ -987,6 +991,22 @@ end = struct
     | Greatereqi ->
         let a, b = binary () in
         let value = Llvm.(build_icmp Icmp.Sge) a b "ge" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Lessiu ->
+        let a, b = binary () in
+        let value = Llvm.(build_icmp Icmp.Ult) a b "ltu" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Greateriu ->
+        let a, b = binary () in
+        let value = Llvm.(build_icmp Icmp.Ugt) a b "gtu" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Lesseqiu ->
+        let a, b = binary () in
+        let value = Llvm.(build_icmp Icmp.Ule) a b "leu" builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Greatereqiu ->
+        let a, b = binary () in
+        let value = Llvm.(build_icmp Icmp.Uge) a b "geu" builder in
         { value; lltyp = bool_t; typ = Tbool; kind = Imm }
     | Equali ->
         let a, b = binary () in

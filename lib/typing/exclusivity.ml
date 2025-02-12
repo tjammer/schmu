@@ -890,6 +890,7 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       let bpart, idx, hs, is_part =
         match (fst idx).expr with
         | Const (Int i) ->
+            let i = Int64.to_int i in
             let part = (Aconst i, Printf.sprintf "[%i]" i) :: bpart in
             (part, idx, hs, true)
         | Var (name, mname) ->

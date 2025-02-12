@@ -13,6 +13,12 @@ signature {
   val >= : (t, t) -> bool
   val == : (t, t) -> bool
   val <> : (t, t) -> bool
+
+  val div_unsigned : (t, t) -> t
+  val lt_unsigned : (t, t) -> bool
+  val gt_unsigned : (t, t) -> bool
+  val le_unsigned : (t, t) -> bool
+  val ge_unsigned : (t, t) -> bool
 }
 
 let + = __addi
@@ -26,6 +32,12 @@ let <= = __lesseqi
 let >= = __greatereqi
 let == = __equali
 let <> = __nequali
+
+let div_unsigned = __diviu
+let lt_unsigned = __lessiu
+let gt_unsigned = __greateriu
+let le_unsigned = __lesseqiu
+let ge_unsigned = __greatereqiu
 
 fun hash(i) {
   -- basically murmurhash

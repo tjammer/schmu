@@ -119,7 +119,13 @@ let lor_clike_hack env loc name annot =
           | Some (_, clike, ctor) ->
               if clike then
                 let attr = { no_attr with const = true } in
-                Some { typ = tint; expr = Const (Int ctor.index); attr; loc }
+                Some
+                  {
+                    typ = tint;
+                    expr = Const (Int (Int64.of_int ctor.index));
+                    attr;
+                    loc;
+                  }
               else None
           | None -> None)
       | _ -> None)
@@ -202,7 +208,7 @@ and tpat =
   | Tp_var of Ast.loc * string * attr
   | Tp_wildcard of Ast.loc
   | Tp_record of Ast.loc * record_field list * attr
-  | Tp_int of Ast.loc * int
+  | Tp_int of Ast.loc * int64
   | Tp_char of Ast.loc * char
 
 and ctor_param = { cindex : int; cpat : pathed_pattern option; ctname : string }
@@ -244,7 +250,7 @@ module Tup = struct
   type ret =
     | Var of payload * string * Ast.decl_attr
     | Ctor of payload * ctor_param
-    | Lit_int of payload * int
+    | Lit_int of payload * int64
     | Lit_char of payload * char
     | Bare of pattern_data
     | Record of record_field list * payload * Ast.decl_attr
@@ -476,7 +482,7 @@ module Exhaustiveness = struct
               new_col := true;
               let loc = loc_of_pat p.pat in
               (* Each pattern guard is identified by the index of its row TODO *)
-              Some ({ pat = Tp_int (loc, 0); ptyp = tint } :: p :: tl, guard)
+              Some ({ pat = Tp_int (loc, 0L); ptyp = tint } :: p :: tl, guard)
           | { pat = Tp_ctor (_, param); _ } :: tl, guard
             when String.equal param.ctname case ->
               rows_empty := false;
@@ -1243,7 +1249,7 @@ module Make (C : Core) (R : Recs) = struct
     match cases with
     | (clauses, d) :: tl -> (
         match List.assoc_opt path clauses with
-        | Some { pat = Tp_int (_, i); _ } when Int.equal int i ->
+        | Some { pat = Tp_int (_, i); _ } when Int64.equal int i ->
             let clauses = assoc_remove path clauses in
             match_int (path, int) tl ((clauses, d) :: if_) else_
         | Some { pat = Tp_ctor _ | Tp_record _ | Tp_int _ | Tp_char _; _ } ->

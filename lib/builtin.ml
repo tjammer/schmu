@@ -38,6 +38,7 @@ type t =
   | Subi
   | Multi
   | Divi
+  | Diviu
   | Addf
   | Subf
   | Mulf
@@ -46,6 +47,10 @@ type t =
   | Greateri
   | Lesseqi
   | Greatereqi
+  | Lessiu
+  | Greateriu
+  | Lesseqiu
+  | Greatereqiu
   | Equali
   | Nequali
   | Lessf
@@ -198,6 +203,8 @@ let tbl =
     (Multi, Tfun ([ { p with pt = tint }; { p with pt = tint } ], tint, Simple));
   Hashtbl.add tbl "__divi"
     (Divi, Tfun ([ { p with pt = tint }; { p with pt = tint } ], tint, Simple));
+  Hashtbl.add tbl "__diviu"
+    (Diviu, Tfun ([ { p with pt = tint }; { p with pt = tint } ], tint, Simple));
   Hashtbl.add tbl "__addf"
     ( Addf,
       Tfun ([ { p with pt = tfloat }; { p with pt = tfloat } ], tfloat, Simple)
@@ -224,6 +231,18 @@ let tbl =
       Tfun ([ { p with pt = tint }; { p with pt = tint } ], tbool, Simple) );
   Hashtbl.add tbl "__greatereqi"
     ( Greatereqi,
+      Tfun ([ { p with pt = tint }; { p with pt = tint } ], tbool, Simple) );
+  Hashtbl.add tbl "__lessiu"
+    ( Lessiu,
+      Tfun ([ { p with pt = tint }; { p with pt = tint } ], tbool, Simple) );
+  Hashtbl.add tbl "__greateriu"
+    ( Greateriu,
+      Tfun ([ { p with pt = tint }; { p with pt = tint } ], tbool, Simple) );
+  Hashtbl.add tbl "__lesseqiu"
+    ( Lesseqiu,
+      Tfun ([ { p with pt = tint }; { p with pt = tint } ], tbool, Simple) );
+  Hashtbl.add tbl "__greatereqiu"
+    ( Greatereqiu,
       Tfun ([ { p with pt = tint }; { p with pt = tint } ], tbool, Simple) );
   Hashtbl.add tbl "__equali"
     ( Equali,
