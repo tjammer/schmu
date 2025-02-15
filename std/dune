@@ -21,10 +21,24 @@
 
 (rule
  (targets fmt.o fmt.smi)
- (deps %{bin:schmu} fmt.smu array.smi string.smi prelude.smi iter.smi)
+ (deps
+  %{bin:schmu}
+  fmt.smu
+  array.smi
+  string.smi
+  prelude.smi
+  iter.smi
+  schubfach.smi)
  (action
   (progn
    (run schmu --release -m --no-std fmt.smu))))
+
+(rule
+ (targets schubfach.o schubfach.smi)
+ (deps %{bin:schmu} schubfach.smu int.smi prelude.smi unsafe.smi string.smi array.smi)
+ (action
+  (progn
+   (run schmu --release -m --no-std schubfach.smu))))
 
 (rule
  (targets float.o float.smi)
@@ -165,4 +179,7 @@
   (unsafe.o as std/unsafe.o)
   fmt.smu
   (fmt.smi as std/fmt.smi)
-  (fmt.o as std/fmt.o)))
+  (fmt.o as std/fmt.o)
+  schubfach.smu
+  (schubfach.smi as std/schubfach.smi)
+  (schubfach.o as std/schubfach.o)))

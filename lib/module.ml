@@ -558,10 +558,12 @@ and read_module env filename loc ~regeneralize mname =
         Ok scope
     | Error _ ->
         close_in c;
-        Error ("Could not deserialize module: " ^ filename)
-  with _ ->
+        Error ("Could not deserialize module: error: " ^ filename)
+  with e ->
     close_in c;
-    Error ("Could not deserialize module: " ^ filename)
+    let s = Printexc.to_string e in
+    prerr_endline s;
+    Error ("Could not deserialize module: exception: " ^ filename)
 
 and add_object_names fname objects =
   let objs =

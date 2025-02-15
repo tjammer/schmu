@@ -19,3 +19,13 @@ print1("bla bla {}\n", int, 0)
 println(u8, 234u8)
 
 string/println(str/print2("i can now format a proper string with {} and '{}'",int  , 1234, str, "h.h."))
+
+println(float, 1000.009879879879)
+println(float, 12345678901234567890.01)
+println(float, 12000000000000000000.0)
+println(float, 0.000000000000000012345)
+println(float, 120000020102.000032)
+println(float, 12345.6789)
+println(float, -12345.6789)
+println(float, 0.000001234)
+println(float, 123456000.0)

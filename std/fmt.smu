@@ -1,6 +1,7 @@
 import array
 import iter
 import prelude
+import schubfach
 import string
 
 use prelude
@@ -114,6 +115,11 @@ fun uint(p!, i) {
   int_base_unsigned(p, i, 10)
 }
 
+fun char(p!, c) {
+  let arr = #[c]
+  formatter/format(p, array/fixed/data(arr), 1)
+}
+
 fun str(p!, str) {
   formatter/format(p, string/data(str), string/len(str))
 }
@@ -131,6 +137,59 @@ fun endl(p!) {
   let newline = #['\n']
   formatter/format(p, array/fixed/data(newline), 1)
   |> formatter/extract
+}
+
+fun float(p!, f) {
+  use schubfach
+
+  let significand = float/physical_significand(f)
+  let exponent = float/physical_exponent(f)
+
+  if exponent <> float/max_ieee_exponent {
+    -- finite
+    if exponent <> 0 or significand <> 0 {
+      -- != 0
+      let dec = to_decimal64(significand, exponent)
+      let min_fixed_decs = -6
+      let max_fixed_decs = 17
+      let sign_bit = float/sign_bit(f)
+      let num_digits = decimal_length(dec.digits)
+      let decimal_point = num_digits + dec.exponent
+      let use_fixed = decimal_point >= min_fixed_decs
+        and decimal_point <= max_fixed_decs
+
+      if use_fixed {
+        let arr, len = format_fixed(
+          dec.digits,
+          dec.exponent,
+          sign_bit,
+          int_digits
+        )
+        formatter/format(p, array/fixed/data(arr), len)
+      }
+      else {
+        let arr, len, exponent = format_scientific(
+          dec.digits,
+          dec.exponent,
+          sign_bit,
+          num_digits,
+          int_digits
+        )
+        formatter/format(p, array/fixed/data(arr), len)
+        |> int(exponent)
+      }
+    }
+    else {
+      str(p, "0.0")
+    }
+  }
+  else if significand == 0 {
+    if float/sign_bit(f) { char(p, '-') } else { p }
+    |> str("inf")
+  }
+  else {
+    str(p, "nan")
+  }
 }
 
 module type concrete_formatter {
