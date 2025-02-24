@@ -690,13 +690,12 @@ end = struct
         in
         { value; typ = fnc.ret; lltyp; kind = Imm }
     | Unsafe_ptr_reinterpret ->
-        let ptr =
+        let value =
           match args with
           | [ ptr ] -> bring_default ptr
           | _ -> failwith "Internal Error: Arity mismatch in builtin"
         in
         let lltyp = get_lltype_def fnc.ret in
-        let value = Llvm.build_bitcast ptr lltyp "" builder in
         { value; lltyp; typ = fnc.ret; kind = Imm }
     | Unsafe_funptr -> (
         let fn =
@@ -849,11 +848,10 @@ end = struct
           | [ size ] -> Llvm.build_mul size.value item_size "" builder
           | _ -> failwith "Internal Error: Arity mismatch in builder"
         in
-        let ptr_typ = get_lltype_def fnc.ret in
+        let lltyp = get_lltype_def fnc.ret in
         let value = malloc ~size in
-        let value = Llvm.build_bitcast value ptr_typ "" builder in
 
-        { value; typ = fnc.ret; lltyp = get_lltype_def fnc.ret; kind = Ptr }
+        { value; typ = fnc.ret; lltyp; kind = Ptr }
     | Ignore -> dummy_fn_value
     | Cast (to_, from_) ->
         let to_ = of_typ to_ and from_ = of_typ from_ in
