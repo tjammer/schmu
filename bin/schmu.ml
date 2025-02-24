@@ -139,7 +139,7 @@ let () =
           print_endline usage;
           exit 64)
     else (
-      print_endline @@ "Don't know what to do with suffix "
+      prerr_endline @@ "Don't know what to do with suffix "
       ^ Filename.extension fn;
       exit 64)
   in
@@ -175,7 +175,7 @@ let () =
   let target = match !target with "" -> None | s -> Some s in
   (match !filename with
   | None ->
-      print_endline "No main module";
+      prerr_endline "No main module";
       exit 64
   | Some _ -> ());
   let outname =
