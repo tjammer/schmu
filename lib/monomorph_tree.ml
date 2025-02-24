@@ -134,7 +134,6 @@ open Monomorph_impl.Mallocs_ipml
 
 (* Re-exports from monomorph *)
 let typ_of_abs = typ_of_abs
-let structural_name = structural_name
 let nominal_name = nominal_name "" ~closure:false ~poly:(Tpoly "-")
 
 let no_var =
@@ -230,7 +229,7 @@ let rec cln ss p t =
                 let ps = List.map (cln ss p) ops in
                 let nname = Path.type_name name in
                 let psname =
-                  structural_name ~closure:false
+                  nominal_name
                     (Trecord
                        ( [],
                          Rec_not

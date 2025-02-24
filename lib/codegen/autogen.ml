@@ -38,11 +38,10 @@ struct
     String.concat "." (Pset.to_seq pset |> Seq.map show_path |> List.of_seq)
 
   let name typ = function
-    | Copy -> "__copy_" ^ Monomorph_tree.structural_name ~closure:false typ
-    | Free -> "__free_" ^ Monomorph_tree.structural_name ~closure:false typ
+    | Copy -> "__copy_" ^ Monomorph_tree.nominal_name typ
+    | Free -> "__free_" ^ Monomorph_tree.nominal_name typ
     | Free_except pset ->
-        "__free_except" ^ path_name pset ^ "_"
-        ^ Monomorph_tree.structural_name ~closure:false typ
+        "__free_except" ^ path_name pset ^ "_" ^ Monomorph_tree.nominal_name typ
 
   let make_fn kind v =
     let name = name v.typ kind in
@@ -153,7 +152,7 @@ struct
     let pre = match kind with `Dtor -> "__dtor_" | `Ctor -> "__ctor_" in
     let fs = List.map (fun cl -> { ftyp = cl.cltyp; mut = cl.clmut }) assoc in
     let typ = Trecord ([], Rec_not (fs |> Array.of_list), None) in
-    pre ^ Monomorph_tree.structural_name ~closure:false typ
+    pre ^ Monomorph_tree.nominal_name typ
 
   let get_ctor assoc_type assoc upward =
     ignore upward;

@@ -4,9 +4,9 @@ Copy string literal
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %fmt.formatter.tu_ = type { %closure }
+  %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
-  %lupc_lru_u2_ = type { i64, %fmt.formatter.tu_ }
+  %tp.lfmt.formatter.t.u = type { i64, %fmt.formatter.t.u }
   
   @fmt_int_digits = external global ptr
   @fmt_stdout_missing_arg_msg = external global ptr
@@ -26,7 +26,7 @@ Copy string literal
   
   declare void @fmt_stdout_helper_printn(ptr noalias %0, ptr %1, ptr %2)
   
-  define linkonce_odr void @__array_fixed_swap_items_A64c__(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
+  define linkonce_odr void @__array_fixed_swap_items_A64.c(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
   entry:
     %eq = icmp eq i64 %i, %j
     %0 = xor i1 %eq, true
@@ -47,23 +47,23 @@ Copy string literal
     ret void
   }
   
-  define linkonce_odr void @__fmt_endl_upc_lru_u_ru_(ptr %p) !dbg !7 {
+  define linkonce_odr void @__fmt_endl_fmt.formatter.t.uru(ptr %p) !dbg !7 {
   entry:
-    %ret = alloca %fmt.formatter.tu_, align 8
-    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
-    call void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %ret), !dbg !10
+    %ret = alloca %fmt.formatter.t.u, align 8
+    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
+    call void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %ret), !dbg !10
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %fm) !dbg !11 {
+  define linkonce_odr void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %fm) !dbg !11 {
   entry:
-    tail call void @__free_except1_upc_lru_u_(ptr %fm)
+    tail call void @__free_except1_fmt.formatter.t.u(ptr %fm)
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
+  define linkonce_odr void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
   entry:
-    %1 = alloca %fmt.formatter.tu_, align 8
+    %1 = alloca %fmt.formatter.t.u, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
     %loadtmp = load ptr, ptr %1, align 8
     %envptr = getelementptr inbounds %closure, ptr %1, i32 0, i32 1
@@ -73,7 +73,7 @@ Copy string literal
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
+  define linkonce_odr void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
   entry:
     %1 = alloca [64 x i8], align 1
     store [64 x i8] zeroinitializer, ptr %1, align 1
@@ -92,7 +92,7 @@ Copy string literal
     br i1 %andtmp, label %then, label %else, !dbg !15
   
   then:                                             ; preds = %cont
-    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
+    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
     br label %ifcont
   
   else:                                             ; preds = %cont
@@ -103,7 +103,7 @@ Copy string literal
     store ptr %1, ptr %_fmt_arr, align 8
     %base1 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 3
     store i64 %base, ptr %base1, align 8
-    store ptr @__ctor_A64c_l_, ptr %clsr_fmt_aux, align 8
+    store ptr @__ctor_tp.A64.cl, ptr %clsr_fmt_aux, align 8
     %dtor = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr_fmt_aux, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %fmt_aux, i32 0, i32 1
@@ -118,89 +118,89 @@ Copy string literal
     store ptr %1, ptr %_fmt_arr5, align 8
     %_fmt_length = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 3
     store i64 %add, ptr %_fmt_length, align 8
-    store ptr @__ctor_A64c_l_, ptr %clsr___fun_fmt2, align 8
+    store ptr @__ctor_tp.A64.cl, ptr %clsr___fun_fmt2, align 8
     %dtor7 = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %clsr___fun_fmt2, i32 0, i32 1
     store ptr null, ptr %dtor7, align 8
     %envptr8 = getelementptr inbounds %closure, ptr %__fun_fmt2, i32 0, i32 1
     store ptr %clsr___fun_fmt2, ptr %envptr8, align 8
     call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !18
-    call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
+    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
+  define linkonce_odr void @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
   entry:
-    tail call void @__fmt_int_base_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
+    tail call void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
     ret void
   }
   
-  define linkonce_odr void @__fmt_stdout_impl_fmt_fail_missing_rupc_lru_u__(ptr noalias %0) !dbg !22 {
+  define linkonce_odr void @__fmt_stdout_impl_fmt_fail_missing_rfmt.formatter.t.u(ptr noalias %0) !dbg !22 {
   entry:
-    %ret = alloca %fmt.formatter.tu_, align 8
+    %ret = alloca %fmt.formatter.t.u, align 8
     call void @fmt_prerr(ptr %ret), !dbg !23
     %1 = load ptr, ptr @fmt_stdout_missing_arg_msg, align 8
-    %ret1 = alloca %fmt.formatter.tu_, align 8
-    call void @__fmt_str_upc_lru_u_rupc_lru_u__(ptr %ret1, ptr %ret, ptr %1), !dbg !24
-    call void @__fmt_endl_upc_lru_u_ru_(ptr %ret1), !dbg !25
+    %ret1 = alloca %fmt.formatter.t.u, align 8
+    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret1, ptr %ret, ptr %1), !dbg !24
+    call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret1), !dbg !25
     call void @abort()
     %failwith = alloca ptr, align 8
     ret void
   }
   
-  define linkonce_odr void @__fmt_stdout_impl_fmt_fail_too_many_ru_() !dbg !26 {
+  define linkonce_odr void @__fmt_stdout_impl_fmt_fail_too_many_ru() !dbg !26 {
   entry:
-    %ret = alloca %fmt.formatter.tu_, align 8
+    %ret = alloca %fmt.formatter.t.u, align 8
     call void @fmt_prerr(ptr %ret), !dbg !27
     %0 = load ptr, ptr @fmt_stdout_too_many_arg_msg, align 8
-    %ret1 = alloca %fmt.formatter.tu_, align 8
-    call void @__fmt_str_upc_lru_u_rupc_lru_u__(ptr %ret1, ptr %ret, ptr %0), !dbg !28
-    call void @__fmt_endl_upc_lru_u_ru_(ptr %ret1), !dbg !29
+    %ret1 = alloca %fmt.formatter.t.u, align 8
+    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret1, ptr %ret, ptr %0), !dbg !28
+    call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret1), !dbg !29
     call void @abort()
     ret void
   }
   
-  define linkonce_odr void @__fmt_stdout_print1_upc_lru_u_lrupc_lru_u2_l_(ptr %fmtstr, ptr %f0, i64 %v0) !dbg !30 {
+  define linkonce_odr void @__fmt_stdout_print1_fmt_stdout_print1_ll(ptr %fmtstr, ptr %f0, i64 %v0) !dbg !30 {
   entry:
-    %__fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_ = alloca %closure, align 8
-    store ptr @__fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_, ptr %__fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_, align 8
-    %clsr___fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_ = alloca { ptr, ptr, %closure, i64 }, align 8
-    %f01 = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_, i32 0, i32 2
+    %__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul = alloca %closure, align 8
+    store ptr @__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, ptr %__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, align 8
+    %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul = alloca { ptr, ptr, %closure, i64 }, align 8
+    %f01 = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 2
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f01, ptr align 1 %f0, i64 16, i1 false)
-    %v02 = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_, i32 0, i32 3
+    %v02 = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 3
     store i64 %v0, ptr %v02, align 8
-    store ptr @__ctor_upc_lru_u_lrupc_lru_u2_l_, ptr %clsr___fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_, align 8
-    %dtor = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_, i32 0, i32 1
+    store ptr @__ctor_tp._fmt.formatter.t.ulrfmt.formatter.t.ul, ptr %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
-    %envptr = getelementptr inbounds %closure, ptr %__fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_, i32 0, i32 1
-    store ptr %clsr___fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_, ptr %envptr, align 8
-    %ret = alloca %lupc_lru_u2_, align 8
-    call void @fmt_stdout_helper_printn(ptr %ret, ptr %fmtstr, ptr %__fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_), !dbg !31
-    %0 = getelementptr inbounds %lupc_lru_u2_, ptr %ret, i32 0, i32 1
+    %envptr = getelementptr inbounds %closure, ptr %__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 1
+    store ptr %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, ptr %envptr, align 8
+    %ret = alloca %tp.lfmt.formatter.t.u, align 8
+    call void @fmt_stdout_helper_printn(ptr %ret, ptr %fmtstr, ptr %__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul), !dbg !31
+    %0 = getelementptr inbounds %tp.lfmt.formatter.t.u, ptr %ret, i32 0, i32 1
     %1 = load i64, ptr %ret, align 8
     %ne = icmp ne i64 %1, 1
     br i1 %ne, label %then, label %else, !dbg !32
   
   then:                                             ; preds = %entry
-    call void @__fmt_stdout_impl_fmt_fail_too_many_ru_(), !dbg !33
-    call void @__free_upc_lru_u_(ptr %0)
+    call void @__fmt_stdout_impl_fmt_fail_too_many_ru(), !dbg !33
+    call void @__free_fmt.formatter.t.u(ptr %0)
     br label %ifcont
   
   else:                                             ; preds = %entry
-    call void @__fmt_formatter_extract_upc_lru_u_ru_(ptr %0), !dbg !34
+    call void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %0), !dbg !34
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
     ret void
   }
   
-  define linkonce_odr void @__fmt_str_upc_lru_u_rupc_lru_u__(ptr noalias %0, ptr %p, ptr %str) !dbg !35 {
+  define linkonce_odr void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, ptr %str) !dbg !35 {
   entry:
     %1 = tail call ptr @string_data(ptr %str), !dbg !36
     %2 = tail call i64 @string_len(ptr %str), !dbg !37
-    tail call void @__fmt_formatter_format_upc_lru_u_rupc_lru_u__(ptr %0, ptr %p, ptr %1, i64 %2), !dbg !38
+    tail call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 %2), !dbg !38
     ret void
   }
   
@@ -212,11 +212,11 @@ Copy string literal
     %_fmt_length2 = load i64, ptr %_fmt_length, align 8
     %sub = sub i64 %_fmt_length2, %i
     %sub3 = sub i64 %sub, 1
-    tail call void @__array_fixed_swap_items_A64c__(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !40
+    tail call void @__array_fixed_swap_items_A64.c(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !40
     ret void
   }
   
-  define linkonce_odr void @__fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_(ptr noalias %0, ptr %fmter, i64 %i, ptr %1) !dbg !41 {
+  define linkonce_odr void @__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul(ptr noalias %0, ptr %fmter, i64 %i, ptr %1) !dbg !41 {
   entry:
     %v0 = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %1, i32 0, i32 3
     %v01 = load i64, ptr %v0, align 8
@@ -232,8 +232,8 @@ Copy string literal
     ret void
   
   else:                                             ; preds = %entry
-    tail call void @__fmt_stdout_impl_fmt_fail_missing_rupc_lru_u__(ptr %0), !dbg !44
-    tail call void @__free_upc_lru_u_(ptr %fmter)
+    tail call void @__fmt_stdout_impl_fmt_fail_missing_rfmt.formatter.t.u(ptr %0), !dbg !44
+    tail call void @__free_fmt.formatter.t.u(ptr %fmter)
     ret void
   }
   
@@ -286,7 +286,7 @@ Copy string literal
     ret i64 %iftmp
   }
   
-  define linkonce_odr void @__free_upc_lru_(ptr %0) {
+  define linkonce_odr void @__free__up.clru(ptr %0) {
   entry:
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     %env = load ptr, ptr %envptr, align 8
@@ -311,17 +311,17 @@ Copy string literal
     br label %ret
   }
   
-  define linkonce_odr void @__free_except1_upc_lru_u_(ptr %0) {
+  define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
     %1 = bitcast ptr %0 to ptr
-    call void @__free_upc_lru_(ptr %1)
+    call void @__free__up.clru(ptr %1)
     ret void
   }
   
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr ptr @__ctor_A64c_l_(ptr %0) {
+  define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
     %1 = call ptr @malloc(i64 88)
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
@@ -332,16 +332,16 @@ Copy string literal
   
   declare void @abort()
   
-  define linkonce_odr ptr @__ctor_upc_lru_u_lrupc_lru_u2_l_(ptr %0) {
+  define linkonce_odr ptr @__ctor_tp._fmt.formatter.t.ulrfmt.formatter.t.ul(ptr %0) {
   entry:
     %1 = call ptr @malloc(i64 40)
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
     %f0 = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %1, i32 0, i32 2
-    call void @__copy_upc_lru_u_lrupc_lru_u2_(ptr %f0)
+    call void @__copy__fmt.formatter.t.ulrfmt.formatter.t.u(ptr %f0)
     ret ptr %1
   }
   
-  define linkonce_odr void @__copy_upc_lru_u_lrupc_lru_u2_(ptr %0) {
+  define linkonce_odr void @__copy__fmt.formatter.t.ulrfmt.formatter.t.u(ptr %0) {
   entry:
     %1 = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     %2 = load ptr, ptr %1, align 8
@@ -360,20 +360,20 @@ Copy string literal
     ret void
   }
   
-  define linkonce_odr void @__free_upc_lru_u_(ptr %0) {
+  define linkonce_odr void @__free_fmt.formatter.t.u(ptr %0) {
   entry:
     %1 = bitcast ptr %0 to ptr
-    call void @__free_upc_lru_(ptr %1)
+    call void @__free__up.clru(ptr %1)
     ret void
   }
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !49 {
   entry:
     %clstmp = alloca %closure, align 8
-    store ptr @__fmt_int_upc_lru_u_rupc_lru_u__, ptr %clstmp, align 8
+    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @__fmt_stdout_print1_upc_lru_u_lrupc_lru_u2_l_(ptr @0, ptr %clstmp, i64 1), !dbg !51
+    call void @__fmt_stdout_print1_fmt_stdout_print1_ll(ptr @0, ptr %clstmp, i64 1), !dbg !51
     ret i64 0
   }
   
@@ -385,46 +385,46 @@ Copy string literal
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "string_lit.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64c__", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64.c", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "array.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
   !6 = !DILocation(line: 140, column: 7, scope: !2)
-  !7 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_upc_lru_u_ru_", scope: !8, file: !8, line: 137, type: !4, scopeLine: 137, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !7 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_fmt.formatter.t.uru", scope: !8, file: !8, line: 137, type: !4, scopeLine: 137, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !8 = !DIFile(filename: "fmt.smu", directory: "")
   !9 = !DILocation(line: 139, column: 2, scope: !7)
   !10 = !DILocation(line: 140, column: 15, scope: !7)
-  !11 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_upc_lru_u_ru_", scope: !8, file: !8, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !12 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !11 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_fmt.formatter.t.uru", scope: !8, file: !8, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !12 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !13 = !DILocation(line: 24, column: 4, scope: !12)
-  !14 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 56, type: !4, scopeLine: 56, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !14 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 56, type: !4, scopeLine: 56, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !15 = !DILocation(line: 58, column: 6, scope: !14)
   !16 = !DILocation(line: 59, column: 4, scope: !14)
   !17 = !DILocation(line: 76, column: 17, scope: !14)
   !18 = !DILocation(line: 79, column: 4, scope: !14)
   !19 = !DILocation(line: 83, column: 4, scope: !14)
-  !20 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 111, type: !4, scopeLine: 111, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !20 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 111, type: !4, scopeLine: 111, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !21 = !DILocation(line: 112, column: 2, scope: !20)
-  !22 = distinct !DISubprogram(name: "_fmt_stdout_impl_fmt_fail_missing", linkageName: "__fmt_stdout_impl_fmt_fail_missing_rupc_lru_u__", scope: !8, file: !8, line: 224, type: !4, scopeLine: 224, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !22 = distinct !DISubprogram(name: "_fmt_stdout_impl_fmt_fail_missing", linkageName: "__fmt_stdout_impl_fmt_fail_missing_rfmt.formatter.t.u", scope: !8, file: !8, line: 224, type: !4, scopeLine: 224, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !23 = !DILocation(line: 225, column: 6, scope: !22)
   !24 = !DILocation(line: 225, column: 17, scope: !22)
   !25 = !DILocation(line: 226, column: 9, scope: !22)
-  !26 = distinct !DISubprogram(name: "_fmt_stdout_impl_fmt_fail_too_many", linkageName: "__fmt_stdout_impl_fmt_fail_too_many_ru_", scope: !8, file: !8, line: 230, type: !4, scopeLine: 230, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !26 = distinct !DISubprogram(name: "_fmt_stdout_impl_fmt_fail_too_many", linkageName: "__fmt_stdout_impl_fmt_fail_too_many_ru", scope: !8, file: !8, line: 230, type: !4, scopeLine: 230, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !27 = !DILocation(line: 231, column: 6, scope: !26)
   !28 = !DILocation(line: 231, column: 17, scope: !26)
   !29 = !DILocation(line: 232, column: 9, scope: !26)
-  !30 = distinct !DISubprogram(name: "_fmt_stdout_print1", linkageName: "__fmt_stdout_print1_upc_lru_u_lrupc_lru_u2_l_", scope: !8, file: !8, line: 308, type: !4, scopeLine: 308, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !30 = distinct !DISubprogram(name: "_fmt_stdout_print1", linkageName: "__fmt_stdout_print1_fmt_stdout_print1_ll", scope: !8, file: !8, line: 308, type: !4, scopeLine: 308, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !31 = !DILocation(line: 309, column: 22, scope: !30)
   !32 = !DILocation(line: 315, column: 7, scope: !30)
   !33 = !DILocation(line: 316, column: 6, scope: !30)
   !34 = !DILocation(line: 318, column: 11, scope: !30)
-  !35 = distinct !DISubprogram(name: "_fmt_str", linkageName: "__fmt_str_upc_lru_u_rupc_lru_u__", scope: !8, file: !8, line: 124, type: !4, scopeLine: 124, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !35 = distinct !DISubprogram(name: "_fmt_str", linkageName: "__fmt_str_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 124, type: !4, scopeLine: 124, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !36 = !DILocation(line: 125, column: 22, scope: !35)
   !37 = !DILocation(line: 125, column: 40, scope: !35)
   !38 = !DILocation(line: 125, column: 2, scope: !35)
   !39 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !8, file: !8, line: 79, type: !4, scopeLine: 79, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !40 = !DILocation(line: 80, column: 6, scope: !39)
-  !41 = distinct !DISubprogram(name: "__fun_fmt_stdout2", linkageName: "__fun_fmt_stdout2_Cupc_lru_u_lrupc_lru_u2_l_", scope: !8, file: !8, line: 309, type: !4, scopeLine: 309, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !41 = distinct !DISubprogram(name: "__fun_fmt_stdout2", linkageName: "__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul", scope: !8, file: !8, line: 309, type: !4, scopeLine: 309, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !42 = !DILocation(line: 311, column: 8, scope: !41)
   !43 = !DILocation(line: 311, column: 11, scope: !41)
   !44 = !DILocation(line: 312, column: 11, scope: !41)
@@ -460,28 +460,28 @@ Copy array of strings
     %2 = alloca ptr, align 8
     store ptr @0, ptr %2, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 8 %2, i64 8, i1 false)
-    tail call void @__copy_ac_(ptr %1)
+    tail call void @__copy_a.c(ptr %1)
     %"1" = getelementptr ptr, ptr %1, i64 1
     %3 = alloca ptr, align 8
     store ptr @1, ptr %3, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %"1", ptr align 8 %3, i64 8, i1 false)
-    tail call void @__copy_ac_(ptr %"1")
+    tail call void @__copy_a.c(ptr %"1")
     %4 = alloca ptr, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %4, ptr align 8 @schmu_a, i64 8, i1 false)
-    call void @__copy_2ac2_(ptr %4)
+    call void @__copy_a.a.c(ptr %4)
     %5 = load ptr, ptr %4, align 8
     %6 = getelementptr i8, ptr %5, i64 16
     %7 = getelementptr ptr, ptr %6, i64 1
     %8 = load ptr, ptr %7, align 8
     call void @string_println(ptr %8), !dbg !6
-    call void @__free_2ac2_(ptr %4)
-    call void @__free_2ac2_(ptr @schmu_a)
+    call void @__free_a.a.c(ptr %4)
+    call void @__free_a.a.c(ptr @schmu_a)
     ret i64 0
   }
   
   declare ptr @malloc(i64 %0)
   
-  define linkonce_odr void @__copy_ac_(ptr %0) {
+  define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     %sz1 = bitcast ptr %1 to ptr
@@ -501,7 +501,7 @@ Copy array of strings
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr void @__copy_2ac2_(ptr %0) {
+  define linkonce_odr void @__copy_a.a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     %sz1 = bitcast ptr %1 to ptr
@@ -525,7 +525,7 @@ Copy array of strings
   child:                                            ; preds = %rec
     %7 = getelementptr i8, ptr %1, i64 16
     %8 = getelementptr ptr, ptr %7, i64 %5
-    call void @__copy_ac_(ptr %8)
+    call void @__copy_a.c(ptr %8)
     %9 = add i64 %5, 1
     store i64 %9, ptr %cnt, align 8
     br label %rec
@@ -534,14 +534,14 @@ Copy array of strings
     ret void
   }
   
-  define linkonce_odr void @__free_ac_(ptr %0) {
+  define linkonce_odr void @__free_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     call void @free(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_2ac2_(ptr %0) {
+  define linkonce_odr void @__free_a.a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     %sz1 = bitcast ptr %1 to ptr
@@ -558,7 +558,7 @@ Copy array of strings
   child:                                            ; preds = %rec
     %4 = getelementptr i8, ptr %1, i64 16
     %5 = getelementptr ptr, ptr %4, i64 %2
-    call void @__free_ac_(ptr %5)
+    call void @__free_a.c(ptr %5)
     %6 = add i64 %2, 1
     store i64 %6, ptr %cnt, align 8
     br label %rec
@@ -589,10 +589,10 @@ Copy records
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %contdac_lal2__ = type { %t_ }
-  %t_ = type { double, ptr, i64, ptr }
+  %cont.t = type { %t }
+  %t = type { double, ptr, i64, ptr }
   
-  @schmu_a = global %contdac_lal2__ zeroinitializer, align 8
+  @schmu_a = global %cont.t zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"lul\00" }
   
   declare void @string_println(ptr %0)
@@ -604,10 +604,10 @@ Copy records
     store ptr @0, ptr %0, align 8
     %1 = alloca ptr, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %0, i64 8, i1 false)
-    call void @__copy_ac_(ptr %1)
+    call void @__copy_a.c(ptr %1)
     %2 = load ptr, ptr %1, align 8
-    store ptr %2, ptr getelementptr inbounds (%t_, ptr @schmu_a, i32 0, i32 1), align 8
-    store i64 10, ptr getelementptr inbounds (%t_, ptr @schmu_a, i32 0, i32 2), align 8
+    store ptr %2, ptr getelementptr inbounds (%t, ptr @schmu_a, i32 0, i32 1), align 8
+    store i64 10, ptr getelementptr inbounds (%t, ptr @schmu_a, i32 0, i32 2), align 8
     %3 = call ptr @malloc(i64 40)
     %arr = alloca ptr, align 8
     store ptr %3, ptr %arr, align 8
@@ -620,19 +620,19 @@ Copy records
     store i64 20, ptr %"1", align 8
     %"2" = getelementptr i64, ptr %4, i64 2
     store i64 30, ptr %"2", align 8
-    store ptr %3, ptr getelementptr inbounds (%t_, ptr @schmu_a, i32 0, i32 3), align 8
-    %5 = alloca %contdac_lal2__, align 8
+    store ptr %3, ptr getelementptr inbounds (%t, ptr @schmu_a, i32 0, i32 3), align 8
+    %5 = alloca %cont.t, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %5, ptr align 8 @schmu_a, i64 32, i1 false)
-    call void @__copy_dac_lal3_(ptr %5)
-    %6 = getelementptr inbounds %t_, ptr %5, i32 0, i32 1
+    call void @__copy_cont.t(ptr %5)
+    %6 = getelementptr inbounds %t, ptr %5, i32 0, i32 1
     %7 = load ptr, ptr %6, align 8
     call void @string_println(ptr %7), !dbg !6
-    call void @__free_dac_lal3_(ptr %5)
-    call void @__free_dac_lal3_(ptr @schmu_a)
+    call void @__free_cont.t(ptr %5)
+    call void @__free_cont.t(ptr @schmu_a)
     ret i64 0
   }
   
-  define linkonce_odr void @__copy_ac_(ptr %0) {
+  define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     %sz1 = bitcast ptr %1 to ptr
@@ -654,16 +654,16 @@ Copy records
   
   declare ptr @malloc(i64 %0)
   
-  define linkonce_odr void @__copy_dac_lal2_(ptr %0) {
+  define linkonce_odr void @__copy_t(ptr %0) {
   entry:
-    %1 = getelementptr inbounds %t_, ptr %0, i32 0, i32 1
-    call void @__copy_ac_(ptr %1)
-    %2 = getelementptr inbounds %t_, ptr %0, i32 0, i32 3
-    call void @__copy_al_(ptr %2)
+    %1 = getelementptr inbounds %t, ptr %0, i32 0, i32 1
+    call void @__copy_a.c(ptr %1)
+    %2 = getelementptr inbounds %t, ptr %0, i32 0, i32 3
+    call void @__copy_a.l(ptr %2)
     ret void
   }
   
-  define linkonce_odr void @__copy_al_(ptr %0) {
+  define linkonce_odr void @__copy_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     %sz1 = bitcast ptr %1 to ptr
@@ -678,40 +678,40 @@ Copy records
     ret void
   }
   
-  define linkonce_odr void @__copy_dac_lal3_(ptr %0) {
+  define linkonce_odr void @__copy_cont.t(ptr %0) {
   entry:
     %1 = bitcast ptr %0 to ptr
-    call void @__copy_dac_lal2_(ptr %1)
+    call void @__copy_t(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_dac_lal2_(ptr %0) {
+  define linkonce_odr void @__free_t(ptr %0) {
   entry:
-    %1 = getelementptr inbounds %t_, ptr %0, i32 0, i32 1
-    call void @__free_ac_(ptr %1)
-    %2 = getelementptr inbounds %t_, ptr %0, i32 0, i32 3
-    call void @__free_al_(ptr %2)
+    %1 = getelementptr inbounds %t, ptr %0, i32 0, i32 1
+    call void @__free_a.c(ptr %1)
+    %2 = getelementptr inbounds %t, ptr %0, i32 0, i32 3
+    call void @__free_a.l(ptr %2)
     ret void
   }
   
-  define linkonce_odr void @__free_al_(ptr %0) {
+  define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     call void @free(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_ac_(ptr %0) {
+  define linkonce_odr void @__free_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     call void @free(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_dac_lal3_(ptr %0) {
+  define linkonce_odr void @__free_cont.t(ptr %0) {
   entry:
     %1 = bitcast ptr %0 to ptr
-    call void @__free_dac_lal2_(ptr %1)
+    call void @__free_t(ptr %1)
     ret void
   }
   
@@ -736,10 +736,10 @@ Copy variants
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
-  %option.tac_l__ = type { i32, %ac_l_ }
-  %ac_l_ = type { ptr, i64 }
+  %option.t.tp.a.cl = type { i32, %tp.a.cl }
+  %tp.a.cl = type { ptr, i64 }
   
-  @schmu_a = global %option.tac_l__ zeroinitializer, align 8
+  @schmu_a = global %option.t.tp.a.cl zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
   
   declare void @string_println(ptr %0)
@@ -751,31 +751,31 @@ Copy variants
     store ptr @0, ptr %0, align 8
     %1 = alloca ptr, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %0, i64 8, i1 false)
-    call void @__copy_ac_(ptr %1)
+    call void @__copy_a.c(ptr %1)
     %2 = load ptr, ptr %1, align 8
-    store ptr %2, ptr getelementptr inbounds (%option.tac_l__, ptr @schmu_a, i32 0, i32 1), align 8
-    store i64 0, ptr getelementptr inbounds (%option.tac_l__, ptr @schmu_a, i32 0, i32 1, i32 1), align 8
-    %3 = alloca %option.tac_l__, align 8
+    store ptr %2, ptr getelementptr inbounds (%option.t.tp.a.cl, ptr @schmu_a, i32 0, i32 1), align 8
+    store i64 0, ptr getelementptr inbounds (%option.t.tp.a.cl, ptr @schmu_a, i32 0, i32 1, i32 1), align 8
+    %3 = alloca %option.t.tp.a.cl, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %3, ptr align 8 @schmu_a, i64 24, i1 false)
-    call void @__copy_vac_l2_(ptr %3)
+    call void @__copy_option.t.tp.a.cl(ptr %3)
     %index = load i32, ptr %3, align 4
     %eq = icmp eq i32 %index, 1
     br i1 %eq, label %then, label %ifcont, !dbg !6
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option.tac_l__, ptr %3, i32 0, i32 1
-    %4 = getelementptr inbounds %ac_l_, ptr %data, i32 0, i32 1
+    %data = getelementptr inbounds %option.t.tp.a.cl, ptr %3, i32 0, i32 1
+    %4 = getelementptr inbounds %tp.a.cl, ptr %data, i32 0, i32 1
     %5 = load ptr, ptr %data, align 8
     call void @string_println(ptr %5), !dbg !7
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
-    call void @__free_vac_l2_(ptr %3)
-    call void @__free_vac_l2_(ptr @schmu_a)
+    call void @__free_option.t.tp.a.cl(ptr %3)
+    call void @__free_option.t.tp.a.cl(ptr @schmu_a)
     ret i64 0
   }
   
-  define linkonce_odr void @__copy_ac_(ptr %0) {
+  define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     %sz1 = bitcast ptr %1 to ptr
@@ -795,14 +795,14 @@ Copy variants
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr void @__copy_ac_l_(ptr %0) {
+  define linkonce_odr void @__copy_tp.a.cl(ptr %0) {
   entry:
     %1 = bitcast ptr %0 to ptr
-    call void @__copy_ac_(ptr %1)
+    call void @__copy_a.c(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__copy_vac_l2_(ptr %0) {
+  define linkonce_odr void @__copy_option.t.tp.a.cl(ptr %0) {
   entry:
     %tag1 = bitcast ptr %0 to ptr
     %index = load i32, ptr %tag1, align 4
@@ -810,29 +810,29 @@ Copy variants
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %option.tac_l__, ptr %0, i32 0, i32 1
-    call void @__copy_ac_l_(ptr %data)
+    %data = getelementptr inbounds %option.t.tp.a.cl, ptr %0, i32 0, i32 1
+    call void @__copy_tp.a.cl(ptr %data)
     br label %cont
   
   cont:                                             ; preds = %match, %entry
     ret void
   }
   
-  define linkonce_odr void @__free_ac_l_(ptr %0) {
+  define linkonce_odr void @__free_tp.a.cl(ptr %0) {
   entry:
     %1 = bitcast ptr %0 to ptr
-    call void @__free_ac_(ptr %1)
+    call void @__free_a.c(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_ac_(ptr %0) {
+  define linkonce_odr void @__free_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     call void @free(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_vac_l2_(ptr %0) {
+  define linkonce_odr void @__free_option.t.tp.a.cl(ptr %0) {
   entry:
     %tag1 = bitcast ptr %0 to ptr
     %index = load i32, ptr %tag1, align 4
@@ -840,17 +840,17 @@ Copy variants
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
-    %data = getelementptr inbounds %option.tac_l__, ptr %0, i32 0, i32 1
-    call void @__free_ac_l_(ptr %data)
+    %data = getelementptr inbounds %option.t.tp.a.cl, ptr %0, i32 0, i32 1
+    call void @__free_tp.a.cl(ptr %data)
     br label %cont
   
   cont:                                             ; preds = %match, %entry
     ret void
   }
   
-  declare ptr @malloc(i64 %0)
-  
   declare void @free(ptr %0)
+  
+  declare ptr @malloc(i64 %0)
   
   attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   
@@ -873,8 +873,8 @@ Copy closures
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
   
   %closure = type { ptr, ptr }
-  %"2l_" = type { i64, i64 }
-  %"2rl2_l_" = type { %closure, i64 }
+  %tp.ll = type { i64, i64 }
+  %tp._r_rll = type { %closure, i64 }
   
   @schmu_c = global %closure zeroinitializer, align 8
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"hello\00" }
@@ -909,15 +909,15 @@ Copy closures
   
   define void @schmu_hmm(ptr noalias %0) !dbg !9 {
   entry:
-    %1 = alloca %"2l_", align 8
+    %1 = alloca %tp.ll, align 8
     store i64 1, ptr %1, align 8
-    %"1" = getelementptr inbounds %"2l_", ptr %1, i32 0, i32 1
+    %"1" = getelementptr inbounds %tp.ll, ptr %1, i32 0, i32 1
     store i64 0, ptr %"1", align 8
     store ptr @schmu_capture, ptr %0, align 8
     %2 = tail call ptr @malloc(i64 24)
     %a = getelementptr inbounds { ptr, ptr, i64 }, ptr %2, i32 0, i32 2
     store i64 1, ptr %a, align 8
-    store ptr @__ctor_l_, ptr %2, align 8
+    store ptr @__ctor_tp.l, ptr %2, align 8
     %dtor = getelementptr inbounds { ptr, ptr, i64 }, ptr %2, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
@@ -927,15 +927,15 @@ Copy closures
   
   define void @schmu_hmm_move(ptr noalias %0) !dbg !10 {
   entry:
-    %1 = alloca %"2l_", align 8
+    %1 = alloca %tp.ll, align 8
     store i64 1, ptr %1, align 8
-    %"1" = getelementptr inbounds %"2l_", ptr %1, i32 0, i32 1
+    %"1" = getelementptr inbounds %tp.ll, ptr %1, i32 0, i32 1
     store i64 0, ptr %"1", align 8
     store ptr @schmu_capture__2, ptr %0, align 8
     %2 = tail call ptr @malloc(i64 24)
     %a = getelementptr inbounds { ptr, ptr, i64 }, ptr %2, i32 0, i32 2
     store i64 1, ptr %a, align 8
-    store ptr @__ctor_l_, ptr %2, align 8
+    store ptr @__ctor_tp.l, ptr %2, align 8
     %dtor = getelementptr inbounds { ptr, ptr, i64 }, ptr %2, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
@@ -955,26 +955,26 @@ Copy closures
     %3 = alloca ptr, align 8
     store ptr @0, ptr %3, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %2, ptr align 8 %3, i64 8, i1 false)
-    tail call void @__copy_ac_(ptr %2)
+    tail call void @__copy_a.c(ptr %2)
     store ptr @__fun_schmu0, ptr %0, align 8
     %4 = tail call ptr @malloc(i64 24)
     %a = getelementptr inbounds { ptr, ptr, ptr }, ptr %4, i32 0, i32 2
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %a, ptr align 8 %arr, i64 8, i1 false)
-    tail call void @__copy_2ac2_(ptr %a)
+    tail call void @__copy_a.a.c(ptr %a)
     %5 = load ptr, ptr %a, align 8
     store ptr %5, ptr %a, align 8
-    store ptr @__ctor_2ac3_, ptr %4, align 8
+    store ptr @__ctor_tp.a.a.c, ptr %4, align 8
     %dtor = getelementptr inbounds { ptr, ptr, ptr }, ptr %4, i32 0, i32 1
-    store ptr @__dtor_2ac3_, ptr %dtor, align 8
+    store ptr @__dtor_tp.a.a.c, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     store ptr %4, ptr %envptr, align 8
-    call void @__free_2ac2_(ptr %arr)
+    call void @__free_a.a.c(ptr %arr)
     ret void
   }
   
   declare ptr @malloc(i64 %0)
   
-  define linkonce_odr ptr @__ctor_l_(ptr %0) {
+  define linkonce_odr ptr @__ctor_tp.l(ptr %0) {
   entry:
     %1 = call ptr @malloc(i64 24)
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 24, i1 false)
@@ -984,7 +984,7 @@ Copy closures
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr void @__copy_ac_(ptr %0) {
+  define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     %sz1 = bitcast ptr %1 to ptr
@@ -1001,7 +1001,7 @@ Copy closures
     ret void
   }
   
-  define linkonce_odr void @__copy_2ac2_(ptr %0) {
+  define linkonce_odr void @__copy_a.a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     %sz1 = bitcast ptr %1 to ptr
@@ -1025,7 +1025,7 @@ Copy closures
   child:                                            ; preds = %rec
     %7 = getelementptr i8, ptr %1, i64 16
     %8 = getelementptr ptr, ptr %7, i64 %5
-    call void @__copy_ac_(ptr %8)
+    call void @__copy_a.c(ptr %8)
     %9 = add i64 %5, 1
     store i64 %9, ptr %cnt, align 8
     br label %rec
@@ -1034,31 +1034,31 @@ Copy closures
     ret void
   }
   
-  define linkonce_odr ptr @__ctor_2ac3_(ptr %0) {
+  define linkonce_odr ptr @__ctor_tp.a.a.c(ptr %0) {
   entry:
     %1 = call ptr @malloc(i64 24)
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 24, i1 false)
     %a = getelementptr inbounds { ptr, ptr, ptr }, ptr %1, i32 0, i32 2
-    call void @__copy_2ac2_(ptr %a)
+    call void @__copy_a.a.c(ptr %a)
     ret ptr %1
   }
   
-  define linkonce_odr void @__dtor_2ac3_(ptr %0) {
+  define linkonce_odr void @__dtor_tp.a.a.c(ptr %0) {
   entry:
     %a = getelementptr inbounds { ptr, ptr, ptr }, ptr %0, i32 0, i32 2
-    call void @__free_2ac2_(ptr %a)
+    call void @__free_a.a.c(ptr %a)
     call void @free(ptr %0)
     ret void
   }
   
-  define linkonce_odr void @__free_ac_(ptr %0) {
+  define linkonce_odr void @__free_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     call void @free(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_2ac2_(ptr %0) {
+  define linkonce_odr void @__free_a.a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     %sz1 = bitcast ptr %1 to ptr
@@ -1075,7 +1075,7 @@ Copy closures
   child:                                            ; preds = %rec
     %4 = getelementptr i8, ptr %1, i64 16
     %5 = getelementptr ptr, ptr %4, i64 %2
-    call void @__free_ac_(ptr %5)
+    call void @__free_a.c(ptr %5)
     %6 = add i64 %2, 1
     store i64 %6, ptr %cnt, align 8
     br label %rec
@@ -1089,40 +1089,40 @@ Copy closures
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !12 {
   entry:
-    %0 = alloca %"2rl2_l_", align 8
+    %0 = alloca %tp._r_rll, align 8
     %clstmp = alloca %closure, align 8
     store ptr @schmu_hmm, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %0, ptr align 8 %clstmp, i64 16, i1 false)
-    call void @__copy_2rl2_(ptr %0)
-    %"1" = getelementptr inbounds %"2rl2_l_", ptr %0, i32 0, i32 1
+    call void @__copy__r_rl(ptr %0)
+    %"1" = getelementptr inbounds %tp._r_rll, ptr %0, i32 0, i32 1
     store i64 0, ptr %"1", align 8
-    %1 = alloca %"2rl2_l_", align 8
+    %1 = alloca %tp._r_rll, align 8
     %clstmp2 = alloca %closure, align 8
     store ptr @schmu_hmm_move, ptr %clstmp2, align 8
     %envptr4 = getelementptr inbounds %closure, ptr %clstmp2, i32 0, i32 1
     store ptr null, ptr %envptr4, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %clstmp2, i64 16, i1 false)
-    call void @__copy_2rl2_(ptr %1)
-    %"15" = getelementptr inbounds %"2rl2_l_", ptr %1, i32 0, i32 1
+    call void @__copy__r_rl(ptr %1)
+    %"15" = getelementptr inbounds %tp._r_rll, ptr %1, i32 0, i32 1
     store i64 0, ptr %"15", align 8
     call void @schmu_test(ptr @schmu_c), !dbg !13
     %2 = alloca %closure, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %2, ptr align 8 @schmu_c, i64 16, i1 false)
-    call void @__copy_ru_(ptr %2)
+    call void @__copy__ru(ptr %2)
     %loadtmp = load ptr, ptr %2, align 8
     %envptr6 = getelementptr inbounds %closure, ptr %2, i32 0, i32 1
     %loadtmp7 = load ptr, ptr %envptr6, align 8
     call void %loadtmp(ptr %loadtmp7), !dbg !14
-    call void @__free_ru_(ptr %2)
-    call void @__free_ru_(ptr @schmu_c)
-    call void @__free_2rl2_l_(ptr %1)
-    call void @__free_2rl2_l_(ptr %0)
+    call void @__free__ru(ptr %2)
+    call void @__free__ru(ptr @schmu_c)
+    call void @__free_tp._r_rll(ptr %1)
+    call void @__free_tp._r_rll(ptr %0)
     ret i64 0
   }
   
-  define linkonce_odr void @__copy_2rl2_(ptr %0) {
+  define linkonce_odr void @__copy__r_rl(ptr %0) {
   entry:
     %1 = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     %2 = load ptr, ptr %1, align 8
@@ -1141,7 +1141,7 @@ Copy closures
     ret void
   }
   
-  define linkonce_odr void @__copy_ru_(ptr %0) {
+  define linkonce_odr void @__copy__ru(ptr %0) {
   entry:
     %1 = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     %2 = load ptr, ptr %1, align 8
@@ -1160,7 +1160,7 @@ Copy closures
     ret void
   }
   
-  define linkonce_odr void @__free_ru_(ptr %0) {
+  define linkonce_odr void @__free__ru(ptr %0) {
   entry:
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     %env = load ptr, ptr %envptr, align 8
@@ -1185,7 +1185,7 @@ Copy closures
     br label %ret
   }
   
-  define linkonce_odr void @__free_2rl2_(ptr %0) {
+  define linkonce_odr void @__free__r_rl(ptr %0) {
   entry:
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     %env = load ptr, ptr %envptr, align 8
@@ -1210,10 +1210,10 @@ Copy closures
     br label %ret
   }
   
-  define linkonce_odr void @__free_2rl2_l_(ptr %0) {
+  define linkonce_odr void @__free_tp._r_rll(ptr %0) {
   entry:
     %1 = bitcast ptr %0 to ptr
-    call void @__free_2rl2_(ptr %1)
+    call void @__free__r_rl(ptr %1)
     ret void
   }
   
@@ -1274,11 +1274,11 @@ Copy string literal on move
     %2 = alloca ptr, align 8
     store ptr @0, ptr %2, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 8 %2, i64 8, i1 false)
-    tail call void @__copy_ac_(ptr %1)
+    tail call void @__copy_a.c(ptr %1)
     %3 = alloca ptr, align 8
     store ptr @0, ptr %3, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_b, ptr align 8 %3, i64 8, i1 false)
-    tail call void @__copy_ac_(ptr @schmu_b)
+    tail call void @__copy_a.c(ptr @schmu_b)
     %clstmp = alloca %closure, align 8
     store ptr @__fun_schmu0, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
@@ -1291,14 +1291,14 @@ Copy string literal on move
     %6 = getelementptr i8, ptr %5, i64 16
     %7 = load ptr, ptr %6, align 8
     call void @string_println(ptr %7), !dbg !10
-    call void @__free_ac_(ptr @schmu_b)
-    call void @__free_2ac2_(ptr @schmu_a)
+    call void @__free_a.c(ptr @schmu_b)
+    call void @__free_a.a.c(ptr @schmu_a)
     ret i64 0
   }
   
   declare ptr @malloc(i64 %0)
   
-  define linkonce_odr void @__copy_ac_(ptr %0) {
+  define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     %sz1 = bitcast ptr %1 to ptr
@@ -1318,14 +1318,14 @@ Copy string literal on move
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
   declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
-  define linkonce_odr void @__free_ac_(ptr %0) {
+  define linkonce_odr void @__free_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     call void @free(ptr %1)
     ret void
   }
   
-  define linkonce_odr void @__free_2ac2_(ptr %0) {
+  define linkonce_odr void @__free_a.a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
     %sz1 = bitcast ptr %1 to ptr
@@ -1342,7 +1342,7 @@ Copy string literal on move
   child:                                            ; preds = %rec
     %4 = getelementptr i8, ptr %1, i64 16
     %5 = getelementptr ptr, ptr %4, i64 %2
-    call void @__free_ac_(ptr %5)
+    call void @__free_a.c(ptr %5)
     %6 = add i64 %2, 1
     store i64 %6, ptr %cnt, align 8
     br label %rec

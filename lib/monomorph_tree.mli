@@ -7,5 +7,4 @@ include Monomorph_tree_intf.S
 
 val typ_of_abs : abstraction -> typ
 val monomorphize : mname:Path.t -> Typed_tree.t -> monomorphized_tree
-val structural_name : closure:bool -> typ -> string
 val nominal_name : typ -> string

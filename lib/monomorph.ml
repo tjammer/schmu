@@ -109,10 +109,9 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         print_endline (show_expr e);
         failwith "Unsupported expression for find_function"
 
-  let structural_name ~closure t =
-    let rec aux t =
-      let open Printf in
-      match t with
+  let nominal_name name ~closure ~poly concrete =
+    let open Printf in
+    let rec aux ~poly = function
       | Tint -> "l"
       | Tbool -> "b"
       | Tunit -> "u"
@@ -121,72 +120,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       | Tfloat -> "d"
       | Ti32 | Tu32 -> "i"
       | Tf32 -> "f"
-      | Tfun (ps, r, k) ->
-          let k =
-            match k with
-            | Closure c when closure -> (
-                match c with
-                | [] -> ""
-                | c ->
-                    "C" ^ String.concat "" (List.map (fun c -> aux c.cltyp) c))
-            | Closure _ | Simple -> ""
-          in
-          sprintf "%sr%s%s_"
-            (String.concat "" (List.map (fun p -> aux p.pt) ps))
-            (aux r) k
-      | Tvariant (ps, (Rec_folded | Rec_top _), name)
-      | Trecord (ps, (Rec_folded | Rec_top _), Some name) ->
-          (* Treating recursive types nominally makes them easier to handle *)
-          sprintf "%s%s_" name (String.concat "" (List.map aux ps))
-      | Tvariant (_, Rec_not ctors, _) -> (
-          let ctors =
-            Array.to_list ctors
-            |> List.filter_map (fun ct -> Option.map aux ct.ctyp)
-          in
-          match ctors with
-          | [] -> (* C-like enum, which is represented as int32 *) aux Ti32
-          | l -> sprintf "v%s_" (String.concat "" l))
-      | Trecord (_, (Rec_folded | Rec_top _), None) -> failwith "unreachable"
-      | Trecord (_, Rec_not fs, _) ->
-          (Array.to_list fs
-          |> List.map (fun f -> aux f.ftyp)
-          |> String.concat "")
-          ^ "_"
       | Tpoly _ -> "g"
-      | Traw_ptr t -> sprintf "p%s_" (aux t)
-      | Tarray t -> sprintf "a%s_" (aux t)
-      | Trc (Strong, t) -> sprintf "R%s_" (aux t)
-      | Trc (Weak, t) -> sprintf "w%s_" (aux t)
-      | Tfixed_array (i, t) -> sprintf "A%i%s_" i (aux t)
-    in
-    let name = aux t in
-    (* Run length encode *)
-    let buf = Buffer.create (String.length name) in
-    let i, last =
-      String.fold_left
-        (fun (i, last) c ->
-          if Char.equal last c then (i + 1, last)
-          else (
-            if i > 1 then (
-              Buffer.add_char buf (Char.chr (i + Char.code '0'));
-              Buffer.add_char buf last)
-            else if i = 1 then Buffer.add_char buf last;
-            (1, c)))
-        (0, '\000') name
-    in
-    if i > 1 then (
-      Buffer.add_char buf (Char.chr (i + Char.code '0'));
-      Buffer.add_char buf last)
-    else if i = 1 then Buffer.add_char buf last;
-
-    Buffer.contents buf
-
-  let nominal_name name ~closure ~poly concrete =
-    let open Printf in
-    let rec aux ~poly = function
-      | ( Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Ti8 | Ti16
-        | Tu32 | Tpoly _ ) as t ->
-          structural_name ~closure t
       | Tfun (ps, r, k) -> (
           match poly with
           | Tfun (pps, pr, _) -> (
@@ -198,9 +132,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
                     | c ->
                         "C"
                         ^ String.concat ""
-                            (List.map
-                               (fun c -> structural_name ~closure c.cltyp)
-                               c))
+                            (List.map (fun c -> aux ~poly:Tbool c.cltyp) c))
                 | Closure _ | Simple -> ""
               in
               try
@@ -208,13 +140,13 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
                   List.fold_left2
                     (fun acc poly concrete ->
                       if is_type_polymorphic poly.pt then
-                        acc ^ structural_name ~closure concrete.pt
+                        acc ^ (aux ~poly:poly.pt) concrete.pt
                       else acc)
                     "" pps ps
                 in
                 let r =
                   if is_type_polymorphic pr then
-                    sprintf "r%s" (structural_name ~closure r)
+                    sprintf "r%s" ((aux ~poly:pr) r)
                   else ""
                 in
                 (* Only put '_' between name and rest if there is a rest *)
@@ -223,39 +155,62 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
                   && String.length ps == 0
                   && String.length r == 0
                 then name
-                else sprintf "%s_%s%s%s_" name ps r k
+                else sprintf "%s_%s%s%s" name ps r k
               with Invalid_argument _ ->
                 failwith "Internal Error: param count does not match")
-          | _ -> name ^ "_")
-      | Trecord (ps, _, Some n) | Tvariant (ps, _, n) ->
-          sprintf "%s%s_" n
-            (String.concat "" (List.map (structural_name ~closure) ps))
-      | Trecord (_, _, None) as t -> structural_name ~closure t
+          | _ ->
+              let k =
+                match k with
+                | Closure c when closure -> (
+                    match c with
+                    | [] -> ""
+                    | c ->
+                        "C"
+                        ^ String.concat ""
+                            (List.map (fun c -> aux ~poly:Tbool c.cltyp) c))
+                | Closure _ | Simple -> ""
+              in
+              let ps =
+                List.fold_left (fun acc p -> acc ^ (aux ~poly:Tbool) p.pt) "" ps
+              in
+              let r = sprintf "r%s" (aux ~poly:Tbool r) in
+              sprintf "%s_%s%s%s" name ps r k)
+      | Trecord (ps, _, Some n) | Tvariant (ps, _, n) -> (
+          match ps with
+          | [] -> n
+          | ps ->
+              sprintf "%s.%s" n
+                (String.concat "" (List.map (aux ~poly:Tbool) ps)))
+      | Trecord (_, (Rec_not fs | Rec_top fs), None) ->
+          "tp."
+          ^ String.concat ""
+              (Array.map (fun f -> aux ~poly:Tbool f.ftyp) fs |> Array.to_list)
+      | Trecord (_, Rec_folded, None) -> failwith "unreachable"
       | Traw_ptr t ->
-          sprintf "p%s_"
+          sprintf "p.%s"
             (match poly with
             | Traw_ptr poly -> aux ~poly t
-            | _ -> structural_name ~closure t)
+            | _ -> (aux ~poly:Tbool) t)
       | Tarray t ->
-          sprintf "a%s_"
+          sprintf "a.%s"
             (match poly with
             | Tarray poly -> aux ~poly t
-            | _ -> structural_name ~closure t)
+            | _ -> (aux ~poly:Tbool) t)
       | Trc (Strong, t) ->
-          sprintf "R%s_"
+          sprintf "R.%s"
             (match poly with
             | Trc (Strong, poly) -> aux ~poly t
-            | _ -> structural_name ~closure t)
+            | _ -> (aux ~poly:Tbool) t)
       | Trc (Weak, t) ->
-          sprintf "w%s_"
+          sprintf "w.%s"
             (match poly with
             | Trc (Weak, poly) -> aux ~poly t
-            | _ -> structural_name ~closure t)
+            | _ -> (aux ~poly:Tbool) t)
       | Tfixed_array (i, t) ->
-          sprintf "A%i%s_" i
+          sprintf "A%i.%s" i
             (match poly with
             | Tfixed_array (_, poly) -> aux ~poly t
-            | _ -> structural_name ~closure t)
+            | _ -> (aux ~poly:Tbool) t)
     in
     aux ~poly concrete
 

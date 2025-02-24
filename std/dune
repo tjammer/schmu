@@ -36,7 +36,14 @@
 
 (rule
  (targets schubfach.o schubfach.smi)
- (deps %{bin:schmu} schubfach.smu int.smi prelude.smi unsafe.smi string.smi array.smi)
+ (deps
+  %{bin:schmu}
+  schubfach.smu
+  int.smi
+  prelude.smi
+  unsafe.smi
+  string.smi
+  array.smi)
  (action
   (progn
    (run schmu --release -m --no-std schubfach.smu))))
