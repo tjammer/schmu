@@ -3,6 +3,7 @@ import iter
 import prelude
 import schubfach
 import string
+import unsafe
 
 use prelude
 
@@ -190,6 +191,12 @@ fun float(p!, f) {
   else {
     str(p, "nan")
   }
+}
+
+fun raw_ptr(p!, ptr : raw_ptr['a]) {
+  let ptr& = !ptr
+  let addr : int = unsafe/(addr(&ptr) |> reinterpret |> get(0))
+  str(p, "0x") |> int_base(addr, 16)
 }
 
 module type concrete_formatter {

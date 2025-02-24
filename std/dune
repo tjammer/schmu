@@ -28,7 +28,8 @@
   string.smi
   prelude.smi
   iter.smi
-  schubfach.smi)
+  schubfach.smi
+  unsafe.smi)
  (action
   (progn
    (run schmu --release -m --no-std fmt.smu))))
