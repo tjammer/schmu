@@ -4,27 +4,27 @@ import prelude
 
 module type key {
   type t
-  val hash : (t) -> int
-  val equal : (t, t) -> bool
+  val hash : fun (t) -> int
+  val equal : fun (t, t) -> bool
 }
 
 module type sig {
   type key
   type t['value]
 
-  val create : (int) -> t['value]
-  val length : (t['value]) -> int
-  val insert : (t['value]&, key!, 'value!) -> unit
-  val remove : (t['value]&, key) -> unit
-  val find : (t['value], key) -> option/t['value]
-  val find_map : (t['value], key, ('value) -> 'a) -> option/t['a]
-  val find_mut : (t['value]&, key, ('value&) -> unit) -> bool
+  val create : fun (int) -> t['value]
+  val length : fun (t['value]) -> int
+  val insert : fun (t['value]&, key!, 'value!) -> unit
+  val remove : fun (t['value]&, key) -> unit
+  val find : fun (t['value], key) -> option/t['value]
+  val find_map : fun (t['value], key, fun ('value) -> 'a) -> option/t['a]
+  val find_mut : fun (t['value]&, key, fun ('value&) -> unit) -> bool
   -- Need this until we have functions with 'once' mode
-  val find_mut_with : (t['value]&, key, 'a!, ('value&, 'a!) -> unit) -> bool
-  val mem : (t['value], key) -> bool
-  val fold : (t['value], 'b!, ('b!, key, 'value) -> 'c) -> 'c
-  val clear : (t['value]&) -> unit
-  val to_array : (t['value]) -> array[(key, 'value)]
+  val find_mut_with : fun (t['value]&, key, 'a!, fun ('value&, 'a!) -> unit) -> bool
+  val mem : fun (t['value], key) -> bool
+  val fold : fun (t['value], 'b!, fun ('b!, key, 'value) -> 'c) -> 'c
+  val clear : fun (t['value]&) -> unit
+  val to_array : fun (t['value]) -> array[(key, 'value)]
 }
 
 functor make : sig(m : key) {

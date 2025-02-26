@@ -1,4 +1,4 @@
-external assert : (bool) -> unit
+external assert : fun (bool) -> unit
 
 fun test(n) {
   if n == 10 {1}

@@ -70,36 +70,37 @@ let test_const_string_ansi () =
   test "string/t" "let s = \"\\027[2K\ram idling: \"; s"
 
 let test_hint_int () = test "int" "let a : int = 1; a"
-let test_func_id () = test "('a) -> 'a" "fun (a) {copy(a)}"
-let test_func_id_hint () = test "(int) -> int" "fun (a : int) {a}"
-let test_func_int () = test "(int) -> int" "fun (a) {a + 1}"
-let test_func_bool () = test "(bool) -> int" "fun (a) {if a {1} else {1}}"
+let test_func_id () = test "fun ('a) -> 'a" "fun (a) {copy(a)}"
+let test_func_id_hint () = test "fun (int) -> int" "fun (a : int) {a}"
+let test_func_int () = test "fun (int) -> int" "fun (a) {a + 1}"
+let test_func_bool () = test "fun (bool) -> int" "fun (a) {if a {1} else {1}}"
 
 let test_func_external () =
-  test "(int) -> unit" "external func : (int) -> unit; func"
+  test "fun (int) -> unit" "external func : fun (int) -> unit; func"
 
 let test_func_1st_class () =
-  test "((int) -> 'a, int) -> 'a" "fun (func, arg : int) {func(arg)}"
+  test "fun (fun (int) -> 'a, int) -> 'a" "fun (func, arg : int) {func(arg)}"
 
 let test_func_1st_hint () =
-  test "((int) -> unit, int) -> unit" "fun (f : (int) -> unit, arg) {f(arg)}"
+  test "fun (fun (int) -> unit, int) -> unit"
+    "fun (f : fun (int) -> unit, arg) {f(arg)}"
 
 let test_func_1st_stay_general () =
-  test "('a, ('a) -> 'b) -> 'b"
+  test "fun ('a, fun ('a) -> 'b) -> 'b"
     "fun foo(x, f) {f(x)}; fun add1(x) {x + 1}; let a = foo(1, add1); fun \
      boolean(x : bool) {x}; let b = foo(true, boolean); foo"
 
 let test_func_recursive_if () =
-  test "(int) -> unit"
-    "external ext : () -> unit; fun rec foo(i) {if i < 2 {ext()} else {foo(i - \
-     1)}}; foo"
+  test "fun (int) -> unit"
+    "external ext : fun () -> unit; fun rec foo(i) {if i < 2 {ext()} else \
+     {foo(i - 1)}}; foo"
 
 let test_func_generic_return () =
   test "int" "fun apply(f, x) {f(x)}; fun add1(x) {x + 1}; apply(add1, 1)"
 
 let test_func_capture_annot () =
   test "unit"
-    "external somefn : () -> int; fun wrapper(s) {let a = somefn();   fun \
+    "external somefn : fun () -> int; fun wrapper(s) {let a = somefn();   fun \
      captured() [a] {a + 1};   ()}"
 
 let test_func_capture_annot_wrong () =
@@ -114,8 +115,8 @@ let test_func_missing_move_known () =
 let test_func_missing_move_unknown () =
   test_exn
     "In application\n\
-     expecting ((array[int]) -> _) -> _\n\
-     but found ((array[int]!) -> _) -> _"
+     expecting fun (fun (array[int]) -> _) -> _\n\
+     but found fun (fun (array[int]!) -> _) -> _"
     {|fun move(a!) { ignore(a) }
 fun apply_move(move): move([0])
 apply_move(move)
@@ -158,7 +159,7 @@ let test_record_field_simple () =
   test "int" "type t = {x :int}; let a = {x = 10}; a.x"
 
 let test_record_field_infer () =
-  test "(t) -> int" "type t = {x : int}; fun a {a.x}"
+  test "fun (t) -> int" "type t = {x : int}; fun a {a.x}"
 
 let test_record_same_field_infer () =
   test "a" "type a = {x : int}; type b = {x : int, y : int}; {x = 12}"
@@ -178,7 +179,7 @@ let test_record_field_no_record () =
     "type t = {x : int}; let a = 10; a.x"
 
 let test_record_field_wrong_record () =
-  test_exn "In application expecting (t1) -> _ but found (t2) -> _"
+  test_exn "In application expecting fun (t1) -> _ but found fun (t2) -> _"
     "type t1 = {x : int}; type t2 = {y : int}; fun foo(a) {a.x}; let b = {y = \
      10}; foo(b)"
 
@@ -213,37 +214,38 @@ let test_record_update_unknown_polymorphic () =
 fun update(record) {{record with x = 10}}
 ignore(update)|}
 
-let test_annot_concrete () = test "(int) -> bool" "fun foo(x) {x < 3}; foo"
+let test_annot_concrete () = test "fun (int) -> bool" "fun foo(x) {x < 3}; foo"
 
 let test_annot_rc () =
-  test "(rc[array[int]]) -> unit" "fun foo(x : rc[array[int]]) {()}; foo"
+  test "fun (rc[array[int]]) -> unit" "fun foo(x : rc[array[int]]) {()}; foo"
 
 let test_annot_concrete_fail () =
-  test_exn "Var annotation expecting (bool) -> int but found (int) -> bool"
-    "let foo : (bool) -> int = fun x {x < 3}; foo"
+  test_exn
+    "Var annotation expecting fun (bool) -> int but found fun (int) -> bool"
+    "let foo : fun (bool) -> int = fun x {x < 3}; foo"
 
-let test_annot_mix () = test "('a!) -> 'a" "fun pass(x! : 'b) {x}; pass"
+let test_annot_mix () = test "fun ('a!) -> 'a" "fun pass(x! : 'b) {x}; pass"
 
 let test_annot_mix_fail () =
-  test_exn "Var annotation expecting (_) -> int but found (_) -> 'a"
-    "let pass : ('b) -> int = fun x {copy(x)}; pass"
+  test_exn "Var annotation expecting fun (_) -> int but found fun (_) -> 'a"
+    "let pass : fun ('b) -> int = fun x {copy(x)}; pass"
 
-let test_annot_generic () = test "('a!) -> 'a" "fun pass(x! : 'b) {x}; pass"
+let test_annot_generic () = test "fun ('a!) -> 'a" "fun pass(x! : 'b) {x}; pass"
 
 let test_annot_generic_fail () =
-  test_exn "Var annotation expecting (_) -> 'b but found (_) -> 'a"
-    "let pass : ('a) -> 'b = fun x {copy(x)}; pass"
+  test_exn "Var annotation expecting fun (_) -> 'b but found fun (_) -> 'a"
+    "let pass : fun ('a) -> 'b = fun x {copy(x)}; pass"
 
 let test_annot_generic_mut () =
-  test "('a&) -> 'a" "fun pass(x& : 'b) {copy(x)}; pass"
+  test "fun ('a&) -> 'a" "fun pass(x& : 'b) {copy(x)}; pass"
 
 let test_annot_fun_mut_param () =
-  test "(int&) -> unit"
-    "external f : (int&) -> unit; let a : (int&) -> unit = f; a"
+  test "fun (int&) -> unit"
+    "external f : fun (int&) -> unit; let a : fun (int&) -> unit = f; a"
 
 let test_annot_generic_fun_mut_param () =
-  test "('a&) -> unit"
-    "external f : ('a&) -> unit; let a : ('a&) -> unit = f; a"
+  test "fun ('a&) -> unit"
+    "external f : fun ('a&) -> unit; let a : fun ('a&) -> unit = f; a"
 
 let test_annot_record_simple () =
   test "a" "type a = {x : int}; type b = {x : int}; let a : a = {x = 12}; a"
@@ -274,10 +276,11 @@ let test_annot_fixed_unknown_size_array () =
 let test_annot_fixed_unknown_size_array_fn () =
   (* The function is instantiated so the size is not generalized. That's why
      there are two question marks. *)
-  test "(array#??['a]!) -> array#??['a]" "fun hmm(a! : array#?['a]) {a}; hmm"
+  test "fun (array#??['a]!) -> array#??['a]"
+    "fun hmm(a! : array#?['a]) {a}; hmm"
 
 let test_sequence () =
-  test "int" "external printi : (int) -> unit; printi(20); 1 + 1"
+  test "int" "external printi : fun (int) -> unit; printi(20); 1 + 1"
 
 let test_sequence_fail () =
   test_exn
@@ -291,12 +294,12 @@ let test_para_instantiate () =
      foo"
 
 let test_para_gen_fun () =
-  test "(foo['a]) -> int"
+  test "fun (foo['a]) -> int"
     "type foo['a] = {gen : 'a, second : int}; fun get(foo) {copy(foo.second)}; \
      get"
 
 let test_para_gen_return () =
-  test "(foo['a]!) -> 'a"
+  test "fun (foo['a]!) -> 'a"
     "type foo['a] = {gen : 'a}; fun get(foo!) {foo.gen}; get"
 
 let test_para_multiple () =
@@ -305,7 +308,7 @@ let test_para_multiple () =
      12}; let b : int = get(a); let c = {gen = false}; get(c)"
 
 let test_para_instance_func () =
-  test "(foo[int]) -> int"
+  test "fun (foo[int]) -> int"
     "type foo['a] = {gen : 'a}; fun apply(foo) {foo.gen + 17}; let foo = {gen \
      = 17}; apply"
 
@@ -323,33 +326,34 @@ let test_pipe_head_multi_call () =
   test "int" "fun add1(a) {a + 1}; 10 |> add1 |> add1"
 
 let test_pipe_head_single_wrong_type () =
-  test_exn "In application expecting (int) -> 'a but found int"
+  test_exn "In application expecting fun (int) -> 'a but found int"
     "let add1 = 1; 10 |> add1"
 
 let test_pipe_head_mult () = test "int" "fun add(a, b) {a + b}; 10 |> add(12)"
 
 let test_pipe_head_mult_wrong_type () =
-  test_exn "In application expecting (int, int) -> _ but found (int) -> _"
+  test_exn
+    "In application expecting fun (int, int) -> _ but found fun (int) -> _"
     "fun add1(a) {a + 1}; 10 |> add1(12)"
 
 let test_alias_simple () =
-  test "(int) -> unit" "type foo = int; external f : (foo) -> unit; f"
+  test "fun (int) -> unit" "type foo = int; external f : fun (foo) -> unit; f"
 
 let test_alias_param_concrete () =
-  test "(raw_ptr[u8]) -> unit"
-    "type foo = raw_ptr[u8]; external f : (foo) -> unit; f"
+  test "fun (raw_ptr[u8]) -> unit"
+    "type foo = raw_ptr[u8]; external f : fun (foo) -> unit; f"
 
 let test_alias_param_quant () =
-  test "(raw_ptr['a]) -> unit"
-    "type foo['a] = raw_ptr['a]; external f : (foo['a]) -> unit; f"
+  test "fun (raw_ptr['a]) -> unit"
+    "type foo['a] = raw_ptr['a]; external f : fun (foo['a]) -> unit; f"
 
 let test_alias_param_missing () =
   test_exn "Type raw_ptr expects 1 type parameter"
-    "type foo['a] = raw_ptr['a]; external f : (foo) -> unit; f"
+    "type foo['a] = raw_ptr['a]; external f : fun (foo) -> unit; f"
 
 let test_alias_of_alias () =
-  test "(int) -> int"
-    "type foo = int; type bar = foo; external f : (bar) -> foo; f"
+  test "fun (int) -> int"
+    "type foo = int; type bar = foo; external f : fun (bar) -> foo; f"
 
 let test_alias_labels () =
   test "inner/t[int]"
@@ -367,7 +371,7 @@ type t['a] = inner/t['a]
 Yes(10)|}
 
 let test_alias_ctors_dont_overwrite () =
-  test "(option[item['a]]) -> option['a]"
+  test "fun (option[item['a]]) -> option['a]"
     {|type option['a] = Some('a) | None
 type item['a] = {value : 'a}
 type slot['a] = option[item['a]]
@@ -386,7 +390,7 @@ a|}
 
 let test_array_weak () =
   test "array[int]"
-    {|external setf : (array['a], 'a) -> unit
+    {|external setf : fun (array['a], 'a) -> unit
 let a = []
 setf(a, 2)
 a|}
@@ -399,13 +403,15 @@ let test_array_different_annot () =
     "let a : array[bool] = [0, 1]; a"
 
 let test_array_different_annot_weak () =
-  test_exn "In application expecting (_, bool) -> _ but found (_, int) -> _"
-    "external setf : (array['a], 'a) -> unit; let a : array[bool] = []; \
+  test_exn
+    "In application expecting fun (_, bool) -> _ but found fun (_, int) -> _"
+    "external setf : fun (array['a], 'a) -> unit; let a : array[bool] = []; \
      setf(a, 2)"
 
 let test_array_different_weak () =
-  test_exn "In application expecting (_, int) -> _ but found (_, bool) -> _"
-    {|external setf : (array['a], 'a) -> unit
+  test_exn
+    "In application expecting fun (_, int) -> _ but found fun (_, bool) -> _"
+    {|external setf : fun (array['a], 'a) -> unit
 let a = []
 setf(a, 2)
 setf(a, true)|}
@@ -721,15 +727,15 @@ let test_pattern_decl_tuple_missing () =
      but found (int, float)" "let x, f = (12, 5.0, 20); f"
 
 let test_pattern_decl_wildcard_move () =
-  test "('a, 'b!) -> unit" "fun func(_, _!) {()}; func"
+  test "fun ('a, 'b!) -> unit" "fun func(_, _!) {()}; func"
 
 let test_pattern_decl_tuple_move () =
-  test "('a, ('b, 'c)!) -> unit" "fun func(_, (a, b)!) {()}; func"
+  test "fun ('a, ('b, 'c)!) -> unit" "fun func(_, (a, b)!) {()}; func"
 
 let test_signature_only () = test "unit" "signature { type t = int}"
 
 let test_signature_simple () =
-  test "unit" "signature{  type t = int}; type t = int"
+  test "unit" "signature{ type t = int }; type t = int"
 
 let test_signature_wrong_typedef () =
   test_exn "Signatures don't match: expecting int but found float"
@@ -741,8 +747,8 @@ let test_signature_generic () =
   test "unit"
     {|signature{
   type t['a]
-  val create : ('a!) -> t['a]
-  val create_int : (int) -> t[int]
+  val create : fun ('a!) -> t['a]
+  val create_int : fun (int) -> t[int]
 }
 type t['a] = {x : 'a}
 
@@ -752,11 +758,11 @@ fun create_int(x : int) {{x}}|}
 let test_signature_param_mismatch () =
   test_exn
     "Signatures don't match for value create_int:\n\
-     expecting (_) -> t[int]\n\
-     but found (_) -> t['a]"
+     expecting fun (_) -> t[int]\n\
+     but found fun (_) -> t['a]"
     {|signature{
   type t['a]
-  val create_int : (int) -> t[int]}
+  val create_int : fun (int) -> t[int]}
 type t['a] = {x : int}
 fun create_int(x : int) {{x}}|}
 
@@ -767,9 +773,9 @@ type t['a] = int|}
 
 let test_signature_abstract () =
   test "unit"
-    {|signature{
+    {|signature {
   type t
-  val len : (t) -> int
+  val len : fun (t) -> int
 }
 type t = array[u8]
 fun len(str : t) {__unsafe_array_length(str)}|}
@@ -812,7 +818,7 @@ let test_signature_concrete_of_generic_alias () =
     {|signature {
   type option['a] = None | Some('a)
   type thing['a]
-  val use_thing : (thing[unit]) -> unit
+  val use_thing : fun (thing[unit]) -> unit
 }
 
 type thing['a] = array[option['a]]
@@ -824,13 +830,13 @@ fun use_thing(a : thing[unit]) {
 let test_signature_generic_of_generic_alias () =
   test_exn
     "Signatures don't match for value use_generic:\n\
-     expecting (thing['a]) -> _\n\
-     but found (array[option[unit]]) -> _"
+     expecting fun (thing['a]) -> _\n\
+     but found fun (array[option[unit]]) -> _"
     {|signature {
   type option['a] = None | Some('a)
   type thing['a]
-  val use_thing : (thing[unit]) -> unit
-  val use_generic : (thing['a]) -> unit
+  val use_thing : fun (thing[unit]) -> unit
+  val use_generic : fun (thing['a]) -> unit
 }
 
 type thing['a] = array[option['a]]
@@ -849,7 +855,7 @@ let test_signature_deep_qvar_sg () =
 module nullvec {
   signature {
     type t['a]
-    val of_array : (array['a]!) -> t['a]
+    val of_array : fun (array['a]!) -> t['a]
   }
 
   type t['a] = option[array['a]]
@@ -870,15 +876,15 @@ fun deps! {
 let test_signature_dont_match_qvar () =
   test_exn
     "Signatures don't match for value run:\n\
-     expecting (_) -> option['a]\n\
-     but found (_) -> 'a"
+     expecting fun (_) -> option['a]\n\
+     but found fun (_) -> 'a"
     {|type option['a] = None | Some('a)
 module async {
   signature {
     type promise['a]
     type future['a]
 
-    val extract_maybe : (future['a]!) -> option['a]
+    val extract_maybe : fun (future['a]!) -> option['a]
   }
 
   type prom_state['a] =
@@ -898,7 +904,7 @@ module async {
 
 module auv {
   signature {
-    val run : (async/future['a]!) -> option['a]
+    val run : fun (async/future['a]!) -> option['a]
   }
 
   fun run(fut!) {
@@ -1207,7 +1213,7 @@ let test_type_decl_use_before () =
 let test_mtype_define () =
   test "unit" {|module type tt {
   type t
-  val random : () -> int}|}
+  val random : fun () -> int}|}
 
 let test_mtype_no_match () =
   test_exn "Signatures don't match: Type t is missing"
@@ -1246,7 +1252,7 @@ let test_mtype_abstracts () =
 }
 module type sig {
   type t
-  val add : (t, t) -> t
+  val add : fun (t, t) -> t
 }
 functor make(m : sig){
   fun add_twice(a, b) {
@@ -1264,7 +1270,7 @@ module inta : sig {
 module floata : sig {
   signature {
     type t
-    val add : (t, t) -> t}
+    val add : fun (t, t) -> t}
   type t = float
   fun add(a, b) {a +. b}
 }
@@ -1306,7 +1312,7 @@ let test_functor_apply_use () =
   test "int"
     {|module type sig {
   type t
-  val add : (t, t) -> t}
+  val add : fun (t, t) -> t}
 functor make(m : sig) {
   fun add_twice(a, b) {
     m/add(m/add(a, b), b)}}
@@ -1318,17 +1324,19 @@ intadder/add_twice(1, 2)|}
 
 let test_functor_apply_use_sgn () =
   test_exn
-    "In application\nexpecting (inta/t, inta/t) -> _\nbut found (int, int) -> _"
+    "In application\n\
+     expecting fun (inta/t, inta/t) -> _\n\
+     but found fun (int, int) -> _"
     {|module type sig {
   type t
-  val add : (t, t) -> t}
+  val add : fun (t, t) -> t}
 functor make(m : sig) {
   fun add_twice(a, b) {
     m/add(m/add(a, b), b)}}
 module inta : sig {
   signature {
     type t
-    val add : (t, t) -> t}
+    val add : fun (t, t) -> t}
   type t = int
   fun add(a, b) {a + b}}
 module intadder = make(inta)
@@ -1336,10 +1344,12 @@ intadder/add_twice(1, 2)|}
 
 let test_functor_abstract_param () =
   test_exn
-    "In application\nexpecting (inta/t, inta/t) -> _\nbut found (int, int) -> _"
+    "In application\n\
+     expecting fun (inta/t, inta/t) -> _\n\
+     but found fun (int, int) -> _"
     {|module type sig {
   type t
-  val add : (t, t) -> t}
+  val add : fun (t, t) -> t}
 
 functor make(m : sig) {
   fun add_twice(a, b) {m/add(m/add(a, b), b)}}
@@ -1347,7 +1357,7 @@ functor make(m : sig) {
 module inta : sig {
   signature {
     type t
-    val add : (t, t) -> t}
+    val add : fun (t, t) -> t}
   type t = int
   fun add(a, b) {a + b}}
 
@@ -1366,7 +1376,7 @@ let test_functor_poly_function () =
   test "unit"
     {|
 module type poly {
-  val id : ('a!) -> 'a}
+  val id : fun ('a!) -> 'a}
 
 functor makeid(m : poly) {
   fun newid(p!) {m/id(!p)}}
@@ -1382,10 +1392,10 @@ ignore(polyappl/newid(!1.2))|}
 let test_functor_poly_mismatch () =
   test_exn
     "Signatures don't match for value id:\n\
-     expecting ('a!) -> 'a\n\
-     but found (int!) -> int"
+     expecting fun ('a!) -> 'a\n\
+     but found fun (int!) -> int"
     {|module type poly {
-  val id : ('a!) -> 'a}
+  val id : fun ('a!) -> 'a}
 
 functor makeid(m : poly) {
   fun newid(p!) {m/id(!p)}}
@@ -1404,7 +1414,7 @@ module type sig {
   type key
   type t['value]
 
-  val create : (int) -> t[|}
+  val create : fun (int) -> t[|}
   ^ thing
   ^ {|]}
 functor make : sig (m : key) {
@@ -1423,14 +1433,14 @@ let test_functor_check_sig () = test "unit" (check_sig_test "'value")
 let test_functor_check_param () =
   test_exn
     "Signatures don't match for value create:\n\
-     expecting (_) -> t[key]\n\
-     but found (_) -> t['a]" (check_sig_test "key")
+     expecting fun (_) -> t[key]\n\
+     but found fun (_) -> t['a]" (check_sig_test "key")
 
 let test_functor_check_concrete () =
   test_exn
     "Signatures don't match for value create:\n\
-     expecting (_) -> t[int]\n\
-     but found (_) -> t['a]" (check_sig_test "int")
+     expecting fun (_) -> t[int]\n\
+     but found fun (_) -> t['a]" (check_sig_test "int")
 
 let test_functor_sgn_only_type () =
   test "unit"
@@ -1550,7 +1560,7 @@ let test_rec_type_nobase () =
 let test_rec_type_record_param () =
   test "unit"
     {|type container['a] = { a : 'a }
-type state = { data : container[(state&) -> unit]}
+type state = { data : container[fun (state&) -> unit]}
 let _ = { data = {a = fun(state&) {ignore(state)}} }|}
 
 let test_rec_type_record_param_nobase () =
@@ -1560,13 +1570,14 @@ type data['a] = { cb : 'a }
 type state = { data : container[data[rc[state]]] }|}
 
 let test_rec_type_record_fnreturn () =
-  test "unit" "type t = { works : () -> t }"
+  test "unit" "type t = { works : fun () -> t }"
 
-let test_rec_type_record_fnboth () = test "unit" "type t = { works : (t) -> t }"
+let test_rec_type_record_fnboth () =
+  test "unit" "type t = { works : fun (t) -> t }"
 
 let test_rec_type_record_some_nobase () =
   test_exn "Recursive type has no base case"
-    "type t = { works : () -> t, doesnt : rc[t]}"
+    "type t = { works : fun () -> t, doesnt : rc[t]}"
 
 let test_rec_type_record_variant_base () =
   test "unit"

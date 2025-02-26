@@ -60,8 +60,8 @@ let format_type_err pre mname t1 t2 =
     | Tfun (ls, l, _), Tfun (rs, r, _) ->
         (* If the number of arguments doesn't match, highlight the whole list *)
         if List.length rs <> List.length ls then
-          let ls = "(" ^ plist sotl ls ^ ") -> _"
-          and rs = "(" ^ plist sotr rs ^ ") -> _" in
+          let ls = "fun (" ^ plist sotl ls ^ ") -> _"
+          and rs = "fun (" ^ plist sotr rs ^ ") -> _" in
           (true, ls, rs)
         else
           let found, ls, rs =
@@ -73,11 +73,13 @@ let format_type_err pre mname t1 t2 =
           let found, l, r =
             if String.equal ls rs then
               (* Return type could be different *)
-              (rfound, "(_) -> " ^ l, "(_) -> " ^ r)
+              (rfound, "fun (_) -> " ^ l, "fun (_) -> " ^ r)
             else if String.equal l r then
-              (found, "(" ^ ls ^ ") -> _", "(" ^ rs ^ ") -> _")
+              (found, "fun (" ^ ls ^ ") -> _", "fun (" ^ rs ^ ") -> _")
             else
-              (found || rfound, "(" ^ ls ^ ") -> " ^ l, "(" ^ rs ^ ") -> " ^ r)
+              ( found || rfound,
+                "fun (" ^ ls ^ ") -> " ^ l,
+                "fun (" ^ rs ^ ") -> " ^ r )
           in
           (* This could be an inner function. If the strings are the same, we only
              return a placeholder *)

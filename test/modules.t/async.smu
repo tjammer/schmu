@@ -2,16 +2,16 @@ signature {
   type promise['a]
   type future['a]
 
-  val return : ('a!) -> future['a]
-  val wait : () -> (future['a], promise['a])
-  val promise_resolve : (promise['a]&, 'a!) -> unit
+  val return : fun ('a!) -> future['a]
+  val wait : fun () -> (future['a], promise['a])
+  val promise_resolve : fun (promise['a]&, 'a!) -> unit
 
-  val bind : (future['a], ('a) -> future['b]!) -> future['b]
+  val bind : fun (future['a], fun ('a) -> future['b]!) -> future['b]
 
   -- val exec : (float, command) -> future[status]
 }
 
-type prom_state['a] = Pending | Queued(array[('a) -> unit]) | Resolved('a)
+type prom_state['a] = Pending | Queued(array[fun ('a) -> unit]) | Resolved('a)
 type promise['a] = rc[prom_state['a]]
 type future['a] = promise['a]
 

@@ -1,7 +1,7 @@
 module type sig {
   type t
-  val hash : (t) -> int
-  val to_string : (t) -> string
+  val hash : fun (t) -> int
+  val to_string : fun (t) -> string
 }
 
 functor make(m : sig) {

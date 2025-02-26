@@ -1,4 +1,4 @@
-type state = {cnt : int, next : (int) -> int}
+type state = {cnt : int, next : fun (int) -> int}
 
 fun advance(state!) {
   {cnt = (state.next)(state.cnt), next = state.next}

@@ -7,26 +7,26 @@ signature {
   type cstr = raw_ptr[u8]
   type t
 
-  val len : (t) -> int
-  val data : (t) -> cstr
-  val get : (t, int) -> u8
-  val hash : (t) -> int
-  val equal: (t, t) -> bool
-  val append : (t&, t) -> unit
-  val concat : (t, array[t]) -> t
-  val substr : (t, int, int) -> t
-  val boyer_moore_horspool : (t, t) -> option/t[int]
+  val len : fun (t) -> int
+  val data : fun (t) -> cstr
+  val get : fun (t, int) -> u8
+  val hash : fun (t) -> int
+  val equal: fun (t, t) -> bool
+  val append : fun (t&, t) -> unit
+  val concat : fun (t, array[t]) -> t
+  val substr : fun (t, int, int) -> t
+  val boyer_moore_horspool : fun (t, t) -> option/t[int]
 
-  val modify_buf : (t&, (array[u8]&) -> unit) -> unit
-  val of_array : (array[u8]!) -> t
-  val to_array : (t!) -> array[u8]
-  val of_fixed_array : (array#?[u8]) -> t
-  val of_cstr : (cstr) -> t
+  val modify_buf : fun (t&, fun (array[u8]&) -> unit) -> unit
+  val of_array : fun (array[u8]!) -> t
+  val to_array : fun (t!) -> array[u8]
+  val of_fixed_array : fun (array#?[u8]) -> t
+  val of_cstr : fun (cstr) -> t
 
-  val println : (t) -> unit
-  val print : (t) -> unit
-  val prerrln : (t) -> unit
-  val prerr : (t) -> unit
+  val println : fun (t) -> unit
+  val print : fun (t) -> unit
+  val prerrln : fun (t) -> unit
+  val prerr : fun (t) -> unit
 }
 
 type t = array[u8]
@@ -54,7 +54,7 @@ fun hash(str) {
   })
 }
 
-external memcmp : (raw_ptr[u8], raw_ptr[u8], int) -> i32
+external memcmp : fun (raw_ptr[u8], raw_ptr[u8], int) -> i32
 
 fun equal(l, r) {
   if len(l) == len(r) {
@@ -80,7 +80,7 @@ fun concat(delim, strings) {
   ret
 }
 
-external memcpy : (raw_ptr[u8], raw_ptr[u8], int) -> unit
+external memcpy : fun (raw_ptr[u8], raw_ptr[u8], int) -> unit
 
 fun substr(str : t, start, end) {
   assert(start >= 0)
@@ -153,7 +153,7 @@ fun of_fixed_array(arr : array#?[u8]) {
   ret
 }
 
-external strlen : (raw_ptr[u8]) -> int
+external strlen : fun (raw_ptr[u8]) -> int
 
 fun of_cstr(cstr) {
   -- NOTE we could implement this without traversing the string twice
@@ -168,7 +168,7 @@ fun of_cstr(cstr) {
 type file = raw_ptr[u8]
 external stdout : file
 external stderr : file
-external fwrite : (cstr, int, int, file) -> unit
+external fwrite : fun (cstr, int, int, file) -> unit
 
 let newline = #['\n']
 

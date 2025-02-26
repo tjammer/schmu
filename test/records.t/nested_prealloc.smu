@@ -1,4 +1,4 @@
-external printi : (int) -> unit
+external printi : fun (int) -> unit
 
 type int_wrap = {dat : int, b : int, c : int}
 type test['a] = {int_wrap : 'a}

@@ -471,32 +471,16 @@ type_spec:
   | path = type_path { Ty_use_id ($loc, path) }
   | head = type_spec; Lbrack; tail = separated_nonempty_list(Comma, type_spec); Rbrack
     { Ty_applied (head :: tail) }
-  | Lpar; Rpar; Right_arrow; ret = type_spec; %prec Type_application
+  | Fun; Lpar; Rpar; Right_arrow; ret = type_spec; %prec Type_application
     { Ty_func ([Ty_id ($loc, "unit"), Dnorm; ret, Dnorm]) }
-  | Lpar; spec = tup_or_fun { spec }
+  | Fun; Lpar; ps = separated_nonempty_list(Comma, type_param); Rpar; Right_arrow; ret = type_spec;
+    %prec Type_application
+    { Ty_func (ps @ [ret, Dnorm]) }
+  | Lpar; ts = separated_nonempty_list(Comma, type_spec); Rpar { Ty_tuple ts }
 
-tup_or_fun:
-  /* One param function */
-  | spec = type_spec; Rpar; Right_arrow; ret = type_spec; %prec Type_application { Ty_func ([spec, Dnorm; ret, Dnorm]) }
-  /* decl_attr means it's a function */
-  | spec = type_spec; attr = decl_attr; cont = continue_fun { Ty_func ((spec, attr) :: cont) }
-  /* More than one param, either function or tuple */
-  | one = type_spec; Comma; two = type_spec; attr = decl_attr; cont = continue_fun
-    { Ty_func ((one, Dnorm) :: (two, attr) :: cont) }
-  | one = type_spec; Comma; two = type_spec; cont = continue_tup_or_fun
-    { let func, params = cont in
-      if func then Ty_func ((one, Dnorm) :: (two, Dnorm) :: params)
-      else Ty_tuple (one :: two :: (List.map fst params))}
-
-continue_tup_or_fun:
-  | Rpar { false, [] }
-  | Rpar; Right_arrow; ret = type_spec; %prec Type_application { true, [ret, Dnorm] }
-  | Comma; spec = type_spec; cont = continue_tup_or_fun { let kind, cont = cont in kind, ((spec, Dnorm) :: cont) }
-  | Comma; spec = type_spec; attr = decl_attr; cont = continue_fun { true, ((spec, attr) :: cont) }
-
-continue_fun:
-  | Rpar; Right_arrow; ret = type_spec; %prec Type_application { [ret, Dnorm] }
-  | Comma; spec = type_spec; attr = option(decl_attr); cont = continue_fun { (spec, pass_attr_of_opt attr) :: cont }
+type_param:
+  | spec = type_spec { spec, Dnorm }
+  | spec = type_spec; attr = decl_attr { spec, attr }
 
 ctor_type_spec:
   | normal = type_spec { normal }

@@ -4,12 +4,12 @@ signature {
   type abstr
 
   val t : int
-  val ext : (string/cstr, int) -> unit
-  val int : (int) -> unit
-  val poly_int : ('a) -> 'a
-  val create_use_hidden : () -> use_hidden_type
+  val ext : fun (string/cstr, int) -> unit
+  val int : fun (int) -> unit
+  val poly_int : fun ('a) -> 'a
+  val create_use_hidden : fun () -> use_hidden_type
 }
-external ext : (string/cstr, int) -> unit = "printf"
+external ext : fun (string/cstr, int) -> unit = "printf"
 
 fun int(i : int) {
   fmt/println(fmt/int, i)

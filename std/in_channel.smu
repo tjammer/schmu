@@ -8,25 +8,25 @@ import unsafe
 signature {
   type t
 
-  val open : (string/t) -> option/t[t]
-  val close : (t) -> unit
+  val open : fun (string/t) -> option/t[t]
+  val close : fun (t) -> unit
 
   -- high level interface
-  val with_open : (string/t, (t&) -> 'a) -> option/t['a]
-  val readall : (t&) -> string/t
-  val lines : (t&, iter/consumer[string/t]) -> iter/continue
-  val size : (t) -> int
+  val with_open : fun (string/t, fun (t&) -> 'a) -> option/t['a]
+  val readall : fun (t&) -> string/t
+  val lines : fun (t&, iter/consumer[string/t]) -> iter/continue
+  val size : fun (t) -> int
 
   -- low level interface
   type buf = array[u8]
-  val readbuf : (t&, buf&) -> option/t[int]
-  val readn : (t&, buf&, int) -> option/t[int]
-  val readline : (t&, buf&) -> option/t[int]
-  val readrem : (t&, buf&) -> option/t[int]
+  val readbuf : fun (t&, buf&) -> option/t[int]
+  val readn : fun (t&, buf&, int) -> option/t[int]
+  val readline : fun (t&, buf&) -> option/t[int]
+  val readrem : fun (t&, buf&) -> option/t[int]
 
   type file
-  val of_file : (file) -> t
-  val to_file : (t) -> file
+  val of_file : fun (file) -> t
+  val to_file : fun (t) -> file
 }
 
 type file = raw_ptr[u8]
@@ -34,9 +34,9 @@ type file = raw_ptr[u8]
 type t = {buf& : array#4096[u8], head& : int, unseen& : int, file : file}
 
 type cstr = raw_ptr[u8]
-external fread : (cstr, int, int, file) -> int
-external fopen : (cstr, cstr) -> file
-external fclose : (cstr) -> int
+external fread : fun (cstr, int, int, file) -> int
+external fopen : fun (cstr, cstr) -> file
+external fclose : fun (cstr) -> int
 
 use option
 use prelude
@@ -68,7 +68,7 @@ fun with_open(name, f) {
   }
 }
 
-external memcpy : (raw_ptr[u8], raw_ptr[u8], int) -> unit
+external memcpy : fun (raw_ptr[u8], raw_ptr[u8], int) -> unit
 
 fun fill(buf&, icbuf, lower, upper) {
   let diff = upper - lower
@@ -205,7 +205,7 @@ fun lines(ic&, cont) {
   aux()
 }
 
-external rewind : (file) -> unit
+external rewind : fun (file) -> unit
 fun of_file(file) {
   rewind(file)
   {buf = #4096[0u8], head = 0, unseen = 0, file}
@@ -213,8 +213,8 @@ fun of_file(file) {
 
 fun to_file(ic): ic.file
 
-external fseek : (file, int, i32) -> unit
-external ftell : (file) -> int
+external fseek : fun (file, int, i32) -> unit
+external ftell : fun (file) -> int
 let seek_set = 0i32
 let seek_end = 2i32
 fun size(ic) {

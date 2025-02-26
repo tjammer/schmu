@@ -1,24 +1,24 @@
 signature {
   type t = int
-  val hash : (t) -> int
-  val equal : (t, t) -> bool
+  val hash : fun (t) -> int
+  val equal : fun (t, t) -> bool
   -- operators
-  val + : (t, t) -> t
-  val - : (t, t) -> t
-  val * : (t, t) -> t
-  val / : (t, t) -> t
-  val < : (t, t) -> bool
-  val > : (t, t) -> bool
-  val <= : (t, t) -> bool
-  val >= : (t, t) -> bool
-  val == : (t, t) -> bool
-  val <> : (t, t) -> bool
+  val + : fun (t, t) -> t
+  val - : fun (t, t) -> t
+  val * : fun (t, t) -> t
+  val / : fun (t, t) -> t
+  val < : fun (t, t) -> bool
+  val > : fun (t, t) -> bool
+  val <= : fun (t, t) -> bool
+  val >= : fun (t, t) -> bool
+  val == : fun (t, t) -> bool
+  val <> : fun (t, t) -> bool
 
-  val div_unsigned : (t, t) -> t
-  val lt_unsigned : (t, t) -> bool
-  val gt_unsigned : (t, t) -> bool
-  val le_unsigned : (t, t) -> bool
-  val ge_unsigned : (t, t) -> bool
+  val div_unsigned : fun (t, t) -> t
+  val lt_unsigned : fun (t, t) -> bool
+  val gt_unsigned : fun (t, t) -> bool
+  val le_unsigned : fun (t, t) -> bool
+  val ge_unsigned : fun (t, t) -> bool
 }
 
 let + = __addi

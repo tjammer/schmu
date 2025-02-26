@@ -1,7 +1,7 @@
 module type concrete_formatter { type return }
 functor make_printer(m : concrete_formatter) {
   signature {
-    val other : () -> int
+    val other : fun () -> int
   }
   module impl {
     type iter_kind = Str(int)

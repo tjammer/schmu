@@ -11,8 +11,8 @@ fun use_concrete(a) {
 
 functor define ( m : empty_t ) {
   signature {
-    val use_this : ('a) -> int
-    val dont_use : (int) -> int
+    val use_this : fun ('a) -> int
+    val dont_use : fun (int) -> int
   }
   fun use_this(a): use_concrete(a)
   fun dont_use(a): a + 1

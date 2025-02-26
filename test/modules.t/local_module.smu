@@ -3,8 +3,8 @@ fun test() {println("hey test")}
 module local {
   signature {
     type t
-    val test : () -> unit
-    val poly_test : (fmt/stdout/printer['a], 'a) -> unit
+    val test : fun () -> unit
+    val poly_test : fun (fmt/stdout/printer['a], 'a) -> unit
     val value : string
   }
   module nested {

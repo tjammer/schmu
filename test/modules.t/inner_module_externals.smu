@@ -1,5 +1,5 @@
 module inner {
-  external tmpfile : () -> raw_ptr[u8]
+  external tmpfile : fun () -> raw_ptr[u8]
 
   fun use_it() {
     tmpfile()|> ignore

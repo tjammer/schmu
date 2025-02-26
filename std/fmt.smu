@@ -11,13 +11,13 @@ module formatter {
   signature {
     type t['a]
 
-    val format : (t['a]!, raw_ptr[u8], int) -> t['a]
-    val extract : (t['a]!) -> 'a
+    val format : fun (t['a]!, raw_ptr[u8], int) -> t['a]
+    val extract : fun (t['a]!) -> 'a
 
-    val create : (('a&, raw_ptr[u8], int) -> unit!, 'a!) -> t['a]
+    val create : fun (fun ('a&, raw_ptr[u8], int) -> unit!, 'a!) -> t['a]
   }
 
-  type t['a] = { fn : ('a&, raw_ptr[u8], int) -> unit, data& : 'a }
+  type t['a] = { fn : fun ('a&, raw_ptr[u8], int) -> unit, data& : 'a }
 
   fun format(fm!, ptr, len) {
     let fm& = !fm
@@ -37,7 +37,7 @@ module formatter {
 type file = raw_ptr[u8]
 external stdout : file
 external stderr : file
-external fwrite : (raw_ptr[u8], int, int, file) -> unit
+external fwrite : fun (raw_ptr[u8], int, int, file) -> unit
 
 fun pr() {
   formatter/create(
@@ -201,21 +201,21 @@ fun raw_ptr(p!, ptr : raw_ptr['a]) {
 
 module type concrete_formatter {
   type return
-  val create : () -> formatter/t[return]
+  val create : fun () -> formatter/t[return]
 }
 
 functor make_printer(m : concrete_formatter) {
   signature {
-    type printer['a] = (formatter/t[m/return]!, 'a) -> formatter/t[m/return]
-    val print : (printer['a], 'a) -> m/return
-    val println : (printer['a], 'a) -> m/return
-    val print_newline : () -> m/return
+    type printer['a] = fun (formatter/t[m/return]!, 'a) -> formatter/t[m/return]
+    val print : fun (printer['a], 'a) -> m/return
+    val println : fun (printer['a], 'a) -> m/return
+    val print_newline : fun () -> m/return
 
-    val print1 : (string/t, printer['a], 'a) -> m/return
-    val print2 : (string/t, printer['a], 'a, printer['b], 'b) -> m/return
-    val print3 : (string/t, printer['a], 'a, printer['b], 'b, printer['c], 'c) -> m/return
-    val print4 : (string/t, printer['a], 'a, printer['b], 'b, printer['c], 'c, printer['d], 'd) -> m/return
-    val print5 : (string/t, printer['a], 'a, printer['b], 'b, printer['c], 'c, printer['d], 'd, printer['e], 'e) -> m/return
+    val print1 : fun (string/t, printer['a], 'a) -> m/return
+    val print2 : fun (string/t, printer['a], 'a, printer['b], 'b) -> m/return
+    val print3 : fun (string/t, printer['a], 'a, printer['b], 'b, printer['c], 'c) -> m/return
+    val print4 : fun (string/t, printer['a], 'a, printer['b], 'b, printer['c], 'c, printer['d], 'd) -> m/return
+    val print5 : fun (string/t, printer['a], 'a, printer['b], 'b, printer['c], 'c, printer['d], 'd, printer['e], 'e) -> m/return
   }
   let missing_arg_msg = "Missing argument for format str: "
   let too_many_arg_msg = "Too many arguments for format str: "
@@ -400,7 +400,7 @@ module fmt_stderr {
 module fmt_str {
   type return = string/t
 
-  external memcpy : (raw_ptr[u8], raw_ptr[u8], int) -> unit
+  external memcpy : fun (raw_ptr[u8], raw_ptr[u8], int) -> unit
   fun create() {
     formatter/create(
       fun(s&, ptr, len) {

@@ -3,7 +3,7 @@ module outer {
 }
 module type sig {
   type t
-  val add : (t, t) -> t
+  val add : fun (t, t) -> t
 }
 functor make(m : sig) {
   fun add_twice(a, b) {m/add(m/add(a, b), b)}
@@ -19,7 +19,7 @@ module inta : sig {
 module floata : sig {
   signature {
     type t = float
-    val add : (t, t) -> t}
+    val add : fun (t, t) -> t}
   type t = float
   fun add(a, b) {a +. b}
 }

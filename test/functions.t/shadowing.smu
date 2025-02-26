@@ -1,4 +1,4 @@
-external printi : (int) -> unit
+external printi : fun (int) -> unit
 
 fun rec fib(n) {
   if n < 2 {n}

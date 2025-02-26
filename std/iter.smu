@@ -2,22 +2,22 @@ import prelude
 
 signature {
   type continue = bool
-  type t['a] = (('a) -> continue) -> continue
-  type consumer['a] = ('a) -> continue
+  type t['a] = fun (fun ('a) -> continue) -> continue
+  type consumer['a] = fun ('a) -> continue
 
   -- creators
-  val range : (int, int, consumer[int]) -> continue
+  val range : fun (int, int, consumer[int]) -> continue
 
   -- manipulators
-  val map : (t['a], ('a) -> 'b, consumer['b]) -> continue
-  val filter : (t['a], ('a) -> bool, consumer['a]) -> continue
-  val take : (t['a], int, consumer['b]) -> continue
+  val map : fun (t['a], fun ('a) -> 'b, consumer['b]) -> continue
+  val filter : fun (t['a], fun ('a) -> bool, consumer['a]) -> continue
+  val take : fun (t['a], int, consumer['b]) -> continue
 
   -- consumers
-  val iter : (t['a], ('a) -> unit) -> unit
-  val iteri : (t['a], (int, 'a) -> unit) -> unit
-  val fold : (t['a], 'b!, ('b!, 'a) -> 'b) -> 'b
-  val foldi : (t['a], 'b!, (int, 'b!, 'a) -> 'b) -> 'b
+  val iter : fun (t['a], fun ('a) -> unit) -> unit
+  val iteri : fun (t['a], fun (int, 'a) -> unit) -> unit
+  val fold : fun (t['a], 'b!, fun ('b!, 'a) -> 'b) -> 'b
+  val foldi : fun (t['a], 'b!, fun (int, 'b!, 'a) -> 'b) -> 'b
 }
 
 use prelude

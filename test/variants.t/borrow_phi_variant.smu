@@ -1,7 +1,7 @@
 module raylib {
   type mouse_button = Left
-  external window_should_close : () -> bool
-  external is_button_down : (mouse_button) -> bool
+  external window_should_close : fun () -> bool
+  external is_button_down : fun (mouse_button) -> bool
 }
 let attack_ofs =  160.0
 type tex = Neutral | Attack

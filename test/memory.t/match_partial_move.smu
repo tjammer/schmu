@@ -1,7 +1,7 @@
 module async {
   type prom_state['a] =
     | Pending
-    | Queued1(('a) -> unit)
+    | Queued1(fun ('a) -> unit)
     | Queued_n(array[unit])
     | Resolved(a)
 

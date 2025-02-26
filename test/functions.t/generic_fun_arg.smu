@@ -1,9 +1,9 @@
-external printi : (int) -> unit
+external printi : fun (int) -> unit
 
 type t['a] = {x : 'a}
 
 -- This fn is generic
-fun apply(x : 'a, f : ('a) -> 'b) {
+fun apply(x : 'a, f : fun ('a) -> 'b) {
   f(x)
 }
 

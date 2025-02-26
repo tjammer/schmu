@@ -1,7 +1,7 @@
 type foo = {x : int}
 
 type ys = {y : foo, z : int}
-external printi : (int) -> unit
+external printi : fun (int) -> unit
 
 fun record_with_laters() {
     let x = {x = 12}

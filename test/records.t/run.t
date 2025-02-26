@@ -304,9 +304,9 @@ Pass generic record
   !3 = !DIFile(filename: "parametrized_pass.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 5, column: 35, scope: !2)
+  !6 = !DILocation(line: 5, column: 40, scope: !2)
   !7 = distinct !DISubprogram(name: "apply", linkageName: "__schmu_apply_schmu_apply_t.lrt.lt.lrt.l", scope: !3, file: !3, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DILocation(line: 5, column: 35, scope: !7)
+  !8 = !DILocation(line: 5, column: 40, scope: !7)
   !9 = distinct !DISubprogram(name: "pass", linkageName: "__schmu_pass_t.brt.b", scope: !3, file: !3, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !10 = distinct !DISubprogram(name: "pass", linkageName: "__schmu_pass_t.lrt.l", scope: !3, file: !3, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !11 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)

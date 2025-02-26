@@ -1,8 +1,8 @@
-external printi : (int) -> unit
+external printi : fun (int) -> unit
 
 type t['a] = {first : int, gen : 'a, third : bool}
 
-fun apply(f : ('b) -> 'a, x : 'b) {f(x)}
+fun apply(f : fun ('b) -> 'a, x : 'b) { f(x) }
 
 fun pass(x) {
   -- We have to use the record somehow, otherwise it's passed

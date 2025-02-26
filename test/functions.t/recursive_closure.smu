@@ -1,4 +1,4 @@
-external printi : (int) -> unit
+external printi : fun (int) -> unit
 
 let outer = 10
 

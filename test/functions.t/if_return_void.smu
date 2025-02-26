@@ -1,4 +1,4 @@
-external printi : (int) -> unit
+external printi : fun (int) -> unit
 
 fun rec foo(i) {
   if i < 2 {printi(i - 1)}

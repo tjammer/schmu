@@ -1,11 +1,11 @@
 signature {
   type t['a] = None | Some('a)
 
-  val map : (t['a], ('a) -> 'b) -> t['b]
-  val iter : (t['a], ('a) -> unit) -> unit
-  val bind : (t['a], ('a) -> t['b]) -> t['b]
-  val is_some : (t['a]) -> bool
-  val is_none : (t['a]) -> bool
+  val map : fun (t['a], fun ('a) -> 'b) -> t['b]
+  val iter : fun (t['a], fun ('a) -> unit) -> unit
+  val bind : fun (t['a], fun ('a) -> t['b]) -> t['b]
+  val is_some : fun (t['a]) -> bool
+  val is_none : fun (t['a]) -> bool
 }
 
 

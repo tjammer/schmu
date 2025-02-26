@@ -12,7 +12,7 @@ let _ = Cons(0, Some(fst |> copy))
 
 -- recursive record
 type container['a] = { a : 'a }
-type state = { data : container[(state&) -> unit]}
+type state = { data : container[fun (state&) -> unit]}
 
 -- this stack overflowed
 let _ = { data = {a = fun(state&) {ignore(state)}} }

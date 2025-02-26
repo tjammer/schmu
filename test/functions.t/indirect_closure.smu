@@ -1,10 +1,10 @@
-external printi : (int) -> unit
+external printi : fun (int) -> unit
 
 type t['a] = {x : 'a}
 
 fun apply(x, f, env) {f(x, env)}
 
-fun apply2(x : 'a, f : ('a, ('a) -> 'b) -> 'b, env : ('a) -> 'b) {
+fun apply2(x : 'a, f : fun ('a, fun ('a) -> 'b) -> 'b, env : fun ('a) -> 'b) {
   f(x, env)
 }
 

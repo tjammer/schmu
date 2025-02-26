@@ -1,4 +1,4 @@
-external printi : (int) -> unit = "Printi"
+external printi : fun (int) -> unit = "Printi"
 
 -- pipe into normal function
 1 |> fun x {x + 1} |> printi

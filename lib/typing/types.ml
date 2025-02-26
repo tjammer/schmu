@@ -100,7 +100,7 @@ let string_of_type_raw get_name typ mname =
               String.concat ", "
                 (List.map (fun p -> string_of_type p.pt ^ pattr p.pattr) ts)
         in
-        Printf.sprintf "(%s) -> %s" ps (string_of_type t)
+        Printf.sprintf "fun (%s) -> %s" ps (string_of_type t)
     | Tvar { contents = Link t } -> string_of_type t
     | Ttuple ts ->
         let lst = List.map string_of_type ts in

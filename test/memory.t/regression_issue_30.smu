@@ -1,9 +1,9 @@
 type v = {x : float, y : float, z : float}
 
-external dot : (v, v) -> float
-external norm: (v) -> v
-external scale : (v, float) -> v
-external maybe: () -> bool
+external dot : fun (v, v) -> float
+external norm: fun (v) -> v
+external scale : fun (v, float) -> v
+external maybe: fun () -> bool
 
 fun calc_acc(vel) {
   let vunit = {

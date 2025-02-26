@@ -74,7 +74,7 @@ Test simple typedef
   $ schmu --dump-llvm stub.o simple_typealias.smu && ./simple_typealias
   simple_typealias.smu:2.10-14: warning: Unused binding puts.
   
-  2 | external puts : (foo) -> unit
+  2 | external puts : fun (foo) -> unit
                ^^^^
   
   ; ModuleID = 'context'

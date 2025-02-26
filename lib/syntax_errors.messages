@@ -54,14 +54,6 @@ prog: External Ident Colon Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Rpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Rpar Right_arrow With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: External Ident Colon Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -70,7 +62,23 @@ prog: External Ident Colon Ident Hash With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Rpar Right_arrow Quote Ident With
+prog: External Ident Colon Fun With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar Rpar With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar Rpar Right_arrow With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar Rpar Right_arrow Quote Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -78,59 +86,7 @@ prog: External Ident Colon Ident Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Ident Lbrack Ident Semicolon
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Ident Lbrack Ident Comma With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Ident Lbrack Ident Rpar
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: External Ident Colon Lpar Ident Semicolon
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Rpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Rpar Right_arrow With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Rpar Right_arrow Quote Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Exclamation With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Ampersand Rpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Ampersand Rpar Right_arrow With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Ampersand Rpar Right_arrow Quote Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Ampersand Comma With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Ampersand Comma Ident Semicolon
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Ampersand Comma Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -138,47 +94,35 @@ prog: External Ident Colon Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Semicolon
+prog: External Ident Colon Ident Lbrack Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Rpar With
+prog: External Ident Colon Fun Lpar Ident Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Rpar Right_arrow With
+prog: External Ident Colon Fun Lpar Ident Ampersand With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Rpar Right_arrow Quote Ident With
+prog: External Ident Colon Fun Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Exclamation With
+prog: External Ident Colon Fun Lpar Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Comma With
+prog: External Ident Colon Fun Lpar Ident Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Comma Ident Semicolon
+prog: External Ident Colon Fun Lpar Ident Rpar Right_arrow Quote Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Lpar Ident Comma Ident Comma Ident Exclamation With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Comma Ident Comma Ident Ampersand With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Comma Ident Ampersand With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: External Ident Colon Lpar Ident Ampersand With
+prog: External Ident Colon Lpar Ident Rbrack
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

@@ -1,15 +1,15 @@
 signature {
-  val nullptr : () -> raw_ptr[u8]
+  val nullptr : fun () -> raw_ptr[u8]
 
   -- functions on raw pointers
-  val get : (raw_ptr['a], int) -> 'a
-  val +> : (raw_ptr['a], int) -> 'a
-  val at : (raw_ptr['a], int) -> raw_ptr['a]
-  val reinterpret : (raw_ptr['a]) -> raw_ptr['b]
-  val addr : ('a&) -> raw_ptr['a]
-  val funptr : ('a) -> raw_ptr[unit]
-  val clsptr : ('a) -> raw_ptr[unit]
-  val leak : ('a!) -> unit
+  val get : fun (raw_ptr['a], int) -> 'a
+  val +> : fun (raw_ptr['a], int) -> 'a
+  val at : fun (raw_ptr['a], int) -> raw_ptr['a]
+  val reinterpret : fun (raw_ptr['a]) -> raw_ptr['b]
+  val addr : fun ('a&) -> raw_ptr['a]
+  val funptr : fun ('a) -> raw_ptr[unit]
+  val clsptr : fun ('a) -> raw_ptr[unit]
+  val leak : fun ('a!) -> unit
 }
 
 let nullptr = __unsafe_nullptr

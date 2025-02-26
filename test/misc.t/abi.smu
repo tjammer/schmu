@@ -11,19 +11,19 @@ type f2s = {fx : f32, fy : f32}
 type f3s = {fx : f32, fy : f32, fz : f32}
 type shader = {id : i32, locs : raw_ptr[i32]}
 
-external subv2 : (v2) ->  v2
-external subi2 : (i2) ->  i2
-external subv1 : (v1) ->  v1
-external subi1 : (i1) ->  i1
-external subv3 : (v3) ->  v3
-external subi3 : (i3) ->  i3
-external subv4 : (v4) ->  v4
-external submixed4 : (mixed4) ->  mixed4
-external subtrailv2 : (trailv2) ->  trailv2
-external subf2s : (f2s) ->  f2s
-external subf3s : (f3s) ->  f3s
-external load_shader : (string/cstr, string/cstr) -> shader
-external set_shader_value : (shader, i32, v4) -> unit
+external subv2 : fun (v2) ->  v2
+external subi2 : fun (i2) ->  i2
+external subv1 : fun (v1) ->  v1
+external subi1 : fun (i1) ->  i1
+external subv3 : fun (v3) ->  v3
+external subi3 : fun (i3) ->  i3
+external subv4 : fun (v4) ->  v4
+external submixed4 : fun (mixed4) ->  mixed4
+external subtrailv2 : fun (trailv2) ->  trailv2
+external subf2s : fun (f2s) ->  f2s
+external subf3s : fun (f3s) ->  f3s
+external load_shader : fun (string/cstr, string/cstr) -> shader
+external set_shader_value : fun (shader, i32, v4) -> unit
 
 ignore (subv2 ({z = 1.0, y = 10.0}))
 ignore (subi2 ({x = 1, y = 10 }))

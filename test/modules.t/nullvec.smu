@@ -2,11 +2,11 @@ signature
 {
   type t['a]
 
-  val create : () -> t['a]
-  val singleton : ('a!) -> t['a]
-  val length : (t['a]) -> int
-  val push : (t['a]&, 'a!) -> unit
-  val iter : (t['a], ('a) -> unit) -> unit
+  val create : fun () -> t['a]
+  val singleton : fun ('a!) -> t['a]
+  val length : fun (t['a]) -> int
+  val push : fun (t['a]&, 'a!) -> unit
+  val iter : fun (t['a], fun ('a) -> unit) -> unit
 }
 
 type t['a] = option[array['a]]
