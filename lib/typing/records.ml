@@ -117,8 +117,14 @@ module Make (C : Core) = struct
       match repr t with
       | Tconstr (path, ps) as t when not (is_builtin t) ->
           let ls =
-            fields_of_record loc path (Some ps) env
-            |> Result.get_ok
+            (match fields_of_record loc path (Some ps) env with
+            | Ok labels -> labels
+            | Error () ->
+                raise
+                  (Error
+                     ( loc,
+                       "Not a record type: "
+                       ^ string_of_type (Env.modpath env) t )))
             |> Array.map (fun f -> { f with ftyp = instantiate f.ftyp })
           in
           let labels_expr =
