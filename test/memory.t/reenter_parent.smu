@@ -1,0 +1,27 @@
+type buf = { base : raw_ptr[u8], len : int }
+
+fun actually_alloc(opt&, suggested, buf&) {
+  match &opt {
+    Some(str&): {
+      let len = string/len(str)
+      let newsize = len + suggested
+      let arr& = string/to_array(str)
+      array/reserve(&arr, newsize)
+      let base = array/data(arr) |> unsafe/at(len)
+      &str = string/of_array(arr)
+      &buf = { base, len = suggested }
+    }
+    None: {
+      let arr = array/create(suggested)
+      let base = array/data(arr)
+      &opt = Some(string/of_array(arr))
+      &buf = { base, len = suggested }
+    }
+  }
+}
+
+{
+  let opt& = None
+  let buf& = { base = unsafe/nullptr(), len = 0 }
+  actually_alloc(&opt, 256, &buf)
+}

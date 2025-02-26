@@ -241,7 +241,12 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
 
             (Mlocal, ms) :: aux mlc tl
         | Param a, (Mfunc, ms) :: tl -> (Mfunc, Imap.add a Pset.empty ms) :: tl
-        | Single a, (scope, ms) :: tl -> (scope, Imap.add a Pset.empty ms) :: tl
+        | Single a, (Mlocal, ms) :: tl ->
+            let tl =
+              match a.parent with Some par -> aux par tl | None -> tl
+            in
+            (Mlocal, Imap.add a Pset.empty ms) :: tl
+        | Single a, (Mfunc, ms) :: tl -> (Mfunc, Imap.add a Pset.empty ms) :: tl
         | No_malloc, _ -> ms
         | Path ((Single i | Param i), p), (scope, ms) :: tl ->
             let found, ms =
