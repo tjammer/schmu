@@ -1523,7 +1523,7 @@ let add_global_init funcs outname start_loc kind body =
   let global = define_global glname global the_module in
   set_linkage Appending global
 
-let add_args body ~loc =
+let declare_args () =
   let name = "__schmu_argv" and lltyp = ptr_t in
   let value = Llvm.const_null ptr_t in
   let value = Llvm.define_global name value the_module in
@@ -1532,8 +1532,9 @@ let add_args body ~loc =
   let name = "__schmu_argc" and lltyp = int_t in
   let value = Llvm.const_null int_t in
   let value = Llvm.define_global name value the_module in
-  Strtbl.add const_tbl name { value; lltyp; typ = Tint; kind = Ptr };
+  Strtbl.add const_tbl name { value; lltyp; typ = Tint; kind = Ptr }
 
+let add_args body ~loc =
   let open Monomorph_tree in
   let expr = Mvar ("__argv", Vnorm, None) in
   let var = { typ = Traw_ptr Tu8; expr; return = false; loc; const = Cnot } in
@@ -1563,6 +1564,9 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
   let layout = DataLayout.as_string (TargetMachine.data_layout machine) in
 
   Llvm.set_data_layout layout the_module;
+
+  (* Declare args up front if needed, that they are not declared as external *)
+  if (not modul) && args then declare_args ();
 
   (* External declarations *)
   List.iter

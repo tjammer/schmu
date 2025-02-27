@@ -2254,13 +2254,19 @@ Arguments
   
   declare ptr @sys_argv()
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
+  define void @schmu_nothing() !dbg !2 {
+  entry:
+    ret void
+  }
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
     store i64 %__argc, ptr @__schmu_argc, align 8
     store ptr %__argv, ptr @__schmu_argv, align 8
-    %0 = tail call ptr @sys_argv(), !dbg !6
-    %1 = tail call ptr @string_concat(ptr @0, ptr %0), !dbg !7
-    tail call void @string_println(ptr %1), !dbg !8
+    tail call void @schmu_nothing(), !dbg !7
+    %0 = tail call ptr @sys_argv(), !dbg !8
+    %1 = tail call ptr @string_concat(ptr @0, ptr %0), !dbg !9
+    tail call void @string_println(ptr %1), !dbg !10
     %2 = alloca ptr, align 8
     store ptr %1, ptr %2, align 8
     call void @__free_a.c(ptr %2)
@@ -2310,13 +2316,15 @@ Arguments
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "args.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "nothing", linkageName: "schmu_nothing", scope: !3, file: !3, line: 2, type: !4, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !3 = !DIFile(filename: "args.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 1, column: 27, scope: !2)
-  !7 = !DILocation(line: 1, column: 8, scope: !2)
-  !8 = !DILocation(line: 1, scope: !2)
+  !6 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !7 = !DILocation(line: 5, scope: !6)
+  !8 = !DILocation(line: 6, column: 27, scope: !6)
+  !9 = !DILocation(line: 6, column: 8, scope: !6)
+  !10 = !DILocation(line: 6, scope: !6)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./args and other --args=2
   ./args and other --args=2
 

@@ -1,1 +1,6 @@
+-- use argc directly
+fun nothing() {
+  ignore(sys/argc)
+}
+nothing()
 println(string/concat(" ", sys/argv()))
