@@ -206,8 +206,11 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
               in
               raise (Error (loc, msg)))
         | None ->
-            print_endline (show_typ t);
-            failwith "Internal Error: Not sure, this shouldn't happen")
+            let msg =
+              Printf.sprintf "Type %s expects no parameters"
+                (string_of_type (Env.modpath env) t)
+            in
+            raise (Error (loc, msg)))
   and handle_func env = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
     | [ (t, _) ] -> concrete_type false env t
