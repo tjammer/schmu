@@ -5585,3 +5585,7 @@ Fix leak after fix above
 Fix parent reentering
   $ schmu reenter_parent.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./reenter_parent
+
+Fix partial parent setting
+  $ schmu set_partial_parent.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./set_partial_parent

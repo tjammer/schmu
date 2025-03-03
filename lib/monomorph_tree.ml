@@ -751,8 +751,8 @@ and morph_if mk p cond owning e1 e2 =
   (* Free what can be freed *)
   let e1, e2, malloc, mallocs =
     (* Mallocs which were moved in one branch need to be freed in the other *)
-    let frees_a = mapdiff_flip bmoved amoved |> mlist_of_pmap in
-    let frees_b = mapdiff_flip amoved bmoved |> mlist_of_pmap in
+    let frees_a = mapdiff_flip bmoved amoved |> mlist_of_pmap ~in_set:false in
+    let frees_b = mapdiff_flip amoved bmoved |> mlist_of_pmap ~in_set:false in
 
     let rm_path m path ms = Mallocs.remove (Path (Single m, path)) ms in
     let mallocs =
@@ -935,9 +935,10 @@ and morph_set mk p expr value moved =
     match moved with
     | Snot_moved -> (false, v)
     | Spartially_moved -> (
-        match Mallocs.find vfunc.malloc mallocs with
+        ignore mallocs;
+        match Mallocs.find vfunc.malloc p.mallocs with
         | Some pmap ->
-            let frees = mlist_of_pmap pmap in
+            let frees = mlist_of_pmap ~in_set:true pmap in
             (true, mk_free_after v frees)
         | None -> (true, v))
     | Smoved -> (true, v)

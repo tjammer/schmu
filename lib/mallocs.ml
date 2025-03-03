@@ -31,14 +31,16 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
   and is_arg_mid (mid : Mid.t) =
     match mid.parent with Some m -> is_arg m | None -> false
 
-  let mlist_of_pmap m =
+  let mlist_of_pmap ~in_set m =
     Imap.to_rev_seq m
     |> Seq.filter_map (fun ((id : Mid.t), paths) ->
-           (* If the malloc comes from a borrowed parameter, we don't add it to the
-              list of mallocs. This list is later on used for freeing allocs. Since
-              there are paths and parent relationsships, we need to recursively
-              check if something is an argument. *)
-           if is_arg_mid id then None
+           (* If the malloc comes from a borrowed parameter, we don't add it to
+              the list of mallocs. This list is later on used for freeing
+              allocs. Since there are paths and parent relationships, we need to
+              recursively check if something is an argument. *)
+           (* If we are [in_set], we have to free, because we set right after.
+              In this case, we don't skip arguments. *)
+           if is_arg_mid id && not in_set then None
            else Some { id = id.mid; mtyp = id.typ; paths })
     |> List.of_seq
 
@@ -166,7 +168,10 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
 
     let empty scope = [ (scope, Imap.empty) ]
     let push kind ms = (kind, Imap.empty) :: ms
-    let pop = function (_, ms) :: tl -> (mlist_of_pmap ms, tl) | [] -> ([], [])
+
+    let pop = function
+      | (_, ms) :: tl -> (mlist_of_pmap ~in_set:false ms, tl)
+      | [] -> ([], [])
 
     let find a ms =
       let rec aux a ms path =
@@ -174,14 +179,28 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         | _, [] -> None
         | (Single i | Param i), (_, ms) :: tl ->
             let mem =
-              match Imap.find_opt i ms with
-              | Some pset -> (
-                  match path with
-                  | [] -> Some (Imap.add i pset Imap.empty)
-                  | path ->
-                      if Pset.mem path pset then None
-                      else Some (Imap.add i pset Imap.empty))
-              | None -> None
+              let children =
+                Imap.filter
+                  (fun mid _ ->
+                    (* print_endline ("mid: " ^ Mid.show mid); *)
+                    match mid.parent with
+                    | Some p -> (
+                        match mid_of_malloc p with
+                        | Some mid when Mid.compare mid i = 0 -> true
+                        | None | Some _ -> false)
+                    | None -> false)
+                  ms
+              in
+              if not (Imap.is_empty children) then Some children
+              else
+                match Imap.find_opt i ms with
+                | Some pset -> (
+                    match path with
+                    | [] -> Some (Imap.add i pset Imap.empty)
+                    | path ->
+                        if Pset.mem path pset then None
+                        else Some (Imap.add i pset Imap.empty))
+                | None -> None
             in
             if Option.is_some mem then mem else aux a tl path
         | No_malloc, _ -> None
@@ -326,11 +345,11 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     let rec empty_func body = function
       | [] -> ([], body)
       | (Mlocal, s) :: tl ->
-          let frees = mlist_of_pmap s in
+          let frees = mlist_of_pmap ~in_set:false s in
           let tl, body = empty_func (mk_free_after body frees) tl in
           ((Mlocal, Imap.empty) :: tl, body)
       | (Mfunc, s) :: tl ->
-          let frees = mlist_of_pmap s in
+          let frees = mlist_of_pmap ~in_set:false s in
           ((Mfunc, Imap.empty) :: tl, mk_free_after body frees)
 
     let diff_func a b =
