@@ -125,6 +125,12 @@ fun str(p!, str) {
   formatter/format(p, string/data(str), string/len(str))
 }
 
+external strlen : fun (raw_ptr[u8]) -> int
+
+fun cstr(p!, cstr) {
+  formatter/format(p, cstr, strlen(cstr))
+}
+
 fun u8(p!, u) {
   int(p, int_of_u8(u)) |> str("u8")
 }
