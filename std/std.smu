@@ -43,6 +43,11 @@ fun failwith(msg) {
   __any_abort()
 }
 
+fun exit(msg, status) {
+  string/prerrln(msg)
+  __any_exit(i32_of_int(status))
+}
+
 -- common operators
 let + = int/(+)
 let - = int/(-)

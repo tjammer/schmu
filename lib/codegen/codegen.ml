@@ -1067,6 +1067,25 @@ end = struct
         | _ ->
             let value = alloca param lltyp "failwith" in
             { value; typ; lltyp; kind = Ptr })
+    | Any_exit -> (
+        let ft, exit' =
+          Llvm.(
+            let ft = function_type unit_t [| i32_t |] in
+            (ft, declare_function "exit" ft the_module))
+        in
+        let value =
+          match args with
+          | [ value ] -> bring_default value
+          | _ -> failwith "Interal Error: Arity mismatch in builder"
+        in
+        ignore (Llvm.build_call ft exit' [| value |] "" builder);
+        let typ = tyexpr.typ in
+        let lltyp = get_lltype_param false typ in
+        match typ with
+        | Tunit -> { dummy_fn_value with typ = Tunit }
+        | _ ->
+            let value = alloca param lltyp "exit" in
+            { value; typ; lltyp; kind = Ptr })
 
   and gen_app_inline param args names tree =
     (* Identify args to param names *)

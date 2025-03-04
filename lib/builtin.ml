@@ -66,6 +66,7 @@ type t =
   | Rc_cnt
   | Rc_wcnt
   | Any_abort
+  | Any_exit
 [@@deriving show]
 
 let tbl =
@@ -290,6 +291,8 @@ let tbl =
   Hashtbl.add tbl "__rc_cntw"
     (Rc_wcnt, Tfun ([ { p with pt = tweak_rc (Qvar "0") } ], tint, Simple));
   Hashtbl.add tbl "__any_abort" (Any_abort, Tfun ([], Qvar "0", Simple));
+  Hashtbl.add tbl "__any_exit"
+    (Any_exit, Tfun ([ { p with pt = ti32 } ], Qvar "0", Simple));
 
   let castable_types =
     [ tint; tfloat; ti32; tu32; tf32; tbool; ti8; tu8; ti16; tu16 ]
