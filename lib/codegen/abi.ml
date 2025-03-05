@@ -108,7 +108,7 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
   let type_unboxed kind =
     let helper = function
       | Ints 1 -> Tu8
-      | Ints 2 -> Tu8 (* Not really, but there is no i16 type yet *)
+      | Ints 2 -> Tu16
       | Ints 4 -> Ti32
       | Ints 8 -> Tint
       | F32 -> Tf32
@@ -164,7 +164,8 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
         failwith "Internal Error: Cannot deal with const two types yet"
     | One_param (Ints _) ->
         let pieces = Llvm.struct_element_types value.lltyp |> Array.length in
-        if pieces > 1 then failwith "Int of pieces TODO"
+        if pieces > 1 then
+          Llvm.const_intcast value.value target_type ~is_signed:false
         else
           let is_signed =
             match value.typ with
