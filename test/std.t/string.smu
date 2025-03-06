@@ -7,3 +7,11 @@ assert(
     Some(i): i
     None: -1
   })
+
+use string
+ends_with("thing.smu", ".smu") |> assert
+ends_with("thing.smu", ".smi") |> not |> assert
+ends_with("thing.smu", "i") |> not |> assert
+ends_with("thing.smu", "") |> assert
+ends_with("", ".smu") |> not |> assert
+ends_with("hi", "ihi") |> not |> assert

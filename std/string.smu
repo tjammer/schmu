@@ -16,6 +16,9 @@ signature {
   val concat : fun (t, array[t]) -> t
   val substr : fun (t, int, int) -> t
   val boyer_moore_horspool : fun (t, t) -> option/t[int]
+  -- (pattern, string) / (needle, haystack)
+  val ends_with : fun (t, t) -> bool
+  -- (str, pattern)
 
   val modify_buf : fun (t&, fun (array[u8]&) -> unit) -> unit
   val of_array : fun (array[u8]!) -> t
@@ -136,6 +139,20 @@ fun boyer_moore_horspool(pattern, str) {
     let skips = make_skips(pattern)
     find(skips, 0)
   }
+}
+
+fun ends_with(str, pat) {
+  fun rec aux(istr, ipat) {
+    if ipat < 0 { true }
+    else if istr < 0 { false }
+    else {
+      if char_equal(get(str, istr), get(pat, ipat)) {
+        aux(istr -1, ipat -1)
+      }
+      else { false }
+    }
+  }
+  aux(len(str) - 1, len(pat) - 1)
 }
 
 fun modify_buf(str& : t, f) {
