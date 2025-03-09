@@ -286,6 +286,14 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           in
 
           (subst, Trecord (ps, kind, record))
+      | (Trecord (i, Rec_folded, record) as t), Trecord (j, Rec_folded, _)
+        when is_type_polymorphic t ->
+          let subst, ps =
+            List.fold_left_map
+              (fun subst (l, r) -> inner subst (l, r))
+              subst (List.combine i j)
+          in
+          (subst, Trecord (ps, Rec_folded, record))
       | ( (Tvariant (i, ((Rec_not l1 | Rec_top l1) as kind), variant) as l),
           Tvariant (j, (Rec_not l2 | Rec_top l2), _) )
         when is_type_polymorphic l ->
@@ -314,6 +322,14 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
             | Rec_folded -> failwith "unreachable"
           in
           (subst, Tvariant (ps, kind, variant))
+      | (Tvariant (i, Rec_folded, variant) as t), Tvariant (j, Rec_folded, _)
+        when is_type_polymorphic t ->
+          let subst, ps =
+            List.fold_left_map
+              (fun subst (l, r) -> inner subst (l, r))
+              subst (List.combine i j)
+          in
+          (subst, Tvariant (ps, Rec_folded, variant))
       | Traw_ptr l, Traw_ptr r ->
           let subst, t = inner subst (l, r) in
           (subst, Traw_ptr t)

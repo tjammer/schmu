@@ -2347,3 +2347,6 @@ Currying in pipes
   $ valgrind -q --leak-check=yes --show-reachable=yes ./curry_pipe
   a: 10 b: 12 c: 1 d: 2
   [cont] a: 10 b: 11
+
+Codgen fixes for recursive types
+  $ schmu codegen_recursive.smu
