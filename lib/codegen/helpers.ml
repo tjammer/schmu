@@ -394,7 +394,9 @@ struct
     let kind = if cl.clmut then Ptr else default_kind typ in
     { value; typ; lltyp; kind }
 
-  let gen_closure_obj param assoc func name allocref upward =
+  let no_prealloc = Monomorph_tree.(ref (Request { id = -1; lvl = -1 }))
+
+  let rec gen_closure_obj param assoc func name allocref upward =
     let clsr_struct = get_prealloc !allocref param closure_t name in
 
     (* Add function ptr *)
@@ -409,7 +411,13 @@ struct
       | _ ->
           let src =
             match Vars.find_opt cl.clname param.vars with
-            | Some v -> v
+            | Some v -> (
+                (* Copied from gen_var. Not all closures might be created yet *)
+                match (v.kind, v.typ) with
+                | Imm, Tfun (_, _, Closure assoc) ->
+                    gen_closure_obj param assoc v "monoclstmp" no_prealloc
+                      upward
+                | _ -> v)
             | None ->
                 Llvm.dump_module the_module;
                 failwith
@@ -678,8 +686,6 @@ struct
         in
 
         (vars, Some { rec_; entry })
-
-  let no_prealloc = Monomorph_tree.(ref (Request { id = -1; lvl = -1 }))
 
   let pass_function param llvar kind =
     match kind with

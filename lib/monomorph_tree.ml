@@ -337,7 +337,7 @@ and cln_kind ss p = function
             let clname =
               if not cl.clparam then
                 extract_callname modded_name p.vars
-                  (Mvar (cl.clname, Vnorm, None))
+                  (Mvar (modded_name, Vnorm, None))
               else modded_name
             in
             {
