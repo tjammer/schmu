@@ -12,13 +12,13 @@ fun sort(arr&, cmp) {
     array/swap_items(&arr, i, hi)
     i
   }
-  -- quicksort is a closure, as it closes over partition. partition itself
-  -- is polymorphic. Before this change, quicksort would close over the dummy
-  -- representation of partition and then construct the closure at the call site.
-  -- This doesn't work here because cmp is not available insize quicksort.
+  -- quicksort is a closure, as it closes over partition. partition itself is
+  -- polymorphic. Before this change, quicksort would close over the dummy
+  -- representation of partition and then construct the closure at the call
+  -- site. This doesn't work here because cmp is not available insize quicksort.
   -- Instead, quicksort now closes over the already monomorphized partition.
-  -- Functions in closures are now mention the monomorphized name instead
-  -- of the lexical one
+  -- Functions in closures now mention the monomorphized name instead of the
+  -- lexical one
   fun rec quicksort(arr&, lo, hi) {
     if not(lo < hi) or (lo < 0) {
       ()
@@ -52,13 +52,13 @@ fun sort(arr&, cmp) {
     i
   }
 
-  -- quicksort is a closure, as it closes over partition. partition itself
-  -- is polymorphic. Before this change, quicksort would close over the dummy
-  -- representation of partition and then construct the closure at the call site.
-  -- This doesn't work here because cmp is not available insize quicksort.
+  -- quicksort is a closure, as it closes over partition. partition itself is
+  -- polymorphic. Before this change, quicksort would close over the dummy
+  -- representation of partition and then construct the closure at the call
+  -- site. This doesn't work here because cmp is not available insize quicksort.
   -- Instead, quicksort now closes over the already monomorphized partition.
-  -- Functions in closures are now mention the monomorphized name instead
-  -- of the lexical one
+  -- Functions in closures now mention the monomorphized name instead of the
+  -- lexical one
   fun rec quicksort(arr&, lo, hi) {
     if not(lo < hi) or (lo < 0) {
       ()

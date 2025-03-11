@@ -620,11 +620,11 @@ end = struct
         disambiguate_uses env loc annot (Path.Pid name) expr
 
   and convert_var env loc id =
-    match Env.query_val_opt loc id env with
+    match Env.query_val_opt loc id ~instantiate env with
     | Some t ->
-        let typ = instantiate t.typ in
+        (* t is already instantiated *)
         let attr = { const = t.const; global = t.global; mut = t.mut } in
-        { typ; expr = Var (Path.get_hd id, t.mname); attr; loc }
+        { typ = t.typ; expr = Var (Path.get_hd id, t.mname); attr; loc }
     | None ->
         (* Functor parameters are not local modules and will raise an [Error] in
            module.ml. That's by accident, and the error message is abysmal and

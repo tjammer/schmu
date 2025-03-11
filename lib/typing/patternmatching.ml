@@ -808,7 +808,7 @@ module Make (C : Core) (R : Recs) = struct
 
   let add_ignore name value loc env =
     let env = Env.(add_value name value loc env) in
-    ignore (Env.query_val_opt loc (Path.Pid name) env);
+    ignore (Env.query_val_opt ~instantiate:Fun.id loc (Path.Pid name) env);
     env
 
   let path_typ loc env p = Env.(find_val loc (Path.Pid (expr_name p)) env).typ
@@ -1384,7 +1384,10 @@ module Make (C : Core) (R : Recs) = struct
       | Pwildcard (loc, _) ->
           (* expr_name was added before to env in [handle_param].
              Make sure it's marked as used *)
-          ignore (Env.query_val_opt loc (Path.Pid (expr_name [ i ])) env);
+          ignore
+            (Env.query_val_opt ~instantiate:Fun.id loc
+               (Path.Pid (expr_name [ i ]))
+               env);
           (env, i + 1, ret)
       | (Ptup (loc, _, _) | Precord (loc, _, _)) as p ->
           let env, binds = bind_pattern env loc i p in

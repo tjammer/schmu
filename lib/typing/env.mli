@@ -83,7 +83,8 @@ val use_module : t -> Ast.loc -> Path.t -> t
 val find_val : Ast.loc -> Path.t -> t -> value
 val find_val_opt : Ast.loc -> Path.t -> t -> value option
 
-val query_val_opt : Ast.loc -> Path.t -> t -> value option
+val query_val_opt :
+  Ast.loc -> Path.t -> instantiate:(typ -> typ) -> t -> value option
 (** [query_opt key env] is like find_val_opt, but marks [key] as
      being used in the current scope (e.g. a closure) *)
 

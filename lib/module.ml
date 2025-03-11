@@ -864,7 +864,8 @@ let validate_module_type env ~loc ~mname find mtype =
         if b then
           let acc =
             ((* Query value to mark it as used in the env *)
-             ignore (Env.query_val_opt loc (Path.Pid name) env);
+             ignore
+               (Env.query_val_opt ~instantiate:Fun.id loc (Path.Pid name) env);
              (name, loc, Mvalue (typ, callname)))
             :: acc
           in

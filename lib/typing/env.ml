@@ -453,7 +453,7 @@ let close_thing is_same modpath env =
                      and clparam = param
                      and clmname = mname
                      and clcopy = false in
-                     (* clcopy will be changed it typing *)
+                     (* clcopy will be changed in typing *)
                      match cleantyp with
                      | Tfun (_, _, Closure _) ->
                          Some { clname; cltyp; clmut; clparam; clmname; clcopy }
@@ -591,7 +591,7 @@ let mark_used usage kind mut =
       usage.used := true
   | Smodule usage -> usage.used := true
 
-let query_val_opt loc pkey env =
+let query_val_opt loc pkey ~instantiate env =
   (* Copies some code from [find_general] *)
   let rec add lvl value values =
     match values with
@@ -607,8 +607,12 @@ let query_val_opt loc pkey env =
     | _ -> ()
   in
 
-  let found key lvl kind ({ typ; const; mname; global; mut; param; usage } as v)
-      =
+  let found key lvl kind v =
+    let ({ typ; const; mname; global; mut; param; usage } as v) =
+      (* Instantiate type here so it is added as closure already
+         instantiated. *)
+      { v with typ = instantiate v.typ }
+    in
     let in_module =
       match kind with
       | Smodule _ -> true
