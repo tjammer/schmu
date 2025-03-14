@@ -1347,7 +1347,15 @@ and catch_weak_expr env sub e =
            "Expression contains weak type variables: "
            ^ string_of_type (Env.modpath env) e.typ ))
   in
-  if is_weak ~sub e.typ then _raise ();
+  let _raise_orphan () =
+    raise
+      (Error
+         ( e.loc,
+           "Expression cannot be monomorphized, it contains orphan polymorphic \
+            types" ))
+  in
+  if is_weak ~sub e.typ then _raise ()
+  else if is_poly_orphan ~sub e.typ then _raise_orphan ();
   match e.expr with
   | Var _ | Const _ | Lambda _ -> ()
   | Bop (_, e1, e2) | Set (e1, e2, _) | Sequence (e1, e2) ->

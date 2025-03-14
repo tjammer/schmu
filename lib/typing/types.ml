@@ -207,8 +207,7 @@ let is_polymorphic typ =
 let rec is_weak ~sub = function
   | Qvar _ -> false
   | Tvar { contents = Link t } -> is_weak ~sub t
-  | Tvar { contents = Unbound (id, _) } ->
-      if Sset.mem id sub then false else true
+  | Tvar { contents = Unbound (id, _) } -> not (Sset.mem id sub)
   | Ttuple ts | Tconstr (_, ts) ->
       List.fold_left (fun b t -> is_weak ~sub t || b) false ts
   | Tfixed_array ({ contents = Unknown _ }, _) -> true
@@ -221,6 +220,21 @@ let rec is_weak ~sub = function
          I'm not sure if this leaves some weak variables undetected, but
          at least some are caught *)
       false
+
+let is_poly_orphan ~sub t =
+  let rec aux contained = function
+    | Qvar id | Tvar { contents = Unbound (id, _) } ->
+        contained && not (Sset.mem id sub)
+    | Tvar { contents = Link t } -> aux contained t
+    | Ttuple ts | Tconstr (_, ts) ->
+        List.fold_left (fun b t -> b || aux true t) false ts
+    | Tfixed_array (_, t) -> aux true t
+    | Tfun (ps, ret, _) when contained ->
+        aux contained ret
+        || List.fold_left (fun b p -> b || aux contained p.pt) false ps
+    | Tfun _ -> false
+  in
+  aux false t
 
 let map_params ~inst ~params =
   try

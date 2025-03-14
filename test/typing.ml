@@ -122,6 +122,13 @@ fun apply_move(move): move([0])
 apply_move(move)
 |}
 
+let test_func_orphan_poly () =
+  test_exn
+    "Expression cannot be monomorphized, it contains orphan polymorphic types"
+    {|fun id(x!): x
+fun add_final(): id
+(id, 0)|}
+
 let test_record_clear () =
   test "t" "type t = { x : int, y : int }; {x = 2, y = 2}"
 
@@ -1644,6 +1651,7 @@ let () =
           case "unused rec" test_func_unused_rec;
           case "missing move known" test_func_missing_move_known;
           case "missing move unknown" test_func_missing_move_unknown;
+          case "orphan poly" test_func_orphan_poly;
         ] );
       ( "records",
         [
