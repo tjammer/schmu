@@ -1,0 +1,102 @@
+module async {
+  signature {
+    type promise['a]
+    type future['a]
+    val return : fun ('a!) -> future['a]
+    val wait : fun () -> (future['a], promise['a])
+    val join_bind : fun (array[future['a]], fun (array['a]) -> future['b]!) -> future['b]
+  }
+  type prom_state['a] =
+  Pending
+  | Queued1(fun ('a) -> unit)
+  | Queued_n(array[fun ('a) -> unit])
+  | Resolved('a)
+  | Other(rc[prom_state])
+  type promise['a] = rc[prom_state['a]]
+  type future['a] = promise[a]
+  fun return(v!): rc/create(Resolved(v))
+  fun wait() {
+    let pr = rc/create(Pending)
+    copy(pr), pr
+  }
+  fun add_cnt_cb(final!, cnt&, _len) {
+    fun _ [cnt] {
+      rc/mut(&cnt, fun _cnt&
+        {
+          rc/read(final, fun _final: ())
+        }
+      )
+    }
+  }
+  fun add_final(futs, pr&, fn!) {
+    let futs& = array/map(futs, fun f: rc/to_weak(f))
+    fun () [pr] {
+      let tmp& = array/create(array/length(futs))
+      array/map_inplace(&futs, fun f& {
+        match rc/of_weak(f) {
+          Some(f&): 
+            rc/mut(&f, fun f& {
+              match f {
+                _: ()
+              }
+            })
+          None: ()
+        }
+      })
+      let new& = fn(tmp)
+      fun rec _aux() {
+        match array/pop_back(&tmp) {
+          None: 0
+          Some(v): {
+            let index = array/length(tmp)
+            match rc/of_weak(futs.[index]) {
+              Some(f&): 
+                rc/mut_with(&f, v, fun (f&, v!): &f = Resolved(v))
+              None: ()
+            }
+            _aux()
+          }
+        }
+      }
+      fun rec aux(new&) {
+        match new {
+          Resolved(_vpr): rc/mut(&pr, aux)
+          _: 0
+        }
+      }
+      rc/mut(&new, aux)
+    }
+  }
+  fun join_bind(futs, fn!) {
+    let len = futs
+    let fut, pr = wait()
+    let cnt& = rc/create(0)
+    let pr& = !pr
+    let tmp = add_final(futs, &pr, fn)
+    let final = rc/create(tmp)
+    fun rec _aux(cp&) {
+      match &cp {
+        Pending: &cp = Queued1(add_cnt_cb(copy(final), &cnt, len))
+        Queued1(_b1): &cp = Queued_n([])
+        Queued_n(cbs&): array/push(&cbs, add_cnt_cb(copy(final), &cnt, len))
+        Resolved(_): rc/mut(&cnt, fun cnt&: &cnt = 1)
+        Other(pr&): rc/mut(&pr, _aux)
+      }
+    }
+    fut
+  }
+}
+{
+  let f1, _ = async/wait()
+  let f2, _ = async/wait()
+  let f3, _ = async/wait()
+  let f4, _ = async/wait()
+  let futs = [f1, f2, f3, f4]
+  let _f = async/join_bind(futs, fun vs {
+    let _res = array/iter(vs) |> iter/fold("", fun (acc!, _v : string) {
+      acc
+    })
+    async/return(0)
+  })
+  0
+}

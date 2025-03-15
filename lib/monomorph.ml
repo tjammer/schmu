@@ -413,8 +413,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     (* We might have to substitute other types (in closures) from an outer scope *)
     let subst, typ =
       match parent with
-      | Some sub -> ((fun t -> sub t |> subst), sub typ)
-      | None -> (subst, typ)
+      | Some sub -> ((fun t -> sub t |> subst), sub typ |> subst)
+      | None -> (subst, subst typ)
     in
 
     (subst, typ)

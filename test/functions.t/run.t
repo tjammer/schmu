@@ -3819,3 +3819,7 @@ Monomorphize functions as variables
 Unit parameters in folds
   $ schmu unit_param.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./unit_param
+
+Monomorphize types where the correct subst doesn't show up immediately
+  $ schmu monomorph_later.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./monomorph_later
