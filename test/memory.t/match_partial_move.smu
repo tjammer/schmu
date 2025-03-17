@@ -26,7 +26,7 @@ module async {
     rc/mut_with(&cp, fn, fun (cp&, fn!) {
       match cp {
         Pending: 
-          &cp = Queued1(fun a: fn(a))
+          &cp = Queued1(fun a { fn(a) })
         _: ()
       }
     })

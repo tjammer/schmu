@@ -5,7 +5,7 @@ module type empty_t {
 
 fun use_concrete(a) {
     ignore(a)
-  fun concrete(a): a + 1
+  fun concrete(a) { a + 1 }
   concrete(0)
   }
 
@@ -14,8 +14,8 @@ functor define ( m : empty_t ) {
     val use_this : fun ('a) -> int
     val dont_use : fun (int) -> int
   }
-  fun use_this(a): use_concrete(a)
-  fun dont_use(a): a + 1
+  fun use_this(a) { use_concrete(a) }
+  fun dont_use(a) { a + 1 }
 }
 
 module empty {

@@ -3,7 +3,7 @@ module async {
   | Pending
   | Queued1(fun ('a) -> unit)
   | Resolved(a)
-  fun return(v!): rc/create(Resolved(v))
+  fun return(v!) { rc/create(Resolved(v)) }
   fun wait() {
     let pr = rc/create(Pending)
     copy(pr), pr

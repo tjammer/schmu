@@ -67,7 +67,6 @@
 %token And
 %token Or
 
-%nonassoc Below_expr
 %nonassoc Below_Ampersand
 
 %nonassoc Type_application
@@ -110,7 +109,6 @@ stmt_no_ident:
   | Let; decl = let_decl; Equal; id = Builtin_id
     { let expr = {pattr = Dnorm; pexpr = Var($loc(id), id)} in Let($loc, decl, expr) }
   | Fun; func = func { let loc, func = func false in Function (loc, func) }
-  | Fun; func = func_colon { let loc, func = func false in Function (loc, func) }
   | Fun; Rec; func = func { let loc, func = func true in Function (loc, func) }
   | Fun; Rec; func = func; And; tail = separated_nonempty_list(And, func)
     { Rec($loc, (func true) :: (List.map (fun f -> f true) tail)) }
@@ -126,13 +124,6 @@ func:
   | name = func_name; params = parens(param_decl); attr = loption(capture_copies);
       return_annot = option(return_annot); body = block
     { fun is_rec -> ($loc, { name; params; return_annot; body; attr; is_rec }) }
-
-func_colon:
-  | name = func_name; params = parens(param_decl); attr = loption(capture_copies);
-      return_annot = option(return_annot); Colon; body = expr
-    { fun is_rec ->
-      let body = [Expr ($loc(body), body)] in
-      ($loc, { name; params; return_annot; body; attr; is_rec }) }
 
 func_name:
   | name = ident { name }
@@ -337,13 +328,6 @@ lambda:
     { Lambda ($loc, params, attr, return_annot, body) }
   | Fun; param = only_one_param; attr = loption(capture_copies); body = block
     { Lambda ($loc, [param], attr, None, body) }
-  | Fun; params = parens(param_decl); attr = loption(capture_copies);
-      return_annot = option(return_annot); Colon; body = expr; %prec Below_expr
-    { let body = [Expr ($loc(body), body)] in
-      Lambda ($loc, params, attr, return_annot, body) }
-  | Fun; param = only_one_param; attr = loption(capture_copies); Colon; body = expr; %prec Below_expr
-    { let body = [Expr ($loc(body), body)] in
-      Lambda ($loc, [param], attr, None, body) }
 
 clause_path:
   | paths = nonempty_list(Path_id)

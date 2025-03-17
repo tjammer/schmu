@@ -211,7 +211,7 @@ fun of_file(file) {
   {buf = #4096[0u8], head = 0, unseen = 0, file}
 }
 
-fun to_file(ic): ic.file
+fun to_file(ic) { ic.file }
 
 external fseek : fun (file, int, i32) -> unit
 external ftell : fun (file) -> int

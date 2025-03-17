@@ -15,7 +15,7 @@ type prom_state['a] = Pending | Queued(array[fun ('a) -> unit]) | Resolved('a)
 type promise['a] = rc[prom_state['a]]
 type future['a] = promise['a]
 
-fun return(v!): rc/create(!Resolved(v))
+fun return(v!) { rc/create(!Resolved(v)) }
 
 fun wait() {
   let pr = rc/create(!Pending)
@@ -30,7 +30,7 @@ fun promise_resolve(p&, v!) {
       &s = Resolved(v)
     }
     Queued(cbs): {
-      array/iter(cbs) |> iter/iter(fun cb: cb(v))
+      array/iter(cbs) |> iter/iter(fun cb { cb(v) })
       &s = Resolved(v)
     }
   }

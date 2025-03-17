@@ -14,7 +14,7 @@ module async {
   | Other(rc[prom_state])
   type promise['a] = rc[prom_state['a]]
   type future['a] = promise[a]
-  fun return(v!): rc/create(Resolved(v))
+  fun return(v!) { rc/create(Resolved(v)) }
   fun wait() {
     let pr = rc/create(Pending)
     copy(pr), pr
@@ -23,13 +23,13 @@ module async {
     fun _ [cnt] {
       rc/mut(&cnt, fun _cnt&
         {
-          rc/read(final, fun _final: ())
+          rc/read(final, fun _final { () })
         }
       )
     }
   }
   fun add_final(futs, pr&, fn!) {
-    let futs& = array/map(futs, fun f: rc/to_weak(f))
+    let futs& = array/map(futs, fun f { rc/to_weak(f) })
     fun () [pr] {
       let tmp& = array/create(array/length(futs))
       array/map_inplace(&futs, fun f& {
@@ -51,7 +51,7 @@ module async {
             let index = array/length(tmp)
             match rc/of_weak(futs.[index]) {
               Some(f&): 
-                rc/mut_with(&f, v, fun (f&, v!): &f = Resolved(v))
+                rc/mut_with(&f, v, fun (f&, v!) { &f = Resolved(v) })
               None: ()
             }
             _aux()
@@ -79,7 +79,7 @@ module async {
         Pending: &cp = Queued1(add_cnt_cb(copy(final), &cnt, len))
         Queued1(_b1): &cp = Queued_n([])
         Queued_n(cbs&): array/push(&cbs, add_cnt_cb(copy(final), &cnt, len))
-        Resolved(_): rc/mut(&cnt, fun cnt&: &cnt = 1)
+        Resolved(_): rc/mut(&cnt, fun cnt& { &cnt = 1 })
         Other(pr&): rc/mut(&pr, _aux)
       }
     }

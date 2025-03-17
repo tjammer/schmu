@@ -118,15 +118,15 @@ let test_func_missing_move_unknown () =
      expecting fun (fun (array[int]) -> _) -> _\n\
      but found fun (fun (array[int]!) -> _) -> _"
     {|fun move(a!) { ignore(a) }
-fun apply_move(move): move([0])
+fun apply_move(move) { move([0]) }
 apply_move(move)
 |}
 
 let test_func_orphan_poly () =
   test_exn
     "Expression cannot be monomorphized, it contains orphan polymorphic types"
-    {|fun id(x!): x
-fun add_final(): id
+    {|fun id(x!) { x }
+fun add_final() { id }
 (id, 0)|}
 
 let test_record_clear () =
@@ -867,11 +867,11 @@ module nullvec {
 
   type t['a] = option[array['a]]
 
-  fun of_array(arr!): Some(arr)
+  fun of_array(arr!) { Some(arr) }
 }
 
-fun find_missing_deps(_ : array[unit]): ()
-fun enqueue(_! : nullvec/t[unit]): 0
+fun find_missing_deps(_ : array[unit]) { () }
+fun enqueue(_! : nullvec/t[unit]) { 0 }
 
 fun deps! {
   find_missing_deps(deps)
@@ -1172,11 +1172,11 @@ fun process_state(state&) {
 }|}
 
 let test_excl_move_lambda () =
-  test_exn "Borrowed parameter a is moved" "fun copy_param(a&): fun (): &a = 12"
+  test_exn "Borrowed parameter a is moved" "fun copy_param(a&) { fun () { &a = 12 } }"
 
 let test_excl_move_fun () =
   test_exn "Borrowed parameter a is moved"
-    "fun copy_param(a&) {fun f (): &a = 12; f}"
+    "fun copy_param(a&) {fun f () { &a = 12 }; f}"
 
 let test_excl_move_outer_branch () =
   test_exn "Cannot move value str from outer scope"
@@ -1542,8 +1542,8 @@ let test_syntax_pipe_curry_right () =
 
 let test_syntax_pipe_curry_left () =
   test "int"
-    {|fun cont(a, b): a + b
-fun call(k, a): k(a)
+    {|fun cont(a, b) { a + b }
+fun call(k, a) { k(a) }
 
 cont(10) |> call(11)
 |}

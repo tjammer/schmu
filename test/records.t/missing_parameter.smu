@@ -2,4 +2,4 @@ type t['a] = {t : 'a}
 
 fun correct(t : t[int]) {t.t}
 
-fun (t : t): t.t
+fun (t : t) { t.t }

@@ -1955,7 +1955,7 @@ Use module name prefix for function names to prevent linker dups
   
   nameclash_use.smu:4.5-18: warning: Unused binding specific_name.
   
-  4 | fun specific_name(): ()
+  4 | fun specific_name() { () }
           ^^^^^^^^^^^^^
   
 Distinguish closures and functions

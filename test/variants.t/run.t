@@ -2,12 +2,12 @@ Basic variant ctors
   $ schmu basic.smu --dump-llvm
   basic.smu:12.5-15: warning: Unused binding wrap_clike.
   
-  12 | fun wrap_clike(): C
+  12 | fun wrap_clike() { C }
            ^^^^^^^^^^
   
   basic.smu:14.5-16: warning: Unused binding wrap_option.
   
-  14 | fun wrap_option(): Some("hello")
+  14 | fun wrap_option() {Some("hello")}
            ^^^^^^^^^^^
   
   ; ModuleID = 'context'

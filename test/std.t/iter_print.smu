@@ -1,7 +1,7 @@
 use iter
 
 range(0, 10)
-|> filter(fun i : (i |> mod(2)) == 0)
+|> filter(fun i { (i |> mod(2)) == 0 })
 |> take(5)
 |> fold(!0, fun (acc!, i) {
   print1("{}\n", int, i)

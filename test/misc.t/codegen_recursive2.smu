@@ -50,7 +50,7 @@ module async {
         Pending: &cp = Queued1(add_cb(&pr, &cnt, len))
         Queued1(_b1): &cp = Queued_n([])
         Queued_n(cbs&): array/push(&cbs, add_cb(&pr, &cnt, len))
-        Resolved(_): rc/mut(&cnt, fun cnt&: &cnt = 1)
+        Resolved(_): rc/mut(&cnt, fun cnt& {&cnt = 1})
         Other(pr&): rc/mut(&pr, aux)
       }
     }

@@ -1,1 +1,1 @@
-array/iter([0]) |> iter/fold(!(), fun (acc!, _i): acc)
+array/iter([0]) |> iter/fold(!(), fun (acc!, _i) { acc })

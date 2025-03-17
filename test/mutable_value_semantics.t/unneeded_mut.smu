@@ -1,4 +1,4 @@
-fun do_nothing(a&): ignore(a)
+fun do_nothing(a&) { ignore(a) }
 
 fun do_mut(a&, b) {&a = copy(b)}
 

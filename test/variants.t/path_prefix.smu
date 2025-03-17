@@ -1,6 +1,6 @@
 module local {
   type t = Thing | Other
-  fun produce(): Thing
+  fun produce() { Thing }
 }
 
 fun a {

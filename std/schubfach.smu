@@ -708,8 +708,8 @@ fun floor_log_pow10(e) {
 }
 
 fun round_to_odd(g, cp) {
-  fun lo32(x): u32_of_int(x) |> int_of_u32
-  fun hi32(x): lshr(x, 32) |> u32_of_int |> int_of_u32
+  fun lo32(x) { u32_of_int(x) |> int_of_u32 }
+  fun hi32(x) { lshr(x, 32) |> u32_of_int |> int_of_u32 }
   fun mul128(a, b) {
     let b00 = lo32(a) * lo32(b)
     let b01 = lo32(a) * hi32(b)

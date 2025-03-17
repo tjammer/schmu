@@ -6,7 +6,9 @@ fun four(a, b, c, d) {
 (10 |> four(12))(1, 2)
 
 -- curry first call in pipe
-fun cont(a, b): fmt/(print2("[cont] a: {} b: {}\n", int, a, int, b))
-fun call(k, a): k(a)
+fun cont(a, b) {
+  fmt/(print2("[cont] a: {} b: {}\n", int, a, int, b))
+}
+fun call(k, a) { k(a) }
 
 cont(10) |> call(11)

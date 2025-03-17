@@ -16,7 +16,7 @@ prog: Type With
 
 prog: Type Ident With
 
-Expecting square brackets for parameterized type
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Type Ident Lbrack With
 
@@ -144,7 +144,7 @@ prog: Type Ident Equal Lcurly Ident Colon With
 
 prog: Type Ident Equal Lcurly Ident Colon Ident Semicolon
 
-Expecting square brackets for parameterized type
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Type Ident Equal Lcurly Ident Colon Ident Comma With
 
@@ -188,7 +188,7 @@ prog: Type Ident Equal Ctor Hbar With
 
 prog: Type Ident Equal Ident Rpar
 
-Expecting square brackets for parameterized type
+<YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Signature With
 
@@ -494,15 +494,11 @@ prog: Fun Rec Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Rec Ident Lpar Rpar With
+prog: Fun Ident Lpar Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Rec Ident Lpar Rpar Lbrack Ident Rbrack With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Rec Ident Lpar Rpar Right_arrow Ident Colon
+prog: Fun Ident Lpar Rpar Lbrack Ident Rbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -546,7 +542,7 @@ prog: Fun Ident Lbrack Ident Rbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Ident Colon With
+prog: Fun Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -714,30 +710,6 @@ prog: False Comma False Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Ident Colon False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Ident Lpar Rpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Ident Lpar Rpar Lbrack Ident Rbrack With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Ident Lpar Rpar Colon With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Ident Lpar Rpar Colon False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: If False Lcurly Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -755,14 +727,6 @@ prog: False Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Lpar Rpar Colon With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Lpar Rpar Colon False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

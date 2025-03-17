@@ -460,7 +460,7 @@ Warn on unneeded mutable bindings
   $ schmu unneeded_mut.smu
   unneeded_mut.smu:1.5-15: warning: Unused binding do_nothing.
   
-  1 | fun do_nothing(a&): ignore(a)
+  1 | fun do_nothing(a&) { ignore(a) }
           ^^^^^^^^^^
   
   unneeded_mut.smu:5.5-6: warning: Unmutated mutable binding b.

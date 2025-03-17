@@ -483,7 +483,7 @@ Parametrization needs to be given, if a type is generic
   $ schmu --dump-llvm stub.o missing_parameter.smu && ./missing_parameter
   missing_parameter.smu:5.10-11: error: Type t expects 1 type parameter.
   
-  5 | fun (t : t): t.t
+  5 | fun (t : t) { t.t }
                ^
   
   [1]
