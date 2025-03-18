@@ -1,6 +1,6 @@
 let a = Some(("thing", 0))
 
 match copy(a) {
-  Some((t, _)): println(t)
-  None: ()
+  Some((t, _)) -> println(t)
+  None -> ()
 }

@@ -12,12 +12,12 @@ fun wait() {
 fun resolve(p&, v!) {
   fun rec aux (inner&, v!) {
     match &inner {
-      Resolved(_): ()
-      Pending:
+      Resolved(_) -> ()
+      Pending ->
       &inner = Resolved(v)
-      Queued1(_b):
+      Queued1(_b) ->
       &inner = Resolved(v)
-      Other(pr&): rc/mut_with(&pr, v, aux)
+      Other(pr&) -> rc/mut_with(&pr, v, aux)
     }
   }
   rc/mut_with(&p, v, aux)
@@ -37,10 +37,10 @@ fun add_cb(pr&, cnt&, _len) {
   let pr& = !pr
   fun rec _aux(cp&) {
     match &cp {
-      Pending: &cp = Queued1(add_cb(&pr, &cnt, len))
-      Queued1(_b1): ()
-      Resolved(_): rc/mut(&cnt, fun cnt& { &cnt = 1 })
-      Other(pr&): rc/mut(&pr, _aux)
+      Pending -> &cp = Queued1(add_cb(&pr, &cnt, len))
+      Queued1(_b1) -> ()
+      Resolved(_) -> rc/mut(&cnt, fun cnt& { &cnt = 1 })
+      Other(pr&) -> rc/mut(&pr, _aux)
     }
   }
   0

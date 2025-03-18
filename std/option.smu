@@ -11,32 +11,32 @@ signature {
 
 fun map(opt, f) {
   match opt {
-    Some(thing): Some(f(thing))
-    None: None
+    Some(thing) -> Some(f(thing))
+    None -> None
   }
 }
 
 fun iter(opt, f) {
   match opt {
-    Some(thing): {
+    Some(thing) -> {
       f(thing)
       ()
     }
-    None: ()
+    None -> ()
   }
 }
 
 fun bind(opt, f) {
   match opt {
-    Some(thing): f(thing)
-    None: None
+    Some(thing) -> f(thing)
+    None -> None
   }
 }
 
 fun is_some(opt) {
-  match opt { Some(_): true; None: false }
+  match opt { Some(_) -> true; None -> false }
 }
 
 fun is_none(opt) {
-  match opt { Some(_): false; None: true }
+  match opt { Some(_) -> false; None -> true }
 }

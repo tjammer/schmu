@@ -3,13 +3,13 @@ type var = Float(float) | Thing(thing)
 
 let var = Float(10.0)
 match  var{
-  Float(_): println("float")
-  Thing(_): println("thing")
+  Float(_) -> println("float")
+  Thing(_) -> println("thing")
 }
 fun dynamic(var) {
   match var {
-    Float(_): println("float")
-    Thing(_): println("thing")
+    Float(_) -> println("float")
+    Thing(_) -> println("thing")
   }
 }
 dynamic(var)

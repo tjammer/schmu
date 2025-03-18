@@ -426,8 +426,8 @@ Copy string literal
   !40 = !DILocation(line: 80, column: 6, scope: !39)
   !41 = distinct !DISubprogram(name: "__fun_fmt_stdout2", linkageName: "__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul", scope: !8, file: !8, line: 315, type: !4, scopeLine: 315, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !42 = !DILocation(line: 317, column: 8, scope: !41)
-  !43 = !DILocation(line: 317, column: 11, scope: !41)
-  !44 = !DILocation(line: 318, column: 11, scope: !41)
+  !43 = !DILocation(line: 317, column: 13, scope: !41)
+  !44 = !DILocation(line: 318, column: 13, scope: !41)
   !45 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !8, file: !8, line: 62, type: !4, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !46 = !DILocation(line: 65, column: 21, scope: !45)
   !47 = !DILocation(line: 66, column: 10, scope: !45)
@@ -863,7 +863,7 @@ Copy variants
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
   !6 = !DILocation(line: 4, column: 2, scope: !2)
-  !7 = !DILocation(line: 4, column: 16, scope: !2)
+  !7 = !DILocation(line: 4, column: 18, scope: !2)
   thing
 
 Copy closures

@@ -8,7 +8,7 @@ functor make_printer(m : concrete_formatter) {
     fun inner(a) { a + 1 }
   }
   fun helper_printn(a) {
-    match a { impl/Str(_): inner(0) }
+    match a { impl/Str(_) -> inner(0) }
   }
   fun other() {
     helper_printn(Str(0))

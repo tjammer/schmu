@@ -34,25 +34,25 @@ module async {
       let tmp& = array/create(array/length(futs))
       array/map_inplace(&futs, fun f& {
         match rc/of_weak(f) {
-          Some(f&): 
+          Some(f&) ->
             rc/mut(&f, fun f& {
               match f {
-                _: ()
+                _ -> ()
               }
             })
-          None: ()
+          None -> ()
         }
       })
       let new& = fn(tmp)
       fun rec _aux() {
         match array/pop_back(&tmp) {
-          None: 0
-          Some(v): {
+          None -> 0
+          Some(v) -> {
             let index = array/length(tmp)
             match rc/of_weak(futs.[index]) {
-              Some(f&): 
+              Some(f&) ->
                 rc/mut_with(&f, v, fun (f&, v!) { &f = Resolved(v) })
-              None: ()
+              None -> ()
             }
             _aux()
           }
@@ -60,8 +60,8 @@ module async {
       }
       fun rec aux(new&) {
         match new {
-          Resolved(_vpr): rc/mut(&pr, aux)
-          _: 0
+          Resolved(_vpr) -> rc/mut(&pr, aux)
+          _ -> 0
         }
       }
       rc/mut(&new, aux)
@@ -76,11 +76,11 @@ module async {
     let final = rc/create(tmp)
     fun rec _aux(cp&) {
       match &cp {
-        Pending: &cp = Queued1(add_cnt_cb(copy(final), &cnt, len))
-        Queued1(_b1): &cp = Queued_n([])
-        Queued_n(cbs&): array/push(&cbs, add_cnt_cb(copy(final), &cnt, len))
-        Resolved(_): rc/mut(&cnt, fun cnt& { &cnt = 1 })
-        Other(pr&): rc/mut(&pr, _aux)
+        Pending -> &cp = Queued1(add_cnt_cb(copy(final), &cnt, len))
+        Queued1(_b1) -> &cp = Queued_n([])
+        Queued_n(cbs&) -> array/push(&cbs, add_cnt_cb(copy(final), &cnt, len))
+        Resolved(_) -> rc/mut(&cnt, fun cnt& { &cnt = 1 })
+        Other(pr&) -> rc/mut(&pr, _aux)
       }
     }
     fut

@@ -3,12 +3,12 @@ type tok = A | B | C(int)
 fun infun(tok) {
   let delim& = None
   (fun tok {
-    match tok { C(_): println("c"); _: () }
+    match tok { C(_) -> println("c") | _ -> () }
     match (delim, tok) {
-      (Some(A), A): println("some a")
-      (Some(B), B): println("some b")
-      (Some(_), _): println("some other")
-      (None, tk): {
+      (Some(A), A) -> println("some a")
+      (Some(B), B) -> println("some b")
+      (Some(_), _) -> println("some other")
+      (None, tk) -> {
         println("none")
         &delim = Some(tk)
       }

@@ -8,7 +8,7 @@ fun any(fmt!) {
 }
 
 match any(copy(fmt/int)) {
-  Ctor(f): f.[0](0)
+  Ctor(f) -> f.[0](0)
 }
 
 type ctor2['a] = Ctor('a)
@@ -22,5 +22,5 @@ fun any(fmt!) {
 }
 
 match any(copy(fmt/int)) {
-  Ctor(f): f(0)
+  Ctor(f) -> f(0)
 }

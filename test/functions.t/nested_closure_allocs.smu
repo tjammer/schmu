@@ -17,8 +17,8 @@ fun alt(alts!) {
     fun rec aux(i) {
       if array/length(alts) == i {Err(view)}
       else {match alts.[i](buf, view) {
-        Ok(r): Ok(r)
-        Err(_): aux(i + 1)
+        Ok(r) -> Ok(r)
+        Err(_) -> aux(i + 1)
     }}}
     aux(0)
   }
@@ -30,8 +30,8 @@ fun alt_named(alts!) {
     fun rec aux(i) {
       if array/length(alts) == i {Err(view)}
       else {match alts.[i](buf, view) {
-        Ok(r): Ok(r)
-        Err(_): aux(i + 1)
+        Ok(r) -> Ok(r)
+        Err(_) -> aux(i + 1)
     }}}
     aux(0)
   }

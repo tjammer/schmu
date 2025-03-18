@@ -31,7 +31,7 @@ fun view_of_lexbuf(lb) {
 fun print_result(res) {
   use fmt
   match res {
-    Ok({rem, mtch}): {
+    Ok({rem, mtch}) -> {
       print2("(\"{}\", \"{}\")\n",
              str,
              string_of_view(view_of_lexbuf(rem)),
@@ -39,7 +39,7 @@ fun print_result(res) {
              string_of_view(mtch)
              )
     }
-    Err(lexbuf): {
+    Err(lexbuf) -> {
       print1("\"{}\"\n", str, string_of_view(view_of_lexbuf(lexbuf)))
     }
   }
@@ -48,8 +48,8 @@ fun print_result(res) {
 fun alt(a, b) {
   fun (buf) [a, b] { -- [buf] is polymorphic
     match a(buf) {
-      Ok(r): Ok(r)
-      Err(_): b(buf)
+      Ok(r) -> Ok(r)
+      Err(_) -> b(buf)
   }}
 }
 

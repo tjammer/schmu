@@ -7,8 +7,8 @@ fun string() {
     stbl/insert(&tbl, !"key", !1.1)
     fun find_println(key) {
         match stbl/find(tbl, key) {
-            Some(_v): println("1.1") -- TODO format float
-            None: println("none")
+            Some(_v) -> println("1.1") -- TODO format float
+            None -> println("none")
         }
     }
     find_println("key")
@@ -22,11 +22,11 @@ string()
 module key {
   type t = A1 | A2 | B1 | B2
 
-  fun hash(k : t){ match k {
-    A1: 0
-    A2: 1
-    B1: 2
-    B2: 3
+  fun hash(k : t) { match k {
+    A1 -> 0
+    A2 -> 1
+    B1 -> 2
+    B2 -> 3
   }}
   fun equal(a, b) {hash(a) == hash(b)}
 }
@@ -38,8 +38,8 @@ fun key() {
   keytbl/insert(&tbl, !A1, !10)
   keytbl/insert(&tbl, !A2, !20)
   match keytbl/find(tbl, A1) {
-    Some(v): fmt/(print1("some v: {}\n", int, v))
-    None: println("none")
+    Some(v) -> fmt/(print1("some v: {}\n", int, v))
+    None -> println("none")
   }
 }
 key()
@@ -53,8 +53,8 @@ fun mut_array() {
     |> not)
   assert(keytbl/find_mut(&tbl, A1, fun (arr&) {array/push(&arr, !1)}))
   match keytbl/find_map(tbl, A1, fun arr {array/length(arr)}) {
-    Some(v): assert(v == 1)
-    None: assert(false)
+    Some(v) -> assert(v == 1)
+    None -> assert(false)
   }
 }
 mut_array()

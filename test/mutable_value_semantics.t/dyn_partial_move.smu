@@ -3,12 +3,12 @@ type wrap['a] = { a : 'a }
 fun remove(optarr&, index) {
   let opt& = &optarr.[index.a]
   match opt {
-    Some(thing): {
+    Some(thing) -> {
       let value = !thing.a
       &opt = None
       Some(value)
     }
-    None: None
+    None -> None
   }
 }
 let optarr& = [Some({a = "thing"})]

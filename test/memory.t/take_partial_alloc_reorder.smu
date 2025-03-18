@@ -18,8 +18,8 @@ fun ch(buf) {
 fun many_count(buf) {
   fun rec aux(rem, cnt) {
     match ch(rem) {
-      Err(_): Ok({rem = copy(rem), mtch = cnt})
-      Ok(r):
+      Err(_) -> Ok({rem = copy(rem), mtch = cnt})
+      Ok(r) ->
         -- r.rem is moved out of the result.
         -- The mtch part is still alive and needs to be freed
         aux(r.rem, cnt + 1)

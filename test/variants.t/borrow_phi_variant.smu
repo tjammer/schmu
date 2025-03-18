@@ -11,8 +11,8 @@ fun rec _loop(neutral, attack) {
     let curr = if is_button_down(Left) { Attack } else { Neutral }
     let tex, _ofs =
     match curr {
-      Neutral: neutral
-      Attack: (attack, attack_ofs)
+      Neutral -> neutral
+      Attack -> (attack, attack_ofs)
     }
     let _scale = float_of_i32(tex)
     _loop(neutral, attack)

@@ -9,11 +9,11 @@ fun append(storage&, thing!) {
 
 fun do_or_record_update(state&) {
   let block = !match With {
-    Semicolon: {
-      match With { Rcurly: (); _: () }
+    Semicolon -> {
+      match With { Rcurly -> () | _ -> () }
       Some(0)
     }
-    _: failwith("Unexpected token on curly expr")
+    _ -> failwith("Unexpected token on curly expr")
   }
   append(&state.storage, !block)
 }

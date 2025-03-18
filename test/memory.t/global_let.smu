@@ -2,7 +2,7 @@ fun ret_none() {
   let a : option[array[int]] = None
   a
 }
-let b = !match ret_none() {Some(a): a; None: [1, 2]}
+let b = !match ret_none() {Some(a) -> a | None -> [1, 2]}
 ignore(b)
 
 type r['a] = {a : 'a}

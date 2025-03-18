@@ -2,8 +2,8 @@ type thing['a] = Empty | Item('a)
 
 fun classify(thing) {
   fun inner(thing){ match thing {
-    Item(_): 0
-    Empty: 1
+    Item(_) -> 0
+    Empty -> 1
   }}
   inner(thing)
 }

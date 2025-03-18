@@ -249,10 +249,10 @@ functor make_printer(m : concrete_formatter) {
         if (start + len) < length {
           -- we have not reached the end of the format string yet
           match string/get(str, start + len) {
-            123u8: {
+            123u8 -> {
               -- '{'
               match escape {
-                No_escape: {
+                No_escape -> {
                   -- peek at next char
                   if (start + len + 1) < length
                   and char_equal(string/get(str, start + len + 1), 125u8) {
@@ -266,13 +266,13 @@ functor make_printer(m : concrete_formatter) {
                     assert(cont(Str({ start, len = len + 1 })))
                   }
                 }
-                Escape: {
+                Escape -> {
                   -- continue
                   aux(start, len + 1, num_fmts, escape)
                 }
               }
             }
-            _: aux(start, len + 1, num_fmts, escape)
+            _ -> aux(start, len + 1, num_fmts, escape)
           }
         }
         -- we have reached the end
@@ -298,11 +298,11 @@ functor make_printer(m : concrete_formatter) {
     let fmtnum& = 0
     impl/iter_fmt(fmtstr) |> iter/iter(fun f {
       match f {
-        impl/Str({ start, len }): {
+        impl/Str({ start, len }) -> {
           let ptr = string/data(fmtstr) |> __unsafe_ptr_at(start)
           &formatter = formatter/format(formatter, ptr, len)
         }
-        Fmt(num): {
+        Fmt(num) -> {
           &fmtnum = num + 1
           &formatter = cb(!formatter, num)
         }
@@ -314,8 +314,8 @@ functor make_printer(m : concrete_formatter) {
   fun print1(fmtstr, f0, v0) {
     let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
       match i {
-        0: f0(!fmter, v0)
-        _: impl/fmt_fail_missing()
+        0 -> f0(!fmter, v0)
+        _ -> impl/fmt_fail_missing()
       }
     })
     if fmtnum <> 1 {
@@ -327,9 +327,9 @@ functor make_printer(m : concrete_formatter) {
   fun print2(fmtstr, f0, v0, f1, v1) {
     let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
       match i {
-        0: f0(!fmter, v0)
-        1: f1(!fmter, v1)
-        _: impl/fmt_fail_missing()
+        0 -> f0(!fmter, v0)
+        1 -> f1(!fmter, v1)
+        _ -> impl/fmt_fail_missing()
       }
     })
     if fmtnum <> 2 { impl/fmt_fail_too_many() }
@@ -339,10 +339,10 @@ functor make_printer(m : concrete_formatter) {
   fun print3(fmtstr, f0, v0, f1, v1, f2, v2) {
     let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
       match i {
-        0: f0(!fmter, v0)
-        1: f1(!fmter, v1)
-        2: f2(!fmter, v2)
-        _: impl/fmt_fail_missing()
+        0 -> f0(!fmter, v0)
+        1 -> f1(!fmter, v1)
+        2 -> f2(!fmter, v2)
+        _ -> impl/fmt_fail_missing()
       }
     })
     if fmtnum <> 3 { impl/fmt_fail_too_many() }
@@ -352,11 +352,11 @@ functor make_printer(m : concrete_formatter) {
   fun print4(fmtstr, f0, v0, f1, v1, f2, v2, f3, v3) {
     let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
       match i {
-        0: f0(!fmter, v0)
-        1: f1(!fmter, v1)
-        2: f2(!fmter, v2)
-        3: f3(!fmter, v3)
-        _: impl/fmt_fail_missing()
+        0 -> f0(!fmter, v0)
+        1 -> f1(!fmter, v1)
+        2 -> f2(!fmter, v2)
+        3 -> f3(!fmter, v3)
+        _ -> impl/fmt_fail_missing()
       }
     })
     if fmtnum <> 4 { impl/fmt_fail_too_many() }
@@ -366,12 +366,12 @@ functor make_printer(m : concrete_formatter) {
   fun print5(fmtstr, f0, v0, f1, v1, f2, v2, f3, v3, f4, v4) {
     let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
       match i {
-        0: f0(!fmter, v0)
-        1: f1(!fmter, v1)
-        2: f2(!fmter, v2)
-        3: f3(!fmter, v3)
-        4: f4(!fmter, v4)
-        _: impl/fmt_fail_missing()
+        0 -> f0(!fmter, v0)
+        1 -> f1(!fmter, v1)
+        2 -> f2(!fmter, v2)
+        3 -> f3(!fmter, v3)
+        4 -> f4(!fmter, v4)
+        _ -> impl/fmt_fail_missing()
       }
     })
     if fmtnum <> 5 { impl/fmt_fail_too_many() }

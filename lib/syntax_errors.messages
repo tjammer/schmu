@@ -16,7 +16,7 @@ prog: Type With
 
 prog: Type Ident With
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting square brackets for parameterized type
 
 prog: Type Ident Lbrack With
 
@@ -144,7 +144,7 @@ prog: Type Ident Equal Lcurly Ident Colon With
 
 prog: Type Ident Equal Lcurly Ident Colon Ident Semicolon
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting square brackets for parameterized type
 
 prog: Type Ident Equal Lcurly Ident Colon Ident Comma With
 
@@ -188,7 +188,7 @@ prog: Type Ident Equal Ctor Hbar With
 
 prog: Type Ident Equal Ident Rpar
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Expecting square brackets for parameterized type
 
 prog: Signature With
 
@@ -378,7 +378,7 @@ prog: Let Lpar Ident Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Let Lpar Ident Hbar Ident Colon
+prog: Let Lpar Ident Hbar Ident Right_arrow
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -874,15 +874,15 @@ prog: Match False Lcurly Ident And False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match False Lcurly Ident Colon With
+prog: Match False Lcurly Ident Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match False Lcurly Ident Colon False Wildcard
+prog: Match False Lcurly Ident Right_arrow False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match False Lcurly Ident Colon False Hbar With
+prog: Match False Lcurly Ident Right_arrow False Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

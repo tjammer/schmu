@@ -5,8 +5,8 @@ fun ret_non() {
 
 fun try() {
   match ret_non() {
-    Some(j): fmt/println(fmt/int, j)
-    None: println("none")
+    Some(j) -> fmt/println(fmt/int, j)
+    None -> println("none")
   }
 }
 try()

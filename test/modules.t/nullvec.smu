@@ -18,18 +18,18 @@ fun create() {
 fun singleton(value!) {Some([value])}
 
 fun length(arr) { match arr {
-  None: 0
-  Some(arr): array/length(arr)
+  None -> 0
+  Some(arr) -> array/length(arr)
 }}
 
 fun push(arr&, value!){ match &arr {
-  None: &arr = Some([value])
-  Some(arr&): array/push(&arr, !value)
+  None -> &arr = Some([value])
+  Some(arr&) -> array/push(&arr, !value)
 }}
 
 fun iter(arr, f) {
   match arr {
-    None: ()
-    Some(arr): array/iter(arr) |> iter/iter(f)
+    None -> ()
+    Some(arr) -> array/iter(arr) |> iter/iter(f)
   }
 }

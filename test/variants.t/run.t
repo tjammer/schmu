@@ -1345,21 +1345,6 @@ Match multiple columns
 
 Record literals in pattern matches
   $ schmu match_record.smu
-  match_record.smu:5.24-25: warning: Unused binding b.
-  
-  5 |     Some({a = Some(a), b}): a
-                             ^
-  
-  match_record.smu:6.21-22: warning: Unused binding b.
-  
-  6 |     Some({a = None, b}): -1
-                          ^
-  
-  match_record.smu:15.18-19: warning: Unused binding b.
-  
-  15 |     {a = {a = c, b}, b = _}: c
-                        ^
-  
   $ valgrind -q --leak-check=yes --show-reachable=yes ./match_record
   10
   -1
@@ -1415,10 +1400,10 @@ Const ctors
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
   !6 = !DILocation(line: 11, column: 4, scope: !2)
-  !7 = !DILocation(line: 11, column: 14, scope: !2)
-  !8 = !DILocation(line: 12, column: 14, scope: !2)
+  !7 = !DILocation(line: 11, column: 16, scope: !2)
+  !8 = !DILocation(line: 12, column: 16, scope: !2)
   !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !10 = !DILocation(line: 6, column: 12, scope: !9)
+  !10 = !DILocation(line: 6, column: 14, scope: !9)
   !11 = !DILocation(line: 15, scope: !9)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./const_ctor_issue
   float

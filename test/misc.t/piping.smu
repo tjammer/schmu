@@ -5,8 +5,8 @@ external printi : fun (int) -> unit = "Printi"
 
 Some(1)
 |> fun x {match x {
-  Some(a): a
-  None: 0
+  Some(a) -> a
+  None -> 0
 }}
 |> printi
 

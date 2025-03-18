@@ -6,12 +6,12 @@ type key_state = Resolv_deps | Building(building) | Built(built)
 
 fun testing (state&) {
   match state {
-    Resolv_deps: {
+    Resolv_deps -> {
       -- Could be possible, see [set_building] below
       &state = Built({ deps = array/create(1) })
     }
-    Built(_): failwith("Expected to resolve build")
-    Building(b): {
+    Built(_) -> failwith("Expected to resolve build")
+    Building(b) -> {
       -- TODO double free without the tmp variable
       -- let b = !b
       &state = Built({ deps = (b.deps) })

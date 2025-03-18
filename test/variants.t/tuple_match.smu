@@ -1,9 +1,9 @@
 fun doo(a, b) {
   match(a, b) {
-    (Some(a), Some(b)): a + b
-    (None, Some(b)): b
-    (Some(a), None): a
-    (_, None): 0
+    (Some(a), Some(b)) -> a + b
+    (None, Some(b)) -> b
+    (Some(a), None) -> a
+    (_, None) -> 0
   }
   |>> fmt/(println(int))
 }

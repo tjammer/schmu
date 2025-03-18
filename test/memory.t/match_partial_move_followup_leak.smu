@@ -11,12 +11,11 @@ module async {
   fun resolve(p&, v!) {
     rc/mut_with(&p, v, fun (inner&, v!) {
       match inner {
-        Queued1(cb): {
+        Queued1(cb) -> {
           let _b = !cb
           &inner = Resolved(v)
         }
-        _b:
-          &inner = Pending
+        _b -> &inner = Pending
     }})
   }
   fun add_cb(fn!) {
@@ -27,13 +26,13 @@ module async {
       let new& = fn(v)
       rc/mut(&new, fun inner& {
         match inner {
-          Resolved(_v):
+          Resolved(_v) ->
             match rc/of_weak(weak) {
-              Some(_pr):
+              Some(_pr) ->
                 &inner = Pending
-              None: ()
+              None -> ()
             }
-          Pending: {
+          Pending -> {
             let cpy& = copy(pr)
             rc/mut(&pr, fun _prinner& {
               &inner = Queued1(fun _v [cpy] {
@@ -41,7 +40,7 @@ module async {
               })
             })
           }
-          _: ()
+          _ -> ()
         }
       })
     }
@@ -51,11 +50,11 @@ module async {
     let cp& = copy(fut)
     rc/mut_with(&cp, fn, fun (cp&, fn!) {
       match cp {
-        Pending: {
+        Pending -> {
           let _fut, cb = add_cb(fn)
           &cp = Queued1(cb)
         }
-        _: ()
+        _ -> ()
       }
     })
   }

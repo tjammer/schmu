@@ -3,7 +3,7 @@ type option['a] = Some('a) | None
 
 fun classify(thing) {
   match thing {
-    Some(_): 0
-    None: 1
+    Some(_) -> 0
+    None -> 1
   }
 }

@@ -1,10 +1,10 @@
 type test = Float(float) | Int(int) | None
 
 fun doo(m) { match m {
-  Some(Float(f)): int_of_float(f)
-  Some(Int(i)): i
-  Some(None): 1
-  None: 0
+  Some(Float(f)) -> int_of_float(f)
+  Some(Int(i)) -> i
+  Some(None) -> 1
+  None -> 0
 }}
 doo(Some(Float(3.0))) |>> fmt/(println(int))
 doo(Some(Int(2))) |>> fmt/(println(int))

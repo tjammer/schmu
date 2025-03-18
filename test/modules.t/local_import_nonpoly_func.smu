@@ -3,15 +3,15 @@ import nonpoly_func
 fun doo(a) {
   -- TODO use modules for patterns
   nonpoly_func/(match a {
-    Left: add_ints(0, 5)
-    Right: add_ints(0, -5)
+    Left -> add_ints(0, 5)
+    Right -> add_ints(0, -5)
   })
 }
 fun do2(a) {
   use nonpoly_func
   match a {
-    Left: add_ints(0, 5)
-    Right: add_ints(0, -5)
+    Left -> add_ints(0, 5)
+    Right -> add_ints(0, -5)
   }
 }
 doo(nonpoly_func/Left)|>> fmt/(println(int))

@@ -11,4 +11,4 @@ fmt/(println(int, r.[0].[0]))
 
 let r = Some(copy(a))
 &a.[0] = 40
-match r { Some(a): fmt/(println(int, a.[0])); None: println("none") }
+match r { Some(a) -> fmt/(println(int, a.[0])) | None -> println("none") }

@@ -1,7 +1,7 @@
 fun drop_rc(str&, rc!) {
   match rc/extract(rc) {
-    Some(v): &str = v
-    None: ()
+    Some(v) -> &str = v
+    None -> ()
   }
 }
 
@@ -11,8 +11,8 @@ drop_rc(&str, !rc/create(!",.p"))
 fun move_out() {
   let rc = rc/create(!Some("str"))
   match __unsafe_rc_get(rc) {
-    Some(v): (v, 0)
-    None: ("", 0)
+    Some(v) -> (v, 0)
+    None -> ("", 0)
   }|> ignore
 }
 

@@ -5,8 +5,8 @@ let b = Some(a)
 fun a() {()}
 let b = Some(a())
 match b {
-  Some(a): println("some")
-  None: println("none")
+  Some(a) -> println("some")
+  None -> println("none")
 }
 -- records
 type thing = {u : unit}

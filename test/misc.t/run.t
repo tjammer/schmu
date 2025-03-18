@@ -1587,8 +1587,8 @@ Increase refcount for returned params in ifs
   !34 = !DILocation(line: 324, column: 11, scope: !30)
   !35 = distinct !DISubprogram(name: "__fun_fmt_str2", linkageName: "__fun_fmt_str2_C__fun_fmt_str2_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c", scope: !3, file: !3, line: 315, type: !4, scopeLine: 315, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !36 = !DILocation(line: 317, column: 8, scope: !35)
-  !37 = !DILocation(line: 317, column: 11, scope: !35)
-  !38 = !DILocation(line: 318, column: 11, scope: !35)
+  !37 = !DILocation(line: 317, column: 13, scope: !35)
+  !38 = !DILocation(line: 318, column: 13, scope: !35)
   !39 = distinct !DISubprogram(name: "inner", linkageName: "schmu_inner", scope: !40, file: !40, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !40 = !DIFile(filename: "if_ret_param.smu", directory: "")
   !41 = !DILocation(line: 5, column: 7, scope: !39)
@@ -1773,7 +1773,7 @@ Using unit values
   
   unit_values.smu:8.8-9: warning: Unused binding a.
   
-  8 |   Some(a): println("some")
+  8 |   Some(a) -> println("some")
              ^
   
   unit_values.smu:14.5-6: warning: Unused binding u.
@@ -2228,8 +2228,8 @@ Using unit values
   !46 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !44, file: !44, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !47 = !DILocation(line: 6, column: 13, scope: !46)
   !48 = !DILocation(line: 8, column: 2, scope: !46)
-  !49 = !DILocation(line: 8, column: 11, scope: !46)
-  !50 = !DILocation(line: 9, column: 8, scope: !46)
+  !49 = !DILocation(line: 8, column: 13, scope: !46)
+  !50 = !DILocation(line: 9, column: 10, scope: !46)
   !51 = !DILocation(line: 17, column: 9, scope: !46)
   !52 = !DILocation(line: 23, column: 5, scope: !46)
   !53 = !DILocation(line: 27, scope: !46)

@@ -5,8 +5,8 @@ module local {
 
 fun a {
   match a {
-    local/Thing: ()
-    Other: ()
+    local/Thing -> ()
+    Other -> ()
   }
 }
 |> ignore

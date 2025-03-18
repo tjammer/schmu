@@ -1,13 +1,13 @@
 fun bind(res, f) {
   match res {
-    Some(r): f(r)
-    None: None
+    Some(r) -> f(r)
+    None -> None
   }
 }
 
 fun apply(param, thing) {
   match param {
-    (bar, foo): bind(bar(thing), fun r {
+    (bar, foo) -> bind(bar(thing), fun r {
       bind(foo(r), fun r {
         fmt/(println(int, r))
         Some(copy(r))
@@ -28,7 +28,7 @@ fun f(fmt, i) {
 
 fun print_poly(fmt, to_print) {
   match f {
-    foo: foo(fmt, to_print)
+    foo -> foo(fmt, to_print)
   }
 }
 

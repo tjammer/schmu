@@ -2662,10 +2662,10 @@ Nested arrays
   !40 = !DILocation(line: 80, column: 6, scope: !39)
   !41 = distinct !DISubprogram(name: "__fun_fmt_stdout3", linkageName: "__fun_fmt_stdout3_C__fun_fmt_stdout3_fmt.formatter.t.ulrfmt.formatter.t.u__fun_fmt_stdout3_fmt.formatter.t.ulrfmt.formatter.t.ull", scope: !8, file: !8, line: 328, type: !4, scopeLine: 328, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !42 = !DILocation(line: 330, column: 8, scope: !41)
-  !43 = !DILocation(line: 330, column: 11, scope: !41)
+  !43 = !DILocation(line: 330, column: 13, scope: !41)
   !44 = !DILocation(line: 331, column: 8, scope: !41)
-  !45 = !DILocation(line: 331, column: 11, scope: !41)
-  !46 = !DILocation(line: 332, column: 11, scope: !41)
+  !45 = !DILocation(line: 331, column: 13, scope: !41)
+  !46 = !DILocation(line: 332, column: 13, scope: !41)
   !47 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !8, file: !8, line: 62, type: !4, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
   !48 = !DILocation(line: 65, column: 21, scope: !47)
   !49 = !DILocation(line: 66, column: 10, scope: !47)
@@ -3712,8 +3712,8 @@ Refcounts for members in arrays, records and variants
   !34 = !DILocation(line: 5, column: 5, scope: !32)
   !35 = !DILocation(line: 10, column: 5, scope: !32)
   !36 = !DILocation(line: 14, column: 10, scope: !32)
-  !37 = !DILocation(line: 14, column: 24, scope: !32)
-  !38 = !DILocation(line: 14, column: 52, scope: !32)
+  !37 = !DILocation(line: 14, column: 26, scope: !32)
+  !38 = !DILocation(line: 14, column: 57, scope: !32)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./member_refcounts
   10
   20

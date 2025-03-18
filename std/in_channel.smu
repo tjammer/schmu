@@ -58,13 +58,13 @@ fun close(ic) {
 
 fun with_open(name, f) {
   match open(name) {
-    Some(ic): {
+    Some(ic) -> {
       let ic& = !ic
       let ret = f(&ic)
       close(ic)
       Some(ret)
     }
-    None: None
+    None -> None
   }
 }
 
@@ -102,11 +102,11 @@ fun rec readn_impl(ic&, buf&, n, readacc) {
     Some(readacc + n)
   } else if ic.unseen > 0 {
     match readbuf(&ic, &buf) {
-      Some(nread): {
+      Some(nread) -> {
         assert((n - nread) < 0)
         readn_impl(&ic, &buf, n - nread, nread + readacc)
       }
-      None: {
+      None -> {
         assert(false)
         None
       }
@@ -137,11 +137,11 @@ fun rec readall_impl(ic&, buf&, acc) {
 
 fun readrem(ic&, buf&) {
   let ret = match readbuf(&ic, &buf) {
-    Some(nread): {
+    Some(nread) -> {
       fill(&buf, ic.buf, ic.head, ic.head + ic.unseen)
       readall_impl(&ic, &buf, nread)
     }
-    None: None
+    None -> None
   }
   -- make other (read) calls fail after this
   &ic.unseen = 0
@@ -181,8 +181,8 @@ fun readline(ic&, buf&) {
 fun readall(ic&) {
   let buf& = array/create(bufsize)
   match readrem(&ic, &buf) {
-    Some(_): string/of_array(!buf)
-    None: ""
+    Some(_) -> string/of_array(!buf)
+    None -> ""
   }
 }
 
@@ -190,7 +190,7 @@ fun lines(ic&, cont) {
   let buf& = array/create(bufsize)
   fun rec aux() {
     match readline(&ic, &buf) {
-      Some(_): {
+      Some(_) -> {
         let str = string/of_array(!buf)
         if cont(str) {
           &buf = string/to_array(!str)
@@ -199,7 +199,7 @@ fun lines(ic&, cont) {
         }
         else { false }
       }
-      None: false
+      None -> false
     }
   }
   aux()
