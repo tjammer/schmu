@@ -5589,3 +5589,7 @@ Fix parent reentering
 Fix partial parent setting
   $ schmu set_partial_parent.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./set_partial_parent
+
+Correctly track partial moves in record expressions
+  $ schmu partial_move_in_record.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./partial_move_in_record

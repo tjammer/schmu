@@ -1,0 +1,43 @@
+module keytbl = hashtbl/make(int)
+
+type key = int
+type rule = Executable | Module
+type built = { deps : array[key] }
+type building = { fut : array[unit], deps : array[key] }
+type resolv_deps = array[unit]
+type key_state = Resolv_deps(resolv_deps) | Building(building) | Built(built)
+type value = { rule : rule, state : key_state, src : key }
+type command = { target : key, cmd : int }
+
+module state {
+  type t = {
+    targets& : keytbl/t[value],
+  }
+}
+
+use state
+
+fun resolve_build(staterc&, key) {
+  rc/mut(&staterc, fun state& {
+    keytbl/find_mut(&state.targets, key, fun state& {
+      match state.state {
+        Resolv_deps(_) -> {
+          -- Could be possible, see [set_building] below
+          &state = {state with state = Built({ deps = []})}
+        }
+        Built(_) -> failwith("Expected to resolve build")
+        Building(b) -> {
+          &state = {state with state = Built({ deps = b.deps})}
+        }
+      }
+    }) |> assert
+  })
+}
+
+let state& = {
+  let targets& = keytbl/create(16)
+  keytbl/insert(&targets, 0, { rule = Executable, state = Resolv_deps([]), src = 0 })
+  rc/create({ targets })
+}
+
+resolve_build(&state, 0)

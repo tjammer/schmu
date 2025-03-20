@@ -631,7 +631,11 @@ let get_moved_in_set env_item hist =
     | [ (Bown _ | Borrow _) ] -> Snot_moved
     | (Borrow_mut (other, _) | Borrow other) :: tl ->
         (* Either it has been set, so not moved, or used thus not moved *)
-        if parts_match b.borrowed other.borrowed then Snot_moved else usage b tl
+        if parts_match b.borrowed other.borrowed then
+          if parts_is_sub other.borrowed b.borrowed then
+            (* Maybe other parts have been moved *) usage b tl
+          else Snot_moved
+        else usage b tl
     | Bmove (other, _) :: tl ->
         if parts_match b.borrowed other.borrowed then
           if parts_is_sub other.borrowed b.borrowed then Spartially_moved
