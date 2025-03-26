@@ -197,7 +197,13 @@ module Make (C : Core) = struct
     let name = ref (Path.Pid "") in
     let get_fields loc path ps env =
       name := path;
-      let fields = fields_of_record loc path ps env |> Result.get_ok in
+      let fields =
+        match fields_of_record loc path ps env with
+        | Error _ ->
+            let msg = "Expecting a record type" in
+            raise (Error (loc, msg))
+        | Ok fs -> fs
+      in
       Array.map
         (fun field ->
           match Hashtbl.find_opt updated field.fname with
