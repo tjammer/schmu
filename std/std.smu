@@ -19,6 +19,7 @@ let print = string/print
 let cstr = string/data
 
 type option['a] = option/t['a]
+type result['a, 'e] = Ok('a) | Err('e)
 
 -- prelude re-exports
 let char_equal = prelude/char_equal
