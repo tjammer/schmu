@@ -12,6 +12,7 @@ signature {
   val get : fun (t, int) -> u8
   val hash : fun (t) -> int
   val equal: fun (t, t) -> bool
+  val compare : fun (t, t) -> int
   val append : fun (t&, t) -> unit
   val concat : fun (t, array[t]) -> t
   val substr : fun (t, int, int) -> t
@@ -64,6 +65,16 @@ fun equal(l, r) {
     int_of_i32(memcmp(array/data(l), array/data(r), array/length(l))) == 0
   } else {
     false
+  }
+}
+
+fun compare(l, r) {
+  if len(l) == len(r) {
+    memcmp(array/data(l), array/data(r), array/length(r))
+    |> int_of_i32
+  }
+  else {
+    len(l) - len(r)
   }
 }
 

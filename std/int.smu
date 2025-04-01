@@ -2,6 +2,7 @@ signature {
   type t = int
   val hash : fun (t) -> int
   val equal : fun (t, t) -> bool
+  val compare : fun (t, t) -> t
   -- operators
   val + : fun (t, t) -> t
   val - : fun (t, t) -> t
@@ -58,4 +59,8 @@ fun hash(i) {
   h
 }
 
-let equal = ==
+let equal = (==)
+
+fun compare(l, r) {
+  l - r
+}

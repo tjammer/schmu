@@ -7,6 +7,7 @@ signature {
 
   val extract : fun (rc['a]!) -> option/t['a]
   val read : fun (rc['a], fun ('a) -> 'b) -> 'b
+  val read_with : fun (rc['a], 'b!, fun ('a, 'b!) -> 'c) -> 'c
   val mut : fun (rc['a]&, fun ('a&) -> 'b) -> 'b
   val mut_with : fun (rc['a]&, 'b!, fun ('a&, 'b!) -> 'c) -> 'c
 
@@ -34,6 +35,10 @@ fun extract(rc!) {
 
 fun read(rc, fn) {
   fn(__unsafe_rc_get(rc))
+}
+
+fun read_with(rc, mvd!, fn) {
+  fn(__unsafe_rc_get(rc), !mvd)
 }
 
 fun mut(rc&, fn) {
