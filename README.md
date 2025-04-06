@@ -18,13 +18,14 @@ let number = 35
 -- calculate fibonacci number
 fun rec fib(n) {
   match n {
-    0 | 1: n
-    _: fib(n - 1) + fib(n - 2)
+    0 | 1 -> n
+    _ -> fib(n - 1) + fib(n - 2)
   }
 }
 
 -- and print it
-fib(number).fmt().print()
+use fmt
+fib(number) |>> println(int)
 ```
 
 More examples can be found in the skeleton `std` library or the `test` directory.
