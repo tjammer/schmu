@@ -67,7 +67,7 @@ and toplevel_item =
       uniq : int option;
       rmut : bool;
       pass : dattr;
-      lhs : typed_expr;
+      rhs : typed_expr;
     }
   | Tl_bind of string * typed_expr
   | Tl_function of loc * string * int option * abstraction

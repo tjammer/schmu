@@ -1155,13 +1155,13 @@ and check_abstraction env tree usage touched hist =
     (tree, []) touched
 
 let check_item (env, bind, mut, part, hist) = function
-  | Tl_let ({ loc; id; rmut; pass; lhs; uniq = _ } as e) ->
-      if pass = Dmut then raise (Error (lhs.loc, "Cannot project at top level"))
+  | Tl_let ({ loc; id; rmut; pass; rhs; uniq = _ } as e) ->
+      if pass = Dmut then raise (Error (rhs.loc, "Cannot project at top level"))
       else
-        let lhs, env, b, hs, pass =
-          check_let loc env id lhs rmut pass ~tl:true hist
+        let rhs, env, b, hs, pass =
+          check_let loc env id rhs rmut pass ~tl:true hist
         in
-        ((env, bind, mut, part, add_hist b hs), Tl_let { e with lhs; pass })
+        ((env, bind, mut, part, add_hist b hs), Tl_let { e with rhs; pass })
   | Tl_bind (name, expr) ->
       let e, _, env, hist = check_bind env name expr hist in
       ((env, bind, mut, part, hist), Tl_bind (name, e))

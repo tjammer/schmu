@@ -1320,7 +1320,7 @@ let add_signature_vals env m = function
   | Stypedef _ -> m
 
 let rec catch_weak_vars env = function
-  | Tl_let { lhs = e; _ } | Tl_bind (_, e) | Tl_expr e ->
+  | Tl_let { rhs = e; _ } | Tl_bind (_, e) | Tl_expr e ->
       catch_weak_expr env Sset.empty e
   | Tl_function (_, _, _, abs) -> catch_weak_body env Sset.empty abs
   | Tl_mutual_rec_decls _ | Tl_module_alias _ -> ()
@@ -1913,41 +1913,41 @@ and convert_prog env items modul =
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
     | Ast.Let (loc, decl, block) ->
-        let env, id, id_loc, lhs, rmut, pats =
+        let env, id, id_loc, rhs, rmut, pats =
           Core.convert_let ~global:true env loc decl block
         in
-        if is_module (Env.modpath env) && lhs.attr.mut then
+        if is_module (Env.modpath env) && rhs.attr.mut then
           raise
             (Error (loc, "Mutable top level bindings are not allowed in modules"));
         let uniq = uniq_name id in
         let env, expr, m =
-          match let_fn_alias env loc lhs with
+          match let_fn_alias env loc rhs with
           | Callname (callname, closure) ->
               let m =
-                Module.add_external loc lhs.typ id (Some callname) ~closure m
+                Module.add_external loc rhs.typ id (Some callname) ~closure m
               in
               let expr =
                 match block.pattr with
-                | Dnorm -> Tl_bind (id, lhs)
+                | Dnorm -> Tl_bind (id, rhs)
                 | Dset | Dmut | Dmove ->
                     (* We are using another module's toplevel binding. All of
                        this should be forbidden. So we set let and let it fail
                        in the exclusivity check *)
-                    Tl_let { loc; id; uniq; lhs; rmut; pass = block.pattr }
+                    Tl_let { loc; id; uniq; rhs; rmut; pass = block.pattr }
               in
               let env = Env.add_callname ~key:id callname env in
               (env, expr, m)
           | Alias ->
-              let m = Module.add_alias loc id lhs m in
-              (env, Tl_bind (id, lhs), m)
+              let m = Module.add_alias loc id rhs m in
+              (env, Tl_bind (id, rhs), m)
           | Not ->
               let m =
-                Module.add_external loc lhs.typ id
+                Module.add_external loc rhs.typ id
                   (Some (id, Some (Env.modpath env), uniq))
                   ~closure:true m
               in
               let pass = block.pattr in
-              (env, Tl_let { loc = id_loc; id; uniq; lhs; rmut; pass }, m)
+              (env, Tl_let { loc = id_loc; id; uniq; rhs; rmut; pass }, m)
         in
         let expr =
           match pats with

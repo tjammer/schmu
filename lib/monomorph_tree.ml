@@ -1399,7 +1399,7 @@ let rec morph_toplvl param items =
         let param = { param with mname } in
         aux_impl param tl item
   and aux_impl param tl = function
-    | Typed_tree.Tl_let { id; uniq; lhs = expr; pass; _ } ->
+    | Typed_tree.Tl_let { id; uniq; rhs = expr; pass; _ } ->
         let kind = let_kind pass in
         let un, p, e1, gn, ms = prep_let param id uniq expr pass true in
         let p, e2, func = aux { p with ret = param.ret } tl in

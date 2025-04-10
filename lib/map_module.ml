@@ -217,10 +217,10 @@ module Make (C : Map_tree) = struct
 
   and map_tl_item mname nsub sub = function
     | Typed_tree.Tl_let d ->
-        let sub, lhs = (map_body mname nsub) sub d.lhs in
+        let sub, rhs = (map_body mname nsub) sub d.rhs in
         (* Change binding name *)
         (* Is absolute module name correct for functor bodies? *)
-        ((nsub, sub), Typed_tree.Tl_let { d with lhs })
+        ((nsub, sub), Typed_tree.Tl_let { d with rhs })
     | Tl_bind (id, rhs) ->
         let sub, rhs = (map_body mname nsub) sub rhs in
         ((nsub, sub), Tl_bind (id, rhs))
