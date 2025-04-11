@@ -86,6 +86,7 @@ module Id = struct
   module Pathid = struct
     type t = string * Path.t option
 
+    let create s p = s, p
     let show (s, p) =
       match p with Some p -> Path.show (Path.append s p) | None -> s
 
@@ -110,6 +111,8 @@ module Id = struct
 
   type t = Fst of Pathid.t | Shadowed of Pathid.t * int [@@deriving show]
 
+  let fst id = Fst id
+  let shadowed id i = Shadowed (id, i)
   let compare a b = Stdlib.compare a b
 
   let equal a b =
