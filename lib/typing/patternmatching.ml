@@ -1063,7 +1063,7 @@ module Make (C : Core) (R : Recs) = struct
                 ret)
         | Var ({ path; loc; d; patterns; pltyp }, id, dattr) ->
             (* Bind the variable *)
-            let mut = mut_of_pattr dattr in
+            let lmut = mut_of_pattr dattr in
             let ret_env =
               Env.(
                 add_value id
@@ -1071,7 +1071,7 @@ module Make (C : Core) (R : Recs) = struct
                      it needs to be captured in closures and cannot be called directly,
                      because it might be a record field. Marking it param works fine
                      in this case *)
-                  { (def_value env) with typ = pltyp; param = true; mut }
+                  { (def_value env) with typ = pltyp; param = true; mut = lmut }
                   loc d.ret_env)
             in
             (* Continue with expression *)
@@ -1082,11 +1082,11 @@ module Make (C : Core) (R : Recs) = struct
             in
 
             let rhs = expr path in
-            let rhs = { rhs with attr = { rhs.attr with mut } } in
+            let rhs = { rhs with attr = { rhs.attr with mut = rmut } } in
             (* If the value we pattern match on is mutable, we have to mentio this
                here in order to increase rc correctly. Otherwise, we had reference semantics*)
             let id_loc = loc in
-            let expr = Let { id; id_loc; uniq = None; rmut; pass; rhs; cont } in
+            let expr = Let { id; id_loc; uniq = None; lmut; pass; rhs; cont } in
             { typ = cont.typ; expr; attr = cont.attr; loc }
         | Ctor ({ path; loc; d; patterns; pltyp = _ }, param) ->
             let a, b =

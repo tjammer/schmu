@@ -509,9 +509,9 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (_, None, _, _) -> failwith "Internal Error: Unset if owning"
   | If (cond, Some owning, e1, e2) -> morph_if make param cond owning e1 e2
-  | Let { id; uniq; rhs; cont; pass; rmut = _; id_loc = _ } ->
+  | Let { id; uniq; rhs; cont; pass; lmut; id_loc = _ } ->
       let kind = let_kind pass in
-      let un, p, e1, gn, ms = prep_let param id uniq rhs pass false in
+      let un, p, e1, gn, ms = prep_let param id uniq rhs lmut pass false in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
       (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)
   | Bind (id, lhs, ocont) ->
@@ -825,7 +825,7 @@ and morph_if mk p cond owning e1 e2 =
     mk (Mif { cond; owning; e1; e2 }) ret,
     { a with alloc = Two_values (a.alloc, b.alloc); malloc; tailrec } )
 
-and prep_let p id uniq e pass toplvl =
+and prep_let p id uniq e lmut pass toplvl =
   (* username *)
   let un = reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule id in
 
@@ -853,7 +853,7 @@ and prep_let p id uniq e pass toplvl =
   let const = if not e.attr.const then Cnot else Const in
   let p, gn =
     match e.attr with
-    | { const = true; mut = false; _ } ->
+    | { const = true; _ } when not lmut ->
         let uniq = Module.unique_name ~mname:p.mname id uniq in
         (* Maybe we have to generate a new name here *)
         let cnt = new_id constant_uniq_state in
@@ -1399,9 +1399,9 @@ let rec morph_toplvl param items =
         let param = { param with mname } in
         aux_impl param tl item
   and aux_impl param tl = function
-    | Typed_tree.Tl_let { id; uniq; rhs = expr; pass; _ } ->
+    | Typed_tree.Tl_let { id; uniq; rhs = expr; pass; lmut; _ } ->
         let kind = let_kind pass in
-        let un, p, e1, gn, ms = prep_let param id uniq expr pass true in
+        let un, p, e1, gn, ms = prep_let param id uniq expr lmut pass true in
         let p, e2, func = aux { p with ret = param.ret } tl in
         (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)
     | Tl_function (loc, name, uniq, abs) ->

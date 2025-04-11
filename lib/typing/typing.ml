@@ -710,8 +710,9 @@ end = struct
       =
     let id, idloc, has_exprname, attr = pattern_id 0 decl.pattern in
     let e1 = typeof_annot_decl env loc decl.annot block in
-    let mut = mut_of_pattr attr in
-    let projected = mut && mut_of_pattr pattr in
+    let lmut = mut_of_pattr attr in
+    let rmut = mut_of_pattr pattr in
+    let projected = lmut && rmut in
     let const =
       if has_exprname then false
       else e1.attr.const && (not projected) && not e1.attr.mut
@@ -720,12 +721,12 @@ end = struct
     let mname = Some (Env.modpath env) in
     let env =
       Env.add_value id
-        { (Env.def_value env) with typ = e1.typ; const; global; mut; mname }
+        { (Env.def_value env) with typ = e1.typ; const; global; mut = lmut; mname }
         idloc env
     in
     let env, pat_exprs = convert_decl env [ decl ] in
-    let expr = { e1 with attr = { global; const; mut } } in
-    (env, id, idloc, expr, e1.attr.mut, pat_exprs)
+    let expr = { e1 with attr = { e1.attr with global; const; } } in
+    (env, id, idloc, expr, lmut, pat_exprs)
 
   and convert_lambda env loc pipe params attr ret_annot body =
     let env = Env.open_function env in
@@ -1186,14 +1187,14 @@ end = struct
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = tunit; expr = Const Unit; attr = no_attr; loc }, env)
       | Let (loc, decl, block) :: tl ->
-          let env, id, id_loc, rhs, rmut, pats =
+          let env, id, id_loc, rhs, lmut, pats =
             convert_let ~global:false env loc decl block
           in
           let cont, env = to_expr env old_type tl in
           let cont = List.fold_left fold_decl cont pats in
           let uniq = if rhs.attr.const then uniq_name id else None
           and pass = block.pattr in
-          let expr = Let { id; id_loc; uniq; rmut; pass; rhs; cont } in
+          let expr = Let { id; id_loc; uniq; lmut; pass; rhs; cont } in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, abs) = convert_function env loc func false in
@@ -1913,10 +1914,10 @@ and convert_prog env items modul =
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
     | Ast.Let (loc, decl, block) ->
-        let env, id, id_loc, rhs, rmut, pats =
+        let env, id, id_loc, rhs, lmut, pats =
           Core.convert_let ~global:true env loc decl block
         in
-        if is_module (Env.modpath env) && rhs.attr.mut then
+        if is_module (Env.modpath env) && lmut then
           raise
             (Error (loc, "Mutable top level bindings are not allowed in modules"));
         let uniq = uniq_name id in
@@ -1933,7 +1934,7 @@ and convert_prog env items modul =
                     (* We are using another module's toplevel binding. All of
                        this should be forbidden. So we set let and let it fail
                        in the exclusivity check *)
-                    Tl_let { loc; id; uniq; rhs; rmut; pass = block.pattr }
+                    Tl_let { loc; id; uniq; rhs; lmut; pass = block.pattr }
               in
               let env = Env.add_callname ~key:id callname env in
               (env, expr, m)
@@ -1947,7 +1948,7 @@ and convert_prog env items modul =
                   ~closure:true m
               in
               let pass = block.pattr in
-              (env, Tl_let { loc = id_loc; id; uniq; rhs; rmut; pass }, m)
+              (env, Tl_let { loc = id_loc; id; uniq; rhs; lmut; pass }, m)
         in
         let expr =
           match pats with

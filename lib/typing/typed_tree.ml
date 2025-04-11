@@ -41,9 +41,9 @@ and let_data = {
   id : string;
   id_loc : loc;
   uniq : int option;
-  rmut : bool; (* is mutable generally *)
+  lmut : bool; (* def b& <- *)
   pass : dattr; (* is passed mutably on the rhs (def b& -> &a) *)
-  rhs : typed_expr; (* attr.mut is the passing on the binder site (def b& <-) *)
+  rhs : typed_expr; (* attr.mut: is mutable *)
   cont : typed_expr;
 }
 
@@ -65,7 +65,7 @@ and toplevel_item =
       loc : loc;
       id : string;
       uniq : int option;
-      rmut : bool;
+      lmut : bool;
       pass : dattr;
       rhs : typed_expr;
     }

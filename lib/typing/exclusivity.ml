@@ -783,12 +783,12 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       (* Don't add to hist here. Other expressions where the value is used
          will take care of this *)
       (tree, borrow, hist)
-  | Let { id; id_loc; rhs; cont; pass; rmut; uniq } ->
+  | Let { id; id_loc; rhs; cont; pass; lmut; uniq } ->
       let rhs, env, b, hs, pass =
-        check_let id_loc env id rhs rmut pass ~tl:false hist
+        check_let id_loc env id rhs lmut pass ~tl:false hist
       in
       let cont, v, hs = check_tree env mut bdata cont (add_hist b hs) in
-      let expr = Let { id; id_loc; rhs; cont; pass; rmut; uniq } in
+      let expr = Let { id; id_loc; rhs; cont; pass; lmut; uniq } in
       ({ tree with expr }, v, hs)
   | Const (Array es) ->
       let hs, es =
@@ -1060,11 +1060,11 @@ let rec check_tree env mut ((bpart, special) as bdata) tree hist =
       ({ tree with expr }, v, hs)
   | Move _ -> failwith "Internal Error: Nothing should have been moved here"
 
-and check_let ~tl loc env id rhs rmut pass hist =
+and check_let ~tl loc env id rhs lmut pass hist =
   let nmut, tlborrow, unspec_passing =
-    match (rhs.attr.mut, pass) with
+    match (lmut, pass) with
     | _, Dset -> failwith "unreachable"
-    | true, Dmut when not rmut ->
+    | true, Dmut when not rhs.attr.mut ->
         raise (Error (rhs.loc, "Cannot project immutable binding"))
     | true, Dmut -> (Usage.Umut, false, false)
     | true, Dmove -> (Umove, false, false)
@@ -1072,7 +1072,7 @@ and check_let ~tl loc env id rhs rmut pass hist =
     | false, Dnorm ->
         (* Cannot borrow mutable bindings at top level. We defer error
            generation until we are sure the rhs is really borrowed *)
-        (Uread, rmut && tl, false)
+        (Uread, rhs.attr.mut && tl, false)
     | false, Dmove -> (Umove, false, false)
     | false, Dmut ->
         (* This is actually reachable in pattern matches. Treat it as read-only *)
@@ -1092,7 +1092,7 @@ and check_let ~tl loc env id rhs rmut pass hist =
                "Specify how rhs expression is passed. Either by move '!' or \
                 mutably '&'" ))
     | Bmove _ as b ->
-        if rhs.attr.mut then mutables := Map.add id (None, loc) !mutables;
+        if lmut then mutables := Map.add id (None, loc) !mutables;
         (Bown (id, Hashtbl.create 32), add_hist (imm [ b ]) hs)
     | (Borrow _ | Borrow_mut _) when tlborrow ->
         raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
@@ -1105,7 +1105,7 @@ and check_let ~tl loc env id rhs rmut pass hist =
   let imm, hs =
     match rval.imm with
     | [] ->
-        if rhs.attr.mut then mutables := Map.add id (None, loc) !mutables;
+        if lmut then mutables := Map.add id (None, loc) !mutables;
         (* No borrow, original, owned value *)
         ([ Bown (id, Hashtbl.create 32) ], hs)
     | b ->
@@ -1155,11 +1155,11 @@ and check_abstraction env tree usage touched hist =
     (tree, []) touched
 
 let check_item (env, bind, mut, part, hist) = function
-  | Tl_let ({ loc; id; rmut; pass; rhs; uniq = _ } as e) ->
+  | Tl_let ({ loc; id; lmut; pass; rhs; uniq = _ } as e) ->
       if pass = Dmut then raise (Error (rhs.loc, "Cannot project at top level"))
       else
         let rhs, env, b, hs, pass =
-          check_let loc env id rhs rmut pass ~tl:true hist
+          check_let loc env id rhs lmut pass ~tl:true hist
         in
         ((env, bind, mut, part, add_hist b hs), Tl_let { e with rhs; pass })
   | Tl_bind (name, expr) ->
