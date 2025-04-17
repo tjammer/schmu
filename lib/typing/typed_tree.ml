@@ -18,7 +18,7 @@ type expr =
   | Const of const
   | Bop of Ast.bop * typed_expr * typed_expr
   | Unop of Ast.unop * typed_expr
-  | If of typed_expr * bool option * typed_expr * typed_expr
+  | If of typed_expr * bool option (* owning *) * typed_expr * typed_expr
   | Let of let_data
   | Bind of string * typed_expr * typed_expr
   | Lambda of int * abstraction

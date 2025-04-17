@@ -2,7 +2,13 @@ module Borrow = struct
   type action = Read | Write [@@deriving show]
   type action_location = Foreign | Local [@@deriving show]
 
-  type state = Reserved | Unique | Frozen | Disabled | Reserved_im | Owned
+  type borrow_state =
+    | Reserved
+    | Unique
+    | Frozen
+    | Disabled
+    | Reserved_im
+    | Owned
   [@@deriving show]
 
   let transition curr action action_loc =
@@ -55,9 +61,11 @@ end
 module Make_tree (Id : Id_t) = struct
   type id = Id.t [@@deriving show]
   type loc_info = { lid : Id.t; loc : Ast.loc } [@@deriving show]
+  type mov = loc_info option [@@deriving show]
 
   type t = {
-    state : state * loc_info;
+    bor : borrow_state * loc_info;
+    mov : mov; (* loc: location where the binding was moved *)
     id : id;
     bind_loc : loc_info;
     children : t list;
@@ -65,10 +73,10 @@ module Make_tree (Id : Id_t) = struct
   [@@deriving show]
 
   type path = id list [@@deriving show]
-  type access = { ac : action; path : path }
+  type access = { ac : Ast.decl_attr; path : path }
 
   let transition_exn item acc location loc =
-    match transition item.state (acc, location) loc with
+    match transition item.bor (acc, location) loc with
     | Ok state -> state
     | Error (`Disabled ({ lid; loc = _ }, action)) ->
         let msg =
@@ -83,41 +91,61 @@ module Make_tree (Id : Id_t) = struct
       match path with
       | p :: ptl when Id.equal item.id p ->
           print_endline (Id.show item.id ^ " local");
-          let state = transition_exn item access.ac Local loc in
+          let mov, access =
+            match (item.mov, access.ac) with
+            | Some lc, (Ast.Dmove | Dmut | Dnorm) ->
+                (* Our item has been moved *)
+                let msg =
+                  Format.sprintf "%s was moved in line %i, cannot use"
+                    (Id.only_id p) (fst lc.loc).pos_lnum
+                in
+                raise (Error.Error (loc.loc, msg))
+            | Some _, Dset -> (None, Write)
+            | None, (Dset | Dmut) -> (None, Write)
+            | None, Dnorm -> (None, Read)
+            | None, Dmove ->
+                print_endline
+                  ("moved " ^ Id.only_id p ^ " in line "
+                  ^ ((fst loc.loc).pos_lnum |> string_of_int));
+                (Some loc, Read)
+          in
+          let bor = transition_exn { item with mov } access Local loc in
           let found = match ptl with [] -> true | _ -> found in
           let found, children =
             List.fold_left_map
               (fun found tree -> aux found ptl tree)
               found item.children
           in
-          (found, { item with state; children })
+          (found, { item with bor; mov; children })
       | _ ->
           print_endline (Id.show item.id ^ " foreign");
-          let state = transition_exn item access.ac Foreign loc in
+          let access =
+            match access.ac with Dmove | Dnorm -> Read | Dmut | Dset -> Write
+          in
+          let bor = transition_exn item access Foreign loc in
           let found, children =
             List.fold_left_map
               (fun found tree -> aux found path tree)
               found item.children
           in
-          (found, { item with state; children })
+          (found, { item with bor; children })
     in
     aux false access.path tree
 
-  let bind id bind_loc access tree =
-    (* Similar to borrow, but we don't transition and instead add a node if we
-       find the access node *)
+  let bind id bind_loc lmut path tree =
+    (* Only bind, i.e. add the child to the bound thing. Checking if the binding
+       is legal has to have happened before. *)
     let rec aux found path item =
       match path with
       | p :: ptl when Id.equal item.id p ->
           let found, children =
             match ptl with
             | [] ->
-                let state =
-                  match access.ac with
-                  | Read -> (Frozen, bind_loc)
-                  | Write -> (Reserved, bind_loc)
-                in
-                (true, { state; id; bind_loc; children = [] } :: item.children)
+                let bor =
+                  if lmut then (Reserved, bind_loc) else (Frozen, bind_loc)
+                and mov = None in
+                ( true,
+                  { bor; mov; id; bind_loc; children = [] } :: item.children )
             | _ ->
                 List.fold_left_map
                   (fun found tree -> aux found ptl tree)
@@ -129,7 +157,7 @@ module Make_tree (Id : Id_t) = struct
           (found, item)
     in
 
-    aux false access.path tree
+    aux false path tree
 end
 
 module Make_storage (Id : Id_t) = struct
@@ -155,25 +183,25 @@ module Make_storage (Id : Id_t) = struct
         (found, { st with trees = Index_map.add i tree st.trees })
     | None -> (false, st)
 
-  let bind id loc ac bound st =
+  let bind id loc lmut bound st =
     match Id_map.find_opt bound st.indices with
     | Some (path, i) ->
         let loc = { Tree.lid = bound; loc } in
         let found, tree =
-          Tree.bind id loc { ac; path } (Index_map.find i st.trees)
+          Tree.bind id loc lmut path (Index_map.find i st.trees)
         in
         let indices = Id_map.add id (path @ [ id ], i) st.indices in
         (found, { trees = Index_map.add i tree st.trees; indices })
     | None -> (false, st)
 
-  let insert id bind_loc state st =
+  let insert id bind_loc bor st =
     assert (Id_map.mem id st.indices |> not);
     let i = fresh () in
     let loc_info = { Tree.lid = id; loc = bind_loc } in
-    let state = (state, loc_info) in
+    let bor = (bor, loc_info) and mov = None in
     let trees =
       Index_map.add i
-        Tree.{ state; id; bind_loc = loc_info; children = [] }
+        Tree.{ bor; mov; id; bind_loc = loc_info; children = [] }
         st.trees
     in
     let indices = Id_map.add id ([ id ], i) st.indices in
@@ -190,7 +218,11 @@ module Make_storage (Id : Id_t) = struct
     |> print_endline;
     let spaces i = String.make i ' ' in
     let rec show_tree sp t =
-      spaces sp ^ Id.show Tree.(t.id) ^ "= " ^ show_state (fst t.state)
+      spaces sp
+      ^ Id.show Tree.(t.id)
+      ^ "= "
+      ^ show_borrow_state (fst t.bor)
+      ^ " mov: " ^ Tree.show_mov t.mov
       |> print_endline;
       List.iter (fun t -> show_tree (sp + 2) t) t.children
     in
@@ -242,39 +274,42 @@ let rec check_expr st ac tyex =
   match tyex.expr with
   | Const _ -> (None, st.trees)
   | Var (str, mname) ->
-      print_endline ("var " ^ str ^ ", " ^ show_action ac);
+      print_endline ("var " ^ str ^ ", " ^ show_dattr ac);
       let id = Idst.get str mname st.ids in
       let found, trees = Trst.borrow id tyex.loc ac st.trees in
       if found then (Some id, trees) else (None, trees)
   | App { callee; args } ->
       print_endline "call";
-      let _, trees = check_expr st Read callee in
+      let _, trees = check_expr st Dnorm callee in
       let trees =
         List.fold_left
           (fun trees (arg, attr) ->
-            let ac =
-              match attr with
-              | Dmut | Dset -> Write
-              | Dnorm -> Read
-              | Dmove -> failwith "not yet move"
-            in
-            let _, trees = check_expr { st with trees } ac arg in
+            let _, trees = check_expr { st with trees } attr arg in
             trees)
           trees args
       in
       (None, trees)
   | Set (expr, value, _moved) ->
       print_endline "set";
-      let _, trees = check_expr st Read value in
-      let _, trees = check_expr { st with trees } Write expr in
+      let _, trees = check_expr st Dmove value in
+      let _, trees = check_expr { st with trees } Dset expr in
       (None, trees)
   | Let { id; lmut; pass; rhs; cont; id_loc; _ } ->
-      print_endline "let";
+      print_endline ("let, line " ^ string_of_int (fst id_loc).pos_lnum);
       let st = check_let st ~toplevel:false id id_loc pass lmut rhs in
       check_expr st ac cont
   | Sequence (fst, snd) ->
-      let _, trees = check_expr st Read fst in
+      let _, trees = check_expr st Dnorm fst in
       check_expr { st with trees } ac snd
+  | Record es ->
+      let trees =
+        List.fold_left
+          (fun trees (_, e) ->
+            let _, trees = check_expr { st with trees } Dmove e in
+            trees)
+          st.trees es
+      in
+      (None, trees)
   | _ ->
       (* print_endline ("none: " ^ show_typed_expr tyex); *)
       (None, st.trees)
@@ -283,19 +318,23 @@ and check_let st ~toplevel str loc pass lmut rhs =
   print_endline (string_of_bool toplevel);
   if toplevel && pass = Dmut then
     raise (Error (rhs.loc, "Cannot project at top level"))
-  else if toplevel && lmut then
+  else if toplevel && pass = Dmove then
+    raise (Error (rhs.loc, "Cannot move top level binding"))
+  else if toplevel && rhs.attr.mut then
     raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
   else
     let bid, ids = Idst.insert str (Some st.mname) st.ids in
     let trees =
       (* TODO [Read] is not always true here *)
-      match check_expr st Read rhs with
+      match check_expr st pass rhs with
       | None, trees ->
           (* Nothing is borrowed, we own this *)
           Trst.insert bid loc Owned trees
+      | Some _, trees when pass = Dmove ->
+          (* Transfer ownership *)
+          Trst.insert bid loc Owned trees
       | Some rhs_id, trees ->
-          (* Even if we borrow mutably, we don't write here yet *)
-          let found, trees = Trst.bind bid loc Read rhs_id trees in
+          let found, trees = Trst.bind bid loc lmut rhs_id trees in
           assert found;
           trees
     in
@@ -306,16 +345,16 @@ let check_item st = function
   | Tl_let { id; pass; rhs; lmut; loc; _ } ->
       check_let ~toplevel:true st id loc pass lmut rhs
   | Tl_expr e ->
-      let _, trees = check_expr st Read e in
+      let _, trees = check_expr st Dnorm e in
       { st with trees }
   | Tl_function _ -> st
   | Tl_bind (str, e) ->
       let bid, ids = Idst.insert str (Some st.mname) st.ids in
       let trees =
-        match check_expr st Read e with
+        match check_expr st Dnorm e with
         | None, trees -> Trst.insert bid e.loc Frozen trees
         | Some rhs_id, trees ->
-            let found, trees = Trst.bind bid e.loc Read rhs_id trees in
+            let found, trees = Trst.bind bid e.loc false rhs_id trees in
             assert found;
             trees
       in
@@ -324,9 +363,9 @@ let check_item st = function
 
 let check_expr ~mname expr =
   (* [Read] should be move later *)
-  check_expr (state_empty mname) Read expr |> fun (_, trees) -> Trst.print trees
+  check_expr (state_empty mname) Dnorm expr |> fun (_, trees) ->
+  Trst.print trees
 
 let check_items ~mname items =
-  ignore Write;
   List.fold_left (fun st item -> check_item st item) (state_empty mname) items
   |> ignore

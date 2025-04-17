@@ -994,8 +994,8 @@ let test_excl_move_mut () =
   wrap_fn ~tl test "unit" [ own; "let y& = !x"; "&y = 11"; "ignore(y)" ]
 
 let test_excl_move_mut_use_after () =
-  wrap_fn test_exn
-    (ln "x was moved in line %i, cannot use" 2)
+  wrap_fn ~tl test_exn
+    (ln "x was moved in line %i, cannot use" 3)
     [ own; "let y& = !x"; "ignore(x)" ]
 
 let test_excl_move_record () =
