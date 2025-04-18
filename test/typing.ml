@@ -1035,23 +1035,23 @@ let test_excl_proj_immutable () =
 
 let test_excl_proj_use_orig () =
   wrap_fn ~tl:proj_msg test_exn
-    (ln "x was mutably borrowed in line %i, cannot borrow" 3)
-    [ own; "let y& = &x"; "ignore(x)"; "ignore(y)"; "x" ]
+    (ln "x was borrowed in line %i, cannot mutate" 3)
+    [ own; "let y& = &x"; "ignore(__unsafe_addr(&x))"; "ignore(y)"; "x" ]
 
 let test_excl_proj_move_after () =
   wrap_fn ~tl:proj_msg test_exn
-    (ln "x was mutably borrowed in line %i, cannot borrow" 3)
-    [ own; "let y& = &x"; "ignore(x)"; "(y, 0)" ]
+    (ln "x was borrowed in line %i, cannot mutate" 3)
+    [ own; "let y& = &x"; "ignore(__unsafe_addr(&x))"; "(y, 0)" ]
 
 let test_excl_proj_nest () =
   wrap_fn ~tl:proj_msg test_exn
-    (ln "x was mutably borrowed as y in line %i, cannot borrow" 4)
-    [ own; "let y& = &x"; "let z& = &y"; "ignore(y)"; "z" ]
+    (ln "y was borrowed in line %i, cannot mutate" 4)
+    [ own; "let y& = &x"; "let z& = &y"; "ignore(__unsafe_addr(&y))"; "z" ]
 
 let test_excl_proj_nest_orig () =
   wrap_fn ~tl:proj_msg test_exn
-    (ln "x was mutably borrowed in line %i, cannot borrow" 4)
-    [ own; "let y& = &x"; "let z& = &y"; "ignore(x)"; "z" ]
+    (ln "x was borrowed in line %i, cannot mutate" 3)
+    [ own; "let y& = &x"; "let z& = &y"; "ignore(__unsafe_addr(&x))"; "z" ]
 
 let test_excl_proj_nest_closed () =
   wrap_fn ~tl:proj_msg test "unit"

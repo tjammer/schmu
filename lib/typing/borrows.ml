@@ -367,38 +367,40 @@ let rec check_expr st ac tyex =
       (* TODO merge trees *)
       ignore ttrees;
       ignore ftrees;
-      borrow, trees
+      (borrow, trees)
   | _ ->
       (* print_endline ("none: " ^ show_typed_expr tyex); *)
       (Owned, st.trees)
 
 and check_let st ~toplevel str loc pass lmut rhs =
   print_endline (string_of_bool toplevel);
-  if toplevel && pass = Dmut then
-    raise (Error (rhs.loc, "Cannot project at top level"))
-  else if toplevel && pass = Dmove then
-    raise (Error (rhs.loc, "Cannot move top level binding"))
-  else if toplevel && rhs.attr.mut then
-    raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
-  else
-    let bid, ids = Idst.insert str (Some st.mname) st.ids in
-    let trees =
-      (* TODO [Read] is not always true here *)
-      match check_expr st pass rhs with
-      | Owned, trees ->
-          (* Nothing is borrowed, we own this *)
-          Trst.insert bid loc Owned trees
-      | Borrowed _, _trees when pass = Dmove ->
-          failwith "how?"
-          (* Transfer ownership *)
-          (* Trst.insert bid loc Owned trees *)
-      | Borrowed ids, trees ->
-          let found, trees = Trst.bind bid loc lmut ids trees in
-          assert found;
-          trees
-    in
+  (match pass with
+  | Dmut when toplevel -> raise (Error (rhs.loc, "Cannot project at top level"))
+  | Dmut when not rhs.attr.mut ->
+      raise (Error (rhs.loc, "Cannot project immutable binding"))
+  | Dmove when toplevel ->
+      raise (Error (rhs.loc, "Cannot move top level binding"))
+  | _ when toplevel && rhs.attr.mut ->
+      raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
+  | _ -> ());
+  let bid, ids = Idst.insert str (Some st.mname) st.ids in
+  let trees =
+    (* TODO [Read] is not always true here *)
+    match check_expr st pass rhs with
+    | Owned, trees ->
+        (* Nothing is borrowed, we own this *)
+        Trst.insert bid loc Owned trees
+    | Borrowed _, _trees when pass = Dmove ->
+        failwith "how?"
+        (* Transfer ownership *)
+        (* Trst.insert bid loc Owned trees *)
+    | Borrowed ids, trees ->
+        let found, trees = Trst.bind bid loc lmut ids trees in
+        assert found;
+        trees
+  in
 
-    { st with ids; trees }
+  { st with ids; trees }
 
 let check_item st = function
   | Tl_let { id; pass; rhs; lmut; loc; _ } ->
