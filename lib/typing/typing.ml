@@ -721,11 +721,18 @@ end = struct
     let mname = Some (Env.modpath env) in
     let env =
       Env.add_value id
-        { (Env.def_value env) with typ = e1.typ; const; global; mut = lmut; mname }
+        {
+          (Env.def_value env) with
+          typ = e1.typ;
+          const;
+          global;
+          mut = lmut;
+          mname;
+        }
         idloc env
     in
     let env, pat_exprs = convert_decl env [ decl ] in
-    let expr = { e1 with attr = { e1.attr with global; const; } } in
+    let expr = { e1 with attr = { e1.attr with global; const } } in
     (env, id, idloc, expr, lmut, pat_exprs)
 
   and convert_lambda env loc pipe params attr ret_annot body =
@@ -751,7 +758,16 @@ end = struct
     let _, closed_vars, touched, unused = Env.close_function env in
 
     let unmutated = [] in
-    Borrows.check_expr ~mname:(Env.modpath env) body;
+    let () =
+      let params =
+        List.map (fun (d : Ast.decl) -> d.loc) params
+        |> List.map2
+             (fun (p, id) loc -> (p, id, loc))
+             (List.combine params_t nparams)
+      in
+      Borrows.check_expr ~mname:(Env.modpath env) ~params body
+    in
+
     (* let unmutated, touched, body = *)
     (*   let get_decl = Hashtbl.find (Env.decl_tbl env) in *)
     (*   Exclusivity.check_tree get_decl params_t ~mname:(Env.modpath env) *)
@@ -857,14 +873,22 @@ end = struct
     let env, closed_vars, touched, unused = Env.close_function env in
 
     let unmutated = [] in
-    Borrows.check_expr ~mname:(Env.modpath env) body;
+    let () =
+      let params =
+        List.map (fun (d : Ast.decl) -> d.loc) params
+        |> List.map2
+             (fun (p, id) loc -> (p, id, loc))
+             (List.combine params_t nparams)
+      in
+      Borrows.check_expr ~mname:(Env.modpath env) ~params body
+    in
+
     (* let unmutated, touched, body = *)
     (*   let get_decl = Hashtbl.find (Env.decl_tbl env) in *)
     (*   Exclusivity.check_tree get_decl params_t ~mname:(Env.modpath env) *)
     (*     (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params) *)
     (*     touched body *)
     (* in *)
-
     let inline, closed_vars =
       List.fold_left
         (fun (inl, clsd) -> function
@@ -1134,7 +1158,10 @@ end = struct
        let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
        raise (Error (eloc, msg)));
     unify (loc, "In mutation") toset.typ valexpr.typ env;
-    let moved = Snot_moved (* will be set in excl pass *) in
+    let moved =
+      Snot_moved
+      (* will be set in excl pass *)
+    in
     { typ = tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
 
   and convert_pipe env loc e1 e2 inverse =
@@ -1638,13 +1665,13 @@ let rec convert_module env mname prog check_ret =
   let _, _, touched, unused = Env.close_toplevel prog.env in
 
   ignore touched;
-  let unmutated, items = [], prog.items in
+  let unmutated, items = ([], prog.items) in
   Borrows.check_items ~mname prog.items;
+
   (* let unmutated, items = *)
   (*   let get_decl = Hashtbl.find (Env.decl_tbl prog.env) in *)
   (*   Exclusivity.check_items ~mname get_decl touched prog.items *)
   (* in *)
-
   let has_sign = match prog.sgn with [] -> false | _ -> true in
   if (not (is_module (Env.modpath prog.env))) || has_sign then
     check_unused prog.env unused unmutated;

@@ -1058,7 +1058,7 @@ let test_excl_proj_nest_closed () =
     [ own; "let y& = &x"; "let z& = &y"; "ignore(z)"; "y" ]
 
 let test_excl_moved_param () =
-  test_exn "Borrowed parameter x is moved" "fun meh(x) {x}"
+  test_exn "Borrowed value x has been moved in line 5" "fun meh(x) {x}"
 
 let test_excl_set_moved () =
   test "unit" "fun meh(a&) {ignore((a, 0));   &a = 10}"
@@ -1075,7 +1075,7 @@ fun ease(anim){ match anim {
   Circ_in -> ease_circ_in(anim)}}|}
 
 let test_excl_shadowing () =
-  test_exn "Borrowed parameter a is moved" "fun thing(a){ let a = a; a}"
+  test_exn "Borrowed value a has been moved in line 5" "fun thing(a){ let a = a; a}"
 
 let typ = "type string = array[u8]\n type t = {a : string, b : string}\n"
 

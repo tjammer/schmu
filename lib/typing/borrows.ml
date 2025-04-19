@@ -173,6 +173,7 @@ module Make_storage (Id : Id_t) = struct
 
   let empty = { indices = Id_map.empty; trees = Index_map.empty }
   let id = ref 0
+  let reset () = id := 0
 
   let fresh () =
     incr id;
@@ -259,6 +260,25 @@ module Make_storage (Id : Id_t) = struct
         print_endline ("t " ^ string_of_int i);
         show_tree 2 t)
       st.trees
+
+  let check_borrow_moves st =
+    let rec check_move id loc tree =
+      match Tree.(tree.mov) with
+      | Some l ->
+          let msg =
+            Format.sprintf "Borrowed value %s has been moved in line %i"
+              (Id.only_id id) Tree.(fst l.loc).pos_lnum
+          in
+          raise (Error.Error (loc, msg))
+      | None -> List.iter (check_move id loc) tree.children
+    in
+    Index_map.iter
+      (fun _ tree ->
+        print_endline ("check: " ^ Id.show Tree.(tree.id));
+        match Tree.(tree.bor) |> fst with
+        | Owned -> ()
+        | _ -> (check_move tree.id tree.bind_loc.loc) tree)
+      st.trees
 end
 
 module Make_ids (Id : Id_t) = struct
@@ -286,8 +306,7 @@ module Trst = Make_storage (Exclusivity.Id)
 
 (* Id storage *)
 module Idst = Make_ids (Exclusivity.Id)
-
-(* open Types *)
+open Types
 open Typed_tree
 open Error
 
@@ -422,11 +441,32 @@ let check_item st = function
       { st with ids; trees }
   | _ -> failwith "TODO"
 
-let check_expr ~mname expr =
-  (* [Read] should be move later *)
-  check_expr (state_empty mname) Dnorm expr |> fun (_, trees) ->
-  Trst.print trees
+let check_expr ~mname ~params expr =
+  Trst.reset ();
+  let state =
+    List.fold_left
+      (fun st (p, id, loc) ->
+        let bid, ids = Idst.insert id None st.ids in
+        let bstate =
+          match p.pattr with
+          | Dnorm (* borrowed *) -> Frozen
+          | Dmut (* borrowed mut *) -> Reserved
+          | Dset -> failwith "unreachable"
+          | Dmove -> Owned
+        in
+        let trees = Trst.insert bid loc bstate st.trees in
+        print_endline ("add param " ^ id ^ " as " ^ show_borrow_state bstate);
+        { st with ids; trees })
+      (state_empty mname) params
+  in
+
+  let _, trees = check_expr state Dmove expr in
+  Trst.print trees;
+
+  (* Ensure no parameter has been moved *)
+  Trst.check_borrow_moves trees
 
 let check_items ~mname items =
+  Trst.reset ();
   List.fold_left (fun st item -> check_item st item) (state_empty mname) items
   |> ignore
