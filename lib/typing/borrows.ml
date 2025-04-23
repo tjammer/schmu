@@ -59,105 +59,113 @@ module type Id_t = sig
 end
 
 module Make_tree (Id : Id_t) = struct
-  type id = Id.t [@@deriving show]
   type loc_info = { lid : Id.t; loc : Ast.loc } [@@deriving show]
   type mov = loc_info option [@@deriving show]
+  type access = Awhole of Id.t [@@deriving show]
 
-  type t = {
+  type whole = {
     bor : borrow_state * loc_info;
     mov : mov; (* loc: location where the binding was moved *)
-    id : id;
+    id : Id.t;
     bind_loc : loc_info;
     children : t list;
   }
-  [@@deriving show]
 
-  type path = id list [@@deriving show]
-  type access = { ac : Ast.decl_attr; path : path }
+  and t = Twhole of whole [@@deriving show]
 
-  let transition_exn item acc location loc =
-    match transition item.bor (acc, location) loc with
+  type path = access list [@@deriving show]
+  type access_path = { ac : Ast.decl_attr; path : path }
+
+  let transition_exn bor bind_loc acc location loc =
+    match transition bor (acc, location) loc with
     | Ok state -> state
     | Error (`Disabled ({ lid; loc = _ }, action)) ->
         let msg =
           Format.sprintf "%s was borrowed in line %i, cannot mutate"
-            (Id.only_id lid) (fst item.bind_loc.loc).pos_lnum
+            (Id.only_id lid) (fst bind_loc.loc).pos_lnum
         in
         raise (Error.Error (action.loc, msg))
     | Error `None -> failwith "not yet none"
 
+  let access_eq tree r =
+    match (tree, r) with Twhole l, Awhole r -> Id.equal l.id r
+
+  let rec fold ~foreign ~local path acc tree =
+    match (path, tree) with
+    | p :: ptl, Twhole item when access_eq tree p ->
+        let ends = match ptl with [] -> true | _ -> false in
+        let acc, item = local ~down:(fold ~foreign ~local ptl) ~ends acc item in
+        (acc, Twhole item)
+    | _, Twhole item ->
+        let acc, item = foreign ~down:(fold ~foreign ~local path) acc item in
+        (acc, Twhole item)
+
   let borrow access loc tree =
-    let rec aux found path item =
-      match path with
-      | p :: ptl when Id.equal item.id p ->
-          print_endline (Id.show item.id ^ " local");
-          let mov, access =
-            match (item.mov, access.ac) with
-            | Some lc, (Ast.Dmove | Dmut | Dnorm) ->
-                (* Our item has been moved *)
-                let msg =
-                  Format.sprintf "%s was moved in line %i, cannot use"
-                    (Id.only_id p) (fst lc.loc).pos_lnum
-                in
-                raise (Error.Error (loc.loc, msg))
-            | Some _, Dset -> (None, Write)
-            | None, (Dset | Dmut) -> (None, Write)
-            | None, Dnorm -> (None, Read)
-            | None, Dmove ->
-                print_endline
-                  ("moved " ^ Id.only_id p ^ " in line "
-                  ^ ((fst loc.loc).pos_lnum |> string_of_int));
-                (Some loc, Read)
-          in
-          let bor = transition_exn { item with mov } access Local loc in
-          let found = match ptl with [] -> true | _ -> found in
-          let found, children =
-            List.fold_left_map
-              (fun found tree -> aux found ptl tree)
-              found item.children
-          in
-          (found, { item with bor; mov; children })
-      | _ ->
-          print_endline (Id.show item.id ^ " foreign");
-          let access =
-            match access.ac with Dmove | Dnorm -> Read | Dmut | Dset -> Write
-          in
-          let bor = transition_exn item access Foreign loc in
-          let found, children =
-            List.fold_left_map
-              (fun found tree -> aux found path tree)
-              found item.children
-          in
-          (found, { item with bor; children })
+    let foreign ~down found item =
+      print_endline (Id.show item.id ^ " foreign");
+      let access =
+        match access.ac with Dmove | Dnorm -> Read | Dmut | Dset -> Write
+      in
+      let bor = transition_exn item.bor item.bind_loc access Foreign loc in
+      let found, children =
+        List.fold_left_map
+          (fun found tree -> down found tree)
+          found item.children
+      in
+      (found, { item with bor; children })
     in
-    aux false access.path tree
+
+    let local ~down ~ends found item =
+      print_endline (Id.show item.id ^ " local");
+      let mov, access =
+        match (item.mov, access.ac) with
+        | Some lc, (Ast.Dmove | Dmut | Dnorm) ->
+            (* Our item has been moved *)
+            let msg =
+              Format.sprintf "%s was moved in line %i, cannot use"
+                (Id.only_id item.id) (fst lc.loc).pos_lnum
+            in
+            raise (Error.Error (loc.loc, msg))
+        | Some _, Dset -> (None, Write)
+        | None, (Dset | Dmut) -> (None, Write)
+        | None, Dnorm -> (None, Read)
+        | None, Dmove ->
+            print_endline
+              ("moved " ^ Id.show item.id ^ " in line "
+              ^ ((fst loc.loc).pos_lnum |> string_of_int));
+            (Some loc, Read)
+      in
+      let bor = transition_exn item.bor item.bind_loc access Local loc in
+      let found, children =
+        List.fold_left_map
+          (fun found tree -> down found tree)
+          (ends || found) item.children
+      in
+      (found, { item with bor; children; mov })
+    in
+
+    fold ~local ~foreign access.path false tree
 
   let bind id bind_loc lmut path tree =
     (* Only bind, i.e. add the child to the bound thing. Checking if the binding
        is legal has to have happened before. *)
-    let rec aux found path item =
-      match path with
-      | p :: ptl when Id.equal item.id p ->
-          let found, children =
-            match ptl with
-            | [] ->
-                let bor =
-                  if lmut then (Reserved, bind_loc) else (Frozen, bind_loc)
-                and mov = None in
-                ( true,
-                  { bor; mov; id; bind_loc; children = [] } :: item.children )
-            | _ ->
-                List.fold_left_map
-                  (fun found tree -> aux found ptl tree)
-                  found item.children
-          in
-          (found, { item with children })
-      | _ ->
-          (* Add to another branch. No need to do anything *)
-          (found, item)
+    let foreign ~down:_ found item = (found, item) in
+    let local ~down ~ends found item =
+      let found, children =
+        if ends then
+          let bor = if lmut then (Reserved, bind_loc) else (Frozen, bind_loc)
+          and mov = None in
+          ( true,
+            Twhole { bor; mov; id; bind_loc; children = [] } :: item.children )
+        else
+          List.fold_left_map
+            (fun found tree -> down found tree)
+            found item.children
+      in
+      (found, { item with children })
     in
 
-    aux false path tree
+    fold ~local ~foreign path false tree
 end
 
 module Make_storage (Id : Id_t) = struct
@@ -206,7 +214,7 @@ module Make_storage (Id : Id_t) = struct
                   Tree.bind id loc lmut path (Index_map.find i trees)
                 in
                 let trees = Index_map.add i tree trees in
-                ((found && nfound, trees), (path @ [ id ], i)))
+                ((found && nfound, trees), (path @ [ Awhole id ], i)))
               (true, st.trees) inds
           in
           let indices = Id_map.add id indices st.indices in
@@ -226,10 +234,10 @@ module Make_storage (Id : Id_t) = struct
     let bor = (bor, loc_info) and mov = None in
     let trees =
       Index_map.add i
-        Tree.{ bor; mov; id; bind_loc = loc_info; children = [] }
+        (Tree.Twhole { bor; mov; id; bind_loc = loc_info; children = [] })
         st.trees
     in
-    let indices = Id_map.add id [ ([ id ], i) ] st.indices in
+    let indices = Id_map.add id [ ([ Tree.Awhole id ], i) ] st.indices in
     { trees; indices }
 
   let print st =
@@ -247,13 +255,14 @@ module Make_storage (Id : Id_t) = struct
     |> print_endline;
     let spaces i = String.make i ' ' in
     let rec show_tree sp t =
+      let t = match t with Tree.Twhole t -> t in
       spaces sp
-      ^ Id.show Tree.(t.id)
+      ^ Tree.(Id.show t.id)
       ^ "= "
       ^ show_borrow_state (fst t.bor)
       ^ " mov: " ^ Tree.show_mov t.mov
       |> print_endline;
-      List.iter (fun t -> show_tree (sp + 2) t) t.children
+      List.iter (fun t -> show_tree (sp + 2) t) Tree.(t.children)
     in
     Index_map.iter
       (fun i t ->
@@ -270,14 +279,18 @@ module Make_storage (Id : Id_t) = struct
               (Id.only_id id) Tree.(fst l.loc).pos_lnum
           in
           raise (Error.Error (loc, msg))
-      | None -> List.iter (check_move id loc) tree.children
+      | None ->
+          List.iter
+            (function Tree.Twhole tree -> check_move id loc tree)
+            tree.children
     in
     Index_map.iter
-      (fun _ tree ->
-        print_endline ("check: " ^ Id.show Tree.(tree.id));
-        match Tree.(tree.bor) |> fst with
-        | Owned -> ()
-        | _ -> (check_move tree.id tree.bind_loc.loc) tree)
+      (fun _ -> function
+        | Tree.Twhole tree -> (
+            print_endline ("check: " ^ Tree.(Id.show tree.id));
+            match tree.bor |> fst with
+            | Owned -> ()
+            | _ -> (check_move tree.id tree.bind_loc.loc) tree))
       st.trees
 end
 
