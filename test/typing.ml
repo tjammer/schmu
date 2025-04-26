@@ -508,7 +508,8 @@ let test_lor_other_variant () =
 
 let test_match_all () =
   test "int"
-    "type option['a] = None | Some('a); match Some(1) { Some(a) -> a; None -> -1}"
+    "type option['a] = None | Some('a); match Some(1) { Some(a) -> a; None -> \
+     -1}"
 
 let test_match_redundant () =
   test_exn "Pattern match case is redundant"
@@ -648,7 +649,8 @@ type option['a] = None | Some('a)
 match Some(10) {Some(1) -> 1; Some(_) -> 10; Some(10) -> 10; None -> -1}
 |}
 
-let test_match_or () = test "int" "match (1, 2) {(a, 1) | (a, 2) -> a;  _ -> -1}"
+let test_match_or () =
+  test "int" "match (1, 2) {(a, 1) | (a, 2) -> a;  _ -> -1}"
 
 let test_match_or_missing_var () =
   test_exn "No var named a" "match (1, 2) {(a, 1) | (b, 2) -> a; _ -> -1}"
@@ -1075,15 +1077,26 @@ fun ease(anim){ match anim {
   Circ_in -> ease_circ_in(anim)}}|}
 
 let test_excl_shadowing () =
-  test_exn "Borrowed value a has been moved in line 5" "fun thing(a){ let a = a; a}"
+  test_exn "Borrowed value a has been moved in line 5"
+    "fun thing(a){ let a = a; a}"
 
-let typ = "type string = array[u8]\n type t = {a : string, b : string}\n"
+let typ = "type string = array[u8]\n type t = {a& : string, b : string}\n"
 
 let test_excl_parts_success () =
   test "unit" (typ ^ "fun meh(a!) {{a = a.a, b = a.b}}")
 
 let test_excl_parts_return_part () =
   test "unit" (typ ^ "fun meh(a!){ let c& = !a.a;  a.b}")
+
+let test_excl_parts_dont_reset_part () =
+  test_exn "a.a was moved in line 7, cannot use"
+    (typ ^ "fun meh(a!) { let a& = !a; let c& = &a.a; __unsafe_leak(!c); a }")
+
+let test_excl_parts_reset_part () =
+  test "unit"
+    (typ
+   ^ "fun meh(a!) { let a& = !a; let c& = &a.a; __unsafe_leak(!c); &c = [];  a \
+      }")
 
 let test_excl_parts_return_whole () =
   test_exn
@@ -1172,7 +1185,8 @@ fun process_state(state&) {
 }|}
 
 let test_excl_move_lambda () =
-  test_exn "Borrowed parameter a is moved" "fun copy_param(a&) { fun () { &a = 12 } }"
+  test_exn "Borrowed parameter a is moved"
+    "fun copy_param(a&) { fun () { &a = 12 } }"
 
 let test_excl_move_fun () =
   test_exn "Borrowed parameter a is moved"
@@ -1877,6 +1891,8 @@ let () =
           case "shadowing" test_excl_shadowing;
           case "parts update" test_excl_parts_success;
           case "parts return part" test_excl_parts_return_part;
+          case "parts don't reset part" test_excl_parts_dont_reset_part;
+          case "parts reset part" test_excl_parts_reset_part;
           case "parts return whole after part move" test_excl_parts_return_whole;
           tase_exn "func mut borrow"
             (ln "a was borrowed in line %i, cannot mutate" 5)
