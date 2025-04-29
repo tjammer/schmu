@@ -209,7 +209,6 @@ module Make_tree (Id : Id_t) = struct
         in
         (acc, Tparts { rest; parts })
 
-  (* TODO return path along with id*)
   let borrow access loc tree =
     let foreign ~down ~contains_part found item =
       print_endline (string_of_access item.id ^ " foreign");
@@ -325,8 +324,7 @@ module Make_storage (Id : Id_t) = struct
         (found, { st with trees })
     | None -> (false, st)
 
-  let bind id loc lmut bounds _part st =
-    (* TODO delete parts *)
+  let bind id loc lmut bounds st =
     let aux (bound, part) st =
       match Id_map.find_opt bound st.indices with
       | Some inds ->
@@ -514,7 +512,7 @@ let rec check_expr st ac part tyex =
       (Owned, trees)
   | Let { id; lmut; pass; rhs; cont; id_loc; _ } ->
       print_endline ("let, line " ^ string_of_int (fst id_loc).pos_lnum);
-      let st = check_let st ~toplevel:false id id_loc pass [] lmut rhs in
+      let st = check_let st ~toplevel:false id id_loc pass lmut rhs in
       check_expr st ac part cont
   | Sequence (fst, snd) ->
       let _, trees = check_expr st Dnorm [] fst in
@@ -558,7 +556,7 @@ let rec check_expr st ac part tyex =
       (* print_endline ("none: " ^ show_typed_expr tyex); *)
       (Owned, st.trees)
 
-and check_let st ~toplevel str loc pass part lmut rhs =
+and check_let st ~toplevel str loc pass lmut rhs =
   print_endline (string_of_bool toplevel);
   (match pass with
   | Dmut when toplevel -> raise (Error (rhs.loc, "Cannot project at top level"))
@@ -572,7 +570,7 @@ and check_let st ~toplevel str loc pass part lmut rhs =
   let bid, ids = Idst.insert str (Some st.mname) st.ids in
   let trees =
     (* TODO [Read] is not always true here *)
-    match check_expr st pass part rhs with
+    match check_expr st pass [] rhs with
     | Owned, trees ->
         (* Nothing is borrowed, we own this *)
         Trst.insert bid loc Owned trees
@@ -581,7 +579,7 @@ and check_let st ~toplevel str loc pass part lmut rhs =
         (* Transfer ownership *)
         (* Trst.insert bid loc Owned trees *)
     | Borrowed ids, trees ->
-        let found, trees = Trst.bind bid loc lmut ids part trees in
+        let found, trees = Trst.bind bid loc lmut ids trees in
         assert found;
         trees
   in
@@ -590,7 +588,7 @@ and check_let st ~toplevel str loc pass part lmut rhs =
 
 let check_item st = function
   | Tl_let { id; pass; rhs; lmut; loc; _ } ->
-      check_let ~toplevel:true st id loc pass [] lmut rhs
+      check_let ~toplevel:true st id loc pass lmut rhs
   | Tl_expr e ->
       let _, trees = check_expr st Dnorm [] e in
       { st with trees }
@@ -601,7 +599,7 @@ let check_item st = function
         match check_expr st Dnorm [] e with
         | Owned, trees -> Trst.insert bid e.loc Frozen trees
         | Borrowed rhs_ids, trees ->
-            let found, trees = Trst.bind bid e.loc false rhs_ids [] trees in
+            let found, trees = Trst.bind bid e.loc false rhs_ids trees in
             assert found;
             trees
       in
