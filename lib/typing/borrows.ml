@@ -295,10 +295,12 @@ module Make_storage (Id : Id_t) = struct
   module Index_map = Map.Make (Int)
   module Tree = Make_tree (Id)
 
-  type t = {
-    indices : (Tree.Path.t * int) list Id_map.t;
-    trees : Tree.t Index_map.t;
+  type index = {
+    itrees : (Tree.Path.t * int) list;
+    ioncall : (Tree.access_path * int) list;
   }
+
+  type t = { indices : index Id_map.t; trees : Tree.t Index_map.t }
 
   let empty = { indices = Id_map.empty; trees = Index_map.empty }
   let id = ref 0
@@ -311,6 +313,7 @@ module Make_storage (Id : Id_t) = struct
   let borrow lid loc ac part st =
     match Id_map.find_opt lid st.indices with
     | Some inds ->
+        (* borrow *)
         let found, trees =
           List.fold_left
             (fun (found, trees) (path, i) ->
@@ -319,7 +322,20 @@ module Make_storage (Id : Id_t) = struct
                 Tree.borrow { ac; path } { lid; loc } (Index_map.find i trees)
               in
               (found && nfound, Index_map.add i tree st.trees))
-            (true, st.trees) inds
+            (true, st.trees) inds.itrees
+        in
+        let trees =
+          List.fold_left
+            (fun trees (apath, i) ->
+              (* In comparison to above, we can ignore [part] here *)
+              let _, tree =
+                print_endline
+                  ("on call borrow: " ^ Id.show lid ^ " @ "
+                  ^ Typed_tree.show_dattr Tree.(apath.ac));
+                Tree.borrow apath { lid; loc } (Index_map.find i trees)
+              in
+              Index_map.add i tree st.trees)
+            trees inds.ioncall
         in
         (found, { st with trees })
     | None -> (false, st)
@@ -328,7 +344,7 @@ module Make_storage (Id : Id_t) = struct
     let aux (bound, part) st =
       match Id_map.find_opt bound st.indices with
       | Some inds ->
-          let (found, trees), indices =
+          let (found, trees), itrees =
             List.fold_left_map
               (fun (found, trees) (path, i) ->
                 let loc = { Tree.lid = bound; loc } in
@@ -339,9 +355,10 @@ module Make_storage (Id : Id_t) = struct
                 in
                 let trees = Index_map.add i tree trees in
                 ((found && nfound, trees), (Tree.Path.append path id, i)))
-              (true, st.trees) inds
+              (true, st.trees) inds.itrees
           in
-          let indices = Id_map.add id indices st.indices in
+          (* inherit [ioncall] from inds *)
+          let indices = Id_map.add id { inds with itrees } st.indices in
           (found, { indices; trees })
       | None -> (false, st)
     in
@@ -362,8 +379,28 @@ module Make_storage (Id : Id_t) = struct
         (Tree.Twhole { bor; mov; id; bind_loc = loc_info; children = [] })
         st.trees
     in
-    let indices = Id_map.add id [ (Tree.Path.singleton id, i) ] st.indices in
+    let index = { itrees = [ (Tree.Path.singleton id, i) ]; ioncall = [] } in
+    let indices = Id_map.add id index st.indices in
     { trees; indices }
+
+  let add_oncall id touched st =
+    (* We assume that [insert] has been called before *)
+    let index = Id_map.find id st.indices in
+    let ioncall =
+      List.map
+        (fun (id, ac) ->
+          match Id_map.find_opt id st.indices with
+          | Some index ->
+              print_endline
+                ("add oncall " ^ Id.show id ^ " with "
+               ^ Typed_tree.show_dattr ac);
+              List.map (fun (path, i) -> (Tree.{ ac; path }, i)) index.itrees
+          | None -> [])
+        touched
+      |> List.flatten
+    in
+    let indices = Id_map.add id { index with ioncall } st.indices in
+    { st with indices }
 
   let print st =
     print_endline "******************";
@@ -375,7 +412,7 @@ module Make_storage (Id : Id_t) = struct
                  (List.map
                     (fun (path, i) ->
                       "(" ^ Tree.Path.show path ^ ", " ^ string_of_int i ^ ")")
-                    inds))
+                    inds.itrees))
       |> List.of_seq)
     |> print_endline;
     let spaces i = String.make i ' ' in
@@ -552,6 +589,9 @@ let rec check_expr st ac part tyex =
           raise (Error (tyex.loc, "Cannot move out of constant"))
       | _ -> ());
       check_expr st ac (name :: part) e
+  | Function (name, _, abs, cont) ->
+      let st = check_abs tyex.loc name abs st in
+      check_expr st ac part cont
   | _ ->
       (* print_endline ("none: " ^ show_typed_expr tyex); *)
       (Owned, st.trees)
@@ -569,7 +609,6 @@ and check_let st ~toplevel str loc pass lmut rhs =
   | _ -> ());
   let bid, ids = Idst.insert str (Some st.mname) st.ids in
   let trees =
-    (* TODO [Read] is not always true here *)
     match check_expr st pass [] rhs with
     | Owned, trees ->
         (* Nothing is borrowed, we own this *)
@@ -586,13 +625,32 @@ and check_let st ~toplevel str loc pass lmut rhs =
 
   { st with ids; trees }
 
+and check_abs loc name abs st =
+  let trees, touched =
+    List.fold_left_map
+      (fun trees touched ->
+         print_endline ("touched: " ^ Typed_tree.show_touched touched);
+        let bid = Idst.get touched.tname touched.tmname st.ids in
+        let _, trees = Trst.borrow bid loc touched.tattr [] trees in
+        (trees, (bid, touched.tattr)))
+      st.trees abs.func.touched
+  in
+  let bid, ids = Idst.insert name (Some st.mname) st.ids in
+  let trees = Trst.insert bid loc Owned trees in
+  let trees = Trst.add_oncall bid touched trees in
+
+  { st with trees; ids }
+
 let check_item st = function
   | Tl_let { id; pass; rhs; lmut; loc; _ } ->
+      print_endline ("tl let " ^ id);
       check_let ~toplevel:true st id loc pass lmut rhs
   | Tl_expr e ->
       let _, trees = check_expr st Dnorm [] e in
       { st with trees }
-  | Tl_function _ -> st
+  | Tl_function (loc, id, _, abs) ->
+      print_endline ("tl function: " ^ id);
+      check_abs loc id abs st
   | Tl_bind (str, e) ->
       let bid, ids = Idst.insert str (Some st.mname) st.ids in
       let trees =
