@@ -1903,15 +1903,15 @@ fun set_a(){
   let b = a
   set_a()
   ignore(b)}|};
-          tase_exn "func move" "Cannot move value a from outer scope"
+          tase_exn "func move" "Borrowed value a has been moved in line 7"
             {|fun hmm(){
   let a& = [10]
-  fun move_a(){ a}
+  fun move_a(){ a }
   ignore(a)
   ignore(move_a)
   ignore(a)}|};
           tase_exn "closure mut borrow"
-            (ln "a was mutably borrowed in line %i, cannot borrow" 3)
+            (ln "a was borrowed in line %i, cannot mutate" 3)
             {|fun hmm() {
   let a& = 10
   let set_a = fun (){ &a = 11}
@@ -1919,7 +1919,7 @@ fun set_a(){
   set_a()
   &a = 11}|};
           tase_exn "closure carry set"
-            (ln "a was mutably borrowed in line %i, cannot borrow" 3)
+            (ln "a was borrowed in line %i, cannot mutate" 3)
             (* If the 'set' attribute isn't carried, (set-a) cannot be called
                and a different error occurs *)
             {|fun hmm() {

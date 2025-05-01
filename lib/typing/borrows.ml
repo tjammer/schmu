@@ -60,7 +60,7 @@ end
 
 module Make_tree (Id : Id_t) = struct
   type loc_info = { lid : Id.t; loc : Ast.loc } [@@deriving show]
-  type mov = loc_info option [@@deriving show]
+  type mov = Not_moved | Reset | Moved of loc_info [@@deriving show]
   type part = string list [@@deriving show]
 
   type access = { id : string; part : part }
@@ -214,15 +214,15 @@ module Make_tree (Id : Id_t) = struct
       print_endline (string_of_access item.id ^ " foreign");
       (if contains_part then
          match (item.mov, access.ac) with
-         | Some lc, (Ast.Dmove | Dmut | Dnorm) ->
+         | Moved lc, (Ast.Dmove | Dmut | Dnorm) ->
              (* Our item has been moved *)
              let msg =
                Format.sprintf "%s was moved in line %i, cannot use"
                  (string_of_access item.id) (fst lc.loc).pos_lnum
              in
              raise (Error.Error (loc.loc, msg))
-         | Some _, Dset -> ()
-         | None, _ -> ());
+         | Moved _, Dset -> ()
+         | (Not_moved | Reset), _ -> ());
       let access =
         match access.ac with Dmove | Dnorm -> Read | Dmut | Dset -> Write
       in
@@ -239,21 +239,23 @@ module Make_tree (Id : Id_t) = struct
       print_endline (string_of_access item.id ^ " local");
       let mov, access =
         match (item.mov, access.ac) with
-        | Some lc, (Ast.Dmove | Dmut | Dnorm) ->
+        | Moved lc, (Ast.Dmove | Dmut | Dnorm) ->
             (* Our item has been moved *)
             let msg =
               Format.sprintf "%s was moved in line %i, cannot use"
                 (string_of_access item.id) (fst lc.loc).pos_lnum
             in
             raise (Error.Error (loc.loc, msg))
-        | Some _, Dset -> (None, Write)
-        | None, (Dset | Dmut) -> (None, Write)
-        | None, Dnorm -> (None, Read)
-        | None, Dmove ->
+        | Moved _, Dset -> (Reset, Write)
+        | Reset, (Dset | Dmut) -> (Reset, Write)
+        | Not_moved, Dset -> (Reset, Write)
+        | Not_moved, Dmut -> (Not_moved, Write)
+        | (Not_moved | Reset), Dnorm -> (Not_moved, Read)
+        | (Not_moved | Reset), Dmove ->
             print_endline
               ("moved " ^ string_of_access item.id ^ " in line "
               ^ ((fst loc.loc).pos_lnum |> string_of_int));
-            (Some loc, Read)
+            (Moved loc, Read)
       in
       let bor = transition_exn item.bor item.bind_loc access Local loc in
       let found, children =
@@ -274,7 +276,7 @@ module Make_tree (Id : Id_t) = struct
       let found, children =
         if ends then
           let bor = if lmut then (Reserved, bind_loc) else (Frozen, bind_loc)
-          and mov = None
+          and mov = Not_moved
           and id = { id; part = [] } in
           ( true,
             Twhole { bor; mov; id; bind_loc; children = [] } :: item.children )
@@ -373,7 +375,7 @@ module Make_storage (Id : Id_t) = struct
     assert (Id_map.mem id st.indices |> not);
     let i = fresh () in
     let loc_info = { Tree.lid = id; loc = bind_loc } in
-    let bor = (bor, loc_info) and mov = None in
+    let bor = (bor, loc_info) and mov = Tree.Not_moved in
     let trees =
       let id = Tree.{ id = Id.only_id id; part = [] } in
       Index_map.add i
@@ -433,13 +435,13 @@ module Make_storage (Id : Id_t) = struct
   let check_borrow_moves st =
     let rec check_move id loc tree =
       match Tree.(tree.mov) with
-      | Some l ->
+      | Moved l ->
           let msg =
             Format.sprintf "Borrowed value %s has been moved in line %i"
               (Tree.string_of_access id) Tree.(fst l.loc).pos_lnum
           in
           raise (Error.Error (loc, msg))
-      | None ->
+      | Not_moved | Reset ->
           List.iter
             (function
               | Tree.Twhole tree -> check_move id loc tree
@@ -473,7 +475,8 @@ module Make_storage (Id : Id_t) = struct
         match Index_map.find index st.trees with
         | Tree.Twhole w -> (
             match w.mov with
-            | Some loc -> (Ast.Dmove, loc.loc)
+            | Moved loc -> (Ast.Dmove, loc.loc)
+            | Reset -> (Dset, (snd w.bor).loc)
             | _ -> (
                 match fst w.bor with
                 | Reserved -> (Dnorm, (snd w.bor).loc)
@@ -517,7 +520,9 @@ type state = { trees : Trst.t; ids : Idst.t; mname : Path.t }
 
 let state_empty mname = { trees = Trst.empty; ids = Idst.empty; mname }
 
-type borrow_ids = Owned | Borrowed of (Trst.Id.t * Trst.Tree.part) list
+type borrow_ids =
+  | Owned
+  | Borrowed of (Trst.Id.t * Trst.Tree.part * Ast.decl_attr option) list
 
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
@@ -533,7 +538,7 @@ let rec check_expr st ac part tyex =
       print_endline ("found: " ^ string_of_bool found);
       if found && not (ac = Dmove) then (
         print_endline "borrowed";
-        (Borrowed [ (id, part) ], trees))
+        (Borrowed [ (id, part, None) ], trees))
       else (
         print_endline "owned";
         (Owned, trees))
@@ -599,6 +604,9 @@ let rec check_expr st ac part tyex =
   | Function (name, _, abs, cont) ->
       let st = check_abs tyex.loc name abs st in
       check_expr st ac part cont
+  | Lambda (_, abs) ->
+      let touched = bids_of_touched abs.func.touched st in
+      (Borrowed touched, st.trees)
   | _ ->
       (* print_endline ("none: " ^ show_typed_expr tyex); *)
       (Owned, st.trees)
@@ -625,7 +633,6 @@ and check_let st ~toplevel str loc pass lmut rhs =
         (* Transfer ownership *)
         (* Trst.insert bid loc Owned trees *)
     | Borrowed ids, trees ->
-        let ids = List.map (fun (a, b) -> (a, b, None)) ids in
         let found, trees = Trst.bind bid loc lmut ids trees in
         assert found;
         trees
@@ -633,15 +640,16 @@ and check_let st ~toplevel str loc pass lmut rhs =
 
   { st with ids; trees }
 
+and bids_of_touched touched st =
+  List.map
+    (fun touched ->
+      print_endline ("touched: " ^ Typed_tree.show_touched touched);
+      let bid = Idst.get touched.tname touched.tmname st.ids in
+      (bid, [] (* no part *), Some touched.tattr))
+    touched
+
 and check_abs loc name abs st =
-  let touched =
-    List.map
-      (fun touched ->
-        print_endline ("touched: " ^ Typed_tree.show_touched touched);
-        let bid = Idst.get touched.tname touched.tmname st.ids in
-        (bid, [] (* no part *), Some touched.tattr))
-      abs.func.touched
-  in
+  let touched = bids_of_touched abs.func.touched st in
   let bid, ids = Idst.insert name (Some st.mname) st.ids in
   let _, trees = Trst.bind bid loc false touched st.trees in
 
@@ -663,8 +671,7 @@ let check_item st = function
         match check_expr st Dnorm [] e with
         | Owned, trees -> Trst.insert bid e.loc Frozen trees
         | Borrowed rhs_ids, trees ->
-            let ids = List.map (fun (a, b) -> (a, b, None)) rhs_ids in
-            let found, trees = Trst.bind bid e.loc false ids trees in
+            let found, trees = Trst.bind bid e.loc false rhs_ids trees in
             assert found;
             trees
       in
@@ -714,6 +721,11 @@ let check_expr ~mname ~params ~touched expr =
     (fun touched ->
       let bid = Idst.Id.(fst (Pathid.create touched.tname touched.tmname)) in
       let tattr, tattr_loc = Trst.find_touched_attr bid trees in
+      (match tattr with
+      | Dmove ->
+          let loc = tattr_loc and name = touched.tname in
+          raise (Error (loc, "Cannot move value " ^ name ^ " from outer scope"))
+      | Dset | Dmut | Dnorm -> print_endline "no other");
       { touched with tattr; tattr_loc = Some tattr_loc })
     touched
 
