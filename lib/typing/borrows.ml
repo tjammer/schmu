@@ -25,13 +25,13 @@ module Borrow = struct
     | Unique, (Read, Foreign) -> Ok (Frozen, action_loc)
     | Unique, (Write, Foreign) -> Ok (Disabled, action_loc)
     | Frozen, (Read, (Local | Foreign)) -> Ok (Frozen, loc)
-    | Frozen, (Write, Local) -> Error `None
+    | Frozen, (Write, Local) -> Error `Frozen
     | Frozen, (Write, Foreign) -> Ok (Disabled, action_loc)
     | Reserved_im, (Read, (Local | Foreign) | Write, Foreign) ->
         Ok (Reserved_im, loc)
     | Reserved_im, (Write, Local) -> Ok (Unique, action_loc)
     | Disabled, ((Read | Write), Foreign) -> Ok (Disabled, loc)
-    | Disabled, ((Read | Write), Local) -> Error (`Disabled (loc, action_loc))
+    | Disabled, ((Read | Write), Local) -> Error `Disabled
     | Owned, _ -> Ok (Owned, loc)
 end
 
@@ -93,13 +93,13 @@ module Make_tree (Id : Id_t) = struct
   let transition_exn bor bind_loc acc location loc =
     match transition bor (acc, location) loc with
     | Ok state -> state
-    | Error (`Disabled ({ lid; loc = _ }, action)) ->
+    | Error `Disabled ->
         let msg =
           Format.sprintf "%s was borrowed in line %i, cannot mutate"
-            (Id.only_id lid) (fst bind_loc.loc).pos_lnum
+            (Id.only_id bind_loc.lid) (fst bind_loc.loc).pos_lnum
         in
-        raise (Error.Error (action.loc, msg))
-    | Error `None -> failwith "not yet none"
+        raise (Error.Error (loc.loc, msg))
+    | Error `Frozen -> failwith "not yet frozen"
 
   let rec contains_part ~target ~other =
     match (target, other) with
@@ -296,11 +296,13 @@ module Make_storage (Id : Id_t) = struct
   module Tree = Make_tree (Id)
 
   type index = {
-    itrees : (Tree.Path.t * int) list;
-    ioncall : (Tree.access_path * int) list;
+    ipath : Tree.Path.t;
+    index : int;
+    call_attr : Ast.decl_attr option;
   }
 
-  type t = { indices : index Id_map.t; trees : Tree.t Index_map.t }
+  type indices = index list
+  type t = { indices : indices Id_map.t; trees : Tree.t Index_map.t }
 
   let empty = { indices = Id_map.empty; trees = Index_map.empty }
   let id = ref 0
@@ -316,49 +318,48 @@ module Make_storage (Id : Id_t) = struct
         (* borrow *)
         let found, trees =
           List.fold_left
-            (fun (found, trees) (path, i) ->
-              let path = Tree.Path.{ path with part = path.part @ part } in
+            (fun (found, trees) { ipath; index; call_attr } ->
+              let ac = match call_attr with Some ac -> ac | None -> ac in
+              let path = Tree.Path.{ ipath with part = ipath.part @ part } in
               let nfound, tree =
-                Tree.borrow { ac; path } { lid; loc } (Index_map.find i trees)
+                Tree.borrow { ac; path } { lid; loc }
+                  (Index_map.find index trees)
               in
-              (found && nfound, Index_map.add i tree st.trees))
-            (true, st.trees) inds.itrees
-        in
-        let trees =
-          List.fold_left
-            (fun trees (apath, i) ->
-              (* In comparison to above, we can ignore [part] here *)
-              let _, tree =
-                print_endline
-                  ("on call borrow: " ^ Id.show lid ^ " @ "
-                  ^ Typed_tree.show_dattr Tree.(apath.ac));
-                Tree.borrow apath { lid; loc } (Index_map.find i trees)
-              in
-              Index_map.add i tree st.trees)
-            trees inds.ioncall
+              (found && nfound, Index_map.add index tree st.trees))
+            (true, st.trees) inds
         in
         (found, { st with trees })
     | None -> (false, st)
 
   let bind id loc lmut bounds st =
-    let aux (bound, part) st =
+    let aux (bound, part, attr) st =
       match Id_map.find_opt bound st.indices with
       | Some inds ->
-          let (found, trees), itrees =
+          let (found, trees), indices =
             List.fold_left_map
-              (fun (found, trees) (path, i) ->
+              (fun (found, trees) { ipath; index; call_attr } ->
                 let loc = { Tree.lid = bound; loc } in
-                let path = Tree.Path.{ path with part } in
+                let path = Tree.Path.{ ipath with part } in
+                let lmut, call_attr =
+                  match attr with
+                  (* If there is an attribute, it's from a touched variable of a
+                     function. We use this to set the correct borrow state for
+                     this borrow. *)
+                  | Some (Ast.Dmut | Dset) -> (true, attr)
+                  | Some (Dnorm | Dmove) -> (false, attr)
+                  | None -> (lmut, call_attr)
+                in
                 let nfound, tree =
                   Tree.bind (Id.only_id id) loc lmut path
-                    (Index_map.find i trees)
+                    (Index_map.find index trees)
                 in
-                let trees = Index_map.add i tree trees in
-                ((found && nfound, trees), (Tree.Path.append path id, i)))
-              (true, st.trees) inds.itrees
+                let trees = Index_map.add index tree trees
+                and ipath = Tree.Path.append path id in
+                ((found && nfound, trees), { ipath; index; call_attr }))
+              (true, st.trees) inds
           in
           (* inherit [ioncall] from inds *)
-          let indices = Id_map.add id { inds with itrees } st.indices in
+          let indices = Id_map.add id indices st.indices in
           (found, { indices; trees })
       | None -> (false, st)
     in
@@ -379,28 +380,11 @@ module Make_storage (Id : Id_t) = struct
         (Tree.Twhole { bor; mov; id; bind_loc = loc_info; children = [] })
         st.trees
     in
-    let index = { itrees = [ (Tree.Path.singleton id, i) ]; ioncall = [] } in
+    let index =
+      [ { ipath = Tree.Path.singleton id; index = i; call_attr = None } ]
+    in
     let indices = Id_map.add id index st.indices in
     { trees; indices }
-
-  let add_oncall id touched st =
-    (* We assume that [insert] has been called before *)
-    let index = Id_map.find id st.indices in
-    let ioncall =
-      List.map
-        (fun (id, ac) ->
-          match Id_map.find_opt id st.indices with
-          | Some index ->
-              print_endline
-                ("add oncall " ^ Id.show id ^ " with "
-               ^ Typed_tree.show_dattr ac);
-              List.map (fun (path, i) -> (Tree.{ ac; path }, i)) index.itrees
-          | None -> [])
-        touched
-      |> List.flatten
-    in
-    let indices = Id_map.add id { index with ioncall } st.indices in
-    { st with indices }
 
   let print st =
     print_endline "******************";
@@ -410,9 +394,15 @@ module Make_storage (Id : Id_t) = struct
              Id.show id ^ ": ^ ["
              ^ String.concat "; "
                  (List.map
-                    (fun (path, i) ->
-                      "(" ^ Tree.Path.show path ^ ", " ^ string_of_int i ^ ")")
-                    inds.itrees))
+                    (fun { ipath = path; index; call_attr } ->
+                      let acc =
+                        match call_attr with
+                        | Some acc -> "(some " ^ Typed_tree.show_dattr acc ^ ")"
+                        | None -> "none"
+                      in
+                      "(" ^ Tree.Path.show path ^ ", " ^ string_of_int index
+                      ^ ", " ^ acc ^ ")")
+                    inds))
       |> List.of_seq)
     |> print_endline;
     let spaces i = String.make i ' ' in
@@ -475,10 +465,27 @@ module Make_storage (Id : Id_t) = struct
                     (check_move tree.id tree.bind_loc.loc) tree)
                   parts))
       st.trees
+
+  let find_touched_attr id st =
+    let index = Id_map.find id st.indices in
+    match index with
+    | { index; _ } :: [] -> (
+        match Index_map.find index st.trees with
+        | Tree.Twhole w -> (
+            match w.mov with
+            | Some loc -> (Ast.Dmove, loc.loc)
+            | _ -> (
+                match fst w.bor with
+                | Reserved -> (Dnorm, (snd w.bor).loc)
+                | Unique -> (Dmut, (snd w.bor).loc)
+                | _ -> failwith "Internal Error: What is this touched"))
+        | _ -> failwith "TODO part touched")
+    | _ -> failwith "Internal Error: Touched thing has mutiple borrows"
 end
 
 module Make_ids (Id : Id_t) = struct
   module Shadowmap = Map.Make (Id.Pathid)
+  module Id = Id
 
   type t = int Shadowmap.t
 
@@ -618,6 +625,7 @@ and check_let st ~toplevel str loc pass lmut rhs =
         (* Transfer ownership *)
         (* Trst.insert bid loc Owned trees *)
     | Borrowed ids, trees ->
+        let ids = List.map (fun (a, b) -> (a, b, None)) ids in
         let found, trees = Trst.bind bid loc lmut ids trees in
         assert found;
         trees
@@ -626,18 +634,16 @@ and check_let st ~toplevel str loc pass lmut rhs =
   { st with ids; trees }
 
 and check_abs loc name abs st =
-  let trees, touched =
-    List.fold_left_map
-      (fun trees touched ->
-         print_endline ("touched: " ^ Typed_tree.show_touched touched);
+  let touched =
+    List.map
+      (fun touched ->
+        print_endline ("touched: " ^ Typed_tree.show_touched touched);
         let bid = Idst.get touched.tname touched.tmname st.ids in
-        let _, trees = Trst.borrow bid loc touched.tattr [] trees in
-        (trees, (bid, touched.tattr)))
-      st.trees abs.func.touched
+        (bid, [] (* no part *), Some touched.tattr))
+      abs.func.touched
   in
   let bid, ids = Idst.insert name (Some st.mname) st.ids in
-  let trees = Trst.insert bid loc Owned trees in
-  let trees = Trst.add_oncall bid touched trees in
+  let _, trees = Trst.bind bid loc false touched st.trees in
 
   { st with trees; ids }
 
@@ -657,15 +663,29 @@ let check_item st = function
         match check_expr st Dnorm [] e with
         | Owned, trees -> Trst.insert bid e.loc Frozen trees
         | Borrowed rhs_ids, trees ->
-            let found, trees = Trst.bind bid e.loc false rhs_ids trees in
+            let ids = List.map (fun (a, b) -> (a, b, None)) rhs_ids in
+            let found, trees = Trst.bind bid e.loc false ids trees in
             assert found;
             trees
       in
       { st with ids; trees }
   | _ -> failwith "TODO"
 
-let check_expr ~mname ~params expr =
+let check_expr ~mname ~params ~touched expr =
   Trst.reset ();
+
+  let state =
+    List.fold_left
+      (fun st touched ->
+        let bid, ids = Idst.insert touched.tname touched.tmname st.ids in
+        assert (
+          Idst.Id.equal bid
+            Idst.Id.(fst (Pathid.create touched.tname touched.tmname)));
+        let trees = Trst.insert bid expr.loc Reserved st.trees in
+        { st with trees; ids })
+      (state_empty mname) touched
+  in
+
   let state =
     List.fold_left
       (fun st (p, id, loc) ->
@@ -680,14 +700,22 @@ let check_expr ~mname ~params expr =
         let trees = Trst.insert bid loc bstate st.trees in
         print_endline ("add param " ^ id ^ " as " ^ show_borrow_state bstate);
         { st with ids; trees })
-      (state_empty mname) params
+      state params
   in
 
   let _, trees = check_expr state Dmove [] expr in
   Trst.print trees;
 
   (* Ensure no parameter has been moved *)
-  Trst.check_borrow_moves trees
+  Trst.check_borrow_moves trees;
+
+  (* Update attribute of touched *)
+  List.map
+    (fun touched ->
+      let bid = Idst.Id.(fst (Pathid.create touched.tname touched.tmname)) in
+      let tattr, tattr_loc = Trst.find_touched_attr bid trees in
+      { touched with tattr; tattr_loc = Some tattr_loc })
+    touched
 
 let check_items ~mname items =
   Trst.reset ();

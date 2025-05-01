@@ -758,14 +758,14 @@ end = struct
     let _, closed_vars, touched, unused = Env.close_function env in
 
     let unmutated = [] in
-    let () =
+    let touched =
       let params =
         List.map (fun (d : Ast.decl) -> d.loc) params
         |> List.map2
              (fun (p, id) loc -> (p, id, loc))
              (List.combine params_t nparams)
       in
-      Borrows.check_expr ~mname:(Env.modpath env) ~params body
+      Borrows.check_expr ~mname:(Env.modpath env) ~params ~touched body
     in
 
     (* let unmutated, touched, body = *)
@@ -873,14 +873,14 @@ end = struct
     let env, closed_vars, touched, unused = Env.close_function env in
 
     let unmutated = [] in
-    let () =
+    let touched =
       let params =
         List.map (fun (d : Ast.decl) -> d.loc) params
         |> List.map2
              (fun (p, id) loc -> (p, id, loc))
              (List.combine params_t nparams)
       in
-      Borrows.check_expr ~mname:(Env.modpath env) ~params body
+      Borrows.check_expr ~mname:(Env.modpath env) ~params ~touched body
     in
 
     (* let unmutated, touched, body = *)
