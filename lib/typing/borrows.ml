@@ -545,14 +545,37 @@ let rec check_expr st ac part tyex =
   | App { callee; args } ->
       print_endline "call";
       let _, trees = check_expr st Dnorm [] callee in
-      let trees =
+
+      (* Create temporary bindings for each passed thing *)
+      (* No kebab-case allowed for user code, no clashes *)
+      let id_i i = "borrow-arg-" ^ string_of_int i in
+      let var st arg i = { arg with expr = Var (id_i i, Some st.mname) } in
+      let _, tmpstate, trees =
         List.fold_left
-          (fun trees (arg, attr) ->
+          (fun (i, tmpstate, trees) (arg, attr) ->
             let _, trees = check_expr { st with trees } attr [] arg in
-            trees)
-          trees args
+            let id = id_i i in
+
+            let lmut =
+              match attr with Dmut | Dset -> true | Dnorm | Dmove -> false
+            in
+            let tmpstate =
+              check_let tmpstate ~toplevel:false id arg.loc attr lmut arg
+            in
+            (i + 1, tmpstate, trees))
+          (0, { st with trees }, trees)
+          args
       in
-      (* For now, functions always return an owned value *)
+      (* Borrow callee + args again *)
+      let _, tmptrees = check_expr tmpstate Dnorm [] callee in
+      let _ =
+        List.fold_left
+          (fun (i, trees) (arg, attr) ->
+            let st = { st with trees } in
+            let _, trees = check_expr st attr [] (var st arg i) in
+            (i + 1, trees))
+          (0, tmptrees) args
+      in
       (Owned, trees)
   | Set (expr, value, _moved) ->
       print_endline "set";

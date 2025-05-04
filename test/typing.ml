@@ -1929,10 +1929,10 @@ fun set_a(){
   let x& = !a
   set_a()}|};
           tase_exn "excl 1"
-            (ln "a was mutably borrowed in line %i, cannot borrow" 4)
+            (ln "a was borrowed in line %i, cannot mutate" 4)
             "let a& = [10]\n fun f(a&, b) {\n&a = [11]}\n f(&a, a)";
           tase "excl 1 nonalloc" "unit"
-            "let a& = 10\n fun f(a&, b) {\n&a = 11}\n f(&a, a)";
+            "let a& = 10\n fun f(a&, b) {\n&a = 11}\n f(&a, copy(a))";
           tase_exn "excl 2"
             (ln "a was borrowed in line %i, cannot mutate" 4)
             "let a& = [10]\n\
@@ -1944,7 +1944,7 @@ fun set_a(){
             (ln "a was borrowed in line %i, cannot mutate" 3)
             "let a& = [10]\n fun f(a, b&) {&b = [11]}\n f(a, &a)";
           tase_exn "excl 4"
-            (ln "a was borrowed in line %i, cannot mutate" 5)
+            (ln "a was borrowed in line %i, cannot mutate" 4)
             "let a& = [10]\n\
             \ fun f(a, b&) {&b = [11]}\n\
             \ {\n\
@@ -1952,10 +1952,10 @@ fun set_a(){
             \  f(b, &a)}";
           tase "excl 5" "unit" "let a& = [10]\n fun f(a, b) {()}\n f(a, a)";
           tase_exn "excl 6"
-            (ln "a was mutably borrowed in line %i, cannot borrow" 3)
+            (ln "a was borrowed in line %i, cannot mutate" 3)
             "let a& = [10]\n fun f(a&, b&) {()}\n f(&a, &a)";
           tase_exn "excl env"
-            (ln "a was mutably borrowed in line %i, cannot borrow" 3)
+            (ln "a was borrowed in line %i, cannot mutate" 2)
             {|let a& = [10]
 fun set_a(b&) {&a = [11]}
 set_a(&a)|};
