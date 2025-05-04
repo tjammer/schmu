@@ -1959,6 +1959,10 @@ fun set_a(){
             {|let a& = [10]
 fun set_a(b&) {&a = [11]}
 set_a(&a)|};
+          tase "excl two phase" "unit"
+            {|let a& = [10]
+fun push(a&, b!) {__unsafe_ptr_set(&__array_data(a), 0, b)}
+push(&a, __array_length(a))|};
           tase_exn "follow string literal"
             "Cannot move string literal. Use `copy`"
             "let c = \"aoeu\"; let d = c; let e& = d";
