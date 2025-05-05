@@ -496,6 +496,8 @@ module Make_storage (Id : Id_t) = struct
                 | _ -> failwith "Internal Error: What is this touched"))
         | _ -> failwith "TODO part touched")
     | _ -> failwith "Internal Error: Touched thing has mutiple borrows"
+
+  let mem id st = Id_map.mem id st.indices
 end
 
 module Make_ids (Id : Id_t) = struct
@@ -535,6 +537,18 @@ let state_empty mname = { trees = Trst.empty; ids = Idst.empty; mname }
 type borrow_ids =
   | Owned
   | Borrowed of (Trst.Id.t * Trst.Tree.part * Ast.decl_attr option) list
+
+let own_local_borrow ~local old_tree =
+  (* local borrow means it's actually owned *)
+  (* Open questions: *)
+  (* What about string literals *)
+  (* What about new borrow ids to old items? Could check not id directly but
+     id's tree*)
+  let rec aux = function
+    | [] -> local
+    | (id, _part, _attr) :: tl -> if Trst.mem id old_tree then aux tl else Owned
+  in
+  match local with Owned -> Owned | Borrowed bs -> aux bs
 
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
@@ -619,8 +633,11 @@ let rec check_expr st ac part tyex =
       let tb, ttrees = check_expr { st with trees } ac part t in
       let fb, ftrees = check_expr { st with trees } ac part f in
       let prefix = "Branches have different ownership: " in
+      (* We could also deal with frees right here *)
       let _owning, borrow =
-        match (tb, fb) with
+        match
+          (own_local_borrow ~local:tb trees, own_local_borrow ~local:fb trees)
+        with
         | Borrowed t, Borrowed f ->
             (* dedup? *)
             (false, Borrowed (t @ f))
