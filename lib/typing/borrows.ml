@@ -388,6 +388,15 @@ module Make_storage (Id : Id_t) = struct
     let indices = Id_map.add id index st.indices in
     { trees; indices }
 
+  let insert_string_literal id bind_loc bor st =
+    (* If it doesn't exist then insert. Else update bind_loc *)
+    match Id_map.find_opt id st.indices with
+    | Some [ _ ] ->
+        let indices = Id_map.remove id st.indices in
+        insert id bind_loc bor { st with indices }
+    | Some _ -> failwith "Is this not a string lateral"
+    | None -> insert id bind_loc bor st
+
   let print st =
     print_endline "******************";
     String.concat ", "
@@ -437,10 +446,13 @@ module Make_storage (Id : Id_t) = struct
       match Tree.(tree.mov) with
       | Moved l ->
           let msg =
-            Format.sprintf "Borrowed value %s has been moved in line %i"
-              (Tree.string_of_access id) Tree.(fst l.loc).pos_lnum
+            match Tree.string_of_access id with
+            | "string literal" as s ->
+                Format.sprintf "Borrowed %s has been moved in line %i" s
+            | s ->
+                Format.sprintf "Borrowed value %s has been moved in line %i" s
           in
-          raise (Error.Error (loc, msg))
+          raise (Error.Error (loc, msg Tree.(fst l.loc).pos_lnum))
       | Not_moved | Reset ->
           List.iter
             (function
@@ -529,6 +541,10 @@ let rec check_expr st ac part tyex =
      Ids on the other hand follow lexical scope *)
   Trst.print st.trees;
   match tyex.expr with
+  | Const (String _) ->
+      let id = Idst.get "string literal" (Some st.mname) st.ids in
+      let trees = Trst.insert_string_literal id tyex.loc Frozen st.trees in
+      (Borrowed [ (id, [], None) ], trees)
   | Const _ -> (Owned, st.trees)
   | Var (str, mname) ->
       print_endline ("var " ^ str ^ ", " ^ show_dattr ac);
@@ -655,6 +671,12 @@ and check_let st ~toplevel str loc pass lmut rhs =
         failwith "how?"
         (* Transfer ownership *)
         (* Trst.insert bid loc Owned trees *)
+    | Borrowed _, _trees when pass = Dnorm && lmut ->
+        let msg =
+          "Specify how rhs expression is passed. Either by move '!' or mutably \
+           '&'"
+        in
+        raise (Error (rhs.loc, msg))
     | Borrowed ids, trees ->
         let found, trees = Trst.bind bid loc lmut ids trees in
         assert found;
@@ -755,4 +777,6 @@ let check_expr ~mname ~params ~touched expr =
 let check_items ~mname items =
   Trst.reset ();
   List.fold_left (fun st item -> check_item st item) (state_empty mname) items
-  |> ignore
+  |> fun st ->
+  (* Ensure no parameter has been moved *)
+  Trst.check_borrow_moves st.trees

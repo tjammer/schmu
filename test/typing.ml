@@ -1964,8 +1964,8 @@ set_a(&a)|};
 fun push(a&, b!) {__unsafe_ptr_set(&__array_data(a), 0, b)}
 push(&a, __array_length(a))|};
           tase_exn "follow string literal"
-            "Cannot move string literal. Use `copy`"
-            "let c = \"aoeu\"; let d = c; let e& = d";
+            "Borrowed string literal has been moved in line 5"
+            "{let c = \"aoeu\"; let d = c; let e& = !d; ()}; ()";
           tase_exn "move local borrows"
             "Branches have different ownership: owned vs borrowed"
             {|let a = [10]
