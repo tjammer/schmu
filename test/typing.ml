@@ -1089,7 +1089,7 @@ let test_excl_parts_return_part () =
   test "unit" (typ ^ "fun meh(a!){ let c& = !a.a;  a.b}")
 
 let test_excl_parts_dont_reset_part () =
-  test_exn "a.a was moved in line 7, cannot use"
+  test_exn "a.a was moved in line 7, cannot use a"
     (typ ^ "fun meh(a!) { let a& = !a; let c& = &a.a; __unsafe_leak(!c); a }")
 
 let test_excl_parts_reset_part () =
@@ -1100,7 +1100,7 @@ let test_excl_parts_reset_part () =
 
 let test_excl_parts_return_whole () =
   test_exn
-    (ln "a.a was moved in line %i, cannot use" 4)
+    (ln "a.a was moved in line %i, cannot use a" 4)
     (typ ^ "fun meh(a!){\n let c& = !a.a\n  a}")
 
 let test_excl_lambda_copy_capture () =
@@ -1990,7 +1990,7 @@ let c = {
              mutably '&'"
             "{let a& = [10]; let b& = a; ()}";
           tase_exn "partially set moved"
-            (ln "a was moved in line %i, cannot set a.[0]" 2)
+            (ln "a was moved in line %i, cannot use a.[0]" 2)
             "let a& = [10]\n let b = (a, 0); &a.[0] = 10";
           tase_exn "track moved multi-borrow param"
             "Borrowed value s has been moved in line 8"

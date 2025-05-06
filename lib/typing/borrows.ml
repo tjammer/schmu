@@ -61,13 +61,25 @@ end
 module Make_tree (Id : Id_t) = struct
   type loc_info = { lid : Id.t; loc : Ast.loc } [@@deriving show]
   type mov = Not_moved | Reset | Moved of loc_info [@@deriving show]
-  type part = string list [@@deriving show]
+
+  type part_kind = Pfield of string | Parr_access of Typed_tree.expr
+  [@@deriving show]
+
+  type part = part_kind list [@@deriving show]
 
   type access = { id : string; part : part }
   (* Only record parts, for now *) [@@deriving show]
 
   let string_of_access a =
-    match a.part with [] -> a.id | part -> a.id ^ "." ^ String.concat "." part
+    let rec aux = function
+      | [] -> ""
+      | Pfield f :: tl -> "." ^ f ^ aux tl
+      | Parr_access (Const (Int i)) :: tl ->
+          ".[" ^ Int64.to_string i ^ "]" ^ aux tl
+      | Parr_access (Var (s, _)) :: tl -> ".[" ^ s ^ "]" ^ aux tl
+      | Parr_access _ :: tl -> ".[<expr>]" ^ aux tl
+    in
+    match a.part with [] -> a.id | part -> a.id ^ aux part
 
   type whole = {
     bor : borrow_state * loc_info;
@@ -105,10 +117,14 @@ module Make_tree (Id : Id_t) = struct
     match (target, other) with
     | [], _ ->
         (* Whole contains all parts *)
-        true
-    | _, [] -> true
-    | t :: target, o :: other ->
-        if String.equal t o then contains_part ~target ~other else false
+        Some target
+    | _, [] -> Some target
+    | Pfield t :: target, Pfield o :: other ->
+        if String.equal t o then contains_part ~target ~other else None
+    | Parr_access t :: target, Parr_access o :: other ->
+        if t = o then contains_part ~target ~other else None
+    | Parr_access _ :: _, Pfield _ :: _ | Pfield _ :: _, Parr_access _ :: _ ->
+        None
 
   let rec fold ~foreign ~local path acc tree =
     let down_ = fold ~foreign ~local in
@@ -127,7 +143,7 @@ module Make_tree (Id : Id_t) = struct
             (* Split whole into parts. Borrow rest as foreign and recurs into
                matching part.*)
             let contains_part = contains_part ~target:part ~other:[] in
-            assert contains_part;
+            assert (Option.is_some contains_part);
             let acc, rest = foreign_ ~contains_part acc item in
 
             let id = { item.id with part } in
@@ -165,8 +181,8 @@ module Make_tree (Id : Id_t) = struct
             (acc, Tparts { rest; parts })
         | part ->
             (* rest is foreign *)
-            assert (contains_part ~target:part ~other:[]);
-            let acc, rest = foreign_ ~contains_part:true acc rest in
+            assert (contains_part ~target:part ~other:[] |> Option.is_some);
+            let acc, rest = foreign_ ~contains_part:(Some part) acc rest in
 
             (* Add this part if it doesn't exist yet *)
             let this_access = { id = p; part } in
@@ -195,15 +211,15 @@ module Make_tree (Id : Id_t) = struct
             in
             (acc, Tparts { rest; parts }))
     | _, Twhole item ->
-        let acc, item = foreign_ ~contains_part:false acc item in
+        let acc, item = foreign_ ~contains_part:None acc item in
         (acc, Twhole item)
     | _, Tparts { rest; parts } ->
         (* All foreign *)
-        let acc, rest = foreign_ ~contains_part:false acc rest in
+        let acc, rest = foreign_ ~contains_part:None acc rest in
         let acc, parts =
           List.fold_left_map
             (fun acc item ->
-              let acc, item = foreign_ ~contains_part:false acc item in
+              let acc, item = foreign_ ~contains_part:None acc item in
               (acc, item))
             acc parts
         in
@@ -212,17 +228,22 @@ module Make_tree (Id : Id_t) = struct
   let borrow access loc tree =
     let foreign ~down ~contains_part found item =
       print_endline (string_of_access item.id ^ " foreign");
-      (if contains_part then
-         match (item.mov, access.ac) with
-         | Moved lc, (Ast.Dmove | Dmut | Dnorm) ->
-             (* Our item has been moved *)
-             let msg =
-               Format.sprintf "%s was moved in line %i, cannot use"
-                 (string_of_access item.id) (fst lc.loc).pos_lnum
-             in
-             raise (Error.Error (loc.loc, msg))
-         | Moved _, Dset -> ()
-         | (Not_moved | Reset), _ -> ());
+      (match contains_part with
+      | Some part -> (
+          match (item.mov, access.ac) with
+          | Moved lc, (Ast.Dmove | Dmut | Dnorm) ->
+              (* Our item has been moved *)
+              let access = { id = item.id.id; part } in
+              let msg =
+                Format.sprintf "%s was moved in line %i, cannot use %s"
+                  (string_of_access item.id) (fst lc.loc).pos_lnum
+                  (string_of_access access)
+              in
+              raise (Error.Error (loc.loc, msg))
+          | Moved _, Dset -> ()
+          | (Not_moved | Reset), _ -> ())
+      | None -> ());
+
       let access =
         match access.ac with Dmove | Dnorm -> Read | Dmut | Dset -> Write
       in
@@ -590,6 +611,16 @@ let rec check_expr st ac part tyex =
       else (
         print_endline "owned";
         (Owned, trees))
+  | App
+      {
+        callee = { expr = Var ("__array_get", _); _ } as callee;
+        args = [ arr; idx ];
+      } ->
+      let _, trees = check_expr st Dnorm [] callee in
+      let _, trees = check_expr { st with trees } (snd idx) [] (fst idx) in
+      check_expr { st with trees } (snd arr)
+        (Parr_access (fst idx).expr :: part)
+        (fst arr)
   | App { callee; args } ->
       print_endline "call";
       let _, trees = check_expr st Dnorm [] callee in
@@ -674,7 +705,7 @@ let rec check_expr st ac part tyex =
       | Dmove when e.attr.const ->
           raise (Error (tyex.loc, "Cannot move out of constant"))
       | _ -> ());
-      check_expr st ac (name :: part) e
+      check_expr st ac (Pfield name :: part) e
   | Function (name, _, abs, cont) ->
       let st = check_abs tyex.loc name abs st in
       check_expr st ac part cont
