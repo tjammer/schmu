@@ -1988,12 +1988,12 @@ let c = {
           tase_exn "specify mut passing"
             "Specify how rhs expression is passed. Either by move '!' or \
              mutably '&'"
-            "let a& = [10]; let b& = a";
+            "{let a& = [10]; let b& = a; ()}";
           tase_exn "partially set moved"
             (ln "a was moved in line %i, cannot set a.[0]" 2)
             "let a& = [10]\n let b = (a, 0); &a.[0] = 10";
           tase_exn "track moved multi-borrow param"
-            "Borrowed parameter s is moved"
+            "Borrowed value s has been moved in line 8"
             {|fun test(s&) {
   let a = s
   let c = a

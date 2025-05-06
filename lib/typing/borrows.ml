@@ -317,6 +317,16 @@ module Make_storage (Id : Id_t) = struct
   let borrow lid loc ac part st =
     match Id_map.find_opt lid st.indices with
     | Some inds ->
+        (* forbid conditional borrow (see unit test) *)
+        (match (ac, inds) with
+        | Ast.Dmove, ([] | [ _ ]) -> ()
+        | Dmove, _ ->
+            let msg =
+              "Cannot move conditional borrow. Either copy or directly move \
+               conditional without borrowing"
+            in
+            raise (Error.Error (loc, msg))
+        | _, _ -> ());
         (* borrow *)
         let found, trees =
           List.fold_left
@@ -334,34 +344,42 @@ module Make_storage (Id : Id_t) = struct
     | None -> (false, st)
 
   let bind id loc lmut bounds st =
+    let bind_inner bound part attr (found, trees) { ipath; index; call_attr } =
+      let loc = { Tree.lid = bound; loc } in
+      let path = Tree.Path.{ ipath with part } in
+      let lmut, call_attr =
+        match attr with
+        (* If there is an attribute, it's from a touched variable of a
+           function. We use this to set the correct borrow state for
+           this borrow. *)
+        | Some (Ast.Dmut | Dset) -> (true, attr)
+        | Some (Dnorm | Dmove) -> (false, attr)
+        | None -> (lmut, call_attr)
+      in
+      let nfound, tree =
+        Tree.bind (Id.only_id id) loc lmut path (Index_map.find index trees)
+      in
+      let trees = Index_map.add index tree trees
+      and ipath = Tree.Path.append path id in
+      ((found && nfound, trees), { ipath; index; call_attr })
+    in
+
+    let add_indices id indices st_indices =
+      (* TODO dedup *)
+      match Id_map.find_opt id st_indices with
+      | None -> Id_map.add id indices st_indices
+      | Some other -> Id_map.add id (other @ indices) st_indices
+    in
+
     let aux (bound, part, attr) st =
       match Id_map.find_opt bound st.indices with
       | Some inds ->
           let (found, trees), indices =
             List.fold_left_map
-              (fun (found, trees) { ipath; index; call_attr } ->
-                let loc = { Tree.lid = bound; loc } in
-                let path = Tree.Path.{ ipath with part } in
-                let lmut, call_attr =
-                  match attr with
-                  (* If there is an attribute, it's from a touched variable of a
-                     function. We use this to set the correct borrow state for
-                     this borrow. *)
-                  | Some (Ast.Dmut | Dset) -> (true, attr)
-                  | Some (Dnorm | Dmove) -> (false, attr)
-                  | None -> (lmut, call_attr)
-                in
-                let nfound, tree =
-                  Tree.bind (Id.only_id id) loc lmut path
-                    (Index_map.find index trees)
-                in
-                let trees = Index_map.add index tree trees
-                and ipath = Tree.Path.append path id in
-                ((found && nfound, trees), { ipath; index; call_attr }))
+              (bind_inner bound part attr)
               (true, st.trees) inds
           in
-          (* inherit [ioncall] from inds *)
-          let indices = Id_map.add id indices st.indices in
+          let indices = add_indices id indices st.indices in
           (found, { indices; trees })
       | None -> (false, st)
     in
