@@ -2008,7 +2008,7 @@ fun hmm(thing&) { match thing {
     ignore((value, 0))
     ignore((value, 0))}
   Empty -> ()}}|};
-          tase_exn "move binds param" "Borrowed parameter thing is moved"
+          tase_exn "move binds param" "Borrowed value thing.key has been moved in line 9"
             {|type data = {key : array[u8], value : array[u8]}
 type data_container = Empty | Item(data)
 fun hmm(thing&) { match thing {
@@ -2017,12 +2017,12 @@ fun hmm(thing&) { match thing {
     ignore((value, 0))}
   Empty -> ()}}|};
           tase_exn "let pattern name"
-            (ln "key was moved in line %i, cannot use" 4)
+            (ln "kee was moved in line %i, cannot use" 4)
             {|type data = {key : array[u8], value : array[u8]}
 fun hmm() {
-  let {key, value} = !{key = ['k', 'e', 'y'], value = ['v', 'a', 'l', 'u', 'e']}
-  ignore((key, 0))
-  ignore((key, 0))}|};
+  let {key = kee, value} = !{key = ['k', 'e', 'y'], value = ['v', 'a', 'l', 'u', 'e']}
+  ignore((kee, 0))
+  ignore((kee, 0))}|};
           tase_exn "track module outer toplevel" "Cannot move top level binding"
             "let a = [10]; module inner {let _ = (a, 0)}";
           tase_exn "track vars from inner module"

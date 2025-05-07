@@ -225,6 +225,10 @@ module Make_tree (Id : Id_t) = struct
         in
         (acc, Tparts { rest; parts })
 
+  let string_with_backup ~backup str =
+    if String.starts_with ~prefix:"__expr" str then Id.only_id backup.lid
+    else str
+
   let borrow access loc tree =
     let foreign ~down ~contains_part found item =
       print_endline (string_of_access item.id ^ " foreign");
@@ -236,8 +240,8 @@ module Make_tree (Id : Id_t) = struct
               let access = { id = item.id.id; part } in
               let msg =
                 Format.sprintf "%s was moved in line %i, cannot use %s"
-                  (string_of_access item.id) (fst lc.loc).pos_lnum
-                  (string_of_access access)
+                  (string_with_backup ~backup:lc (string_of_access item.id))
+                  (fst lc.loc).pos_lnum (string_of_access access)
               in
               raise (Error.Error (loc.loc, msg))
           | Moved _, Dset -> ()
@@ -264,7 +268,8 @@ module Make_tree (Id : Id_t) = struct
             (* Our item has been moved *)
             let msg =
               Format.sprintf "%s was moved in line %i, cannot use"
-                (string_of_access item.id) (fst lc.loc).pos_lnum
+                (string_with_backup ~backup:lc (string_of_access item.id))
+                (fst lc.loc).pos_lnum
             in
             raise (Error.Error (loc.loc, msg))
         | Moved _, Dset -> (Reset, Write)
@@ -310,6 +315,46 @@ module Make_tree (Id : Id_t) = struct
     in
 
     fold ~local ~foreign path false tree
+
+  let merge (l : t) (r : t) =
+    (* We don't merge the whole two trees together. Instead, we pick the most
+       interesting of the two and make it the main one. 'Interesting' is picked
+       based on scores below. Moved > Borrowed. Added parts are also taken. *)
+    let pick_bor l r =
+      let score = function
+        | Reserved -> 0
+        | Reserved_im -> 1
+        | Unique -> 2
+        | Frozen -> 3
+        | Disabled -> 4
+        | Owned -> -1
+      in
+      if score (fst l) >= score (fst r) then `Left else `Right
+    in
+
+    let pick_mov l r =
+      match (l, r) with
+      | Moved _, Moved _ -> `Either
+      | Moved _, _ -> `Left
+      | _, Moved _ -> `Right
+      | _, _ -> `Either
+    in
+
+    let merge_whole l r =
+      match pick_mov l.mov r.mov with
+      | `Left -> l
+      | `Right -> r
+      | `Either -> ( match pick_bor l.bor r.bor with `Left -> l | `Right -> r)
+    in
+    match (l, r) with
+    | Twhole l, Twhole r ->
+        assert (String.equal l.id.id r.id.id);
+        Twhole (merge_whole l r)
+    | Twhole l, Tparts { rest; parts } ->
+        Tparts { rest = merge_whole l rest; parts }
+    | Tparts { rest; parts }, Twhole l ->
+        Tparts { rest = merge_whole rest l; parts }
+    | Tparts _, Tparts _ -> failwith "TODO parts and properly merge"
 end
 
 module Make_storage (Id : Id_t) = struct
@@ -367,7 +412,7 @@ module Make_storage (Id : Id_t) = struct
   let bind id loc lmut bounds st =
     let bind_inner bound part attr (found, trees) { ipath; index; call_attr } =
       let loc = { Tree.lid = bound; loc } in
-      let path = Tree.Path.{ ipath with part } in
+      let path = Tree.Path.{ ipath with part = ipath.part @ part } in
       let lmut, call_attr =
         match attr with
         (* If there is an attribute, it's from a touched variable of a
@@ -537,6 +582,29 @@ module Make_storage (Id : Id_t) = struct
     | _ -> failwith "Internal Error: Touched thing has mutiple borrows"
 
   let mem id st = Id_map.mem id st.indices
+
+  let merge l r =
+    let indices =
+      Id_map.merge
+        (fun _id l r ->
+          match (l, r) with
+          | None, Some _ -> r
+          | Some _, None -> l
+          | None, None -> None
+          | Some l, Some r -> Some (List.merge Stdlib.compare l r))
+        l.indices r.indices
+    in
+    let trees =
+      Index_map.merge
+        (fun _id l r ->
+          match (l, r) with
+          | None, Some _ -> r
+          | Some _, None -> l
+          | None, None -> None
+          | Some l, Some r -> Some (Tree.merge l r))
+        l.trees r.trees
+    in
+    { indices; trees }
 end
 
 module Make_ids (Id : Id_t) = struct
@@ -696,9 +764,7 @@ let rec check_expr st ac part tyex =
         | Owned, Borrowed _ ->
             raise (Error (cond.loc, prefix ^ "owned vs borrowed"))
       in
-      (* TODO merge trees *)
-      ignore ttrees;
-      ignore ftrees;
+      let trees = Trst.merge ttrees ftrees in
       (borrow, trees)
   | Field (e, _, name) ->
       (match ac with
@@ -712,6 +778,26 @@ let rec check_expr st ac part tyex =
   | Lambda (_, abs) ->
       let touched = bids_of_touched abs.func.touched st in
       (Borrowed touched, st.trees)
+  | Variant_index e ->
+      let _, trees = check_expr st ac part e in
+      (* Returns an int, so owned value *)
+      (Owned, trees)
+  | Variant_data e -> check_expr st ac part e
+  | Bind (name, expr, cont) ->
+      (* In Let expressions, the mut attribute indicates whether the binding is
+         mutable. In all other uses (including this one) it refers to the expression.
+         Change it to mut = false to be consistent with read only Binds *)
+      let bid, ids = Idst.insert name (Some st.mname) st.ids in
+      print_endline ("bound bid: " ^ Trst.Id.show bid);
+      let trees =
+        match check_expr st Dnorm [] expr with
+        | Owned, trees -> Trst.insert bid expr.loc Frozen trees
+        | Borrowed rhs_ids, trees ->
+            let found, trees = Trst.bind bid expr.loc false rhs_ids trees in
+            assert found;
+            trees
+      in
+      check_expr { st with trees; ids } ac part cont
   | _ ->
       (* print_endline ("none: " ^ show_typed_expr tyex); *)
       (Owned, st.trees)
