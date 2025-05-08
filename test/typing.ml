@@ -2008,7 +2008,8 @@ fun hmm(thing&) { match thing {
     ignore((value, 0))
     ignore((value, 0))}
   Empty -> ()}}|};
-          tase_exn "move binds param" "Borrowed value thing.key has been moved in line 9"
+          tase_exn "move binds param"
+            "Borrowed value thing.key has been moved in line 9"
             {|type data = {key : array[u8], value : array[u8]}
 type data_container = Empty | Item(data)
 fun hmm(thing&) { match thing {
@@ -2023,13 +2024,14 @@ fun hmm() {
   let {key = kee, value} = !{key = ['k', 'e', 'y'], value = ['v', 'a', 'l', 'u', 'e']}
   ignore((kee, 0))
   ignore((kee, 0))}|};
-          tase_exn "track module outer toplevel" "Borrowed value a has been moved in line 5"
+          tase_exn "track module outer toplevel"
+            "Borrowed value a has been moved in line 5"
             "let a = [10]; module inner {let _ = (a, 0)}";
           tase_exn "track vars from inner module"
-            "Cannot move top level binding"
+            "Borrowed value fst/a has been moved in line 5"
             "module fst {let a = [20]}; ignore([fst/a])";
           tase_exn "track vars from inner module use after move"
-            (ln "fst/a was moved in line %i, cannot use" 3)
+            (ln "fst/a was moved in line %i, cannot use fst/a.[0]" 3)
             "module fst {let a = [20]\n}\nignore([fst/a])\nignore(fst/a.[0])";
           tase_exn "always borrow field"
             (ln "sm.free_hd was borrowed in line %i, cannot mutate" 7)

@@ -86,7 +86,8 @@ module Id = struct
   module Pathid = struct
     type t = string * Path.t option
 
-    let create s p = s, p
+    let create s p = (s, p)
+
     let show (s, p) =
       match p with Some p -> Path.show (Path.append s p) | None -> s
 
@@ -142,6 +143,20 @@ module Id = struct
         (* Special case for pattern matches in lets *)
         String.concat "." (List.map snd l)
     | l -> fmt name ^ "." ^ String.concat "." (List.map snd l)
+
+  let rec fmt s ~mname ~backup part =
+    let name = match s with Fst s -> s | Shadowed (s, _) -> s in
+    let f (name, p) =
+      match p with
+      | Some p -> Path.(rm_name mname (append name p) |> show)
+      | None -> name
+    in
+    match backup with
+    | Some id ->
+        if Pathid.startswith ~prefix:"__expr" name then
+          fmt id ~mname ~backup:None ""
+        else f name ^ part
+    | None -> f name ^ part
 
   let only_id = function Fst (id, _) -> id | Shadowed ((id, _), _) -> id
 end
