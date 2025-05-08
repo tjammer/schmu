@@ -380,8 +380,25 @@ module Make_storage (Id : Id_t) = struct
     incr id;
     !id
 
-  let borrow lid loc ac part st =
-    match Id_map.find_opt lid st.indices with
+  let insert id bind_loc bor st =
+    assert (Id_map.mem id st.indices |> not);
+    let i = fresh () in
+    let loc_info = { Tree.lid = id; loc = bind_loc } in
+    let bor = (bor, loc_info) and mov = Tree.Not_moved in
+    let trees =
+      let id = Tree.{ id = Id.only_id id; part = [] } in
+      Index_map.add i
+        (Tree.Twhole { bor; mov; id; bind_loc = loc_info; children = [] })
+        st.trees
+    in
+    let index =
+      [ { ipath = Tree.Path.singleton id; index = i; call_attr = None } ]
+    in
+    let indices = Id_map.add id index st.indices in
+    { trees; indices }
+
+  let rec borrow lid loc ac part st =
+    (match Id_map.find_opt lid st.indices with
     | Some inds ->
         (* forbid conditional borrow (see unit test) *)
         (match (ac, inds) with
@@ -407,7 +424,11 @@ module Make_storage (Id : Id_t) = struct
             (true, st.trees) inds
         in
         (found, { st with trees })
-    | None -> (false, st)
+    | None -> (false, st))
+    |> fun ((found, st) as res) ->
+    (* If the item has not been found, add it as a new, borrowed item. This will
+       cause it to not be moved. *)
+    if found then res else insert lid loc Reserved st |> borrow lid loc ac part
 
   let bind id loc lmut bounds st =
     let bind_inner bound part attr (found, trees) { ipath; index; call_attr } =
@@ -454,23 +475,6 @@ module Make_storage (Id : Id_t) = struct
         let nfound, st = aux bound st in
         (found && nfound, st))
       (true, st) bounds
-
-  let insert id bind_loc bor st =
-    assert (Id_map.mem id st.indices |> not);
-    let i = fresh () in
-    let loc_info = { Tree.lid = id; loc = bind_loc } in
-    let bor = (bor, loc_info) and mov = Tree.Not_moved in
-    let trees =
-      let id = Tree.{ id = Id.only_id id; part = [] } in
-      Index_map.add i
-        (Tree.Twhole { bor; mov; id; bind_loc = loc_info; children = [] })
-        st.trees
-    in
-    let index =
-      [ { ipath = Tree.Path.singleton id; index = i; call_attr = None } ]
-    in
-    let indices = Id_map.add id index st.indices in
-    { trees; indices }
 
   let insert_string_literal id bind_loc bor st =
     (* If it doesn't exist then insert. Else update bind_loc *)
@@ -666,6 +670,15 @@ let rec check_expr st ac part tyex =
       let id = Idst.get "string literal" (Some st.mname) st.ids in
       let trees = Trst.insert_string_literal id tyex.loc Frozen st.trees in
       (Borrowed [ (id, [], None) ], trees)
+  | Const (Array items) ->
+      let trees =
+        List.fold_left
+          (fun trees e ->
+            let _, trees = check_expr { st with trees } Dmove [] e in
+            trees)
+          st.trees items
+      in
+      (Owned, trees)
   | Const _ -> (Owned, st.trees)
   | Var (str, mname) ->
       print_endline ("var " ^ str ^ ", " ^ show_dattr ac);
@@ -673,7 +686,7 @@ let rec check_expr st ac part tyex =
       let found, trees = Trst.borrow id tyex.loc ac part st.trees in
       (* Moved borrows don't return a borrow id *)
       print_endline ("found: " ^ string_of_bool found);
-      if found && not (ac = Dmove) then (
+      if not (ac = Dmove && found) then (
         print_endline "borrowed";
         (Borrowed [ (id, part, None) ], trees))
       else (
@@ -873,7 +886,7 @@ let check_item st = function
             trees
       in
       { st with ids; trees }
-  | _ -> failwith "TODO"
+  | Tl_mutual_rec_decls _ | Tl_module _ | Tl_module_alias _ -> st
 
 let check_expr ~mname ~params ~touched expr =
   Trst.reset ();
@@ -930,5 +943,5 @@ let check_items ~mname items =
   Trst.reset ();
   List.fold_left (fun st item -> check_item st item) (state_empty mname) items
   |> fun st ->
-  (* Ensure no parameter has been moved *)
+  (* Ensure no parameter or outer value has been moved *)
   Trst.check_borrow_moves st.trees

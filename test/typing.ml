@@ -2023,7 +2023,7 @@ fun hmm() {
   let {key = kee, value} = !{key = ['k', 'e', 'y'], value = ['v', 'a', 'l', 'u', 'e']}
   ignore((kee, 0))
   ignore((kee, 0))}|};
-          tase_exn "track module outer toplevel" "Cannot move top level binding"
+          tase_exn "track module outer toplevel" "Borrowed value a has been moved in line 5"
             "let a = [10]; module inner {let _ = (a, 0)}";
           tase_exn "track vars from inner module"
             "Cannot move top level binding"
