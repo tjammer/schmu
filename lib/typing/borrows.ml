@@ -90,29 +90,31 @@ module Make_tree (Id : Id_t) = struct
     mov : mov; (* loc: location where the binding was moved *)
     id : access;
     bind_loc : loc_info;
-    children : t list;
+    children : whole list;
   }
 
   and parts = { rest : whole; parts : whole list }
   and t = Twhole of whole | Tparts of parts [@@deriving show]
+
+  (* TODO delete, this was just for debugging *)
+  let mn = Path.Pid ""
 
   module Path = struct
     type t = { ids : Id.t list; part : part } [@@deriving show]
 
     let singleton id = { ids = [ id ]; part = [] }
     let append p id = { p with ids = p.ids @ [ id ] }
-    let empty = { ids = []; part = [] }
   end
 
   type access_path = { ac : Ast.decl_attr; path : Path.t }
 
-  let transition_exn bor bind_loc acc location loc =
+  let transition_exn bor id bind_loc acc location loc =
     match transition bor (acc, location) loc with
     | Ok state -> state
     | Error `Disabled ->
         let msg =
-          Format.sprintf "%s was borrowed in line %i, cannot mutate"
-            (Id.only_id bind_loc.lid) (fst bind_loc.loc).pos_lnum
+          Format.sprintf "%s was borrowed in line %i, cannot mutate" id
+            (fst bind_loc.loc).pos_lnum
         in
         raise (Error.Error (loc.loc, msg))
     | Error `Frozen -> failwith "not yet frozen"
@@ -130,101 +132,80 @@ module Make_tree (Id : Id_t) = struct
     | Parr_access _ :: _, Pfield _ :: _ | Pfield _ :: _, Parr_access _ :: _ ->
         None
 
-  let rec fold ~foreign ~local path acc tree =
-    let down_ = fold ~foreign ~local in
-    let foreign_ = foreign ~down:(down_ Path.empty) in
-    match (Path.(path.ids), tree) with
-    | p :: ids, Twhole item when Id.equal p item.id.id -> (
-        let ends = match ids with [] -> true | _ -> false in
-        match path.part with
-        | [] ->
-            (* Whole borrowed as whole *)
-            let acc, item =
-              local ~down:(down_ { path with ids }) ~ends acc item
-            in
-            (acc, Twhole item)
-        | part ->
-            (* Split whole into parts. Borrow rest as foreign and recurs into
-               matching part.*)
-            let contains_part = contains_part ~target:part ~other:[] in
-            assert (Option.is_some contains_part);
-            let acc, rest = foreign_ ~contains_part acc item in
+  let rec part_distance ~target ~other =
+    match (target, other) with
+    | [], [] -> 0
+    | [], _ -> -1 (* Negative means no match *)
+    | l, [] -> List.length l
+    | Pfield t :: target, Pfield o :: other ->
+        if String.equal t o then part_distance ~target ~other else -1
+    | Parr_access t :: target, Parr_access o :: other ->
+        if t = o then part_distance ~target ~other else -1
+    | Parr_access _ :: _, Pfield _ :: _ | Pfield _ :: _, Parr_access _ :: _ ->
+        -1
 
-            let id = { item.id with part } in
-            let acc, part =
-              local ~down:(down_ { ids; part = [] }) ~ends acc { item with id }
-            in
-            assert (part.id = id);
-            (acc, Tparts { rest; parts = [ part ] }))
-    | p :: ids, Tparts { rest; parts } when Id.equal p rest.id.id -> (
-        let ends = match ids with [] -> true | _ -> false in
-        match path.part with
-        | [] ->
-            (* rest is borrowed local, parts are foreign *)
-            let acc, rest =
-              let path = Path.{ ids; part = [] } in
-              local ~down:(down_ path) ~ends acc rest
-            in
+  let fold ~foreign ~local (path : Path.t) acc tree =
+    (* First, find out the correct path (without the current added part) and, if
+       needed, modify the tree to add the current part. It's important we add
+       the part to the correct sub-part so that the correct children are
+       availabe. For instance, let c = a.b; d = c.e; When borrowing c.e we want
+       to add .e to the a.b part such that we can find the child c. *)
+    let tree =
+      match (tree, path.part) with
+      | tree, [] -> tree
+      | Twhole rest, part ->
+          (* Split part from rest *)
+          let id = { rest.id with part } in
+          Tparts { rest; parts = [ { rest with id } ] }
+      | Tparts { rest; parts }, part ->
+          let candidate, num =
+            List.fold_left
+              (fun (best, num) item ->
+                let n = part_distance ~target:part ~other:item.id.part in
+                if n >= 0 && n < num then (item, n) else (best, num))
+              (rest, Int.max_int) parts
+          in
+          if num = 0 then (* Found our candidate *) tree
+          else
+            let id = { candidate.id with part } in
+            print_endline ("copy candidate: " ^ string_of_access id mn ^ " for " ^ show_part part);
+            Tparts { rest; parts = { candidate with id } :: parts }
+    in
 
-            let acc, parts =
-              List.fold_left_map
-                (fun acc item ->
-                  (* parts must not have empty part *)
-                  assert (not (item.id = { id = p; part = [] }));
-                  let contains_part =
-                    contains_part ~target:[] ~other:item.id.part
-                  in
-                  let acc, item =
-                    foreign
-                      ~down:(down_ { ids = []; part = item.id.part })
-                      ~contains_part acc item
-                  in
-                  (acc, item))
-                acc parts
-            in
-            (acc, Tparts { rest; parts })
-        | part ->
-            (* rest is foreign *)
-            assert (contains_part ~target:part ~other:[] |> Option.is_some);
-            let acc, rest = foreign_ ~contains_part:(Some part) acc rest in
+    (* Second, we need to traverse all paths. Local borrows are only the correct
+       part. *)
+    let rec traverse correct_part contains_part path acc whole =
+      match path with
+      | p :: ids when Id.equal p whole.id.id ->
+          if correct_part then
+            let ends = match ids with [] -> true | _ -> false in
+            local
+              ~down:(traverse correct_part contains_part ids)
+              ~ends acc whole
+          else
+            foreign
+              ~down:(traverse correct_part contains_part [])
+              ~contains_part acc whole
+      | _ ->
+          foreign
+            ~down:(traverse correct_part contains_part [])
+            ~contains_part acc whole
+    in
 
-            (* Add this part if it doesn't exist yet *)
-            let this_access = { id = p; part } in
-            let parts =
-              match List.find_opt (fun item -> item.id = this_access) parts with
-              | None ->
-                  let id = { rest.id with part } in
-                  { rest with id } :: parts
-              | Some _ -> parts
-            in
-            let acc, parts =
-              List.fold_left_map
-                (fun acc item ->
-                  if item.id = this_access then
-                    let acc, item =
-                      local ~down:(down_ { ids; part = [] }) ~ends acc item
-                    in
-                    (acc, item)
-                  else
-                    let contains_part =
-                      contains_part ~target:part ~other:item.id.part
-                    in
-                    let acc, item = foreign_ ~contains_part acc item in
-                    (acc, item))
-                acc parts
-            in
-            (acc, Tparts { rest; parts }))
-    | _, Twhole item ->
-        let acc, item = foreign_ ~contains_part:None acc item in
+    let dist item = part_distance ~target:path.part ~other:item.id.part in
+    let contains item = contains_part ~target:path.part ~other:item.id.part in
+    match tree with
+    | Twhole item ->
+        let acc, item = traverse true (Some []) path.ids acc item in
         (acc, Twhole item)
-    | _, Tparts { rest; parts } ->
-        (* All foreign *)
-        let acc, rest = foreign_ ~contains_part:None acc rest in
+    | Tparts { rest; parts } ->
+        let acc, rest =
+          traverse (dist rest = 0) (contains rest) path.ids acc rest
+        in
         let acc, parts =
           List.fold_left_map
             (fun acc item ->
-              let acc, item = foreign_ ~contains_part:None acc item in
-              (acc, item))
+              traverse (dist item = 0) (contains item) path.ids acc item)
             acc parts
         in
         (acc, Tparts { rest; parts })
@@ -252,7 +233,9 @@ module Make_tree (Id : Id_t) = struct
       let access =
         match access.ac with Dmove | Dnorm -> Read | Dmut | Dset -> Write
       in
-      let bor = transition_exn item.bor item.bind_loc access Foreign loc in
+      let id = string_of_access item.id mname in
+      let bor = transition_exn item.bor id item.bind_loc access Foreign loc in
+      print_endline ("foreign children: " ^ string_of_int (List.length item.children));
       let found, children =
         List.fold_left_map
           (fun found tree -> down found tree)
@@ -286,7 +269,10 @@ module Make_tree (Id : Id_t) = struct
               ^ ((fst loc.loc).pos_lnum |> string_of_int));
             (Moved loc, Read)
       in
-      let bor = transition_exn item.bor item.bind_loc access Local loc in
+      let tmpac = { item.id with id = item.bind_loc.lid } in
+      let id = string_of_access tmpac mname in
+      let bor = transition_exn item.bor id item.bind_loc access Local loc in
+      print_endline ("local children: " ^ string_of_int (List.length item.children));
       let found, children =
         List.fold_left_map
           (fun found tree -> down found tree)
@@ -302,16 +288,21 @@ module Make_tree (Id : Id_t) = struct
        is legal has to have happened before. *)
     let foreign ~down:_ ~contains_part:_ found item = (found, item) in
     let local ~down ~ends found item =
+      print_endline "in local";
+      print_endline (string_of_access item.id mn);
       let found, children =
-        if ends then
+        if ends then (
           let bor = if lmut then (Reserved, bind_loc) else (Frozen, bind_loc)
           and mov = Not_moved
           and id = { id; part = [] } in
-          ( true,
-            Twhole { bor; mov; id; bind_loc; children = [] } :: item.children )
+          print_endline "ends";
+          (true, { bor; mov; id; bind_loc; children = [] } :: item.children))
         else
+          let () = print_endline "childeren" in
           List.fold_left_map
-            (fun found tree -> down found tree)
+            (fun found tree ->
+              print_endline ("child: " ^ Id.show tree.id.id);
+              down found tree)
             found item.children
       in
       (found, { item with children })
@@ -384,6 +375,7 @@ module Make_storage (Id : Id_t) = struct
     !id
 
   let insert id bind_loc bor st =
+    print_endline ("add index: " ^ Id.show id);
     assert (Id_map.mem id st.indices |> not);
     let i = fresh () in
     let loc_info = { Tree.lid = id; loc = bind_loc } in
@@ -401,7 +393,7 @@ module Make_storage (Id : Id_t) = struct
     { trees; indices }
 
   let rec borrow lid loc mname ac part st =
-    (match Id_map.find_opt lid st.indices with
+    match Id_map.find_opt lid st.indices with
     | Some inds ->
         (* forbid conditional borrow (see unit test) *)
         (match (ac, inds) with
@@ -427,12 +419,10 @@ module Make_storage (Id : Id_t) = struct
             (true, st.trees) inds
         in
         (found, { st with trees })
-    | None -> (false, st))
-    |> fun ((found, st) as res) ->
-    (* If the item has not been found, add it as a new, borrowed item. This will
-       cause it to not be moved. *)
-    if found then res
-    else insert lid loc Reserved st |> borrow lid loc mname ac part
+    | None ->
+        (* If the item has not been found, add it as a new, borrowed item. This will
+           cause it to not be moved. *)
+        insert lid loc Reserved st |> borrow lid loc mname ac part
 
   let bind id loc lmut bounds st =
     let bind_inner bound part attr (found, trees) { ipath; index; call_attr } =
@@ -457,6 +447,7 @@ module Make_storage (Id : Id_t) = struct
 
     let add_indices id indices st_indices =
       (* TODO dedup *)
+      print_endline ("add indices: " ^ Id.show id);
       match Id_map.find_opt id st_indices with
       | None -> Id_map.add id indices st_indices
       | Some other -> Id_map.add id (other @ indices) st_indices
@@ -491,10 +482,10 @@ module Make_storage (Id : Id_t) = struct
 
   let print st mname =
     print_endline "******************";
-    String.concat ", "
+    String.concat ",\n"
       (Id_map.to_seq st.indices
       |> Seq.map (fun (id, inds) ->
-             Id.show id ^ ": ^ ["
+             Id.show id ^ ": ["
              ^ String.concat "; "
                  (List.map
                     (fun { ipath = path; index; call_attr } ->
@@ -519,18 +510,18 @@ module Make_storage (Id : Id_t) = struct
         |> print_endline;
         List.iter (fun t -> show_tree (sp + 2) t) Tree.(t.children)
       in
-      match t with
-      | Tree.Twhole t -> shtr t
-      | Tparts { rest; parts } ->
-          print_endline (spaces sp ^ "{ rest: ");
-          shtr rest;
-          print_endline (spaces sp ^ "parts:");
-          List.iter (fun t -> shtr t) parts
+      shtr t
     in
     Index_map.iter
       (fun i t ->
         print_endline ("t " ^ string_of_int i);
-        show_tree 2 t)
+        match t with
+        | Tree.Twhole t -> show_tree 2 t
+        | Tparts { rest; parts } ->
+            print_endline (spaces 2 ^ "{ rest: ");
+            show_tree 2 rest;
+            print_endline (spaces 2 ^ "parts:");
+            List.iter (fun t -> show_tree 2 t) parts)
       st.trees
 
   let check_borrow_moves st mname =
@@ -545,14 +536,7 @@ module Make_storage (Id : Id_t) = struct
                 Format.sprintf "Borrowed value %s has been moved in line %i" s
           in
           raise (Error.Error (loc, msg Tree.(fst l.loc).pos_lnum))
-      | Not_moved | Reset ->
-          List.iter
-            (function
-              | Tree.Twhole tree -> check_move id loc tree
-              | Tparts { rest; parts } ->
-                  check_move id loc rest;
-                  List.iter (fun tree -> check_move id loc tree) parts)
-            tree.children
+      | Not_moved | Reset -> List.iter (check_move id loc) tree.children
     in
     Index_map.iter
       (fun _ -> function
@@ -847,6 +831,13 @@ and check_let st ~toplevel str loc pass lmut rhs =
         in
         raise (Error (rhs.loc, msg))
     | Borrowed ids, trees ->
+        print_endline
+          ("let: " ^ Trst.Id.show bid ^ ": "
+          ^ String.concat ", "
+              (List.map
+                 (fun (id, part, _) ->
+                   "(" ^ Trst.Id.show id ^ "@" ^ Trst.Tree.show_part part ^ ")")
+                 ids));
         let found, trees = Trst.bind bid loc lmut ids trees in
         assert found;
         trees
