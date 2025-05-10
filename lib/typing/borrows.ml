@@ -51,7 +51,7 @@ module type Id_t = sig
   val equal : t -> t -> bool
   val compare : t -> t -> int
   val only_id : t -> string
-  val fmt : t -> mname:Path.t -> backup:t option -> string -> string
+  val fmt : t -> mname:Path.t -> backup:(t * string) option -> string -> string
 
   module Pathid : Pathid
 
@@ -60,16 +60,13 @@ module type Id_t = sig
 end
 
 module Make_tree (Id : Id_t) = struct
-  type loc_info = { lid : Id.t; loc : Ast.loc } [@@deriving show]
-  type mov = Not_moved | Reset | Moved of loc_info [@@deriving show]
-
   type part_kind = Pfield of string | Parr_access of Typed_tree.expr
   [@@deriving show]
 
   type part = part_kind list [@@deriving show]
-
-  type access = { id : Id.t; part : part }
-  (* Only record parts, for now *) [@@deriving show]
+  type access = { id : Id.t; part : part } [@@deriving show]
+  type loc_info = { lid : access; loc : Ast.loc } [@@deriving show]
+  type mov = Not_moved | Reset | Moved of loc_info [@@deriving show]
 
   let rec aux_fmt = function
     | [] -> ""
@@ -83,7 +80,9 @@ module Make_tree (Id : Id_t) = struct
     Id.fmt a.id ~mname ~backup:None (aux_fmt a.part)
 
   let str_backup access mname backup =
-    Id.fmt access.id ~mname ~backup:(Some backup) (aux_fmt access.part)
+    Id.fmt access.id ~mname
+      ~backup:(Some (backup.id, aux_fmt backup.part))
+      (aux_fmt access.part)
 
   type whole = {
     bor : borrow_state * loc_info;
@@ -168,7 +167,6 @@ module Make_tree (Id : Id_t) = struct
           if num = 0 then (* Found our candidate *) tree
           else
             let id = { candidate.id with part } in
-            print_endline ("copy candidate: " ^ string_of_access id mn ^ " for " ^ show_part part);
             Tparts { rest; parts = { candidate with id } :: parts }
     in
 
@@ -235,7 +233,6 @@ module Make_tree (Id : Id_t) = struct
       in
       let id = string_of_access item.id mname in
       let bor = transition_exn item.bor id item.bind_loc access Foreign loc in
-      print_endline ("foreign children: " ^ string_of_int (List.length item.children));
       let found, children =
         List.fold_left_map
           (fun found tree -> down found tree)
@@ -269,10 +266,8 @@ module Make_tree (Id : Id_t) = struct
               ^ ((fst loc.loc).pos_lnum |> string_of_int));
             (Moved loc, Read)
       in
-      let tmpac = { item.id with id = item.bind_loc.lid } in
-      let id = string_of_access tmpac mname in
+      let id = string_of_access item.bind_loc.lid mname in
       let bor = transition_exn item.bor id item.bind_loc access Local loc in
-      print_endline ("local children: " ^ string_of_int (List.length item.children));
       let found, children =
         List.fold_left_map
           (fun found tree -> down found tree)
@@ -378,7 +373,7 @@ module Make_storage (Id : Id_t) = struct
     print_endline ("add index: " ^ Id.show id);
     assert (Id_map.mem id st.indices |> not);
     let i = fresh () in
-    let loc_info = { Tree.lid = id; loc = bind_loc } in
+    let loc_info = { Tree.lid = { id; part = [] }; loc = bind_loc } in
     let bor = (bor, loc_info) and mov = Tree.Not_moved in
     let trees =
       let id = Tree.{ id; part = [] } in
@@ -392,8 +387,8 @@ module Make_storage (Id : Id_t) = struct
     let indices = Id_map.add id index st.indices in
     { trees; indices }
 
-  let rec borrow lid loc mname ac part st =
-    match Id_map.find_opt lid st.indices with
+  let rec borrow id loc mname ac part st =
+    match Id_map.find_opt id st.indices with
     | Some inds ->
         (* forbid conditional borrow (see unit test) *)
         (match (ac, inds) with
@@ -412,7 +407,7 @@ module Make_storage (Id : Id_t) = struct
               let ac = match call_attr with Some ac -> ac | None -> ac in
               let path = Tree.Path.{ ipath with part = ipath.part @ part } in
               let nfound, tree =
-                Tree.borrow { ac; path } { lid; loc } mname
+                Tree.borrow { ac; path } { lid = { id; part = [] }; loc } mname
                   (Index_map.find index trees)
               in
               (found && nfound, Index_map.add index tree st.trees))
@@ -422,11 +417,11 @@ module Make_storage (Id : Id_t) = struct
     | None ->
         (* If the item has not been found, add it as a new, borrowed item. This will
            cause it to not be moved. *)
-        insert lid loc Reserved st |> borrow lid loc mname ac part
+        insert id loc Reserved st |> borrow id loc mname ac part
 
   let bind id loc lmut bounds st =
     let bind_inner bound part attr (found, trees) { ipath; index; call_attr } =
-      let loc = { Tree.lid = bound; loc } in
+      let loc = { Tree.lid = { id = bound; part }; loc } in
       let path = Tree.Path.{ ipath with part = ipath.part @ part } in
       let lmut, call_attr =
         match attr with
