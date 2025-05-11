@@ -152,7 +152,7 @@ module Id = struct
       | None -> name
     in
     match backup with
-    | Some (id, bkpart)->
+    | Some (id, bkpart) ->
         if Pathid.startswith ~prefix:"__expr" name then
           fmt id ~mname ~backup:None bkpart
         else f name ^ part

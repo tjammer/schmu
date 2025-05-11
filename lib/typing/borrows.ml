@@ -95,9 +95,6 @@ module Make_tree (Id : Id_t) = struct
   and parts = { rest : whole; parts : whole list }
   and t = Twhole of whole | Tparts of parts [@@deriving show]
 
-  (* TODO delete, this was just for debugging *)
-  let mn = Path.Pid ""
-
   module Path = struct
     type t = { ids : Id.t list; part : part } [@@deriving show]
 
@@ -283,8 +280,6 @@ module Make_tree (Id : Id_t) = struct
        is legal has to have happened before. *)
     let foreign ~down:_ ~contains_part:_ found item = (found, item) in
     let local ~down ~ends found item =
-      print_endline "in local";
-      print_endline (string_of_access item.id mn);
       let found, children =
         if ends then (
           let bor = if lmut then (Reserved, bind_loc) else (Frozen, bind_loc)
@@ -293,11 +288,8 @@ module Make_tree (Id : Id_t) = struct
           print_endline "ends";
           (true, { bor; mov; id; bind_loc; children = [] } :: item.children))
         else
-          let () = print_endline "childeren" in
           List.fold_left_map
-            (fun found tree ->
-              print_endline ("child: " ^ Id.show tree.id.id);
-              down found tree)
+            (fun found tree -> down found tree)
             found item.children
       in
       (found, { item with children })
@@ -407,7 +399,9 @@ module Make_storage (Id : Id_t) = struct
               let ac = match call_attr with Some ac -> ac | None -> ac in
               let path = Tree.Path.{ ipath with part = ipath.part @ part } in
               let nfound, tree =
-                Tree.borrow { ac; path } { lid = { id; part = [] }; loc } mname
+                Tree.borrow { ac; path }
+                  { lid = { id; part = [] }; loc }
+                  mname
                   (Index_map.find index trees)
               in
               (found && nfound, Index_map.add index tree st.trees))
@@ -552,20 +546,37 @@ module Make_storage (Id : Id_t) = struct
       st.trees
 
   let find_touched_attr id st =
+    let attr_of_item (i : Tree.whole) =
+      match i.mov with
+      | Moved loc -> (Ast.Dmove, loc.loc)
+      | Reset -> (Dset, (snd i.bor).loc)
+      | _ -> (
+          match fst i.bor with
+          | Reserved -> (Dnorm, (snd i.bor).loc)
+          | Unique -> (Dmut, (snd i.bor).loc)
+          | _ -> failwith "Internal Error: What is this touched")
+    in
+
+    let merge_attr a b =
+      match (fst a, fst b) with
+      | Ast.Dmove, _ -> a
+      | _, Ast.Dmove -> b
+      | Dset, _ -> a
+      | _, Dset -> b
+      | Dmut, _ -> a
+      | _, Dmut -> b
+      | _, _ -> a
+    in
+
     let index = Id_map.find id st.indices in
     match index with
     | { index; _ } :: [] -> (
         match Index_map.find index st.trees with
-        | Tree.Twhole w -> (
-            match w.mov with
-            | Moved loc -> (Ast.Dmove, loc.loc)
-            | Reset -> (Dset, (snd w.bor).loc)
-            | _ -> (
-                match fst w.bor with
-                | Reserved -> (Dnorm, (snd w.bor).loc)
-                | Unique -> (Dmut, (snd w.bor).loc)
-                | _ -> failwith "Internal Error: What is this touched"))
-        | _ -> failwith "TODO part touched")
+        | Tree.Twhole w -> attr_of_item w
+        | Tparts { rest; parts } ->
+            List.fold_left
+              (fun attr item -> merge_attr attr (attr_of_item item))
+              (attr_of_item rest) parts)
     | _ -> failwith "Internal Error: Touched thing has mutiple borrows"
 
   let mem id st = Id_map.mem id st.indices
