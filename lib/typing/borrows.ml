@@ -344,12 +344,8 @@ module Make_storage (Id : Id_t) = struct
   module Index_map = Map.Make (Int)
   module Tree = Make_tree (Id)
 
-  type index = {
-    ipath : Tree.Path.t;
-    index : int;
-    call_attr : Ast.decl_attr option;
-  }
-
+  type on_call = { attr : Ast.decl_attr; on_move : Ast.decl_attr }
+  type index = { ipath : Tree.Path.t; index : int; call_attr : on_call option }
   type indices = index list
   type t = { indices : indices Id_map.t; trees : Tree.t Index_map.t }
 
@@ -379,6 +375,12 @@ module Make_storage (Id : Id_t) = struct
     let indices = Id_map.add id index st.indices in
     { trees; indices }
 
+  let oncall_ac ~oncall ac =
+    match ac with
+    | Ast.Dnorm -> oncall.attr
+    | Dmove -> oncall.on_move
+    | Dset | Dmut -> failwith "unreachable"
+
   let rec borrow id loc mname ac part st =
     match Id_map.find_opt id st.indices with
     | Some inds ->
@@ -396,7 +398,11 @@ module Make_storage (Id : Id_t) = struct
         let found, trees =
           List.fold_left
             (fun (found, trees) { ipath; index; call_attr } ->
-              let ac = match call_attr with Some ac -> ac | None -> ac in
+              let ac =
+                match call_attr with
+                | Some oncall -> oncall_ac ~oncall ac
+                | None -> ac
+              in
               let path = Tree.Path.{ ipath with part = ipath.part @ part } in
               let nfound, tree =
                 Tree.borrow { ac; path }
@@ -422,8 +428,8 @@ module Make_storage (Id : Id_t) = struct
         (* If there is an attribute, it's from a touched variable of a
            function. We use this to set the correct borrow state for
            this borrow. *)
-        | Some (Ast.Dmut | Dset) -> (true, attr)
-        | Some (Dnorm | Dmove) -> (false, attr)
+        | Some { attr = Ast.Dmut | Dset; _ } -> (true, attr)
+        | Some { attr = Dnorm | Dmove; _ } -> (false, attr)
         | None -> (lmut, call_attr)
       in
       let nfound, tree =
@@ -641,7 +647,7 @@ let state_empty mname = { trees = Trst.empty; ids = Idst.empty; mname }
 
 type borrow_ids =
   | Owned
-  | Borrowed of (Trst.Id.t * Trst.Tree.part * Ast.decl_attr option) list
+  | Borrowed of (Trst.Id.t * Trst.Tree.part * Trst.on_call option) list
 
 let own_local_borrow ~local old_tree =
   (* local borrow means it's actually owned *)
@@ -654,6 +660,24 @@ let own_local_borrow ~local old_tree =
     | (id, _part, _attr) :: tl -> if Trst.mem id old_tree then aux tl else Owned
   in
   match local with Owned -> Owned | Borrowed bs -> aux bs
+
+let get_closed_usage kind (touched : touched) =
+  let on_move =
+    match kind with
+    | Closure cls -> (
+        match
+          List.find_opt (fun c -> String.equal c.clname touched.tname) cls
+        with
+        | Some c ->
+            if c.clcopy then Dnorm
+            else (* Move the closed variable into the closure *)
+              Dmove
+        | None ->
+            (* Touched bit not closed? Let's read it *)
+            Dnorm)
+    | Simple -> Dnorm
+  in
+  Trst.{ attr = touched.tattr; on_move }
 
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
@@ -783,7 +807,7 @@ let rec check_expr st ac part tyex =
       let st = check_abs tyex.loc name abs st in
       check_expr st ac part cont
   | Lambda (_, abs) ->
-      let touched = bids_of_touched abs.func.touched st in
+      let touched = bids_of_touched abs.func.touched abs.func.kind st in
       (Borrowed touched, st.trees)
   | Variant_index e ->
       let _, trees = check_expr st ac part e in
@@ -851,16 +875,19 @@ and check_let st ~toplevel str loc pass lmut rhs =
 
   { st with ids; trees }
 
-and bids_of_touched touched st =
+and bids_of_touched touched kind st =
   List.map
     (fun touched ->
       print_endline ("touched: " ^ Typed_tree.show_touched touched);
-      let bid = Idst.get touched.tname touched.tmname st.ids in
-      (bid, [] (* no part *), Some touched.tattr))
+      let bid = Idst.get touched.tname touched.tmname st.ids
+      and usage = get_closed_usage kind touched in
+      print_endline
+        ("touched " ^ touched.tname ^ ": " ^ Typed_tree.show_dattr usage.attr);
+      (bid, [] (* no part *), Some usage))
     touched
 
 and check_abs loc name abs st =
-  let touched = bids_of_touched abs.func.touched st in
+  let touched = bids_of_touched abs.func.touched abs.func.kind st in
   let bid, ids = Idst.insert name (Some st.mname) st.ids in
   let _, trees = Trst.bind bid loc false touched st.trees in
 
@@ -921,7 +948,15 @@ let check_expr ~mname ~params ~touched expr =
       state params
   in
 
-  let _, trees = check_expr state Dmove [] expr in
+  let ret, trees = check_expr state Dmove [] expr in
+  let trees =
+    match ret with
+    | Owned -> trees
+    | Borrowed ids ->
+        let bid = Idst.get "return" None state.ids in
+        let _, trees = Trst.bind bid expr.loc false ids trees in
+        Trst.borrow bid expr.loc mname Dmove [] trees |> snd
+  in
   Trst.print trees mname;
 
   (* Ensure no parameter has been moved *)

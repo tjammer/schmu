@@ -1110,14 +1110,14 @@ let test_excl_lambda_copy_capture_nonalloc () =
   test "unit" "fun alt(alts) {fun () [alts] {ignore(1 + alts)}}"
 
 let test_excl_lambda_not_copy_capture () =
-  test_exn "Borrowed parameter alts is moved"
+  test_exn "Borrowed value alts has been moved in line 5"
     "fun alt(alts) {fun () {ignore(alts.[0])}}"
 
 let test_excl_fn_copy_capture () =
   test "unit" "fun alt(alts) {fun named() [alts] {  ignore(alts.[0])};  named}"
 
 let test_excl_fn_not_copy_capture () =
-  test_exn "Borrowed parameter alts is moved"
+  test_exn "Borrowed value alts has been moved in line 5"
     "fun alt(alts) {fun named() {ignore(alts.[0])};  named}"
 
 let test_excl_partial_move_reset () =
