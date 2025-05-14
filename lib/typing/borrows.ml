@@ -102,7 +102,8 @@ module Make_tree (Id : Id_t) = struct
     let append p id = { p with ids = p.ids @ [ id ] }
   end
 
-  type access_path = { ac : Ast.decl_attr; path : Path.t }
+  type path = Id.t list [@@deriving show]
+  type access_path = { ac : Typed_tree.dattr; path : Path.t } [@@deriving show]
 
   let transition_exn bor id bind_loc acc location loc =
     match transition bor (acc, location) loc with
@@ -170,21 +171,23 @@ module Make_tree (Id : Id_t) = struct
     (* Second, we need to traverse all paths. Local borrows are only the correct
        part. *)
     let rec traverse correct_part contains_part path acc whole =
-      match path with
-      | p :: ids when Id.equal p whole.id.id ->
-          if correct_part then
-            let ends = match ids with [] -> true | _ -> false in
-            local
-              ~down:(traverse correct_part contains_part ids)
-              ~ends acc whole
-          else
+      if Option.is_some contains_part then
+        match path with
+        | p :: ids when Id.equal p whole.id.id ->
+            if correct_part then
+              let ends = match ids with [] -> true | _ -> false in
+              local
+                ~down:(traverse correct_part contains_part ids)
+                ~ends acc whole
+            else
+              foreign
+                ~down:(traverse correct_part contains_part [])
+                ~contains_part acc whole
+        | _ ->
             foreign
               ~down:(traverse correct_part contains_part [])
               ~contains_part acc whole
-      | _ ->
-          foreign
-            ~down:(traverse correct_part contains_part [])
-            ~contains_part acc whole
+      else (acc, whole)
     in
 
     let dist item = part_distance ~target:path.part ~other:item.id.part in
@@ -207,7 +210,6 @@ module Make_tree (Id : Id_t) = struct
 
   let borrow access loc mname tree =
     let foreign ~down ~contains_part found item =
-      print_endline (string_of_access item.id mname ^ " foreign");
       (match contains_part with
       | Some part -> (
           match (item.mov, access.ac) with
@@ -228,7 +230,7 @@ module Make_tree (Id : Id_t) = struct
       let access =
         match access.ac with Dmove | Dnorm -> Read | Dmut | Dset -> Write
       in
-      let id = string_of_access item.id mname in
+      let id = string_of_access item.bind_loc.lid mname in
       let bor = transition_exn item.bor id item.bind_loc access Foreign loc in
       let found, children =
         List.fold_left_map
@@ -239,7 +241,6 @@ module Make_tree (Id : Id_t) = struct
     in
 
     let local ~down ~ends found item =
-      print_endline (string_of_access item.id mname ^ " local");
       let mov, access =
         match (item.mov, access.ac) with
         | Moved lc, (Ast.Dmove | Dmut | Dnorm) ->
@@ -475,7 +476,7 @@ module Make_storage (Id : Id_t) = struct
     | Some _ -> failwith "Is this not a string lateral"
     | None -> insert id bind_loc bor st
 
-  let print st mname =
+  let print st =
     print_endline "******************";
     String.concat ",\n"
       (Id_map.to_seq st.indices
@@ -486,7 +487,8 @@ module Make_storage (Id : Id_t) = struct
                     (fun { ipath = path; index; call_attr } ->
                       let acc =
                         match call_attr with
-                        | Some acc -> "(some " ^ Typed_tree.show_dattr acc ^ ")"
+                        | Some acc ->
+                            "(some " ^ Typed_tree.show_dattr acc.attr ^ ")"
                         | None -> "none"
                       in
                       "(" ^ Tree.Path.show path ^ ", " ^ string_of_int index
@@ -498,8 +500,8 @@ module Make_storage (Id : Id_t) = struct
     let rec show_tree sp t =
       let shtr t =
         spaces sp
-        ^ Tree.(string_of_access t.id mname)
-        ^ "= "
+        ^ Id.show Tree.(t.id.id)
+        ^ Tree.aux_fmt t.id.part ^ "= "
         ^ show_borrow_state (fst t.bor)
         ^ " mov: " ^ Tree.show_mov t.mov
         |> print_endline;
@@ -595,7 +597,7 @@ module Make_storage (Id : Id_t) = struct
           | None, Some _ -> r
           | Some _, None -> l
           | None, None -> None
-          | Some l, Some r -> Some (List.merge Stdlib.compare l r))
+          | Some l, Some _r -> Some l)
         l.indices r.indices
     in
     let trees =
@@ -682,7 +684,7 @@ let get_closed_usage kind (touched : touched) =
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
      Ids on the other hand follow lexical scope *)
-  Trst.print st.trees st.mname;
+  Trst.print st.trees;
   match tyex.expr with
   | Const (String _) ->
       let id = Idst.get "string literal" (Some st.mname) st.ids in
@@ -699,7 +701,6 @@ let rec check_expr st ac part tyex =
       (Owned, trees)
   | Const _ -> (Owned, st.trees)
   | Var (str, mname) ->
-      print_endline ("var " ^ str ^ ", " ^ show_dattr ac);
       let id = Idst.get str mname st.ids in
       let found, trees = Trst.borrow id tyex.loc st.mname ac part st.trees in
       (* Moved borrows don't return a borrow id *)
@@ -721,7 +722,6 @@ let rec check_expr st ac part tyex =
         (Parr_access (fst idx).expr :: part)
         (fst arr)
   | App { callee; args } ->
-      print_endline "call";
       let _, trees = check_expr st Dnorm [] callee in
 
       (* Create temporary bindings for each passed thing *)
@@ -957,7 +957,6 @@ let check_expr ~mname ~params ~touched expr =
         let _, trees = Trst.bind bid expr.loc false ids trees in
         Trst.borrow bid expr.loc mname Dmove [] trees |> snd
   in
-  Trst.print trees mname;
 
   (* Ensure no parameter has been moved *)
   Trst.check_borrow_moves trees mname;
