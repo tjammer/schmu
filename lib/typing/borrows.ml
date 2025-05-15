@@ -8,7 +8,7 @@ module Borrow = struct
     | Frozen
     | Disabled
     | Reserved_im
-    | Owned
+    | Owned of bool (* is top level *)
   [@@deriving show]
 
   let transition curr action action_loc =
@@ -32,7 +32,7 @@ module Borrow = struct
     | Reserved_im, (Write, Local) -> Ok (Unique, action_loc)
     | Disabled, ((Read | Write), Foreign) -> Ok (Disabled, loc)
     | Disabled, ((Read | Write), Local) -> Error `Disabled
-    | Owned, _ -> Ok (Owned, loc)
+    | Owned t, _ -> Ok (Owned t, loc)
 end
 
 open Borrow
@@ -213,7 +213,7 @@ module Make_tree (Id : Id_t) = struct
       (match contains_part with
       | Some part -> (
           match (item.mov, access.ac) with
-          | Moved lc, (Ast.Dmove | Dmut | Dnorm) ->
+          | Moved lc, _ ->
               (* Our item has been moved *)
               let access = { id = item.id.id; part } in
               let msg =
@@ -223,7 +223,6 @@ module Make_tree (Id : Id_t) = struct
                   (string_of_access access mname)
               in
               raise (Error.Error (loc.loc, msg))
-          | Moved _, Dset -> ()
           | (Not_moved | Reset), _ -> ())
       | None -> ());
 
@@ -309,7 +308,7 @@ module Make_tree (Id : Id_t) = struct
         | Unique -> 2
         | Frozen -> 3
         | Disabled -> 4
-        | Owned -> -1
+        | Owned _ -> -1
       in
       if score (fst l) >= score (fst r) then `Left else `Right
     in
@@ -521,35 +520,62 @@ module Make_storage (Id : Id_t) = struct
             List.iter (fun t -> show_tree 2 t) parts)
       st.trees
 
-  let check_borrow_moves st mname =
-    let rec check_move id loc tree =
+  let rec part_contains_array = function
+    | [] -> false
+    | Tree.Pfield _ :: tl -> part_contains_array tl
+    | Parr_access _ :: _ -> true
+
+  let check_moves st mname =
+    let rec check_move ~owned ~tl id loc tree =
       match Tree.(tree.mov) with
-      | Moved l ->
-          let msg =
+      | Moved l -> (
+          let r msg = raise (Error.Error (loc, msg)) in
+          if owned && tl then r "Cannot move top level binding"
+          else if part_contains_array tree.id.part then
+            r "Cannot move out of array without re-setting"
+          else if not owned then
+            let pos = Tree.(fst l.loc).pos_lnum in
             match Tree.string_of_access id mname with
             | "string literal" as s ->
-                Format.sprintf "Borrowed %s has been moved in line %i" s
+                r (Format.sprintf "Borrowed %s has been moved in line %i" s pos)
             | s ->
-                Format.sprintf "Borrowed value %s has been moved in line %i" s
-          in
-          raise (Error.Error (loc, msg Tree.(fst l.loc).pos_lnum))
-      | Not_moved | Reset -> List.iter (check_move id loc) tree.children
+                r
+                  (Format.sprintf "Borrowed value %s has been moved in line %i"
+                     s pos))
+      | Not_moved | Reset ->
+          List.iter (check_move ~tl ~owned id loc) tree.children
     in
     Index_map.iter
       (fun _ -> function
         | Tree.Twhole tree -> (
             print_endline ("check: " ^ Tree.(string_of_access tree.id mname));
             match tree.bor |> fst with
-            | Owned -> ()
-            | _ -> (check_move tree.id tree.bind_loc.loc) tree)
+            | Owned tl (* top level *) ->
+                (check_move ~owned:true ~tl tree.id tree.bind_loc.loc) tree
+            | _ ->
+                (check_move ~owned:false ~tl:false tree.id tree.bind_loc.loc)
+                  tree)
         | Tparts { rest; parts } -> (
             match rest.bor |> fst with
-            | Owned -> ()
-            | _ ->
-                (check_move rest.id rest.bind_loc.loc) rest;
+            | Owned tl (* top level *) ->
+                print_endline ("check: " ^ Tree.(string_of_access rest.id mname));
+                (check_move ~owned:true ~tl rest.id rest.bind_loc.loc) rest;
                 List.iter
                   (fun (tree : Tree.whole) ->
-                    (check_move tree.id tree.bind_loc.loc) tree)
+                    print_endline
+                      ("check: " ^ Tree.(string_of_access tree.id mname));
+                    (check_move ~owned:true ~tl tree.id tree.bind_loc.loc) tree)
+                  parts
+            | _ ->
+                print_endline ("check: " ^ Tree.(string_of_access rest.id mname));
+                (check_move ~owned:false ~tl:false rest.id rest.bind_loc.loc)
+                  rest;
+                List.iter
+                  (fun (tree : Tree.whole) ->
+                    print_endline
+                      ("check: " ^ Tree.(string_of_access tree.id mname));
+                    (check_move ~owned:false ~tl:false tree.id tree.bind_loc.loc)
+                      tree)
                   parts))
       st.trees
 
@@ -718,7 +744,8 @@ let rec check_expr st ac part tyex =
       } ->
       let _, trees = check_expr st Dnorm [] callee in
       let _, trees = check_expr { st with trees } (snd idx) [] (fst idx) in
-      check_expr { st with trees } (snd arr)
+      print_endline ("arr get: " ^ Typed_tree.show_dattr ac);
+      check_expr { st with trees } ac
         (Parr_access (fst idx).expr :: part)
         (fst arr)
   | App { callee; args } ->
@@ -839,21 +866,21 @@ and check_let st ~toplevel str loc pass lmut rhs =
   | Dmut when toplevel -> raise (Error (rhs.loc, "Cannot project at top level"))
   | Dmut when not rhs.attr.mut ->
       raise (Error (rhs.loc, "Cannot project immutable binding"))
-  | Dmove when toplevel ->
-      raise (Error (rhs.loc, "Cannot move top level binding"))
-  | _ when toplevel && rhs.attr.mut ->
-      raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
+  (* | _ when toplevel && rhs.attr.mut -> *)
+  (*     raise (Error (rhs.loc, "Cannot borrow mutable binding at top level")) *)
   | _ -> ());
   let bid, ids = Idst.insert str (Some st.mname) st.ids in
   let trees =
     match check_expr st pass [] rhs with
     | Owned, trees ->
         (* Nothing is borrowed, we own this *)
-        Trst.insert bid loc Owned trees
-    | Borrowed _, _trees when pass = Dmove ->
-        failwith "how?"
+        Trst.insert bid loc (Owned toplevel) trees
+    | Borrowed _, trees when pass = Dmove ->
+        (* failwith "how?" *)
         (* Transfer ownership *)
-        (* Trst.insert bid loc Owned trees *)
+        print_endline "transfer";
+        Trst.print trees;
+        Trst.insert bid loc (Owned toplevel) trees
     | Borrowed _, _trees when pass = Dnorm && lmut ->
         let msg =
           "Specify how rhs expression is passed. Either by move '!' or mutably \
@@ -861,13 +888,17 @@ and check_let st ~toplevel str loc pass lmut rhs =
         in
         raise (Error (rhs.loc, msg))
     | Borrowed ids, trees ->
-        print_endline
-          ("let: " ^ Trst.Id.show bid ^ ": "
-          ^ String.concat ", "
-              (List.map
-                 (fun (id, part, _) ->
-                   "(" ^ Trst.Id.show id ^ "@" ^ Trst.Tree.show_part part ^ ")")
-                 ids));
+        if toplevel && rhs.attr.mut then
+          raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
+        else
+          print_endline
+            ("let: " ^ Trst.Id.show bid ^ ": "
+            ^ String.concat ", "
+                (List.map
+                   (fun (id, part, _) ->
+                     "(" ^ Trst.Id.show id ^ "@" ^ Trst.Tree.show_part part
+                     ^ ")")
+                   ids));
         let found, trees = Trst.bind bid loc lmut ids trees in
         assert found;
         trees
@@ -940,7 +971,7 @@ let check_expr ~mname ~params ~touched expr =
           | Dnorm (* borrowed *) -> Frozen
           | Dmut (* borrowed mut *) -> Reserved
           | Dset -> failwith "unreachable"
-          | Dmove -> Owned
+          | Dmove -> Owned false
         in
         let trees = Trst.insert bid loc bstate st.trees in
         print_endline ("add param " ^ id ^ " as " ^ show_borrow_state bstate);
@@ -959,7 +990,7 @@ let check_expr ~mname ~params ~touched expr =
   in
 
   (* Ensure no parameter has been moved *)
-  Trst.check_borrow_moves trees mname;
+  Trst.check_moves trees mname;
 
   (* Update attribute of touched *)
   List.map
@@ -979,4 +1010,5 @@ let check_items ~mname items =
   List.fold_left (fun st item -> check_item st item) (state_empty mname) items
   |> fun st ->
   (* Ensure no parameter or outer value has been moved *)
-  Trst.check_borrow_moves st.trees mname
+  Trst.print st.trees;
+  Trst.check_moves st.trees mname

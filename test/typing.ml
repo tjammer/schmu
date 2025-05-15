@@ -996,12 +996,12 @@ let test_excl_move_mut () =
   wrap_fn ~tl test "unit" [ own; "let y& = !x"; "&y = 11"; "ignore(y)" ]
 
 let test_excl_move_mut_use_after () =
-  wrap_fn ~tl test_exn
-    (ln "x was moved in line %i, cannot use" 3)
+  wrap_fn test_exn
+    (ln "x was moved in line %i, cannot use" 2)
     [ own; "let y& = !x"; "ignore(x)" ]
 
 let test_excl_move_record () =
-  wrap_fn test "unit" [ own; "let y = (x, 0)"; "ignore(y)" ]
+  wrap_fn ~tl test "unit" [ own; "let y = (x, 0)"; "ignore(y)" ]
 
 let test_excl_move_record_use_after () =
   wrap_fn test_exn
@@ -1154,22 +1154,22 @@ let _ = !a.[index]
 
 let test_excl_array_move_mixed () =
   test_exn "Cannot move out of array without re-setting"
-    {|let a& = [0]
+    {|{let a& = [0]
 let index = 1
 let _ = !a.[1]
-&a.[index] = 1|}
+&a.[index] = 1}|}
 
 let test_excl_array_move_wrong_index () =
-  test_exn "Cannot move out of array with this index"
-    {|let a& = [0]
+  test_exn "Cannot move out of array without re-setting"
+    {|{let a& = [0]
 fun index() { 1 }
 let _ = !a.[index()]
-&a.[index()] = 1|}
+&a.[index()] = 1}|}
 
 let test_excl_array_move_dyn_index () =
   test_exn "Cannot move out of array without re-setting"
-    {|let a& = [0]
-{
+    {|{let a& = [0]
+
   let tmp = !a.[0]
   &a.[0 + 0] = 0}|}
 
