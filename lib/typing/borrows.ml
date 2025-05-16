@@ -60,7 +60,7 @@ module type Id_t = sig
 end
 
 module Make_tree (Id : Id_t) = struct
-  type part_kind = Pfield of string | Parr_access of Typed_tree.expr
+  type part_kind = Pfield of string | Parr of Typed_tree.expr | Prc
   [@@deriving show]
 
   type part = part_kind list [@@deriving show]
@@ -71,10 +71,10 @@ module Make_tree (Id : Id_t) = struct
   let rec aux_fmt = function
     | [] -> ""
     | Pfield f :: tl -> "." ^ f ^ aux_fmt tl
-    | Parr_access (Const (Int i)) :: tl ->
-        ".[" ^ Int64.to_string i ^ "]" ^ aux_fmt tl
-    | Parr_access (Var (s, _)) :: tl -> ".[" ^ s ^ "]" ^ aux_fmt tl
-    | Parr_access _ :: tl -> ".[<expr>]" ^ aux_fmt tl
+    | Parr (Const (Int i)) :: tl -> ".[" ^ Int64.to_string i ^ "]" ^ aux_fmt tl
+    | Parr (Var (s, _)) :: tl -> ".[" ^ s ^ "]" ^ aux_fmt tl
+    | Parr _ :: tl -> ".[<expr>]" ^ aux_fmt tl
+    | Prc :: tl -> ".*" ^ aux_fmt tl
 
   let string_of_access a mname =
     Id.fmt a.id ~mname ~backup:None (aux_fmt a.part)
@@ -124,9 +124,12 @@ module Make_tree (Id : Id_t) = struct
     | _, [] -> Some target
     | Pfield t :: target, Pfield o :: other ->
         if String.equal t o then contains_part ~target ~other else None
-    | Parr_access t :: target, Parr_access o :: other ->
+    | Parr t :: target, Parr o :: other ->
         if t = o then contains_part ~target ~other else None
-    | Parr_access _ :: _, Pfield _ :: _ | Pfield _ :: _, Parr_access _ :: _ ->
+    | Prc :: target, Prc :: other -> contains_part ~target ~other
+    | Parr _ :: _, (Pfield _ | Prc) :: _
+    | Pfield _ :: _, (Parr _ | Prc) :: _
+    | Prc :: _, (Parr _ | Pfield _) :: _ ->
         None
 
   let rec part_distance ~target ~other =
@@ -136,9 +139,12 @@ module Make_tree (Id : Id_t) = struct
     | l, [] -> List.length l
     | Pfield t :: target, Pfield o :: other ->
         if String.equal t o then part_distance ~target ~other else -1
-    | Parr_access t :: target, Parr_access o :: other ->
+    | Parr t :: target, Parr o :: other ->
         if t = o then part_distance ~target ~other else -1
-    | Parr_access _ :: _, Pfield _ :: _ | Pfield _ :: _, Parr_access _ :: _ ->
+    | Prc :: target, Prc :: other -> part_distance ~target ~other
+    | Parr _ :: _, (Pfield _ | Prc) :: _
+    | Pfield _ :: _, (Parr _ | Prc) :: _
+    | Prc :: _, (Parr _ | Pfield _) :: _ ->
         -1
 
   let fold ~foreign ~local (path : Path.t) acc tree =
@@ -522,8 +528,8 @@ module Make_storage (Id : Id_t) = struct
 
   let rec part_contains_array = function
     | [] -> false
-    | Tree.Pfield _ :: tl -> part_contains_array tl
-    | Parr_access _ :: _ -> true
+    | Tree.(Pfield _ | Prc) :: tl -> part_contains_array tl
+    | Parr _ :: _ -> true
 
   let check_moves st mname =
     let rec check_move ~owned ~tl id loc tree =
@@ -745,9 +751,16 @@ let rec check_expr st ac part tyex =
       let _, trees = check_expr st Dnorm [] callee in
       let _, trees = check_expr { st with trees } (snd idx) [] (fst idx) in
       print_endline ("arr get: " ^ Typed_tree.show_dattr ac);
-      check_expr { st with trees } ac
-        (Parr_access (fst idx).expr :: part)
-        (fst arr)
+      check_expr { st with trees } ac (Parr (fst idx).expr :: part) (fst arr)
+  | App
+      {
+        callee =
+          ( { expr = Var ("__unsafe_rc_get", _); _ }
+          | { expr = Var ("get", Some (Pid "rc")); _ } ) as callee;
+        args = [ arg ];
+      } ->
+      let _, trees = check_expr st Dnorm [] callee in
+      check_expr { st with trees } ac (Prc :: part) (fst arg)
   | App { callee; args } ->
       let _, trees = check_expr st Dnorm [] callee in
 

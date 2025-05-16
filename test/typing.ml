@@ -1174,7 +1174,7 @@ let test_excl_array_move_dyn_index () =
   &a.[0 + 0] = 0}|}
 
 let test_excl_track_rc_get () =
-  test_exn "state was mutably borrowed in line 10, cannot borrow"
+  test_exn "state was borrowed in line 9, cannot mutate"
     {|type state['a, 'b] = { fst& : 'a, snd : 'b }
 
 fun higher_lvl(thing&, f) {()}
@@ -1185,15 +1185,15 @@ fun process_state(state&) {
 }|}
 
 let test_excl_move_lambda () =
-  test_exn "Borrowed parameter a is moved"
+  test_exn "Borrowed value a has been moved in line 5"
     "fun copy_param(a&) { fun () { &a = 12 } }"
 
 let test_excl_move_fun () =
-  test_exn "Borrowed parameter a is moved"
+  test_exn "Borrowed value a has been moved in line 5"
     "fun copy_param(a&) {fun f () { &a = 12 }; f}"
 
 let test_excl_move_outer_branch () =
-  test_exn "Cannot move value str from outer scope"
+  test_exn "Borrowed value str has been moved in line 13"
     {|type option['a] = None | Some('a)
 fun mut(thing&) { ignore(thing) }
 fun move(thing!) { ignore(thing) }
@@ -1209,7 +1209,7 @@ fun capture() {
 |}
 
 let test_excl_move_outer_branch_else () =
-  test_exn "Cannot move value str from outer scope"
+  test_exn "Borrowed value str has been moved in line 14"
     {|type option['a] = None | Some('a)
 fun mut(thing&) { ignore(thing) }
 fun move(thing!) { ignore(thing) }
