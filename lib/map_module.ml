@@ -59,9 +59,9 @@ module Canonize = struct
     | Ttuple ts ->
         let sub, ts = List.fold_left_map canonize sub ts in
         (sub, Ttuple ts)
-    | Tconstr (p, ps) ->
+    | Tconstr (p, ps, ca) ->
         let sub, ps = List.fold_left_map canonize sub ps in
-        (sub, Tconstr (p, ps))
+        (sub, Tconstr (p, ps, ca))
     | Tfixed_array (iv, t) ->
         let sub, t = canonize sub t in
         (sub, Tfixed_array (iv, t))

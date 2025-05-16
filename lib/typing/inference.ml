@@ -33,7 +33,7 @@ let rec occurs tvr = function
   | Tfun (param_ts, t, _) ->
       List.iter (fun p -> occurs tvr p.pt) param_ts;
       occurs tvr t
-  | Tconstr (_, ts) | Ttuple ts -> List.iter (occurs tvr) ts
+  | Tconstr (_, ts, _) | Ttuple ts -> List.iter (occurs tvr) ts
   | Tfixed_array (({ contents = Unknown (id, lvl) } as tv), t) ->
       (* Also adjust level of array size *)
       let min_lvl = match !tvr with Unbound (_, l) -> min lvl l | _ -> lvl in
@@ -71,7 +71,7 @@ let rec unify recurs t1 t2 =
     | Ttuple ls, Ttuple rs -> (
         try List.iter2 (unify recurs) ls rs
         with Invalid_argument _ -> raise Unify)
-    | Tconstr (ln, ls), Tconstr (rn, rs) ->
+    | Tconstr (ln, ls, _), Tconstr (rn, rs, _) ->
         if Path.equal ln rn then
           try List.iter2 (unify recurs) ls rs
           with Invalid_argument _ -> raise Unify
@@ -119,7 +119,7 @@ let rec generalize = function
       let gen p = { p with pt = generalize p.pt } in
       Tfun (List.map gen t1, generalize t2, generalize_closure k)
   | Ttuple ts -> Ttuple (List.map generalize ts)
-  | Tconstr (p, ps) -> Tconstr (p, List.map generalize ps)
+  | Tconstr (p, ps, ca) -> Tconstr (p, List.map generalize ps, ca)
   | Tfixed_array (({ contents = Unknown (id, li) } as tv), l)
     when li > !current_level ->
       tv := Generalized id;
@@ -145,9 +145,9 @@ let rec inst_impl subst = function
   | Ttuple ts ->
       let subst, ts = List.fold_left_map inst_impl subst ts in
       (subst, Ttuple ts)
-  | Tconstr (p, ps) ->
+  | Tconstr (p, ps, ca) ->
       let subst, ps = List.fold_left_map inst_impl subst ps in
-      (subst, Tconstr (p, ps))
+      (subst, Tconstr (p, ps, ca))
   | Tfun (params_t, t, k) ->
       let subst, params_t =
         List.fold_left_map
@@ -224,7 +224,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
           (* Unbound vars match every type *) (r, sub, true)
       | Tvar { contents = Link l }, r | l, Tvar { contents = Link r } ->
           aux ~strict ~in_ps sub l r
-      | Tconstr (_, [ _ ]), Qvar q when in_ps -> (
+      | Tconstr (_, [ _ ], _), Qvar q when in_ps -> (
           (* This case is allowed, but only if we don't violate matches we've
              seen before. See [test_signature_deep_qvar_sg] and
              [test_signature_dont_match_qvar] *)
@@ -236,7 +236,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
           | None ->
               revmap := Smap.add q l !revmap;
               (l, sub, true))
-      | Tconstr (pl, psl), Tconstr (pr, psr) when Path.equal pl pr ->
+      | Tconstr (pl, psl, cal), Tconstr (pr, psr, car) when Path.equal pl pr ->
           let sub, mtch, revps =
             try
               List.fold_left2
@@ -246,7 +246,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
                 (sub, true, []) psl psr
             with Invalid_argument _ -> (sub, false, List.rev psr)
           in
-          (Tconstr (pl, List.rev revps), sub, mtch)
+          (Tconstr (pl, List.rev revps, cal || car), sub, mtch)
       | ( Tfixed_array (({ contents = Generalized lg } as rl), lt),
           Tfixed_array (({ contents = Generalized ri } as rr), rt) )
       | ( Tfixed_array (({ contents = Unknown (lg, _) } as rl), lt),
@@ -293,9 +293,9 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
             let ret, sub, b = aux ~strict:true ~in_ps sub l r in
             (Tfun (ps, ret, kind), sub, acc && b)
           with Invalid_argument _ -> (r, sub, false))
-      | Tconstr (name, ps), r -> (
+      | Tconstr (name, ps, _), r -> (
           match Pmap.find_opt name abstracts_map with
-          | Some (Tconstr (n, _)) when Path.equal name n ->
+          | Some (Tconstr (n, _, _)) when Path.equal name n ->
               (* Guard for recursion *)
               (r, sub, false)
           | Some typ ->
@@ -320,7 +320,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
   and transfer_params ops l r =
     (* This might break down on types with multiple params. For now it works *)
     match (l, r) with
-    | Tconstr (pl, psl), Tconstr (pr, psr) when Path.equal pl pr ->
+    | Tconstr (pl, psl, cal), Tconstr (pr, psr, car) when Path.equal pl pr ->
         let revps, ops =
           try
             List.fold_left2
@@ -330,7 +330,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
               ([], ops) psl psr
           with Invalid_argument _ -> (List.rev psr, ops)
         in
-        (Tconstr (pl, List.rev revps), ops)
+        (Tconstr (pl, List.rev revps, cal || car), ops)
     | Qvar _, _ -> ( match ops with t :: tl -> (t, tl) | [] -> (r, []))
     | l, _ ->
         (* If we don't enconter a Qvar, don't transfer *)
@@ -363,9 +363,9 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
         let kind = subst_closure kind in
         Tfun (ps, ret, kind)
     | Ttuple ts -> Ttuple (List.map subst ts)
-    | Tconstr (name, ps) ->
+    | Tconstr (name, ps, ca) ->
         let ps = List.map subst ps in
-        Tconstr (name, ps)
+        Tconstr (name, ps, ca)
     | Tfixed_array (i, t) -> Tfixed_array (i, subst t)
   in
 

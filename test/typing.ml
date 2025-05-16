@@ -979,7 +979,7 @@ module nosig {
 module mm = nosig/nested
 |}
 
-let own = "let x& = 10"
+let own = "let x& = [10]"
 let tl = Some "Cannot borrow mutable binding at top level"
 
 let test_excl_borrow () =
@@ -988,12 +988,12 @@ let test_excl_borrow () =
 let test_excl_borrow_use_early () =
   wrap_fn ~tl test_exn
     (ln "x was borrowed in line %i, cannot mutate" 3)
-    [ own; "let y = x"; "ignore(x)"; "&x = 11"; "ignore(y)" ]
+    [ own; "let y = x"; "ignore(x)"; "&x = [11]"; "ignore(y)" ]
 
 let tl = Some "Cannot move top level binding"
 
 let test_excl_move_mut () =
-  wrap_fn ~tl test "unit" [ own; "let y& = !x"; "&y = 11"; "ignore(y)" ]
+  wrap_fn ~tl test "unit" [ own; "let y& = !x"; "&y = [11]"; "ignore(y)" ]
 
 let test_excl_move_mut_use_after () =
   wrap_fn test_exn
@@ -1015,7 +1015,7 @@ let test_excl_borrow_then_move () =
 
 let test_excl_if_move_lit () =
   wrap_fn ~tl test "unit"
-    [ "let x = 10"; "let y& = !if true {x} else {10}"; "ignore(y)" ]
+    [ "let x = [10]"; "let y& = !if true {x} else {[10]}"; "ignore(y)" ]
 
 let test_excl_if_borrow_borrow () =
   wrap_fn test "unit"
@@ -1029,7 +1029,7 @@ let proj_msg = Some "Cannot project at top level"
 
 let test_excl_proj () =
   wrap_fn ~tl:proj_msg test "unit"
-    [ own; "let y& = &x"; "&y = 11"; "ignore(x)" ]
+    [ own; "let y& = &x"; "&y = [11]"; "ignore(x)" ]
 
 let test_excl_proj_immutable () =
   wrap_fn ~tl:proj_msg test_exn "Cannot project immutable binding"

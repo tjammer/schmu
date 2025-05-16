@@ -133,17 +133,17 @@ let is_folded = function
   | _ -> false
 
 let of_typ = function
-  | Types.Tconstr (Pid "int", _) -> Tint
-  | Tconstr (Pid "bool", _) -> Tbool
-  | Tconstr (Pid "unit", _) -> Tunit
-  | Tconstr (Pid "float", _) -> Tfloat
-  | Tconstr (Pid "i8", _) -> Ti8
-  | Tconstr (Pid "u8", _) -> Tu8
-  | Tconstr (Pid "i16", _) -> Ti16
-  | Tconstr (Pid "u16", _) -> Tu16
-  | Tconstr (Pid "i32", _) -> Ti32
-  | Tconstr (Pid "u32", _) -> Tu32
-  | Tconstr (Pid "f32", _) -> Tf32
+  | Types.Tconstr (Pid "int", _, _) -> Tint
+  | Tconstr (Pid "bool", _, _) -> Tbool
+  | Tconstr (Pid "unit", _, _) -> Tunit
+  | Tconstr (Pid "float", _, _) -> Tfloat
+  | Tconstr (Pid "i8", _, _) -> Ti8
+  | Tconstr (Pid "u8", _, _) -> Tu8
+  | Tconstr (Pid "i16", _, _) -> Ti16
+  | Tconstr (Pid "u16", _, _) -> Tu16
+  | Tconstr (Pid "i32", _, _) -> Ti32
+  | Tconstr (Pid "u32", _, _) -> Tu32
+  | Tconstr (Pid "f32", _, _) -> Tf32
   | _ -> failwith "unreachable"
 
 let is_int = function

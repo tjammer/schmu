@@ -114,7 +114,7 @@ let lor_clike_hack env loc name annot =
   match annot with
   | Some variant -> (
       match repr variant with
-      | Tconstr (Path.Pid "int", _) -> (
+      | Tconstr (Path.Pid "int", _, _) -> (
           match get_ctor env loc name with
           | Some (_, clike, ctor) ->
               if clike then
@@ -145,7 +145,7 @@ let get_variant env loc (_, name) annot =
       let find path = Env.find_type_opt loc path env in
       match resolve_alias find variant |> repr with
       (* Builtins are also constructors, but are not variants *)
-      | Tconstr (path, params) as t when not (is_builtin t) ->
+      | Tconstr (path, params, _) as t when not (is_builtin t) ->
           let ctors =
             match ctors_of_variant loc path (Some params) env with
             | Ok ctors -> ctors
@@ -177,7 +177,8 @@ let get_variant env loc (_, name) annot =
           let ctor = ctors.(index) in
           let typ, ctyp =
             let sub, typ =
-              instantiate_sub Smap.empty (Tconstr (path, decl.params))
+              instantiate_sub Smap.empty
+                (Tconstr (path, decl.params, decl.contains_alloc))
             in
             let ctyp =
               Option.map (fun t -> instantiate_sub sub t |> snd) ctor.ctyp
@@ -355,7 +356,7 @@ module Exhaustiveness = struct
 
   let ctorset_of_variant loc env typ =
     match repr typ with
-    | Tconstr (path, inst) -> (
+    | Tconstr (path, inst, _) -> (
         match Env.find_type_opt loc path env with
         | Some (decl, _) -> (
             let sub = map_params ~inst ~params:decl.params in
@@ -394,7 +395,8 @@ module Exhaustiveness = struct
     | Expand_record of field list
     | Empty
 
-  (** Check if ctorset is complete or some ctor is missing. Might also be infinite *)
+  (** Check if ctorset is complete or some ctor is missing. Might also be
+      infinite *)
   let sig_complete env fstcl patterns =
     match List.(hd patterns) with
     | [], _ -> Empty
@@ -727,7 +729,7 @@ module Make (C : Core) (R : Recs) = struct
     let mn = Env.modpath env in
     let rfields =
       (match repr t with
-      | Tconstr (path, ps) -> fields_of_record loc path (Some ps) env
+      | Tconstr (path, ps, _) -> fields_of_record loc path (Some ps) env
       | _ -> Result.Error ())
       |> function
       | Ok fields -> fields

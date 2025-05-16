@@ -13,9 +13,10 @@ module Contains_allocation = struct
         List.fold_left
           (fun ca t -> ca || contains_allocation get_decl t)
           false ts
-    | Tconstr (Pid name, _) as t when is_builtin t -> (
+    | Tconstr (Pid name, _, _) as t when is_builtin t -> (
         match name with "array" | "rc" | "weak_rc" -> true | _ -> false)
-    | Tconstr (name, ts) ->
+    | Tconstr (name, ts, _) ->
+        (* TODO use contains alloc bool *)
         if
           not
             (List.fold_left

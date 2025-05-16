@@ -15,7 +15,10 @@ type typ =
   | Qvar of string
   | Tfun of param list * typ * fun_kind
   | Ttuple of typ list
-  | Tconstr of Path.t * typ list
+  | Tconstr of
+      Path.t
+      * typ list
+      * bool (* contains allocations in unparameterized parts *)
   | Tfixed_array of iv ref * typ
 [@@deriving show { with_path = false }, sexp]
 
@@ -42,7 +45,12 @@ and closed = {
 
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
 
-type type_decl = { params : typ list; kind : decl_kind; in_sgn : bool }
+type type_decl = {
+  params : typ list;
+  kind : decl_kind;
+  in_sgn : bool;
+  contains_alloc : bool;
+}
 
 and recursive = {
   is_recursive : bool;
@@ -57,21 +65,21 @@ and decl_kind =
   | Dalias of typ
 [@@deriving sexp, show]
 
-let tunit = Tconstr (Pid "unit", [])
-and tint = Tconstr (Pid "int", [])
-and tfloat = Tconstr (Pid "float", [])
-and ti32 = Tconstr (Pid "i32", [])
-and tu32 = Tconstr (Pid "u32", [])
-and tf32 = Tconstr (Pid "f32", [])
-and tbool = Tconstr (Pid "bool", [])
-and tu8 = Tconstr (Pid "u8", [])
-and ti8 = Tconstr (Pid "i8", [])
-and tu16 = Tconstr (Pid "u16", [])
-and ti16 = Tconstr (Pid "i16", [])
-and tarray typ = Tconstr (Pid "array", [ typ ])
-and traw_ptr typ = Tconstr (Pid "raw_ptr", [ typ ])
-and trc typ = Tconstr (Pid "rc", [ typ ])
-and tweak_rc typ = Tconstr (Pid "weak_rc", [ typ ])
+let tunit = Tconstr (Pid "unit", [], false)
+and tint = Tconstr (Pid "int", [], false)
+and tfloat = Tconstr (Pid "float", [], false)
+and ti32 = Tconstr (Pid "i32", [], false)
+and tu32 = Tconstr (Pid "u32", [], false)
+and tf32 = Tconstr (Pid "f32", [], false)
+and tbool = Tconstr (Pid "bool", [], false)
+and tu8 = Tconstr (Pid "u8", [], false)
+and ti8 = Tconstr (Pid "i8", [], false)
+and tu16 = Tconstr (Pid "u16", [], false)
+and ti16 = Tconstr (Pid "i16", [], false)
+and tarray typ = Tconstr (Pid "array", [ typ ], true)
+and traw_ptr typ = Tconstr (Pid "raw_ptr", [ typ ], true)
+and trc typ = Tconstr (Pid "rc", [ typ ], true)
+and tweak_rc typ = Tconstr (Pid "weak_rc", [ typ ], true)
 
 let rec repr = function
   (* Do path compression *)
@@ -105,7 +113,7 @@ let string_of_type_raw get_name typ mname =
     | Ttuple ts ->
         let lst = List.map string_of_type ts in
         Printf.sprintf "(%s)" (String.concat ", " lst)
-    | Tconstr (name, ps) -> begin
+    | Tconstr (name, ps, _) -> begin
         match ps with
         | [] -> Path.(rm_name mname name |> show)
         | l ->
@@ -158,8 +166,9 @@ let string_of_type mname =
 let fold_builtins f init =
   List.fold_left
     (fun acc -> function
-      | Tconstr (Pid name, params) ->
-          f acc name { params; in_sgn = false; kind = Dabstract None }
+      | Tconstr (Pid name, params, contains_alloc) ->
+          f acc name
+            { params; in_sgn = false; kind = Dabstract None; contains_alloc }
       | _ -> failwith "unreachable")
     init
     [
@@ -185,6 +194,7 @@ let is_builtin = function
       ( Pid
           ( "int" | "bool" | "unit" | "float" | "u8" | "u16" | "i32" | "f32"
           | "i8" | "i16" | "u32" | "array" | "raw_ptr" | "rc" | "weak_rc" ),
+        _,
         _ ) ->
       true
   | _ -> false
@@ -193,7 +203,7 @@ let is_polymorphic typ =
   let rec inner acc = function
     | Qvar _ | Tvar { contents = Unbound _ } -> true
     | Tvar { contents = Link t } -> inner acc t
-    | Ttuple ts | Tconstr (_, ts) -> List.fold_left inner acc ts
+    | Ttuple ts | Tconstr (_, ts, _) -> List.fold_left inner acc ts
     | Tfun (params, ret, _) ->
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
         inner acc ret
@@ -208,7 +218,7 @@ let rec is_weak ~sub = function
   | Qvar _ -> false
   | Tvar { contents = Link t } -> is_weak ~sub t
   | Tvar { contents = Unbound (id, _) } -> not (Sset.mem id sub)
-  | Ttuple ts | Tconstr (_, ts) ->
+  | Ttuple ts | Tconstr (_, ts, _) ->
       List.fold_left (fun b t -> is_weak ~sub t || b) false ts
   | Tfixed_array ({ contents = Unknown _ }, _) -> true
   | Tfixed_array ({ contents = Linked l }, t) ->
@@ -226,7 +236,7 @@ let is_poly_orphan ~sub t =
     | Qvar id | Tvar { contents = Unbound (id, _) } ->
         contained && not (Sset.mem id sub)
     | Tvar { contents = Link t } -> aux contained t
-    | Ttuple ts | Tconstr (_, ts) ->
+    | Ttuple ts | Tconstr (_, ts, _) ->
         List.fold_left (fun b t -> b || aux true t) false ts
     | Tfixed_array (_, t) -> aux true t
     | Tfun (ps, ret, _) when contained ->
@@ -265,7 +275,7 @@ let rec map_lazy ~inst sub typ =
     | inst, _ :: tl -> map ~inst sub tl
   in
 
-  match repr typ with Tconstr (_, ps) -> map ~inst sub ps | _ -> (inst, sub)
+  match repr typ with Tconstr (_, ps, _) -> map ~inst sub ps | _ -> (inst, sub)
 
 let mut_of_pattr = function Dmut | Dset -> true | Dnorm | Dmove -> false
 
@@ -306,15 +316,15 @@ let rec subst_generic ~id typ = function
       let ret = subst_generic ~id typ ret in
       Tfun (ps, ret, kind)
   | Ttuple ts -> Ttuple (List.map (subst_generic ~id typ) ts)
-  | Tconstr (name, ps) ->
+  | Tconstr (name, ps, alloc) ->
       let ps = List.map (subst_generic ~id typ) ps in
-      Tconstr (name, ps)
+      Tconstr (name, ps, alloc)
   | Tfixed_array (i, t) -> Tfixed_array (i, subst_generic ~id typ t)
   | t -> t
 
 let rec get_generic_ids = function
   | Qvar id | Tvar { contents = Unbound (id, _) } -> [ id ]
-  | Tconstr (_, ts) | Ttuple ts -> List.map get_generic_ids ts |> List.concat
+  | Tconstr (_, ts, _) | Ttuple ts -> List.map get_generic_ids ts |> List.concat
   | Tvar { contents = Link t } -> get_generic_ids t
   | Tfixed_array (_, t) -> get_generic_ids t
   | Tfun (ps, ret, _) ->
@@ -329,7 +339,8 @@ let rec get_generic_ids = function
 
 let typ_of_decl decl name =
   match decl.kind with
-  | Drecord _ | Dvariant _ | Dabstract _ -> Tconstr (name, decl.params)
+  | Drecord _ | Dvariant _ | Dabstract _ ->
+      Tconstr (name, decl.params, decl.contains_alloc)
   | Dalias typ -> typ
 
 let resolve_alias find_decl typ =
@@ -346,14 +357,14 @@ let resolve_alias find_decl typ =
               Closure (List.map (fun c -> { c with cltyp = aux c.cltyp }) cls)
         in
         Tfun (ps, ret, kind)
-    | Tconstr (name, ps) -> (
+    | Tconstr (name, ps, alloc) -> (
         match find_decl name with
         | Some ({ kind = Dalias typ; _ }, _) ->
             (* We still have to deal with params *)
             typ
         | _ ->
             let ps = List.map aux ps in
-            Tconstr (name, ps))
+            Tconstr (name, ps, alloc))
     | Tfixed_array (s, t) -> Tfixed_array (s, aux t)
     | Tvar ({ contents = Link typ } as tv) as t ->
         let typ = aux typ in
@@ -435,20 +446,20 @@ let recursion_allowed (get_decl : Path.t -> type_decl) ~params name typ =
     | Tfixed_array (sz, t) ->
         let nres, t = aux res t in
         (nres, Tfixed_array (sz, t))
-    | Tconstr ((Pid ("array" | "raw_ptr") as name), [ t ]) ->
+    | Tconstr ((Pid ("array" | "raw_ptr") as name), [ t ], alloc) ->
         let nres, t = aux (set_allowed res) t in
-        (nres, Tconstr (name, [ t ]))
-    | Tconstr ((Pid "rc" as name), [ t ]) ->
+        (nres, Tconstr (name, [ t ], alloc))
+    | Tconstr ((Pid "rc" as name), [ t ], alloc) ->
         let nres, t = aux (set_behind_ptr res) t in
-        (nres, Tconstr (name, [ t ]))
-    | Tconstr ((Pid "weak_rc" as name), [ t ]) ->
+        (nres, Tconstr (name, [ t ], alloc))
+    | Tconstr ((Pid "weak_rc" as name), [ t ], alloc) ->
         let nres, t = aux (set_behind_ptr res) t in
-        (nres, Tconstr (name, [ t ]))
-    | Tconstr (n, ps) as t ->
+        (nres, Tconstr (name, [ t ], alloc))
+    | Tconstr (n, ps, alloc) as t ->
         if Path.equal n name then
           match res with
           | Ok ({ params_behind_ptr = true; _ } as res) ->
-              (Ok { res with is_recursive = true }, Tconstr (n, params))
+              (Ok { res with is_recursive = true }, Tconstr (n, params, alloc))
           | _ -> (Error "Infinite type", t)
         else
           let base_res =
@@ -464,7 +475,7 @@ let recursion_allowed (get_decl : Path.t -> type_decl) ~params name typ =
                 else (merge_rec res newres, typ))
               base_res ps
           in
-          (res, Tconstr (n, ps))
+          (res, Tconstr (n, ps, alloc))
   and decl_allowed ~sub res = function
     | Dalias typ -> aux res typ |> fst
     | Dabstract None -> res
@@ -486,3 +497,18 @@ let recursion_allowed (get_decl : Path.t -> type_decl) ~params name typ =
   | Ok ({ is_recursive = true; _ } as meta) -> Ok (meta, Some typ)
   | Ok ({ is_recursive = false; _ } as meta) -> Ok (meta, None)
   | Error _ as err -> err
+
+let rec contains_allocation t =
+  let rec aux = function
+    | [] -> false
+    | t :: tl -> if contains_allocation t then true else aux tl
+  in
+  match repr t with
+  | Tvar { contents = Link t } ->
+      (* Should be unreachable, but w/e *)
+      contains_allocation t
+  | Tvar { contents = Unbound _ } | Qvar _ -> true
+  | Tfun _ -> true
+  | Ttuple ts -> aux ts
+  | Tconstr (_, ts, contains_alloc) -> contains_alloc || aux ts
+  | Tfixed_array (_, t) -> contains_allocation t

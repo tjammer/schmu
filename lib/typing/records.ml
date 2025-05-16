@@ -64,7 +64,7 @@ module Make (C : Core) = struct
   let instantiate_record loc path env =
     let decl, path = Env.find_type loc path env in
     let params = List.map instantiate decl.params in
-    Tconstr (path, params)
+    Tconstr (path, params, decl.contains_alloc)
 
   let get_record_type env loc labelset annot =
     match annot with
@@ -113,9 +113,9 @@ module Make (C : Core) = struct
     let labelset = List.map (fun (id, _) -> snd id) labels in
     let t = get_record_type env loc labelset annot in
 
-    let (params, name, labels), labels_expr =
+    let (params, name, labels, ca), labels_expr =
       match repr t with
-      | Tconstr (path, ps) as t when not (is_builtin t) ->
+      | Tconstr (path, ps, ca) as t when not (is_builtin t) ->
           let ls =
             (match fields_of_record loc path (Some ps) env with
             | Ok labels -> labels
@@ -148,7 +148,7 @@ module Make (C : Core) = struct
             in
             List.map f labels
           in
-          ((ps, path, ls), labels_expr)
+          ((ps, path, ls, ca), labels_expr)
       | t ->
           let msg =
             "Expected a record type, not " ^ string_of_type (Env.modpath env) t
@@ -179,7 +179,7 @@ module Make (C : Core) = struct
           (is_const && (not field.mut) && const, (field.fname, expr)))
         true (labels |> Array.to_list)
     in
-    let typ = Tconstr (name, params) |> generalize in
+    let typ = Tconstr (name, params, ca) |> generalize in
     { typ; expr = Record sorted_labels; attr = { no_attr with const }; loc }
 
   and convert_record_update env loc annot record_arg
@@ -220,7 +220,7 @@ module Make (C : Core) = struct
 
     let fields =
       match repr record.typ with
-      | Tconstr (path, ps) -> get_fields loc path (Some ps) env
+      | Tconstr (path, ps, _) -> get_fields loc path (Some ps) env
       | Qvar _ | Tvar { contents = Unbound _ } -> (
           (* Take first updated field to figure out the correct record type *)
           let loc, label = List.hd items |> fst in
@@ -255,7 +255,7 @@ module Make (C : Core) = struct
     let expr = convert env expr in
     match repr expr.typ with
     (* Builtins are also constructors, but are not records *)
-    | Tconstr (path, ps) as t when not (is_builtin t) -> (
+    | Tconstr (path, ps, _) as t when not (is_builtin t) -> (
         let labels =
           match fields_of_record loc path (Some ps) env with
           | Ok labels -> labels
@@ -282,7 +282,8 @@ module Make (C : Core) = struct
               record_t expr.typ env;
             let labels =
               (match repr record_t with
-              | Tconstr (_, ps) -> fields_of_record loc typename (Some ps) env
+              | Tconstr (_, ps, _) ->
+                  fields_of_record loc typename (Some ps) env
               | _ -> failwith "Internal Error: Does this happen?")
               |> Result.get_ok
             in

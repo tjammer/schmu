@@ -119,7 +119,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Some (decl, path) -> (
         match decl.kind with
         | Dalias typ -> typ
-        | Dabstract _ | Drecord _ | Dvariant _ -> Tconstr (path, decl.params))
+        | Dabstract _ | Drecord _ | Dvariant _ ->
+            Tconstr (path, decl.params, decl.contains_alloc))
     | None ->
         raise
           (Error
@@ -130,8 +131,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   in
 
   let rec is_quantified = function
-    | Tconstr (_, []) -> None
-    | Tconstr (name, params) ->
+    | Tconstr (_, [], _) -> None
+    | Tconstr (name, params, _) ->
         let len = List.filter is_polymorphic params |> List.length in
         if len == 0 then None else Some (name, len)
     | Tfixed_array (_, t) ->
@@ -321,13 +322,17 @@ let add_type_param env ts =
     (fun env name ->
       (* Create general type *)
       let t = make_type_param () in
-      let decl = { params = []; kind = Dalias t; in_sgn = false } in
+      let contains_alloc = contains_allocation t in
+      let decl =
+        { params = []; kind = Dalias t; in_sgn = false; contains_alloc }
+      in
 
       (Env.add_type name decl env, t))
     env ts
 
 let add_self_recursion env name =
-  let decl = { params = []; kind = Dabstract None; in_sgn = false } in
+  let kind = Dabstract None and contains_alloc = true in
+  let decl = { params = []; kind; in_sgn = false; contains_alloc } in
   Env.add_type name decl env
 
 let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
@@ -377,7 +382,14 @@ let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
       params_behind_ptr = !behind_ptr;
     }
   in
-  let decl = { params; kind = Drecord (meta, labels); in_sgn } in
+  let contains_alloc =
+    Array.fold_left
+      (fun contains f -> contains || contains_allocation f.ftyp)
+      false labels
+  in
+  let decl =
+    { params; kind = Drecord (meta, labels); in_sgn; contains_alloc }
+  in
   (* Make sure that each type name only appears once per module *)
   check_type_unique ~in_sgn env loc name;
   (Env.add_type name decl env, decl)
@@ -387,7 +399,8 @@ let type_alias env loc ~in_sgn { Ast.poly_param; name } type_spec =
   let temp_env, params = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc type_spec in
 
-  let decl = { params; kind = Dalias typ; in_sgn } in
+  let contains_alloc = contains_allocation typ in
+  let decl = { params; kind = Dalias typ; in_sgn; contains_alloc } in
   (* Make sure that each type name only appears once per module *)
   check_type_unique ~in_sgn env loc name;
   (Env.add_type name decl env, decl)
@@ -398,9 +411,10 @@ let type_abstract env loc { Ast.poly_param; name } =
   check_type_unique ~in_sgn:true env loc name;
   (* Tunit because we need to pass some type *)
   (* Temporarily add polymorphic type name to env *)
-  let params = List.map (fun _ -> make_type_param ()) poly_param in
+  let params = List.map (fun _ -> make_type_param ()) poly_param
+  and contains_alloc = true in
 
-  let decl = { params; kind = Dabstract None; in_sgn = true } in
+  let decl = { params; kind = Dabstract None; in_sgn = true; contains_alloc } in
   (Env.add_type name decl env, decl)
 
 let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
@@ -493,7 +507,16 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
       params_behind_ptr = behind_ptr;
     }
   in
-  let decl = { params; kind = Dvariant (meta, ctors); in_sgn } in
+  let contains_alloc =
+    Array.fold_left
+      (fun contains c ->
+        contains
+        || match c.ctyp with Some t -> contains_allocation t | None -> false)
+      false ctors
+  in
+  let decl =
+    { params; kind = Dvariant (meta, ctors); in_sgn; contains_alloc }
+  in
   (* Make sure that each type name only appears once per module *)
   check_type_unique ~in_sgn env loc name;
   (Env.add_type name decl env, decl)
@@ -559,7 +582,7 @@ end = struct
   open Records
   open Patternmatch
 
-  let string_typ = Tconstr (Path.Pmod ("string", Path.Pid "t"), [])
+  let string_typ = Tconstr (Path.Pmod ("string", Path.Pid "t"), [], true)
 
   let mapi_with_callee_params f args callee =
     let params = match repr callee.typ with Tfun (ps, _, _) -> ps | _ -> [] in
@@ -1098,7 +1121,9 @@ end = struct
             unify (loc, msg) tint e.typ env;
             { typ = tint; expr; attr = e.attr; loc }
           with Error _ ->
-            unify (loc, msg) (Tconstr (Path.Pid "int or float", [])) e.typ env;
+            unify (loc, msg)
+              (Tconstr (Path.Pid "int or float", [], false))
+              e.typ env;
             failwith "unreachable"))
     | _ -> raise (Error (fst unop, "Custom unary operators are not supported"))
 
@@ -1499,7 +1524,8 @@ struct
           let sub, decl =
             map_decl ~mname id sub
               (* Fill a dummy decl *)
-              { params = []; in_sgn = true; kind }
+              (let contains_alloc = decl.contains_alloc in
+               { params = []; in_sgn = true; kind; contains_alloc })
           in
           (sub, Dabstract (Some Types.(decl.kind)))
       | Dalias typ ->
@@ -1676,7 +1702,7 @@ let rec convert_module env mname prog check_ret =
   (* Program must evaluate to either int or unit *)
   (if check_ret then
      match repr prog.last_type with
-     | Tconstr (Pid ("int" | "unit"), _) -> ()
+     | Tconstr (Pid ("int" | "unit"), _, _) -> ()
      | _ ->
          let msg =
            "Module must return type int or unit, not "

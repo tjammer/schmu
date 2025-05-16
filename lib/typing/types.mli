@@ -7,7 +7,10 @@ type typ =
   | Qvar of string
   | Tfun of param list * typ * fun_kind
   | Ttuple of typ list
-  | Tconstr of Path.t * typ list
+  | Tconstr of
+      Path.t
+      * typ list
+      * bool (* contains allocations in unparameterized parts *)
   | Tfixed_array of iv ref * typ
 [@@deriving show { with_path = false }, sexp]
 
@@ -32,7 +35,12 @@ and closed = {
   clcopy : bool; (* otherwise move *)
 }
 
-type type_decl = { params : typ list; kind : decl_kind; in_sgn : bool }
+type type_decl = {
+  params : typ list;
+  kind : decl_kind;
+  in_sgn : bool;
+  contains_alloc : bool;
+}
 
 and recursive = {
   is_recursive : bool;
@@ -86,6 +94,9 @@ val map_params : inst:typ list -> params:typ list -> typ Smap.t
 val map_lazy : inst:typ list -> typ Smap.t -> typ -> typ list * typ Smap.t
 val typ_of_decl : type_decl -> Path.t -> typ
 val resolve_alias : (Path.t -> (type_decl * Path.t) option) -> typ -> typ
+
+val contains_allocation : typ -> bool
+(** Polymorphic types will return true *)
 
 val recursion_allowed :
   (Path.t -> type_decl) ->

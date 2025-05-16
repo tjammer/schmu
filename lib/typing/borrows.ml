@@ -713,6 +713,8 @@ let get_closed_usage kind (touched : touched) =
   in
   Trst.{ attr = touched.tattr; on_move }
 
+let cond_move typ = if Types.contains_allocation typ then Dmove else Dnorm
+
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
      Ids on the other hand follow lexical scope *)
@@ -726,14 +728,28 @@ let rec check_expr st ac part tyex =
       let trees =
         List.fold_left
           (fun trees e ->
-            let _, trees = check_expr { st with trees } Dmove [] e in
+            let _, trees =
+              check_expr { st with trees } (cond_move e.typ) [] e
+            in
             trees)
           st.trees items
+      in
+      (Owned, trees)
+  | Const (Fixed_array es) ->
+      let trees =
+        List.fold_left
+          (fun trees e ->
+            let _, trees =
+              check_expr { st with trees } (cond_move e.typ) [] e
+            in
+            trees)
+          st.trees es
       in
       (Owned, trees)
   | Const _ -> (Owned, st.trees)
   | Var (str, mname) ->
       let id = Idst.get str mname st.ids in
+      let ac = match ac with Dmove -> cond_move tyex.typ | _ -> ac in
       let found, trees = Trst.borrow id tyex.loc st.mname ac part st.trees in
       (* Moved borrows don't return a borrow id *)
       print_endline ("found: " ^ string_of_bool found);
@@ -771,7 +787,8 @@ let rec check_expr st ac part tyex =
       let _, tmpstate, trees =
         List.fold_left
           (fun (i, tmpstate, trees) (arg, attr) ->
-            let _, trees = check_expr { st with trees } attr [] arg in
+            let ac = match attr with Dmove -> cond_move arg.typ | _ -> attr in
+            let _, trees = check_expr { st with trees } ac [] arg in
             let id = id_i i in
 
             let lmut =
@@ -797,7 +814,7 @@ let rec check_expr st ac part tyex =
       (Owned, trees)
   | Set (expr, value, _moved) ->
       print_endline "set";
-      let _, trees = check_expr st Dmove [] value in
+      let _, trees = check_expr st (cond_move value.typ) [] value in
       let _, trees = check_expr { st with trees } Dset [] expr in
       (Owned, trees)
   | Let { id; lmut; pass; rhs; cont; id_loc; _ } ->
@@ -811,7 +828,9 @@ let rec check_expr st ac part tyex =
       let trees =
         List.fold_left
           (fun trees (_, e) ->
-            let _, trees = check_expr { st with trees } Dmove [] e in
+            let _, trees =
+              check_expr { st with trees } (cond_move e.typ) [] e
+            in
             trees)
           st.trees es
       in
@@ -831,9 +850,13 @@ let rec check_expr st ac part tyex =
             (false, Borrowed (t @ f))
         | Owned, Owned -> (true, Owned)
         | Borrowed _, Owned ->
-            raise (Error (cond.loc, prefix ^ "borrowed vs owned"))
+            if contains_allocation t.typ then
+              raise (Error (cond.loc, prefix ^ "borrowed vs owned"))
+            else (true, Owned)
         | Owned, Borrowed _ ->
-            raise (Error (cond.loc, prefix ^ "owned vs borrowed"))
+            if contains_allocation f.typ then
+              raise (Error (cond.loc, prefix ^ "owned vs borrowed"))
+            else (true, Owned)
       in
       let trees = Trst.merge ttrees ftrees in
       (borrow, trees)
@@ -849,6 +872,12 @@ let rec check_expr st ac part tyex =
   | Lambda (_, abs) ->
       let touched = bids_of_touched abs.func.touched abs.func.kind st in
       (Borrowed touched, st.trees)
+  | Ctor (_, _, e) -> (
+      match e with
+      | Some e ->
+          let _, trees = check_expr st (cond_move e.typ) [] e in
+          (Owned, trees)
+      | None -> (Owned, st.trees))
   | Variant_index e ->
       let _, trees = check_expr st ac part e in
       (* Returns an int, so owned value *)
@@ -992,14 +1021,14 @@ let check_expr ~mname ~params ~touched expr =
       state params
   in
 
-  let ret, trees = check_expr state Dmove [] expr in
+  let ret, trees = check_expr state (cond_move expr.typ) [] expr in
   let trees =
     match ret with
     | Owned -> trees
     | Borrowed ids ->
         let bid = Idst.get "return" None state.ids in
         let _, trees = Trst.bind bid expr.loc false ids trees in
-        Trst.borrow bid expr.loc mname Dmove [] trees |> snd
+        Trst.borrow bid expr.loc mname (cond_move expr.typ) [] trees |> snd
   in
 
   (* Ensure no parameter has been moved *)

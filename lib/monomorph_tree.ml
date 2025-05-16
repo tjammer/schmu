@@ -178,27 +178,27 @@ let rec cln ss p t =
       let t =
         match t with
         | Types.Tvar { contents = Link t } -> cln ss p t
-        | Tconstr (Pid "int", _) -> Tint
-        | Tconstr (Pid "bool", _) -> Tbool
-        | Tconstr (Pid "unit", _) -> Tunit
-        | Tconstr (Pid "float", _) -> Tfloat
-        | Tconstr (Pid "i8", _) -> Ti8
-        | Tconstr (Pid "u8", _) -> Tu8
-        | Tconstr (Pid "i16", _) -> Ti16
-        | Tconstr (Pid "u16", _) -> Tu16
-        | Tconstr (Pid "i32", _) -> Ti32
-        | Tconstr (Pid "u32", _) -> Tu32
-        | Tconstr (Pid "f32", _) -> Tf32
+        | Tconstr (Pid "int", _, _) -> Tint
+        | Tconstr (Pid "bool", _, _) -> Tbool
+        | Tconstr (Pid "unit", _, _) -> Tunit
+        | Tconstr (Pid "float", _, _) -> Tfloat
+        | Tconstr (Pid "i8", _, _) -> Ti8
+        | Tconstr (Pid "u8", _, _) -> Tu8
+        | Tconstr (Pid "i16", _, _) -> Ti16
+        | Tconstr (Pid "u16", _, _) -> Tu16
+        | Tconstr (Pid "i32", _, _) -> Ti32
+        | Tconstr (Pid "u32", _, _) -> Tu32
+        | Tconstr (Pid "f32", _, _) -> Tf32
         | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
         | Tfun (params, ret, kind) ->
             Tfun
               ( List.map (cln_param ss p) params,
                 cln ss p ret,
                 cln_kind ss p kind )
-        | Tconstr (Pid "raw_ptr", [ t ]) -> Traw_ptr (cln ss p t)
-        | Tconstr (Pid "array", [ t ]) -> Tarray (cln ss p t)
-        | Tconstr (Pid "rc", [ t ]) -> Trc (Strong, cln ss p t)
-        | Tconstr (Pid "weak_rc", [ t ]) -> Trc (Weak, cln ss p t)
+        | Tconstr (Pid "raw_ptr", [ t ], _) -> Traw_ptr (cln ss p t)
+        | Tconstr (Pid "array", [ t ], _) -> Tarray (cln ss p t)
+        | Tconstr (Pid "rc", [ t ], _) -> Trc (Strong, cln ss p t)
+        | Tconstr (Pid "weak_rc", [ t ], _) -> Trc (Weak, cln ss p t)
         | Tfixed_array ({ contents = Unknown (i, _) | Generalized i }, t) ->
             (* That's a hack. We know the unknown number is a string of an int. This is
                due to an implementation detail in [gen_var] in inference. We need a
@@ -220,7 +220,7 @@ let rec cln ss p t =
                   (List.map (fun t -> { ftyp = cln ss p t; mut = false }) ts
                   |> Array.of_list),
                 None )
-        | Tconstr (name, ops) -> (
+        | Tconstr (name, ops, _) -> (
             let open Types in
             (* Map params to and insert correct types *)
             match Hashtbl.find_opt (decls ()) name with

@@ -321,9 +321,9 @@ let add_ctors typename ctors scope =
   in
   ctors
 
-let add_record record in_sgn ~recurs ~params ~labels env =
+let add_record record (decl : type_decl) ~recurs ~labels env =
   let scope, tl = decap_exn env in
-  let decl = { params; kind = Drecord (recurs, labels); in_sgn } in
+  let decl = { decl with kind = Drecord (recurs, labels) } in
 
   let labelset =
     Array.to_seq labels |> Seq.map (fun f -> f.fname) |> Labelset.of_seq
@@ -336,9 +336,9 @@ let add_record record in_sgn ~recurs ~params ~labels env =
   Hashtbl.add env.decl_tbl abs_name decl;
   { env with values = { scope with labels; types; labelsets } :: tl }
 
-let add_variant variant in_sgn ~recurs ~params ~ctors env =
+let add_variant variant (decl : type_decl) ~recurs ~ctors env =
   let scope, tl = decap_exn env in
-  let decl = { params; kind = Dvariant (recurs, ctors); in_sgn } in
+  let decl = { decl with kind = Dvariant (recurs, ctors) } in
 
   let abs_name = Path.append variant env.modpath in
   let ctors = add_ctors abs_name ctors scope in
@@ -744,7 +744,7 @@ let find_labelset_opt loc labels env =
             let decl, name = find_type loc name env in
             (* Construct a new type. If it has labels, it's a type
                constructor. *)
-            Some (Tconstr (name, decl.params))
+            Some (Tconstr (name, decl.params, decl.contains_alloc))
         | None -> aux tl)
   in
   aux env.values
@@ -762,7 +762,7 @@ let find_ctor_opt name env =
   aux env.values
 
 let rec make_alias_usable scope env = function
-  | Tconstr (path, _) -> (
+  | Tconstr (path, _, _) -> (
       let dummy_loc = (Lexing.dummy_pos, Lexing.dummy_pos) in
       let decl, _ = find_type dummy_loc path env in
       match Types.(decl.kind) with
@@ -780,9 +780,8 @@ let rec make_alias_usable scope env = function
       | _ -> scope)
   | _ -> scope
 
-let add_alias alias in_sgn ~params typ env =
+let add_alias alias decl typ env =
   let scope, tl = decap_exn env in
-  let decl = { params; kind = Dalias typ; in_sgn } in
 
   let scope = make_alias_usable scope env typ in
   let abs_name = Path.append alias env.modpath in
@@ -792,11 +791,9 @@ let add_alias alias in_sgn ~params typ env =
 
 let add_type ?(append_module = true) name decl env =
   match Types.(decl.kind) with
-  | Drecord (recurs, labels) ->
-      add_record name decl.in_sgn ~recurs ~params:decl.params ~labels env
-  | Dvariant (recurs, ctors) ->
-      add_variant name decl.in_sgn ~recurs ~params:decl.params ~ctors env
-  | Dalias typ -> add_alias name decl.in_sgn ~params:decl.params typ env
+  | Drecord (recurs, labels) -> add_record name decl ~recurs ~labels env
+  | Dvariant (recurs, ctors) -> add_variant name decl ~recurs ~ctors env
+  | Dalias typ -> add_alias name decl typ env
   | Dabstract _ ->
       let scope, tl = decap_exn env in
       let abs_name =

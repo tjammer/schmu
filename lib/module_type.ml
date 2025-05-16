@@ -13,7 +13,7 @@ and t = item list
 let apply_pathsub ~base ~with_ typ =
   let subst p = Path.subst_base ~base ~with_ p in
   let rec aux = function
-    | Tconstr (p, ps) -> Tconstr (subst p, List.map aux ps)
+    | Tconstr (p, ps, ca) -> Tconstr (subst p, List.map aux ps, ca)
     | Ttuple ts -> Ttuple (List.map aux ts)
     | Tfun (ps, r, kind) ->
         let ps = List.map (fun p -> { p with pt = aux p.pt }) ps in

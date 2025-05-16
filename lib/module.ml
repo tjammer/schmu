@@ -147,7 +147,7 @@ module Map_canon : Map_module.Map_tree = struct
 
   let load_type ~mname typ =
     let rec load_type = function
-      | Tconstr (name, _) -> (
+      | Tconstr (name, _, _) -> (
           match Path.rm_head name with
           | Some m when not (Path.share_base mname m) -> eagerly_load m
           | None | Some _ -> ())
@@ -241,9 +241,9 @@ module Regeneralize = struct
     | Ttuple ts ->
         let sub, ts = List.fold_left_map (map_type ~mname) sub ts in
         (sub, Ttuple ts)
-    | Tconstr (p, ps) ->
+    | Tconstr (p, ps, ca) ->
         let sub, ps = List.fold_left_map (map_type ~mname) sub ps in
-        (sub, Tconstr (p, ps))
+        (sub, Tconstr (p, ps, ca))
     | Tfixed_array (iv, t) ->
         let sub, t = map_type ~mname sub t in
         (sub, Tfixed_array (iv, t))
