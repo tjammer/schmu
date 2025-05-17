@@ -126,7 +126,7 @@ let test_func_orphan_poly () =
   test_exn
     "Expression cannot be monomorphized, it contains orphan polymorphic types"
     {|fun id(x!) { x }
-fun add_final() { id }
+fun add_final() { copy(id) }
 (id, 0)|}
 
 let test_record_clear () =
@@ -474,7 +474,7 @@ let test_variants_option_some_some () =
 
 let test_variants_option_annot () =
   test "option[option[float]]"
-    "type option['a] = None | Some('a); let a : option[float] = None; Some(a)"
+    "type option['a] = None | Some('a); {let a : option[float] = None; Some(a)}"
 
 let test_variants_option_none_arg () =
   test_exn

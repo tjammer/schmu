@@ -303,6 +303,12 @@ module Make_tree (Id : Id_t) = struct
 
     fold ~local ~foreign path false tree
 
+  module Whole_key = struct
+    type t = access
+
+    let compare l r = Stdlib.compare l r
+  end
+
   let merge (l : t) (r : t) =
     (* We don't merge the whole two trees together. Instead, we pick the most
        interesting of the two and make it the main one. 'Interesting' is picked
@@ -341,7 +347,31 @@ module Make_tree (Id : Id_t) = struct
         Tparts { rest = merge_whole l rest; parts }
     | Tparts { rest; parts }, Twhole l ->
         Tparts { rest = merge_whole rest l; parts }
-    | Tparts _, Tparts _ -> failwith "TODO parts and properly merge"
+    | Tparts l, Tparts r ->
+        let module Wholemap = Map.Make (Whole_key) in
+        let ml =
+          List.to_seq l.parts
+          |> Seq.map (fun whole -> (whole.id, whole))
+          |> Wholemap.of_seq
+        in
+        let mr =
+          List.to_seq r.parts
+          |> Seq.map (fun whole -> (whole.id, whole))
+          |> Wholemap.of_seq
+        in
+
+        let merged =
+          Wholemap.merge
+            (fun _ l r ->
+              match (l, r) with
+              | Some _, None -> l
+              | None, Some _ -> r
+              | None, None -> failwith "unreachable"
+              | Some l, Some r -> Some (merge_whole l r))
+            ml mr
+        in
+        let parts = Wholemap.to_seq merged |> Seq.map snd |> List.of_seq in
+        Tparts { rest = merge_whole l.rest r.rest; parts }
 end
 
 module Make_storage (Id : Id_t) = struct
@@ -891,7 +921,7 @@ let rec check_expr st ac part tyex =
       print_endline ("bound bid: " ^ Trst.Id.show bid);
       let trees =
         match check_expr st Dnorm [] expr with
-        | Owned, trees -> Trst.insert bid expr.loc Frozen trees
+        | Owned, trees -> Trst.insert bid expr.loc (Owned false) trees
         | Borrowed rhs_ids, trees ->
             let found, trees = Trst.bind bid expr.loc false rhs_ids trees in
             assert found;
