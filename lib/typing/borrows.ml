@@ -928,9 +928,15 @@ let rec check_expr st ac part tyex =
             trees
       in
       check_expr { st with trees; ids } ac part cont
-  | _ ->
-      (* print_endline ("none: " ^ show_typed_expr tyex); *)
-      (Owned, st.trees)
+  | Bop (_op, fst, snd) ->
+      let _, trees = check_expr st Dnorm [] fst in
+      let _, trees = check_expr { st with trees } Dnorm [] snd in
+      (Owned, trees)
+  | Unop (_op, e) ->
+      let _, trees = check_expr st Dnorm [] e in
+      (Owned, trees)
+  | Mutual_rec_decls (_, cont) -> check_expr st ac part cont
+  | Move _ -> failwith "Internal Error: Move in borrows"
 
 and check_let st ~toplevel str loc pass lmut rhs =
   print_endline (string_of_bool toplevel);
