@@ -3,6 +3,6 @@ val check_expr :
   params:(Types.param * string * Ast.loc) list ->
   touched:Typed_tree.touched list ->
   Typed_tree.typed_expr ->
-  Typed_tree.touched list
+  Typed_tree.typed_expr * Typed_tree.touched list
 
-val check_items : mname:Path.t -> Typed_tree.toplevel_item list -> unit
+val check_items : mname:Path.t -> Typed_tree.toplevel_item list -> Typed_tree.toplevel_item list

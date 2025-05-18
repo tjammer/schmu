@@ -753,30 +753,33 @@ let rec check_expr st ac part tyex =
   | Const (String _) ->
       let id = Idst.get "string literal" (Some st.mname) st.ids in
       let trees = Trst.insert_string_literal id tyex.loc Frozen st.trees in
-      (Borrowed [ (id, [], None) ], trees)
+      (tyex, Borrowed [ (id, [], None) ], trees)
   | Const (Array items) ->
-      let trees =
-        List.fold_left
+      let trees, items =
+        List.fold_left_map
           (fun trees e ->
-            let _, trees =
+            let e, _, trees =
               check_expr { st with trees } (cond_move e.typ) [] e
             in
-            trees)
+            (trees, { e with expr = Move e }))
           st.trees items
       in
-      (Owned, trees)
+      let expr = Const (Array items) in
+      ({ tyex with expr }, Owned, trees)
   | Const (Fixed_array es) ->
-      let trees =
-        List.fold_left
+      let trees, es =
+        List.fold_left_map
           (fun trees e ->
-            let _, trees =
+            let e, _, trees =
               check_expr { st with trees } (cond_move e.typ) [] e
             in
-            trees)
+
+            (trees, { e with expr = Move e }))
           st.trees es
       in
-      (Owned, trees)
-  | Const _ -> (Owned, st.trees)
+      let expr = Const (Fixed_array es) in
+      ({ tyex with expr }, Owned, trees)
+  | Const _ -> (tyex, Owned, st.trees)
   | Var (str, mname) ->
       let id = Idst.get str mname st.ids in
       let ac = match ac with Dmove -> cond_move tyex.typ | _ -> ac in
@@ -785,19 +788,25 @@ let rec check_expr st ac part tyex =
       print_endline ("found: " ^ string_of_bool found);
       if not (ac = Dmove && found) then (
         print_endline "borrowed";
-        (Borrowed [ (id, part, None) ], trees))
+        (tyex, Borrowed [ (id, part, None) ], trees))
       else (
         print_endline "owned";
-        (Owned, trees))
+        (tyex, Owned, trees))
   | App
       {
         callee = { expr = Var ("__array_get", _); _ } as callee;
         args = [ arr; idx ];
       } ->
-      let _, trees = check_expr st Dnorm [] callee in
-      let _, trees = check_expr { st with trees } (snd idx) [] (fst idx) in
+      let callee, _, trees = check_expr st Dnorm [] callee in
+      let fidx, _, trees =
+        check_expr { st with trees } (snd idx) [] (fst idx)
+      in
       print_endline ("arr get: " ^ Typed_tree.show_dattr ac);
-      check_expr { st with trees } ac (Parr (fst idx).expr :: part) (fst arr)
+      let farr, bs, trees =
+        check_expr { st with trees } ac (Parr (fst idx).expr :: part) (fst arr)
+      in
+      let expr = App { callee; args = [ (farr, snd arr); (fidx, snd idx) ] } in
+      ({ tyex with expr }, bs, trees)
   | App
       {
         callee =
@@ -805,73 +814,88 @@ let rec check_expr st ac part tyex =
           | { expr = Var ("get", Some (Pid "rc")); _ } ) as callee;
         args = [ arg ];
       } ->
-      let _, trees = check_expr st Dnorm [] callee in
-      check_expr { st with trees } ac (Prc :: part) (fst arg)
+      let callee, _, trees = check_expr st Dnorm [] callee in
+      let farg, bs, trees =
+        check_expr { st with trees } ac (Prc :: part) (fst arg)
+      in
+      let expr = App { callee; args = [ (farg, snd arg) ] } in
+      ({ tyex with expr }, bs, trees)
   | App { callee; args } ->
-      let _, trees = check_expr st Dnorm [] callee in
+      let callee, _, trees = check_expr st Dnorm [] callee in
 
       (* Create temporary bindings for each passed thing *)
       (* No kebab-case allowed for user code, no clashes *)
       let id_i i = "borrow-arg-" ^ string_of_int i in
       let var st arg i = { arg with expr = Var (id_i i, Some st.mname) } in
-      let _, tmpstate, trees =
-        List.fold_left
+      let (_, tmpstate, trees), nargs =
+        List.fold_left_map
           (fun (i, tmpstate, trees) (arg, attr) ->
             let ac = match attr with Dmove -> cond_move arg.typ | _ -> attr in
-            let _, trees = check_expr { st with trees } ac [] arg in
+            let arg, _, trees = check_expr { st with trees } ac [] arg in
+            let narg =
+              match ac with Dmove -> { arg with expr = Move arg } | _ -> arg
+            in
             let id = id_i i in
 
             let lmut =
               match attr with Dmut | Dset -> true | Dnorm | Dmove -> false
             in
-            let tmpstate =
+            let _, _, tmpstate =
               check_let tmpstate ~toplevel:false id arg.loc attr lmut arg
             in
-            (i + 1, tmpstate, trees))
+            ((i + 1, tmpstate, trees), (narg, attr)))
           (0, { st with trees }, trees)
           args
       in
       (* Borrow callee + args again *)
-      let _, tmptrees = check_expr tmpstate Dnorm [] callee in
+      let _, _, tmptrees = check_expr tmpstate Dnorm [] callee in
       let _ =
         List.fold_left
           (fun (i, trees) (arg, attr) ->
             let st = { st with trees } in
-            let _, trees = check_expr st attr [] (var st arg i) in
+            let _, _, trees = check_expr st attr [] (var st arg i) in
             (i + 1, trees))
           (0, tmptrees) args
       in
-      (Owned, trees)
-  | Set (expr, value, _moved) ->
+      let expr = App { callee; args = nargs } in
+      ({ tyex with expr }, Owned, trees)
+  | Set (expr, value, moved) ->
       print_endline "set";
-      let _, trees = check_expr st (cond_move value.typ) [] value in
-      let _, trees = check_expr { st with trees } Dset [] expr in
-      (Owned, trees)
-  | Let { id; lmut; pass; rhs; cont; id_loc; _ } ->
+      let value, _, trees = check_expr st (cond_move value.typ) [] value in
+      let expr, _, trees = check_expr { st with trees } Dset [] expr in
+      (* TODO set moved *)
+      let value = { value with expr = Move value } in
+      ({ tyex with expr = Set (expr, value, moved) }, Owned, trees)
+  | Let ({ id; lmut; pass; rhs; cont; id_loc; _ } as lt) ->
       print_endline ("let, line " ^ string_of_int (fst id_loc).pos_lnum);
-      let st = check_let st ~toplevel:false id id_loc pass lmut rhs in
-      check_expr st ac part cont
+      let rhs, pass, st =
+        check_let st ~toplevel:false id id_loc pass lmut rhs
+      in
+      let cont, bs, trees = check_expr st ac part cont in
+      let expr = Let { lt with rhs; cont; pass } in
+      ({ tyex with expr }, bs, trees)
   | Sequence (fst, snd) ->
-      let _, trees = check_expr st Dnorm [] fst in
-      check_expr { st with trees } ac part snd
+      let fst, _, trees = check_expr st Dnorm [] fst in
+      let snd, bs, trees = check_expr { st with trees } ac part snd in
+      ({ tyex with expr = Sequence (fst, snd) }, bs, trees)
   | Record es ->
-      let trees =
-        List.fold_left
-          (fun trees (_, e) ->
-            let _, trees =
+      let trees, es =
+        List.fold_left_map
+          (fun trees (s, e) ->
+            let e, _, trees =
               check_expr { st with trees } (cond_move e.typ) [] e
             in
-            trees)
+            (trees, (s, { e with expr = Move e })))
           st.trees es
       in
-      (Owned, trees)
+      ({ tyex with expr = Record es }, Owned, trees)
   | If (cond, _, t, f) ->
-      let _, trees = check_expr st Dnorm [] cond in
-      let tb, ttrees = check_expr { st with trees } ac part t in
-      let fb, ftrees = check_expr { st with trees } ac part f in
+      let cond, _, trees = check_expr st Dnorm [] cond in
+      let t, tb, ttrees = check_expr { st with trees } ac part t in
+      let f, fb, ftrees = check_expr { st with trees } ac part f in
       let prefix = "Branches have different ownership: " in
       (* We could also deal with frees right here *)
-      let _owning, borrow =
+      let owning, borrow =
         match
           (own_local_borrow ~local:tb trees, own_local_borrow ~local:fb trees)
         with
@@ -889,7 +913,8 @@ let rec check_expr st ac part tyex =
             else (true, Owned)
       in
       let trees = Trst.merge ttrees ftrees in
-      (borrow, trees)
+      let expr = If (cond, Some owning, t, f) in
+      ({ tyex with expr }, borrow, trees)
   | Field (e, _, name) ->
       (match ac with
       | Dmove when e.attr.const ->
@@ -901,17 +926,18 @@ let rec check_expr st ac part tyex =
       check_expr st ac part cont
   | Lambda (_, abs) ->
       let touched = bids_of_touched abs.func.touched abs.func.kind st in
-      (Borrowed touched, st.trees)
-  | Ctor (_, _, e) -> (
+      (tyex, Borrowed touched, st.trees)
+  | Ctor (s, i, e) -> (
       match e with
       | Some e ->
-          let _, trees = check_expr st (cond_move e.typ) [] e in
-          (Owned, trees)
-      | None -> (Owned, st.trees))
+          let e, _, trees = check_expr st (cond_move e.typ) [] e in
+          let e = { e with expr = Move e } in
+          ({ tyex with expr = Ctor (s, i, Some e) }, Owned, trees)
+      | None -> (tyex, Owned, st.trees))
   | Variant_index e ->
-      let _, trees = check_expr st ac part e in
+      let e, _, trees = check_expr st ac part e in
       (* Returns an int, so owned value *)
-      (Owned, trees)
+      ({ tyex with expr = Variant_index e }, Owned, trees)
   | Variant_data e -> check_expr st ac part e
   | Bind (name, expr, cont) ->
       (* In Let expressions, the mut attribute indicates whether the binding is
@@ -919,22 +945,24 @@ let rec check_expr st ac part tyex =
          Change it to mut = false to be consistent with read only Binds *)
       let bid, ids = Idst.insert name (Some st.mname) st.ids in
       print_endline ("bound bid: " ^ Trst.Id.show bid);
-      let trees =
+      let expr, trees =
         match check_expr st Dnorm [] expr with
-        | Owned, trees -> Trst.insert bid expr.loc (Owned false) trees
-        | Borrowed rhs_ids, trees ->
+        | expr, Owned, trees ->
+            (expr, Trst.insert bid expr.loc (Owned false) trees)
+        | expr, Borrowed rhs_ids, trees ->
             let found, trees = Trst.bind bid expr.loc false rhs_ids trees in
             assert found;
-            trees
+            (expr, trees)
       in
-      check_expr { st with trees; ids } ac part cont
-  | Bop (_op, fst, snd) ->
-      let _, trees = check_expr st Dnorm [] fst in
-      let _, trees = check_expr { st with trees } Dnorm [] snd in
-      (Owned, trees)
-  | Unop (_op, e) ->
-      let _, trees = check_expr st Dnorm [] e in
-      (Owned, trees)
+      let cont, bs, trees = check_expr { st with trees; ids } ac part cont in
+      ({ tyex with expr = Bind (name, expr, cont) }, bs, trees)
+  | Bop (op, fst, snd) ->
+      let fst, _, trees = check_expr st Dnorm [] fst in
+      let snd, _, trees = check_expr { st with trees } Dnorm [] snd in
+      ({ tyex with expr = Bop (op, fst, snd) }, Owned, trees)
+  | Unop (op, e) ->
+      let e, _, trees = check_expr st Dnorm [] e in
+      ({ tyex with expr = Unop (op, e) }, Owned, trees)
   | Mutual_rec_decls (_, cont) -> check_expr st ac part cont
   | Move _ -> failwith "Internal Error: Move in borrows"
 
@@ -944,28 +972,30 @@ and check_let st ~toplevel str loc pass lmut rhs =
   | Dmut when toplevel -> raise (Error (rhs.loc, "Cannot project at top level"))
   | Dmut when not rhs.attr.mut ->
       raise (Error (rhs.loc, "Cannot project immutable binding"))
-  (* | _ when toplevel && rhs.attr.mut -> *)
-  (*     raise (Error (rhs.loc, "Cannot borrow mutable binding at top level")) *)
   | _ -> ());
   let bid, ids = Idst.insert str (Some st.mname) st.ids in
-  let trees =
+  let rhs, pass, trees =
     match check_expr st pass [] rhs with
-    | Owned, trees ->
+    | rhs, Owned, trees ->
         (* Nothing is borrowed, we own this *)
-        Trst.insert bid loc (Owned toplevel) trees
-    | Borrowed _, trees when pass = Dmove ->
+        ( { rhs with expr = Move rhs },
+          Dmove,
+          Trst.insert bid loc (Owned toplevel) trees )
+    | rhs, Borrowed _, trees when pass = Dmove ->
         (* failwith "how?" *)
         (* Transfer ownership *)
         print_endline "transfer";
         Trst.print trees;
-        Trst.insert bid loc (Owned toplevel) trees
-    | Borrowed _, _trees when pass = Dnorm && lmut ->
+        ( { rhs with expr = Move rhs },
+          Dmove,
+          Trst.insert bid loc (Owned toplevel) trees )
+    | _, Borrowed _, _trees when pass = Dnorm && lmut ->
         let msg =
           "Specify how rhs expression is passed. Either by move '!' or mutably \
            '&'"
         in
         raise (Error (rhs.loc, msg))
-    | Borrowed ids, trees ->
+    | rhs, Borrowed ids, trees ->
         if toplevel && rhs.attr.mut then
           raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
         else
@@ -979,10 +1009,10 @@ and check_let st ~toplevel str loc pass lmut rhs =
                    ids));
         let found, trees = Trst.bind bid loc lmut ids trees in
         assert found;
-        trees
+        (rhs, pass, trees)
   in
 
-  { st with ids; trees }
+  (rhs, pass, { st with ids; trees })
 
 and bids_of_touched touched kind st =
   List.map
@@ -1003,27 +1033,28 @@ and check_abs loc name abs st =
   { st with trees; ids }
 
 let check_item st = function
-  | Tl_let { id; pass; rhs; lmut; loc; _ } ->
+  | Tl_let ({ id; pass; rhs; lmut; loc; _ } as tl) ->
       print_endline ("tl let " ^ id);
-      check_let ~toplevel:true st id loc pass lmut rhs
+      let rhs, pass, st = check_let ~toplevel:true st id loc pass lmut rhs in
+      (st, Tl_let { tl with rhs; pass })
   | Tl_expr e ->
-      let _, trees = check_expr st Dnorm [] e in
-      { st with trees }
-  | Tl_function (loc, id, _, abs) ->
+      let e, _, trees = check_expr st Dnorm [] e in
+      ({ st with trees }, Tl_expr e)
+  | Tl_function (loc, id, _, abs) as e ->
       print_endline ("tl function: " ^ id);
-      check_abs loc id abs st
+      (check_abs loc id abs st, e)
   | Tl_bind (str, e) ->
       let bid, ids = Idst.insert str (Some st.mname) st.ids in
-      let trees =
+      let e, trees =
         match check_expr st Dnorm [] e with
-        | Owned, trees -> Trst.insert bid e.loc Frozen trees
-        | Borrowed rhs_ids, trees ->
+        | e, Owned, trees -> (e, Trst.insert bid e.loc Frozen trees)
+        | e, Borrowed rhs_ids, trees ->
             let found, trees = Trst.bind bid e.loc false rhs_ids trees in
             assert found;
-            trees
+            (e, trees)
       in
-      { st with ids; trees }
-  | Tl_mutual_rec_decls _ | Tl_module _ | Tl_module_alias _ -> st
+      ({ st with ids; trees }, Tl_bind (str, e))
+  | (Tl_mutual_rec_decls _ | Tl_module _ | Tl_module_alias _) as e -> (st, e)
 
 let check_expr ~mname ~params ~touched expr =
   Trst.reset ();
@@ -1057,7 +1088,8 @@ let check_expr ~mname ~params ~touched expr =
       state params
   in
 
-  let ret, trees = check_expr state (cond_move expr.typ) [] expr in
+  let expr, ret, trees = check_expr state (cond_move expr.typ) [] expr in
+  let expr = { expr with expr = Move expr } in
   let trees =
     match ret with
     | Owned -> trees
@@ -1071,22 +1103,29 @@ let check_expr ~mname ~params ~touched expr =
   Trst.check_moves trees mname;
 
   (* Update attribute of touched *)
-  List.map
-    (fun touched ->
-      let bid = Idst.Id.(fst (Pathid.create touched.tname touched.tmname)) in
-      let tattr, tattr_loc = Trst.find_touched_attr bid trees in
-      (match tattr with
-      | Dmove ->
-          let loc = tattr_loc and name = touched.tname in
-          raise (Error (loc, "Cannot move value " ^ name ^ " from outer scope"))
-      | Dset | Dmut | Dnorm -> print_endline "no other");
-      { touched with tattr; tattr_loc = Some tattr_loc })
-    touched
+  let touched =
+    List.map
+      (fun touched ->
+        let bid = Idst.Id.(fst (Pathid.create touched.tname touched.tmname)) in
+        let tattr, tattr_loc = Trst.find_touched_attr bid trees in
+        (match tattr with
+        | Dmove ->
+            let loc = tattr_loc and name = touched.tname in
+            raise
+              (Error (loc, "Cannot move value " ^ name ^ " from outer scope"))
+        | Dset | Dmut | Dnorm -> print_endline "no other");
+        { touched with tattr; tattr_loc = Some tattr_loc })
+      touched
+  in
+  (expr, touched)
 
 let check_items ~mname items =
   Trst.reset ();
-  List.fold_left (fun st item -> check_item st item) (state_empty mname) items
-  |> fun st ->
+  List.fold_left_map
+    (fun st item -> check_item st item)
+    (state_empty mname) items
+  |> fun (st, items) ->
   (* Ensure no parameter or outer value has been moved *)
   Trst.print st.trees;
-  Trst.check_moves st.trees mname
+  Trst.check_moves st.trees mname;
+  items
