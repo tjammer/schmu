@@ -187,22 +187,23 @@ fun readall(ic&) {
 }
 
 fun lines(ic&, cont) {
-  let buf& = array/create(bufsize)
-  fun rec aux() {
+  fun rec aux(buf!) {
+    let buf& = !buf
     match readline(&ic, &buf) {
       Some(_) -> {
         let str = string/of_array(!buf)
         if cont(str) {
           &buf = string/to_array(!str)
           array/clear(&buf)
-          aux()
+          aux(buf)
         }
         else { false }
       }
       None -> false
     }
   }
-  aux()
+  let buf& = array/create(bufsize)
+  aux(buf)
 }
 
 external rewind : fun (file) -> unit
