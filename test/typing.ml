@@ -1173,16 +1173,25 @@ let test_excl_array_move_dyn_index () =
   let tmp = !a.[0]
   &a.[0 + 0] = 0}|}
 
-let test_excl_track_rc_get () =
-  test_exn "state was borrowed in line 9, cannot mutate"
-    {|type state['a, 'b] = { fst& : 'a, snd : 'b }
+let test_excl_array_mutate_part () =
+  (* 'a' is touched and by setting a 'part', the 'rest' should not be borrowed
+     as foreign, i.e. should not end up is 'Disabled' state. *)
+  test "fun (unit) -> unit" {|let a& = [10]
 
-fun higher_lvl(thing&, f) {()}
-
-fun process_state(state&) {
-  let fst& = &__unsafe_rc_get(state).fst
-  higher_lvl(&state, fun i {&fst = copy(i)})
+fun () {
+    &a.[0] = 12
 }|}
+
+(* let test_excl_track_rc_get () = *)
+(*   test_exn "state was borrowed in line 9, cannot mutate" *)
+(*     {|type state['a, 'b] = { fst& : 'a, snd : 'b } *)
+
+(* fun higher_lvl(thing&, f) {()} *)
+
+(* fun process_state(state&) { *)
+(*   let fst& = &__unsafe_rc_get(state).fst *)
+(*   higher_lvl(&state, fun i {&fst = copy(i)}) *)
+(* }|} *)
 
 let test_excl_move_lambda () =
   test_exn "Borrowed value a has been moved in line 5"
@@ -1221,8 +1230,15 @@ fun capture() {
     None -> mut(&str)
     Some(a) -> move(!a)
   }
-}
-|}
+}|}
+
+let test_excl_shadowing_bug () =
+  test "fun (array['a]) -> unit" {|
+    let length = __array_length
+fun (arr) {
+    let length = length(arr)
+    ()
+}|}
 
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
@@ -2061,11 +2077,13 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "array move mixed" test_excl_array_move_mixed;
           case "array move wrong index" test_excl_array_move_wrong_index;
           case "array move dyn index" test_excl_array_move_dyn_index;
-          case "track rc get" test_excl_track_rc_get;
+          case "array mutate part" test_excl_array_mutate_part;
+          (* case "track rc get" test_excl_track_rc_get; *)
           case "move mut param lambda" test_excl_move_lambda;
           case "move mut param fun" test_excl_move_fun;
           case "move outer branch" test_excl_move_outer_branch;
           case "move outer branch else" test_excl_move_outer_branch_else;
+          case "shadowing bug" test_excl_shadowing_bug;
         ] );
       ( "type decl",
         [

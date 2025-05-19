@@ -188,11 +188,11 @@ module Make_tree (Id : Id_t) = struct
             else
               foreign
                 ~down:(traverse correct_part contains_part [])
-                ~contains_part acc whole
+                ~contains_part ~correct_part acc whole
         | _ ->
             foreign
               ~down:(traverse correct_part contains_part [])
-              ~contains_part acc whole
+              ~contains_part ~correct_part acc whole
       else (acc, whole)
     in
 
@@ -215,7 +215,7 @@ module Make_tree (Id : Id_t) = struct
         (acc, Tparts { rest; parts })
 
   let borrow access loc mname tree =
-    let foreign ~down ~contains_part found item =
+    let foreign ~down ~contains_part ~correct_part found item =
       (match contains_part with
       | Some part -> (
           match (item.mov, access.ac) with
@@ -232,11 +232,15 @@ module Make_tree (Id : Id_t) = struct
           | (Not_moved | Reset), _ -> ())
       | None -> ());
 
-      let access =
-        match access.ac with Dmove | Dnorm -> Read | Dmut | Dset -> Write
+      let bor =
+        if correct_part then
+          let access =
+            match access.ac with Dmove | Dnorm -> Read | Dmut | Dset -> Write
+          in
+          let id = string_of_access item.bind_loc.lid mname in
+          transition_exn item.bor id item.bind_loc access Foreign loc
+        else item.bor
       in
-      let id = string_of_access item.bind_loc.lid mname in
-      let bor = transition_exn item.bor id item.bind_loc access Foreign loc in
       let found, children =
         List.fold_left_map
           (fun found tree -> down found tree)
@@ -284,7 +288,9 @@ module Make_tree (Id : Id_t) = struct
   let bind id bind_loc lmut path tree =
     (* Only bind, i.e. add the child to the bound thing. Checking if the binding
        is legal has to have happened before. *)
-    let foreign ~down:_ ~contains_part:_ found item = (found, item) in
+    let foreign ~down:_ ~contains_part:_ ~correct_part:_ found item =
+      (found, item)
+    in
     let local ~down ~ends found item =
       let found, children =
         if ends then (
@@ -692,7 +698,8 @@ module Make_ids (Id : Id_t) = struct
   let get str mname smap =
     let id = Id.Pathid.create str mname in
     match Shadowmap.find_opt id smap with
-    | None | Some 1 -> Id.fst id
+    | None -> Id.shadowed id 0
+    | Some 1 -> Id.fst id
     | Some i -> Id.shadowed id (i - 1)
 end
 
@@ -821,7 +828,7 @@ let rec check_expr st ac part tyex =
       let expr = App { callee; args = [ (farg, snd arg) ] } in
       ({ tyex with expr }, bs, trees)
   | App { callee; args } ->
-      let callee, _, trees = check_expr st Dnorm [] callee in
+      let ncallee, _, trees = check_expr st Dnorm [] callee in
 
       (* Create temporary bindings for each passed thing *)
       (* No kebab-case allowed for user code, no clashes *)
@@ -831,9 +838,9 @@ let rec check_expr st ac part tyex =
         List.fold_left_map
           (fun (i, tmpstate, trees) (arg, attr) ->
             let ac = match attr with Dmove -> cond_move arg.typ | _ -> attr in
-            let arg, _, trees = check_expr { st with trees } ac [] arg in
+            let narg, _, trees = check_expr { st with trees } ac [] arg in
             let narg =
-              match ac with Dmove -> { arg with expr = Move arg } | _ -> arg
+              match ac with Dmove -> { narg with expr = Move arg } | _ -> narg
             in
             let id = id_i i in
 
@@ -852,12 +859,12 @@ let rec check_expr st ac part tyex =
       let _ =
         List.fold_left
           (fun (i, trees) (arg, attr) ->
-            let st = { st with trees } in
+            let st = { tmpstate with trees } in
             let _, _, trees = check_expr st attr [] (var st arg i) in
             (i + 1, trees))
           (0, tmptrees) args
       in
-      let expr = App { callee; args = nargs } in
+      let expr = App { callee = ncallee; args = nargs } in
       ({ tyex with expr }, Owned, trees)
   | Set (expr, value, moved) ->
       print_endline "set";
@@ -915,15 +922,18 @@ let rec check_expr st ac part tyex =
       let trees = Trst.merge ttrees ftrees in
       let expr = If (cond, Some owning, t, f) in
       ({ tyex with expr }, borrow, trees)
-  | Field (e, _, name) ->
+  | Field (e, i, name) ->
       (match ac with
       | Dmove when e.attr.const ->
           raise (Error (tyex.loc, "Cannot move out of constant"))
       | _ -> ());
-      check_expr st ac (Pfield name :: part) e
-  | Function (name, _, abs, cont) ->
+      let e, bs, trees = check_expr st ac (Pfield name :: part) e in
+      ({ tyex with expr = Field (e, i, name) }, bs, trees)
+  | Function (name, i, abs, cont) ->
       let st = check_abs tyex.loc name abs st in
-      check_expr st ac part cont
+      let cont, bs, trees = check_expr st ac part cont in
+      let expr = Function (name, i, abs, cont) in
+      ({ tyex with expr }, bs, trees)
   | Lambda (_, abs) ->
       let touched = bids_of_touched abs.func.touched abs.func.kind st in
       (tyex, Borrowed touched, st.trees)
@@ -938,7 +948,9 @@ let rec check_expr st ac part tyex =
       let e, _, trees = check_expr st ac part e in
       (* Returns an int, so owned value *)
       ({ tyex with expr = Variant_index e }, Owned, trees)
-  | Variant_data e -> check_expr st ac part e
+  | Variant_data e ->
+      let e, bs, trees = check_expr st ac part e in
+      ({ tyex with expr = Variant_data e }, bs, trees)
   | Bind (name, expr, cont) ->
       (* In Let expressions, the mut attribute indicates whether the binding is
          mutable. In all other uses (including this one) it refers to the expression.
@@ -963,7 +975,9 @@ let rec check_expr st ac part tyex =
   | Unop (op, e) ->
       let e, _, trees = check_expr st Dnorm [] e in
       ({ tyex with expr = Unop (op, e) }, Owned, trees)
-  | Mutual_rec_decls (_, cont) -> check_expr st ac part cont
+  | Mutual_rec_decls (ds, cont) ->
+      let cont, bs, trees = check_expr st ac part cont in
+      ({ tyex with expr = Mutual_rec_decls (ds, cont) }, bs, trees)
   | Move _ -> failwith "Internal Error: Move in borrows"
 
 and check_let st ~toplevel str loc pass lmut rhs =
@@ -1107,6 +1121,7 @@ let check_expr ~mname ~params ~touched expr =
     List.map
       (fun touched ->
         let bid = Idst.Id.(fst (Pathid.create touched.tname touched.tmname)) in
+        print_endline ("touched: " ^ Trst.Id.show bid);
         let tattr, tattr_loc = Trst.find_touched_attr bid trees in
         (match tattr with
         | Dmove ->
