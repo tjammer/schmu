@@ -1254,6 +1254,13 @@ fun find (a&, i, f) {
 }
 find|}
 
+let test_excl_raw_ptr () =
+  test "unit"
+    {|fun raw_ptr(ptr) {
+    let ptr& = !ptr
+    __unsafe_ptr_get(ptr, 0)
+ }|}
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "type t = int; type t = float"
@@ -2099,6 +2106,7 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "move outer branch else" test_excl_move_outer_branch_else;
           case "shadowing bug" test_excl_shadowing_bug;
           case "variant data" test_excl_variant_data;
+          case "raw ptr" test_excl_raw_ptr;
         ] );
       ( "type decl",
         [

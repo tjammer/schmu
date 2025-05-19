@@ -77,7 +77,7 @@ and ti8 = Tconstr (Pid "i8", [], false)
 and tu16 = Tconstr (Pid "u16", [], false)
 and ti16 = Tconstr (Pid "i16", [], false)
 and tarray typ = Tconstr (Pid "array", [ typ ], true)
-and traw_ptr typ = Tconstr (Pid "raw_ptr", [ typ ], true)
+and traw_ptr typ = Tconstr (Pid "raw_ptr", [ typ ], false)
 and trc typ = Tconstr (Pid "rc", [ typ ], true)
 and tweak_rc typ = Tconstr (Pid "weak_rc", [ typ ], true)
 
@@ -510,5 +510,6 @@ let rec contains_allocation t =
   | Tvar { contents = Unbound _ } | Qvar _ -> true
   | Tfun _ -> true
   | Ttuple ts -> aux ts
+  | Tconstr (Pid "raw_ptr", _, _) -> false
   | Tconstr (_, ts, contains_alloc) -> contains_alloc || aux ts
   | Tfixed_array (_, t) -> contains_allocation t
