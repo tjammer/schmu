@@ -1184,14 +1184,14 @@ fun () {
 
 (* let test_excl_track_rc_get () = *)
 (*   test_exn "state was borrowed in line 9, cannot mutate" *)
-(*     {|type state['a, 'b] = { fst& : 'a, snd : 'b } *)
+(* {|type state['a, 'b] = { fst& : 'a, snd : 'b } *)
 
-(* fun higher_lvl(thing&, f) {()} *)
+   (* fun higher_lvl(thing&, f) {()} *)
 
-(* fun process_state(state&) { *)
-(*   let fst& = &__unsafe_rc_get(state).fst *)
-(*   higher_lvl(&state, fun i {&fst = copy(i)}) *)
-(* }|} *)
+   (* fun process_state(state&) { *)
+   (*   let fst& = &__unsafe_rc_get(state).fst *)
+   (*   higher_lvl(&state, fun i {&fst = copy(i)}) *)
+   (* }|} *)
 
 let test_excl_move_lambda () =
   test_exn "Borrowed value a has been moved in line 5"
@@ -1233,12 +1233,26 @@ fun capture() {
 }|}
 
 let test_excl_shadowing_bug () =
-  test "fun (array['a]) -> unit" {|
+  test "fun (array['a]) -> unit"
+    {|
     let length = __array_length
 fun (arr) {
     let length = length(arr)
     ()
 }|}
+
+let test_excl_variant_data () =
+  test "fun (array[option[value['a]]]&, int, fun ('a&) -> unit) -> unit"
+    {|type option['a] = None | Some('a)
+type data['a] = { data& : 'a }
+type value['a] = { value& : 'a }
+fun find (a&, i, f) {
+    match &a.[i] {
+      Some(item&) -> f(&item.value)
+      None -> ()
+   }
+}
+find|}
 
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
@@ -2084,6 +2098,7 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "move outer branch" test_excl_move_outer_branch;
           case "move outer branch else" test_excl_move_outer_branch_else;
           case "shadowing bug" test_excl_shadowing_bug;
+          case "variant data" test_excl_variant_data;
         ] );
       ( "type decl",
         [

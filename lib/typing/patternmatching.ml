@@ -952,7 +952,10 @@ module Make (C : Core) (R : Recs) = struct
     let path = [ 0 ] in
     let env, expr =
       let e = pass_mut_helper env loc pass (fun () -> convert env expr) in
-      (add_ignore (expr_name path) { (exprval env) with typ = e.typ } loc env, e)
+      ( add_ignore (expr_name path)
+          { (exprval env) with typ = e.typ; mut = e.attr.mut }
+          loc env,
+        e )
     in
 
     let ret = newvar () in
@@ -1016,20 +1019,21 @@ module Make (C : Core) (R : Recs) = struct
        [Tup.choose_next]. *)
 
     (* Magic value, see above *)
-    let expr i = make_var_expr_fn env all_loc i in
+    let expr i loc = make_var_expr_fn env loc i in
 
     let ctorenv env ctor i loc =
       match ctor with
       | Some p ->
-          let typ = (snd p).ptyp and expr = Variant_data (expr i) in
-          let data = { typ; expr; attr = no_attr; loc } in
+          let oexpr = expr i loc in
+          let typ = (snd p).ptyp and expr = Variant_data oexpr in
+          let data = { typ; expr; attr = oexpr.attr; loc } in
           let env =
             add_ignore (expr_name i)
               { (exprval env) with typ = data.typ }
               loc env
           in
           (data, env)
-      | None -> (expr i, env)
+      | None -> (expr i loc, env)
     in
 
     match cases with
@@ -1083,7 +1087,7 @@ module Make (C : Core) (R : Recs) = struct
                 rmut pass
             in
 
-            let rhs = expr path in
+            let rhs = expr path loc in
             let rhs = { rhs with attr = { rhs.attr with mut = rmut } } in
             (* If the value we pattern match on is mutable, we have to mentio this
                here in order to increase rc correctly. Otherwise, we had reference semantics*)
@@ -1112,7 +1116,7 @@ module Make (C : Core) (R : Recs) = struct
               | [] -> ifexpr
               | b ->
                   let index =
-                    let expr = Variant_index (expr path) in
+                    let expr = Variant_index (expr path loc) in
                     { typ = ti32; expr; attr = no_attr; loc }
                   in
                   let cind =
@@ -1143,7 +1147,7 @@ module Make (C : Core) (R : Recs) = struct
                     let attr = { no_attr with const = true } in
                     { typ = tint; expr = Const (Int i); attr; loc }
                   in
-                  let cmp = gen_cmp loc (expr path) cind in
+                  let cmp = gen_cmp loc (expr path loc) cind in
                   let else_ =
                     compile_matches env d.loc used_rows b ret_typ rmut pass
                   in
@@ -1166,7 +1170,7 @@ module Make (C : Core) (R : Recs) = struct
                     { typ = tu8; expr = Const (U8 c); attr; loc }
                   in
                   (* i64 and u8 equal compare call the same llvm functions *)
-                  let cmp = gen_cmp loc (expr path) cind in
+                  let cmp = gen_cmp loc (expr path loc) cind in
                   let else_ =
                     compile_matches env d.loc used_rows b ret_typ rmut pass
                   in
@@ -1198,7 +1202,7 @@ module Make (C : Core) (R : Recs) = struct
               List.fold_left
                 (fun cont { index; iftyp; name; _ } ->
                   let newcol = index :: path in
-                  let expr = Field (expr path, index, name) in
+                  let expr = Field (expr path loc, index, name) in
                   let expr = { typ = iftyp; expr; attr = no_attr; loc } in
 
                   let expr =

@@ -114,7 +114,12 @@ module Make_tree (Id : Id_t) = struct
             (fst bind_loc.loc).pos_lnum
         in
         raise (Error.Error (loc.loc, msg))
-    | Error `Frozen -> failwith "not yet frozen"
+    | Error `Frozen ->
+        let msg =
+          Format.sprintf "%s was borrowed in line %i, cannot mutate frozen" id
+            (fst bind_loc.loc).pos_lnum
+        in
+        raise (Error.Error (loc.loc, msg))
 
   let rec contains_part ~target ~other =
     match (target, other) with
@@ -216,21 +221,27 @@ module Make_tree (Id : Id_t) = struct
 
   let borrow access loc mname tree =
     let foreign ~down ~contains_part ~correct_part found item =
-      (match contains_part with
-      | Some part -> (
-          match (item.mov, access.ac) with
-          | Moved lc, _ ->
-              (* Our item has been moved *)
+      let mov =
+        match contains_part with
+        | Some part -> (
+            let rs lc =
               let access = { id = item.id.id; part } in
               let msg =
                 Format.sprintf "%s was moved in line %i, cannot use %s"
                   (str_backup item.id mname lc.lid)
                   (fst lc.loc).pos_lnum
-                  (string_of_access access mname)
+                  (str_backup access mname lc.lid)
               in
               raise (Error.Error (loc.loc, msg))
-          | (Not_moved | Reset), _ -> ())
-      | None -> ());
+            in
+            match (item.mov, access.ac) with
+            | Moved lc, (Ast.Dmove | Dmut | Dnorm) ->
+                (* Our item has been moved *)
+                rs lc
+            | Moved lc, Dset -> if correct_part then Reset else rs lc
+            | (Not_moved | Reset), _ -> item.mov)
+        | None -> item.mov
+      in
 
       let bor =
         if correct_part then
@@ -246,7 +257,7 @@ module Make_tree (Id : Id_t) = struct
           (fun found tree -> down found tree)
           found item.children
       in
-      (found, { item with bor; children })
+      (found, { item with bor; children; mov })
     in
 
     let local ~down ~ends found item =
@@ -962,7 +973,8 @@ let rec check_expr st ac part tyex =
         | expr, Owned, trees ->
             (expr, Trst.insert bid expr.loc (Owned false) trees)
         | expr, Borrowed rhs_ids, trees ->
-            let found, trees = Trst.bind bid expr.loc false rhs_ids trees in
+            let lmut = expr.attr.mut in
+            let found, trees = Trst.bind bid expr.loc lmut rhs_ids trees in
             assert found;
             (expr, trees)
       in
@@ -1061,7 +1073,7 @@ let check_item st = function
       let bid, ids = Idst.insert str (Some st.mname) st.ids in
       let e, trees =
         match check_expr st Dnorm [] e with
-        | e, Owned, trees -> (e, Trst.insert bid e.loc Frozen trees)
+        | e, Owned, trees -> (e, Trst.insert bid e.loc (Owned true) trees)
         | e, Borrowed rhs_ids, trees ->
             let found, trees = Trst.bind bid e.loc false rhs_ids trees in
             assert found;
