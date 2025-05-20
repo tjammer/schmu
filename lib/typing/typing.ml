@@ -384,7 +384,7 @@ let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
   in
   let contains_alloc =
     Array.fold_left
-      (fun contains f -> contains || contains_allocation f.ftyp)
+      (fun contains f -> contains || contains_allocation ~poly:false f.ftyp)
       false labels
   in
   let decl =
@@ -399,7 +399,7 @@ let type_alias env loc ~in_sgn { Ast.poly_param; name } type_spec =
   let temp_env, params = add_type_param env poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc type_spec in
 
-  let contains_alloc = contains_allocation typ in
+  let contains_alloc = contains_allocation ~poly:false typ in
   let decl = { params; kind = Dalias typ; in_sgn; contains_alloc } in
   (* Make sure that each type name only appears once per module *)
   check_type_unique ~in_sgn env loc name;
@@ -511,7 +511,7 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
     Array.fold_left
       (fun contains c ->
         contains
-        || match c.ctyp with Some t -> contains_allocation t | None -> false)
+        || match c.ctyp with Some t -> contains_allocation ~poly:false t | None -> false)
       false ctors
   in
   let decl =

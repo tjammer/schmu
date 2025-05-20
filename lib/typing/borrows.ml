@@ -121,21 +121,25 @@ module Make_tree (Id : Id_t) = struct
         in
         raise (Error.Error (loc.loc, msg))
 
+  type contains = Other | Super of part | Sub of part
+
+  let does_contain = function Other -> false | Super _ | Sub _ -> true
+
   let rec contains_part ~target ~other =
     match (target, other) with
     | [], _ ->
         (* Whole contains all parts *)
-        Some target
-    | _, [] -> Some target
+        Super target
+    | _, [] -> Sub target
     | Pfield t :: target, Pfield o :: other ->
-        if String.equal t o then contains_part ~target ~other else None
+        if String.equal t o then contains_part ~target ~other else Other
     | Parr t :: target, Parr o :: other ->
-        if t = o then contains_part ~target ~other else None
+        if t = o then contains_part ~target ~other else Other
     | Prc :: target, Prc :: other -> contains_part ~target ~other
     | Parr _ :: _, (Pfield _ | Prc) :: _
     | Pfield _ :: _, (Parr _ | Prc) :: _
     | Prc :: _, (Parr _ | Pfield _) :: _ ->
-        None
+        Other
 
   let rec part_distance ~target ~other =
     match (target, other) with
@@ -182,7 +186,7 @@ module Make_tree (Id : Id_t) = struct
     (* Second, we need to traverse all paths. Local borrows are only the correct
        part. *)
     let rec traverse correct_part contains_part path acc whole =
-      if Option.is_some contains_part then
+      if does_contain contains_part then
         match path with
         | p :: ids when Id.equal p whole.id.id ->
             if correct_part then
@@ -205,7 +209,7 @@ module Make_tree (Id : Id_t) = struct
     let contains item = contains_part ~target:path.part ~other:item.id.part in
     match tree with
     | Twhole item ->
-        let acc, item = traverse true (Some []) path.ids acc item in
+        let acc, item = traverse true (Super []) path.ids acc item in
         (acc, Twhole item)
     | Tparts { rest; parts } ->
         let acc, rest =
@@ -223,7 +227,7 @@ module Make_tree (Id : Id_t) = struct
     let foreign ~down ~contains_part ~correct_part found item =
       let mov =
         match contains_part with
-        | Some part -> (
+        | Super part | Sub part -> (
             let rs lc =
               let access = { id = item.id.id; part } in
               let msg =
@@ -238,9 +242,14 @@ module Make_tree (Id : Id_t) = struct
             | Moved lc, (Ast.Dmove | Dmut | Dnorm) ->
                 (* Our item has been moved *)
                 rs lc
-            | Moved lc, Dset -> if correct_part then Reset else rs lc
+            | Moved lc, Dset -> (
+                if correct_part then Reset
+                else
+                  match contains_part with
+                  | Sub _ -> rs lc
+                  | Super _ | Other -> Reset)
             | (Not_moved | Reset), _ -> item.mov)
-        | None -> item.mov
+        | Other -> item.mov
       in
 
       let bor =

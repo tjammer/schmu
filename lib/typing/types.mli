@@ -95,7 +95,7 @@ val map_lazy : inst:typ list -> typ Smap.t -> typ -> typ list * typ Smap.t
 val typ_of_decl : type_decl -> Path.t -> typ
 val resolve_alias : (Path.t -> (type_decl * Path.t) option) -> typ -> typ
 
-val contains_allocation : typ -> bool
+val contains_allocation : ?poly:bool -> typ -> bool
 (** Polymorphic types will return true *)
 
 val recursion_allowed :

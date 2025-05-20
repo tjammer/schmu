@@ -498,7 +498,7 @@ let recursion_allowed (get_decl : Path.t -> type_decl) ~params name typ =
   | Ok ({ is_recursive = false; _ } as meta) -> Ok (meta, None)
   | Error _ as err -> err
 
-let rec contains_allocation t =
+let rec contains_allocation ?(poly = true) t =
   let rec aux = function
     | [] -> false
     | t :: tl -> if contains_allocation t then true else aux tl
@@ -507,7 +507,7 @@ let rec contains_allocation t =
   | Tvar { contents = Link t } ->
       (* Should be unreachable, but w/e *)
       contains_allocation t
-  | Tvar { contents = Unbound _ } | Qvar _ -> true
+  | Tvar { contents = Unbound _ } | Qvar _ -> poly
   | Tfun _ -> true
   | Ttuple ts -> aux ts
   | Tconstr (Pid "raw_ptr", _, _) -> false

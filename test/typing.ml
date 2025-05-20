@@ -1261,6 +1261,21 @@ let test_excl_raw_ptr () =
     __unsafe_ptr_get(ptr, 0)
  }|}
 
+let test_excl_partial_move_set () =
+  test "unit"
+    {|type rr = {a : array[int], b : array[int]}
+
+let a& = {a = [], b = []}
+ignore((a.a, 0))
+&a = {a = [], b = []}
+
+fun hmm(a&) {
+  ignore((a.b, 0))
+  &a = {a = [], b = []}
+}
+hmm(&a)
+|}
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "type t = int; type t = float"
@@ -2107,6 +2122,7 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "shadowing bug" test_excl_shadowing_bug;
           case "variant data" test_excl_variant_data;
           case "raw ptr" test_excl_raw_ptr;
+          case "partial move set" test_excl_partial_move_set;
         ] );
       ( "type decl",
         [
