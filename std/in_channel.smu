@@ -182,7 +182,7 @@ fun readall(ic&) {
   let buf& = array/create(bufsize)
   match readrem(&ic, &buf) {
     Some(_) -> string/of_array(!buf)
-    None -> ""
+    None -> copy("")
   }
 }
 

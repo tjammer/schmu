@@ -780,6 +780,8 @@ let rec check_expr st ac part tyex =
   | Const (String _) ->
       let id = Idst.get "string literal" (Some st.mname) st.ids in
       let trees = Trst.insert_string_literal id tyex.loc Frozen st.trees in
+      let found, trees = Trst.borrow id tyex.loc st.mname ac [] trees in
+      assert found;
       (tyex, Borrowed [ (id, [], None) ], trees)
   | Const (Array items) ->
       let trees, items =
@@ -860,7 +862,9 @@ let rec check_expr st ac part tyex =
             let ac = match attr with Dmove -> cond_move arg.typ | _ -> attr in
             let narg, _, trees = check_expr { st with trees } ac [] arg in
             let narg =
-              match ac with Dmove -> { narg with expr = Move arg } | _ -> narg
+              match ac with
+              | Dmove -> { narg with expr = Move narg }
+              | _ -> narg
             in
             let id = id_i i in
 

@@ -2,13 +2,13 @@ type nested = {c : string, d : string}
 type n = {a : string, b : nested}
 
 fun test_nested() {
-  let a = {a = "a", b = {c = "c", d = "d"}}
+  let a = {a = copy("a"), b = {c = copy("c"), d = copy("d")}}
   ignore((a.b.c, 0))
 }
 test_nested()
 
 fun test_nested() {
-  let a = {a = "a", b = {c = "c", d = "d"}}
+  let a = {a = copy("a"), b = {c = copy("c"), d = copy("d")}}
   ignore((a.b.c, 0))
 }
 test_nested()
