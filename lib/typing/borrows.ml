@@ -1017,9 +1017,10 @@ and check_let st ~toplevel str loc pass lmut rhs =
     match check_expr st pass [] rhs with
     | rhs, Owned, trees ->
         (* Nothing is borrowed, we own this *)
-        ( { rhs with expr = Move rhs },
-          Dmove,
-          Trst.insert bid loc (Owned toplevel) trees )
+        let rhs, pass =
+          if lmut then ({ rhs with expr = Move rhs }, Dmove) else (rhs, pass)
+        in
+        (rhs, pass, Trst.insert bid loc (Owned toplevel) trees)
     | rhs, Borrowed _, trees when pass = Dmove ->
         (* failwith "how?" *)
         (* Transfer ownership *)
