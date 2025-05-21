@@ -693,16 +693,6 @@ module Make_storage (Id : Id_t) = struct
   let mem id st = Id_map.mem id st.indices
 
   let merge l r =
-    let indices =
-      Id_map.merge
-        (fun _id l r ->
-          match (l, r) with
-          | None, Some _ -> r
-          | Some _, None -> l
-          | None, None -> None
-          | Some l, Some _r -> Some l)
-        l.indices r.indices
-    in
     let trees =
       Index_map.merge
         (fun _id l r ->
@@ -713,7 +703,9 @@ module Make_storage (Id : Id_t) = struct
           | Some l, Some r -> Some (Tree.merge l r))
         l.trees r.trees
     in
-    { indices; trees }
+    { l with trees }
+
+  let update ~old nu = { old with trees = nu.trees }
 end
 
 module Make_ids (Id : Id_t) = struct
@@ -790,7 +782,7 @@ let cond_move typ = if Types.contains_allocation typ then Dmove else Dnorm
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
      Ids on the other hand follow lexical scope *)
-  print_endline (show_expr tyex.expr);
+  print_debug (show_expr tyex.expr);
   Trst.print st.trees;
   match tyex.expr with
   | Const (String _) ->
@@ -827,7 +819,7 @@ let rec check_expr st ac part tyex =
   | Const _ -> (tyex, Owned, st.trees)
   | Var (str, mname) ->
       let id = Idst.get str mname st.ids in
-      print_endline ("var " ^ Typed_tree.show_dattr ac ^ " " ^ Trst.Id.show id);
+      print_debug ("var " ^ Typed_tree.show_dattr ac ^ " " ^ Trst.Id.show id);
       let ac = match ac with Dmove -> cond_move tyex.typ | _ -> ac in
       let found, trees = Trst.borrow id tyex.loc st.mname ac part st.trees in
       (* Moved borrows don't return a borrow id *)
@@ -924,6 +916,7 @@ let rec check_expr st ac part tyex =
       ({ tyex with expr }, bs, trees)
   | Sequence (fst, snd) ->
       let fst, _, trees = check_expr st Dnorm [] fst in
+      let trees = Trst.update ~old:st.trees trees in
       let snd, bs, trees = check_expr { st with trees } ac part snd in
       ({ tyex with expr = Sequence (fst, snd) }, bs, trees)
   | Record es ->
@@ -960,7 +953,7 @@ let rec check_expr st ac part tyex =
               raise (Error (cond.loc, prefix ^ "owned vs borrowed"))
             else (true, Owned)
       in
-      let trees = Trst.merge ttrees ftrees in
+      let trees = Trst.(update ~old:st.trees (merge ttrees ftrees)) in
       let expr = If (cond, Some owning, t, f) in
       ({ tyex with expr }, borrow, trees)
   | Field (e, i, name) ->
@@ -1096,6 +1089,7 @@ let check_item st = function
       (st, Tl_let { tl with rhs; pass })
   | Tl_expr e ->
       let e, _, trees = check_expr st Dnorm [] e in
+      let trees = Trst.update ~old:st.trees trees in
       ({ st with trees }, Tl_expr e)
   | Tl_function (loc, id, _, abs) as e ->
       print_debug ("tl function: " ^ id);

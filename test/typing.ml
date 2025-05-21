@@ -293,7 +293,8 @@ let test_sequence_fail () =
   test_exn
     "Left expression in sequence must be of type unit,\n\
      expecting unit\n\
-     but found int" "fun add1(x) {x + 1}; add1(20); 1 + 1"
+     but found int"
+    "fun add1(x) {x + 1}; add1(20); 1 + 1"
 
 let test_para_instantiate () =
   test "foo[int]"
@@ -733,7 +734,8 @@ let test_pattern_decl_tuple_missing () =
   test_exn
     "Tuple pattern has unexpected type:\n\
      expecting (int, float, int)\n\
-     but found (int, float)" "let x, f = (12, 5.0, 20); f"
+     but found (int, float)"
+    "let x, f = (12, 5.0, 20); f"
 
 let test_pattern_decl_wildcard_move () =
   test "fun ('a, 'b!) -> unit" "fun func(_, _!) {()}; func"
@@ -1277,7 +1279,8 @@ hmm(&a)
 |}
 
 let test_excl_mutate_shadow () =
-  test "unit" {|type option['a] = None | Some('a)
+  test "unit"
+    {|type option['a] = None | Some('a)
 let a& = 10
 match &a {
   b& -> &b = 11
@@ -1290,6 +1293,31 @@ match &a {
   Some(b&) -> &b = 12
   None -> ()
 }|}
+
+let test_excl_regression_assert_on_insert () =
+  test "unit"
+    {|type option['a] = None | Some('a)
+external println : fun ('a) -> unit
+type tok = A | B | C(int)
+
+fun infun(tok) {
+  let delim& = None
+  (fun tok {
+    match tok { C(_) -> println("c") | _ -> () }
+    match (delim, tok) {
+      (Some(A), A) -> println("some a")
+      (Some(B), B) -> println("some b")
+      (Some(_), _) -> println("some other")
+      (None, tk) -> {
+        println("none")
+        &delim = Some(tk)
+      }
+    }
+  })(tok)
+}
+
+infun(C(0))
+|}
 
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
@@ -1522,13 +1550,15 @@ let test_functor_check_param () =
   test_exn
     "Signatures don't match for value create:\n\
      expecting fun (_) -> t[key]\n\
-     but found fun (_) -> t['a]" (check_sig_test "key")
+     but found fun (_) -> t['a]"
+    (check_sig_test "key")
 
 let test_functor_check_concrete () =
   test_exn
     "Signatures don't match for value create:\n\
      expecting fun (_) -> t[int]\n\
-     but found fun (_) -> t['a]" (check_sig_test "int")
+     but found fun (_) -> t['a]"
+    (check_sig_test "int")
 
 let test_functor_sgn_only_type () =
   test "unit"
@@ -2139,6 +2169,7 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "raw ptr" test_excl_raw_ptr;
           case "partial move set" test_excl_partial_move_set;
           case "mutate shadow" test_excl_mutate_shadow;
+          case "nameclash" test_excl_regression_assert_on_insert;
         ] );
       ( "type decl",
         [
