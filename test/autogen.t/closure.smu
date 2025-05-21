@@ -16,7 +16,7 @@ fun hmm_move() {
 let _, _ = (copy(hmm_move), 0)
 
 fun test() {
-  let a = ["hello"]
+  let a = [copy("hello")]
   fun () [a] {println(a.[0])}
 }
 

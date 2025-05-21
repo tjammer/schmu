@@ -1,6 +1,6 @@
 type t = {c : float, a : string, b : int, d : array[int]}
 type cont['a] = {a : 'a}
 
-let a = {a = {a = "lul", b = 10, c = 10.0, d = [10, 20, 30]}}
+let a = {a = {a = copy("lul"), b = 10, c = 10.0, d = [10, 20, 30]}}
 
 println(copy(a).a.a)

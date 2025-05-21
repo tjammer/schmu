@@ -1,4 +1,4 @@
-let a = Some(("thing", 0))
+let a = Some((copy("thing"), 0))
 
 match copy(a) {
   Some((t, _)) -> println(t)

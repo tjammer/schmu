@@ -1,2 +1,2 @@
-let a = ["test", "toast"]
+let a = [copy("test"), copy("toast")]
 println(copy(a).[1])
