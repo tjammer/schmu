@@ -525,6 +525,16 @@ module Make_storage (Id : Id_t) = struct
           (found, { indices; trees })
       | None -> (false, st)
     in
+
+    (* We are not allowed to touch existing bindings, so we remove every old
+       one. Due to the fact that we push trees with their id entries upward but
+       keep the shadow ids lexical, we see entries which don't belong to the
+       current scope. To remedy this, let's just remove the current bind target
+       before writing. A nicer solution would be keepeing a lexical discipline
+       for the id part of this tree storage also, but this would require
+       changing all expressions. *)
+    let st = { st with indices = Id_map.remove id st.indices } in
+
     List.fold_left
       (fun (found, st) bound ->
         let nfound, st = aux bound st in
@@ -780,6 +790,7 @@ let cond_move typ = if Types.contains_allocation typ then Dmove else Dnorm
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
      Ids on the other hand follow lexical scope *)
+  print_endline (show_expr tyex.expr);
   Trst.print st.trees;
   match tyex.expr with
   | Const (String _) ->
@@ -816,6 +827,7 @@ let rec check_expr st ac part tyex =
   | Const _ -> (tyex, Owned, st.trees)
   | Var (str, mname) ->
       let id = Idst.get str mname st.ids in
+      print_endline ("var " ^ Typed_tree.show_dattr ac ^ " " ^ Trst.Id.show id);
       let ac = match ac with Dmove -> cond_move tyex.typ | _ -> ac in
       let found, trees = Trst.borrow id tyex.loc st.mname ac part st.trees in
       (* Moved borrows don't return a borrow id *)

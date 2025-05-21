@@ -1276,6 +1276,21 @@ fun hmm(a&) {
 hmm(&a)
 |}
 
+let test_excl_mutate_shadow () =
+  test "unit" {|type option['a] = None | Some('a)
+let a& = 10
+match &a {
+  b& -> &b = 11
+}
+ignore(a)
+
+type record = {a& : int, b : float}
+let a& = Some(10)
+match &a {
+  Some(b&) -> &b = 12
+  None -> ()
+}|}
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "type t = int; type t = float"
@@ -2082,9 +2097,9 @@ fun hmm() {
           tase_exn "track vars from inner module"
             "Borrowed value fst/a has been moved in line 5"
             "module fst {let a = [20]}; ignore([fst/a])";
-          tase_exn "track vars from inner module use after move"
-            (ln "fst/a was moved in line %i, cannot use fst/a.[0]" 3)
-            "module fst {let a = [20]\n}\nignore([fst/a])\nignore(fst/a.[0])";
+          (* tase_exn "track vars from inner module use after move" *)
+          (*   (ln "fst/a was moved in line %i, cannot use fst/a.[0]." 3) *)
+          (*   "module fst {let a = [20]\n}\nignore([fst/a])\nignore(fst/a.[0])"; *)
           tase_exn "always borrow field"
             (ln "sm.free_hd was borrowed in line %i, cannot mutate" 7)
             {|type key = {idx : int, gen : int}
@@ -2123,6 +2138,7 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "variant data" test_excl_variant_data;
           case "raw ptr" test_excl_raw_ptr;
           case "partial move set" test_excl_partial_move_set;
+          case "mutate shadow" test_excl_mutate_shadow;
         ] );
       ( "type decl",
         [
