@@ -745,7 +745,65 @@ let state_empty mname = { trees = Trst.empty; ids = Idst.empty; mname }
 
 type borrow_ids =
   | Owned
-  | Borrowed of (Trst.Id.t * Trst.Tree.part * Trst.on_call option) list
+  | Borrowed of
+      (Trst.Id.t * Trst.Tree.part * (Trst.on_call option[@opaque])) list
+[@@deriving show]
+
+let was_moved bs st =
+  let open Trst in
+  match bs with
+  | Owned -> Snot_moved
+  | Borrowed [ (id, part, _) ] ->
+      let open Tree in
+      let foreign ~down ~contains_part ~correct_part:_ moved item =
+        let moved =
+          match contains_part with
+          | Super _ -> (
+              match item.mov with
+              | Moved _ ->
+                  let moved =
+                    match moved with
+                    | Snot_moved | Spartially_moved -> Spartially_moved
+                    | Smoved -> Smoved
+                  in
+                  List.fold_left
+                    (fun moved tree -> down moved tree |> fst)
+                    moved item.children
+              | _ -> moved)
+          | Sub _ -> (
+              match item.mov with
+              | Moved _ -> (
+                  match moved with
+                  | Snot_moved -> Smoved
+                  | Smoved | Spartially_moved -> Smoved)
+              | _ -> moved)
+          | Other -> moved
+        in
+        (moved, item)
+      in
+      let local ~down ~ends:_ moved item =
+        let moved =
+          match (item.mov, moved) with
+          | Moved _, _ -> Smoved
+          | _, Smoved -> Smoved
+          | _ ->
+              List.fold_left
+                (fun moved tree -> down moved tree |> fst)
+                moved item.children
+        in
+        (moved, item)
+      in
+      let indices = Id_map.find id st.indices in
+      List.fold_left
+        (fun acc idx ->
+          match acc with
+          | Smoved -> acc
+          | _ ->
+              let path = { idx.ipath with part = idx.ipath.part @ part } in
+              let tree = Index_map.find idx.index st.trees in
+              fold ~foreign ~local path acc tree |> fst)
+        Snot_moved indices
+  | Borrowed _ -> failwith "TODO multiple borrows"
 
 let own_local_borrow ~local old_tree =
   (* local borrow means it's actually owned *)
@@ -899,13 +957,13 @@ let rec check_expr st ac part tyex =
       in
       let expr = App { callee = ncallee; args = nargs } in
       ({ tyex with expr }, Owned, trees)
-  | Set (expr, value, moved) ->
+  | Set (expr, value, _) ->
       print_debug "set";
       let value, _, trees = check_expr st (cond_move value.typ) [] value in
-      let expr, _, trees = check_expr { st with trees } Dset [] expr in
-      (* TODO set moved *)
+      let expr, bs, trees = check_expr { st with trees } Dset [] expr in
       let value = { value with expr = Move value } in
-      ({ tyex with expr = Set (expr, value, moved) }, Owned, trees)
+      let was_moved = was_moved bs st.trees in
+      ({ tyex with expr = Set (expr, value, was_moved) }, Owned, trees)
   | Let ({ id; lmut; pass; rhs; cont; id_loc; _ } as lt) ->
       print_debug ("let, line " ^ string_of_int (fst id_loc).pos_lnum);
       let rhs, pass, st =
