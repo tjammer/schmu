@@ -6,4 +6,8 @@ val check_expr :
   Typed_tree.typed_expr * Typed_tree.touched list
 
 val check_items :
-  mname:Path.t -> Typed_tree.toplevel_item list -> Typed_tree.toplevel_item list
+  mname:Path.t ->
+  Ast.loc ->
+  touched:Typed_tree.touched list ->
+  Typed_tree.toplevel_item list ->
+  Typed_tree.toplevel_item list

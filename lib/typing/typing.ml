@@ -511,7 +511,10 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
     Array.fold_left
       (fun contains c ->
         contains
-        || match c.ctyp with Some t -> contains_allocation ~poly:false t | None -> false)
+        ||
+        match c.ctyp with
+        | Some t -> contains_allocation ~poly:false t
+        | None -> false)
       false ctors
   in
   let decl =
@@ -1664,7 +1667,7 @@ let let_fn_alias env loc expr =
       | _ -> Not)
   | _ -> Not
 
-let rec convert_module env mname prog check_ret =
+let rec convert_module env loc mname prog check_ret =
   (* We create a new scope so we don't warn on unused uses *)
   let env = Env.open_toplevel mname env in
 
@@ -1689,7 +1692,7 @@ let rec convert_module env mname prog check_ret =
 
   ignore touched;
   let unmutated = [] in
-  let items = Borrows.check_items ~mname prog.items in
+  let items = Borrows.check_items ~mname loc ~touched prog.items in
 
   (* let unmutated, items = *)
   (*   let get_decl = Hashtbl.find (Env.decl_tbl prog.env) in *)
@@ -1761,7 +1764,7 @@ and convert_prog env items modul =
         let lambda_id_state_bk = !lambda_id_state in
         reset lambda_id_state;
 
-        let _, moditems, newm = convert_module env mname prog true in
+        let _, moditems, newm = convert_module env loc mname prog true in
 
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
@@ -1813,7 +1816,9 @@ and convert_prog env items modul =
               (Env.add_module ~key cm env, (key, mt)))
             env params
         in
-        let _, functor_items, newm = convert_module tmpenv mname prog true in
+        let _, functor_items, newm =
+          convert_module tmpenv loc mname prog true
+        in
 
         uniq_tbl := uniq_tbl_bk;
         lambda_id_state := lambda_id_state_bk;
@@ -2112,7 +2117,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~start_loc:loc ~std prog =
     else env
   in
 
-  let externals, items, m = convert_module env mname prog check_ret in
+  let externals, items, m = convert_module env loc mname prog check_ret in
 
   (* Add polymorphic functions from useed modules *)
   let items = List.map (fun item -> (mname, item)) items in

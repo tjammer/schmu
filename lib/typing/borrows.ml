@@ -1165,20 +1165,21 @@ let check_item st = function
       ({ st with ids; trees }, Tl_bind (str, e))
   | (Tl_mutual_rec_decls _ | Tl_module _ | Tl_module_alias _) as e -> (st, e)
 
+let add_touched state loc touched =
+  List.fold_left
+    (fun st touched ->
+      let bid, ids = Idst.insert touched.tname touched.tmname st.ids in
+      assert (
+        Idst.Id.equal bid
+          Idst.Id.(fst (Pathid.create touched.tname touched.tmname)));
+      let trees = Trst.insert bid loc Reserved st.trees in
+      { st with trees; ids })
+    state touched
+
 let check_expr ~mname ~params ~touched expr =
   Trst.reset ();
 
-  let state =
-    List.fold_left
-      (fun st touched ->
-        let bid, ids = Idst.insert touched.tname touched.tmname st.ids in
-        assert (
-          Idst.Id.equal bid
-            Idst.Id.(fst (Pathid.create touched.tname touched.tmname)));
-        let trees = Trst.insert bid expr.loc Reserved st.trees in
-        { st with trees; ids })
-      (state_empty mname) touched
-  in
+  let state = add_touched (state_empty mname) expr.loc touched in
 
   let state =
     List.fold_left
@@ -1229,11 +1230,10 @@ let check_expr ~mname ~params ~touched expr =
   in
   (expr, touched)
 
-let check_items ~mname items =
+let check_items ~mname loc ~touched items =
   Trst.reset ();
-  List.fold_left_map
-    (fun st item -> check_item st item)
-    (state_empty mname) items
+  let state = add_touched (state_empty mname) loc touched in
+  List.fold_left_map (fun st item -> check_item st item) state items
   |> fun (st, items) ->
   (* Ensure no parameter or outer value has been moved *)
   Trst.print st.trees;
