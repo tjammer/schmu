@@ -817,6 +817,8 @@ let own_local_borrow ~local old_tree =
   in
   match local with Owned -> Owned | Borrowed bs -> aux bs
 
+let cond_move typ = if Types.contains_allocation typ then Dmove else Dnorm
+
 let get_closed_usage kind (touched : touched) =
   let on_move =
     match kind with
@@ -826,16 +828,16 @@ let get_closed_usage kind (touched : touched) =
         with
         | Some c ->
             if c.clcopy then Dnorm
-            else (* Move the closed variable into the closure *)
-              Dmove
+            else if c.clmut then Dmove
+            else
+              (* Move the closed variable into the closure *)
+              cond_move c.cltyp
         | None ->
             (* Touched bit not closed? Let's read it *)
             Dnorm)
     | Simple -> Dnorm
   in
   Trst.{ attr = touched.tattr; on_move }
-
-let cond_move typ = if Types.contains_allocation typ then Dmove else Dnorm
 
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
