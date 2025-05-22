@@ -7,7 +7,7 @@ Basic variant ctors
   
   basic.smu:14.5-16: warning: Unused binding wrap_option.
   
-  14 | fun wrap_option() {Some("hello")}
+  14 | fun wrap_option() {Some(copy("hello"))}
            ^^^^^^^^^^^
   
   ; ModuleID = 'context'

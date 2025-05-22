@@ -11,6 +11,6 @@ ignore(C)
 
 fun wrap_clike() { C }
 
-fun wrap_option() {Some("hello")}
+fun wrap_option() {Some(copy("hello"))}
 
 0
