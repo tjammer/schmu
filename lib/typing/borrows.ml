@@ -960,10 +960,10 @@ let rec check_expr st ac part tyex =
   | Set (expr, value, _) ->
       print_debug "set";
       let value, _, trees = check_expr st (cond_move value.typ) [] value in
-      let expr, bs, trees = check_expr { st with trees } Dset [] expr in
+      let expr, bs, rettrees = check_expr { st with trees } Dset [] expr in
       let value = { value with expr = Move value } in
-      let was_moved = was_moved bs st.trees in
-      ({ tyex with expr = Set (expr, value, was_moved) }, Owned, trees)
+      let was_moved = was_moved bs trees in
+      ({ tyex with expr = Set (expr, value, was_moved) }, Owned, rettrees)
   | Let ({ id; lmut; pass; rhs; cont; id_loc; _ } as lt) ->
       print_debug ("let, line " ^ string_of_int (fst id_loc).pos_lnum);
       let rhs, pass, st =
