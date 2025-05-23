@@ -764,7 +764,10 @@ open Error
 
 type state = { trees : Trst.t; ids : Idst.t; mname : Path.t }
 
-let state_empty mname = { trees = Trst.empty; ids = Idst.empty; mname }
+let state_empty mname loc =
+  let id = Idst.get "string literal" (Some mname) Idst.empty in
+  let trees = Trst.insert id loc Frozen Trst.empty in
+  { trees; ids = Idst.empty; mname }
 
 type borrow_ids =
   | Owned
@@ -1227,7 +1230,7 @@ let add_touched state loc touched =
 let check_expr ~mname ~params ~touched expr =
   Trst.reset ();
 
-  let state = add_touched (state_empty mname) expr.loc touched in
+  let state = add_touched (state_empty mname expr.loc) expr.loc touched in
 
   let state =
     List.fold_left
@@ -1280,7 +1283,7 @@ let check_expr ~mname ~params ~touched expr =
 
 let check_items ~mname loc ~touched items =
   Trst.reset ();
-  let state = add_touched (state_empty mname) loc touched in
+  let state = add_touched (state_empty mname loc) loc touched in
   List.fold_left_map (fun st item -> check_item st item) state items
   |> fun (st, items) ->
   (* Ensure no parameter or outer value has been moved *)
