@@ -202,7 +202,7 @@ fun lines(ic&, cont) {
       None -> false
     }
   }
-  let buf& = array/create(bufsize)
+  let buf = array/create(bufsize)
   aux(buf)
 }
 

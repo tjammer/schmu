@@ -11,6 +11,6 @@ fun remove(optarr&, index) {
     None -> None
   }
 }
-let optarr& = [Some({a = "thing"})]
+let optarr& = [Some({a = copy("thing")})]
 
 remove(&optarr, {a = 0}) |> ignore

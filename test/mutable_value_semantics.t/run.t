@@ -3800,6 +3800,11 @@ Track unmutated binding warnings across projections
   13 | fun single_binder() {
            ^^^^^^^^^^^^^
   
+  projection_warnings.smu:17.5-10: warning: Unmutated mutable binding outer.
+  
+  17 | let outer& = 10
+           ^^^^^
+  
   projection_warnings.smu:19.5-17: warning: Unused binding mutate_outer.
   
   19 | fun mutate_outer() {

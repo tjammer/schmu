@@ -783,8 +783,7 @@ end = struct
     leave_level ();
     let _, closed_vars, touched, unused = Env.close_function env in
 
-    let unmutated = [] in
-    let body, touched =
+    let unmutated, body, touched =
       let params =
         List.map (fun (d : Ast.decl) -> d.loc) params
         |> List.map2
@@ -898,8 +897,7 @@ end = struct
 
     let env, closed_vars, touched, unused = Env.close_function env in
 
-    let unmutated = [] in
-    let body, touched =
+    let unmutated, body, touched =
       let params =
         List.map (fun (d : Ast.decl) -> d.loc) params
         |> List.map2
@@ -1689,10 +1687,7 @@ let rec convert_module env loc mname prog check_ret =
   List.iter (catch_weak_vars prog.env) prog.items;
 
   let _, _, touched, unused = Env.close_toplevel prog.env in
-
-  ignore touched;
-  let unmutated = [] in
-  let items = Borrows.check_items ~mname loc ~touched prog.items in
+  let unmutated, items = Borrows.check_items ~mname loc ~touched prog.items in
 
   (* let unmutated, items = *)
   (*   let get_decl = Hashtbl.find (Env.decl_tbl prog.env) in *)
