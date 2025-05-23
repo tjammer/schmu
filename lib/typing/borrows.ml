@@ -465,10 +465,12 @@ module Make_storage (Id : Id_t) = struct
             (fun (found, trees) { ipath; index; call_attr } ->
               let ac =
                 match call_attr with
-                | Some oncall -> oncall_ac ~oncall ac
+                | Some oncall ->
+                    oncall_ac ~oncall ac
                 | None -> ac
               in
               let path = Tree.Path.{ ipath with part = ipath.part @ part } in
+              print_debug ("borrow " ^ Tree.show_access_path { ac; path });
               let nfound, tree =
                 Tree.borrow { ac; path }
                   { lid = { id; part = [] }; loc }
@@ -484,6 +486,10 @@ module Make_storage (Id : Id_t) = struct
            cause it to not be moved. *)
         insert id loc Reserved st |> borrow id loc mname ac part
 
+  let lmut_of_attr = function
+    | { attr = Ast.Dmut | Dset; _ } -> true
+    | { attr = Dnorm | Dmove; _ } -> false
+
   let bind id loc lmut bounds st =
     let bind_inner bound part attr (found, trees) { ipath; index; call_attr } =
       let loc = { Tree.lid = { id = bound; part }; loc } in
@@ -493,10 +499,13 @@ module Make_storage (Id : Id_t) = struct
         (* If there is an attribute, it's from a touched variable of a
            function. We use this to set the correct borrow state for
            this borrow. *)
-        | Some { attr = Ast.Dmut | Dset; _ } -> (true, attr)
-        | Some { attr = Dnorm | Dmove; _ } -> (false, attr)
-        | None -> (lmut, call_attr)
+        | Some attr' -> (lmut_of_attr attr', attr)
+        | None -> (
+            match call_attr with
+            | Some attr -> (lmut_of_attr attr, call_attr)
+            | None -> (lmut, call_attr))
       in
+      print_debug ("in bind use lmut: " ^ string_of_bool lmut);
       let nfound, tree =
         Tree.bind id loc lmut path (Index_map.find index trees)
       in
@@ -926,7 +935,7 @@ let rec check_expr st ac part tyex =
       let expr = App { callee; args = [ (farg, snd arg) ] } in
       ({ tyex with expr }, bs, trees)
   | App { callee; args } ->
-      let ncallee, _, trees = check_expr st Dnorm [] callee in
+      let ncallee, _, callee_trees = check_expr st Dnorm [] callee in
 
       (* Create temporary bindings for each passed thing *)
       (* No kebab-case allowed for user code, no clashes *)
@@ -951,7 +960,7 @@ let rec check_expr st ac part tyex =
               check_let tmpstate ~toplevel:false id arg.loc attr lmut arg
             in
             ((i + 1, tmpstate, trees), (narg, attr)))
-          (0, { st with trees }, trees)
+          (0, { st with trees = callee_trees }, callee_trees)
           args
       in
       (* Borrow callee + args again *)
@@ -1104,7 +1113,6 @@ and check_let st ~toplevel str loc pass lmut rhs =
         in
         (rhs, pass, Trst.insert bid loc (Owned toplevel) trees)
     | rhs, Borrowed _, trees when pass = Dmove ->
-        (* failwith "how?" *)
         (* Transfer ownership *)
         print_debug "transfer";
         Trst.print trees;

@@ -1319,6 +1319,14 @@ fun infun(tok) {
 infun(C(0))
 |}
 
+let test_excl_pass_mutating_function () =
+  test "unit"
+     {|let pr& = [0]
+fun aux() { &pr = [] }
+ignore(aux)
+ignore(aux)
+|}
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "type t = int; type t = float"
@@ -2170,6 +2178,7 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "partial move set" test_excl_partial_move_set;
           case "mutate shadow" test_excl_mutate_shadow;
           case "nameclash" test_excl_regression_assert_on_insert;
+          case "pass mutating function" test_excl_pass_mutating_function;
         ] );
       ( "type decl",
         [

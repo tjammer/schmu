@@ -104,7 +104,6 @@ and abstraction = {
 }
 
 (* TODO function data *)
-and generic_fun = { concrete : func; generic : func }
 and attr = { const : bool; global : bool; mut : bool }
 and set_move_kind = Snot_moved | Spartially_moved | Smoved
 
