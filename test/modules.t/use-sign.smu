@@ -21,3 +21,11 @@ fmt/(println(int, poly_int(20.2) |> int_of_float)) -- TODO format float
 fun use_hidden () {
   ignore(create_use_hidden())
 }
+
+{
+  -- this only works if the compiler knowns that abstract contains no
+  -- allocations
+  let abstr = create_abstr()
+  unsafe/leak(abstr)
+  ignore(abstr)
+}

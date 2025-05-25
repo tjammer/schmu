@@ -847,6 +847,7 @@ let validate_module_type env ~loc ~mname find mtype =
                         (* Since we return the impl decl kind, we have to match
                            its params *)
                         params = idecl.params;
+                        contains_alloc = idecl.contains_alloc;
                       }
                 | _ -> kind
               in

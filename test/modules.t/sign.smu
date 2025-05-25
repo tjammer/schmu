@@ -8,9 +8,9 @@ signature {
   val int : fun (int) -> unit
   val poly_int : fun ('a) -> 'a
   val create_use_hidden : fun () -> use_hidden_type
+  val create_abstr : fun () -> abstr
 }
 external ext : fun (string/cstr, int) -> unit = "printf"
-
 fun int(i : int) {
   fmt/println(fmt/int, i)
 }
@@ -30,4 +30,8 @@ type use_hidden_type = { hidden : another_hidden_type }
 
 fun create_use_hidden () {
   { hidden = { a = 12 } }
+}
+
+fun create_abstr () {
+  10
 }

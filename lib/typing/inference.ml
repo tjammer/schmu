@@ -246,7 +246,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
                 (sub, true, []) psl psr
             with Invalid_argument _ -> (sub, false, List.rev psr)
           in
-          (Tconstr (pl, List.rev revps, cal || car), sub, mtch)
+          (Tconstr (pl, List.rev revps, cal && car), sub, mtch)
       | ( Tfixed_array (({ contents = Generalized lg } as rl), lt),
           Tfixed_array (({ contents = Generalized ri } as rr), rt) )
       | ( Tfixed_array (({ contents = Unknown (lg, _) } as rl), lt),
@@ -302,8 +302,9 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
               let typ, _ = transfer_params ps typ r in
               let _, _, b = aux ~strict ~in_ps sub typ r in
               if b then
+                let ca = contains_allocation typ in
                 (* Use the abstract type here for interfaces *)
-                (l, sub, b)
+                (Tconstr (name, ps, ca), sub, b)
               else (r, sub, false)
           | None -> (r, sub, false))
       | _, _ -> (r, sub, false)
@@ -330,7 +331,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
               ([], ops) psl psr
           with Invalid_argument _ -> (List.rev psr, ops)
         in
-        (Tconstr (pl, List.rev revps, cal || car), ops)
+        (Tconstr (pl, List.rev revps, cal && car), ops)
     | Qvar _, _ -> ( match ops with t :: tl -> (t, tl) | [] -> (r, []))
     | l, _ ->
         (* If we don't enconter a Qvar, don't transfer *)
