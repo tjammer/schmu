@@ -1,6 +1,6 @@
 module Borrow = struct
-  type action = Read | Write [@@deriving show]
-  type action_location = Foreign | Local [@@deriving show]
+  type action = Read | Write
+  type action_location = Foreign | Local
 
   type borrow_state =
     | Reserved
@@ -9,7 +9,6 @@ module Borrow = struct
     | Disabled
     | Reserved_im
     | Owned of { tl : bool; mutated : bool }
-  [@@deriving show]
 
   let transition curr action action_loc =
     (* Keep location next to state to remember the location of whatever brought
@@ -61,17 +60,12 @@ module type Id_t = sig
   val shadowed : Pathid.t -> int -> t
 end
 
-let debug = false
-let print_debug s = if debug then print_endline s
-
 module Make_tree (Id : Id_t) = struct
   type part_kind = Pfield of string | Parr of Typed_tree.expr | Prc
-  [@@deriving show]
-
-  type part = part_kind list [@@deriving show]
-  type access = { id : Id.t; part : part } [@@deriving show]
-  type loc_info = { lid : access; loc : Ast.loc } [@@deriving show]
-  type mov = Not_moved | Reset | Moved of loc_info [@@deriving show]
+  type part = part_kind list
+  type access = { id : Id.t; part : part }
+  type loc_info = { lid : access; loc : Ast.loc }
+  type mov = Not_moved | Reset | Moved of loc_info
 
   let rec aux_fmt = function
     | [] -> ""
@@ -98,17 +92,16 @@ module Make_tree (Id : Id_t) = struct
   }
 
   and parts = { rest : whole; parts : whole list }
-  and t = Twhole of whole | Tparts of parts [@@deriving show]
+  and t = Twhole of whole | Tparts of parts
 
   module Path = struct
-    type t = { ids : Id.t list; part : part } [@@deriving show]
+    type t = { ids : Id.t list; part : part }
 
     let singleton id = { ids = [ id ]; part = [] }
     let append p id = { p with ids = p.ids @ [ id ] }
   end
 
-  type path = Id.t list [@@deriving show]
-  type access_path = { ac : Typed_tree.dattr; path : Path.t } [@@deriving show]
+  type access_path = { ac : Typed_tree.dattr; path : Path.t }
 
   let transition_exn bor id bind_loc acc location loc =
     match transition bor (acc, location) loc with
@@ -292,13 +285,7 @@ module Make_tree (Id : Id_t) = struct
         | Not_moved, Dset -> (Reset, Write)
         | Not_moved, Dmut -> (Not_moved, Write)
         | (Not_moved | Reset), Dnorm -> (Not_moved, Read)
-        | (Not_moved | Reset), Dmove ->
-            print_debug
-              ("moved "
-              ^ string_of_access item.id mname
-              ^ " in line "
-              ^ ((fst loc.loc).pos_lnum |> string_of_int));
-            (Moved loc, Read)
+        | (Not_moved | Reset), Dmove -> (Moved loc, Read)
       in
       let id = string_of_access item.bind_loc.lid mname in
       let bor = transition_exn item.bor id item.bind_loc access Local loc in
@@ -320,11 +307,10 @@ module Make_tree (Id : Id_t) = struct
     in
     let local ~down ~ends found item =
       let found, children =
-        if ends then (
+        if ends then
           let bor = if lmut then (Reserved, bind_loc) else (Frozen, bind_loc)
           and id = { id; part = [] } in
-          print_debug "ends";
-          (true, { bor; mov; id; bind_loc; children = [] } :: item.children))
+          (true, { bor; mov; id; bind_loc; children = [] } :: item.children)
         else
           List.fold_left_map
             (fun found tree -> down found tree)
@@ -432,7 +418,6 @@ module Make_storage (Id : Id_t) = struct
     !id
 
   let insert id bind_loc bor st =
-    print_debug ("add index: " ^ Id.show id);
     (* assert (Id_map.mem id st.indices |> not); *)
     let i = fresh () in
     let loc_info = { Tree.lid = { id; part = [] }; loc = bind_loc } in
@@ -482,7 +467,6 @@ module Make_storage (Id : Id_t) = struct
                 | None -> (ac, moved)
               in
               let path = Tree.Path.{ ipath with part = ipath.part @ part } in
-              print_debug ("borrow " ^ Tree.show_access_path { ac; path });
               let nfound, tree =
                 Tree.borrow { ac; path }
                   { lid = { id; part = [] }; loc }
@@ -519,7 +503,6 @@ module Make_storage (Id : Id_t) = struct
             | Some attr -> (lmut_of_attr attr, call_attr, Reset)
             | None -> (lmut, call_attr, Not_moved))
       in
-      print_debug ("in bind use lmut: " ^ string_of_bool lmut);
       let nfound, tree =
         Tree.bind id loc lmut mov path (Index_map.find index trees)
       in
@@ -529,8 +512,6 @@ module Make_storage (Id : Id_t) = struct
     in
 
     let add_indices id indices st_indices =
-      (* TODO dedup *)
-      print_debug ("add indices: " ^ Id.show id);
       match Id_map.find_opt id st_indices with
       | None -> Id_map.add id indices st_indices
       | Some other ->
@@ -575,53 +556,6 @@ module Make_storage (Id : Id_t) = struct
     | Some _ -> failwith "Is this not a string lateral"
     | None -> insert id bind_loc bor st
 
-  let print st =
-    if not debug then ()
-    else (
-      print_endline "******************";
-      String.concat ",\n"
-        (Id_map.to_seq st.indices
-        |> Seq.map (fun (id, inds) ->
-               Id.show id ^ ": ["
-               ^ String.concat "; "
-                   (List.map
-                      (fun { ipath = path; index; call_attr } ->
-                        let acc =
-                          match call_attr with
-                          | Some acc ->
-                              "(some " ^ Typed_tree.show_dattr acc.attr ^ ")"
-                          | None -> "none"
-                        in
-                        "(" ^ Tree.Path.show path ^ ", " ^ string_of_int index
-                        ^ ", " ^ acc ^ ")")
-                      inds.is))
-        |> List.of_seq)
-      |> print_endline;
-      let spaces i = String.make i ' ' in
-      let rec show_tree sp t =
-        let shtr t =
-          spaces sp
-          ^ Id.show Tree.(t.id.id)
-          ^ Tree.aux_fmt t.id.part ^ "= "
-          ^ show_borrow_state (fst t.bor)
-          ^ " mov: " ^ Tree.show_mov t.mov
-          |> print_endline;
-          List.iter (fun t -> show_tree (sp + 2) t) Tree.(t.children)
-        in
-        shtr t
-      in
-      Index_map.iter
-        (fun i t ->
-          print_endline ("t " ^ string_of_int i);
-          match t with
-          | Tree.Twhole t -> show_tree 2 t
-          | Tparts { rest; parts } ->
-              print_endline (spaces 2 ^ "{ rest: ");
-              show_tree 2 rest;
-              print_endline (spaces 2 ^ "parts:");
-              List.iter (fun t -> show_tree 2 t) parts)
-        st.trees)
-
   let rec part_contains_array = function
     | [] -> false
     | Tree.(Pfield _ | Prc) :: tl -> part_contains_array tl
@@ -660,7 +594,6 @@ module Make_storage (Id : Id_t) = struct
     Index_map.iter
       (fun _ -> function
         | Tree.Twhole tree -> (
-            print_debug ("check: " ^ Tree.(string_of_access tree.id mname));
             match tree.bor |> fst with
             | Owned { tl; mutated = _ } (* top level *) ->
                 (check_move ~owned:true ~tl tree.id tree.bind_loc.loc) tree
@@ -670,22 +603,16 @@ module Make_storage (Id : Id_t) = struct
         | Tparts { rest; parts } -> (
             match rest.bor |> fst with
             | Owned { tl; mutated = _ } (* top level *) ->
-                print_debug ("check: " ^ Tree.(string_of_access rest.id mname));
                 (check_move ~owned:true ~tl rest.id rest.bind_loc.loc) rest;
                 List.iter
                   (fun (tree : Tree.whole) ->
-                    print_debug
-                      ("check: " ^ Tree.(string_of_access tree.id mname));
                     (check_move ~owned:true ~tl tree.id tree.bind_loc.loc) tree)
                   parts
             | _ ->
-                print_debug ("check: " ^ Tree.(string_of_access rest.id mname));
                 (check_move ~owned:false ~tl:false rest.id rest.bind_loc.loc)
                   rest;
                 List.iter
                   (fun (tree : Tree.whole) ->
-                    print_debug
-                      ("check: " ^ Tree.(string_of_access tree.id mname));
                     (check_move ~owned:false ~tl:false tree.id tree.bind_loc.loc)
                       tree)
                   parts))
@@ -787,10 +714,9 @@ type borrow_ids =
   | Borrowed of
       (Trst.Id.t
       * Trst.Tree.part
-      * (Trst.on_call option[@opaque])
+      * Trst.on_call option
       * bool (* conditional borrow *))
       list
-[@@deriving show]
 
 let was_moved bs st =
   let open Trst in
@@ -900,8 +826,6 @@ let rec move_closure ex = function
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
      Ids on the other hand follow lexical scope *)
-  print_debug (show_expr tyex.expr);
-  Trst.print st.trees;
   match tyex.expr with
   | Const (String _) ->
       let id = Idst.get "string literal" (Some st.mname) st.ids in
@@ -937,7 +861,6 @@ let rec check_expr st ac part tyex =
   | Const _ -> (tyex, Owned, st.trees)
   | Var (str, mname) ->
       let id = Idst.get str mname st.ids in
-      print_debug ("var " ^ Typed_tree.show_dattr ac ^ " " ^ Trst.Id.show id);
       let ac = match ac with Dmove -> cond_move tyex.typ | _ -> ac in
       let found, moved, trees =
         Trst.borrow id tyex.loc st.mname ac part st.trees
@@ -946,13 +869,9 @@ let rec check_expr st ac part tyex =
       let ex = move_closure tyex moved in
 
       (* Moved borrows don't return a borrow id *)
-      print_debug ("found: " ^ string_of_bool found);
-      if not (ac = Dmove && found) then (
-        print_debug "borrowed";
-        (ex, Borrowed [ (id, part, None, false) ], trees))
-      else (
-        print_debug "owned";
-        (ex, Owned, trees))
+      if not (ac = Dmove && found) then
+        (ex, Borrowed [ (id, part, None, false) ], trees)
+      else (ex, Owned, trees)
   | App
       {
         callee =
@@ -963,7 +882,6 @@ let rec check_expr st ac part tyex =
       let fidx, _, trees =
         check_expr { st with trees } (snd idx) [] (fst idx)
       in
-      print_debug ("arr get: " ^ Typed_tree.show_dattr ac);
       let farr, bs, trees =
         check_expr { st with trees } ac (Parr (fst idx).expr :: part) (fst arr)
       in
@@ -1035,14 +953,12 @@ let rec check_expr st ac part tyex =
       let expr = App { callee = ncallee; args = nargs } in
       ({ tyex with expr }, Owned, trees)
   | Set (expr, value, _) ->
-      print_debug "set";
       let value, _, trees = check_expr st (cond_move value.typ) [] value in
       let expr, bs, rettrees = check_expr { st with trees } Dset [] expr in
       let value = { value with expr = Move value } in
       let was_moved = was_moved bs trees in
       ({ tyex with expr = Set (expr, value, was_moved) }, Owned, rettrees)
   | Let ({ id; lmut; pass; rhs; cont; id_loc; _ } as lt) ->
-      print_debug ("let, line " ^ string_of_int (fst id_loc).pos_lnum);
       let rhs, pass, st =
         check_let st ~toplevel:false id id_loc pass lmut rhs
       in
@@ -1153,7 +1069,6 @@ let rec check_expr st ac part tyex =
          mutable. In all other uses (including this one) it refers to the expression.
          Change it to mut = false to be consistent with read only Binds *)
       let bid, ids = Idst.insert name (Some st.mname) st.ids in
-      print_debug ("bound bid: " ^ Trst.Id.show bid);
       let expr, trees =
         match check_expr st Dnorm [] expr with
         | expr, Owned, trees ->
@@ -1183,7 +1098,6 @@ let rec check_expr st ac part tyex =
 
 and check_let st ~toplevel str loc pass lmut rhs =
   let tl = toplevel in
-  print_debug (string_of_bool toplevel);
   (match pass with
   | Dmut when toplevel -> raise (Error (rhs.loc, "Cannot project at top level"))
   | Dmut when not rhs.attr.mut ->
@@ -1210,8 +1124,6 @@ and check_let st ~toplevel str loc pass lmut rhs =
         (rhs, pass, Trst.insert bid loc (Owned { tl; mutated = not lmut }) trees)
     | rhs, Borrowed _, trees when pass = Dmove ->
         (* Transfer ownership *)
-        print_debug "transfer";
-        Trst.print trees;
         ( rhs,
           Dmove,
           Trst.insert bid loc (Owned { tl; mutated = not lmut }) trees )
@@ -1225,17 +1137,9 @@ and check_let st ~toplevel str loc pass lmut rhs =
         if toplevel && rhs.attr.mut then
           raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
         else
-          print_debug
-            ("let: " ^ Trst.Id.show bid ^ ": "
-            ^ String.concat ", "
-                (List.map
-                   (fun (id, part, _, _) ->
-                     "(" ^ Trst.Id.show id ^ "@" ^ Trst.Tree.show_part part
-                     ^ ")")
-                   ids));
-        let _, trees = Trst.bind bid loc lmut ids trees in
-        (* assert found; *)
-        (rhs, pass, trees)
+          let _, trees = Trst.bind bid loc lmut ids trees in
+          (* assert found; *)
+          (rhs, pass, trees)
   in
 
   let rhs =
@@ -1247,11 +1151,8 @@ and check_let st ~toplevel str loc pass lmut rhs =
 and bids_of_touched touched kind st =
   List.map
     (fun touched ->
-      print_debug ("touched: " ^ Typed_tree.show_touched touched);
       let bid = Idst.get touched.tname touched.tmname st.ids
       and usage = get_closed_usage kind touched in
-      print_debug
-        ("touched " ^ touched.tname ^ ": " ^ Typed_tree.show_dattr usage.attr);
       (bid, [] (* no part *), Some usage, false))
     touched
 
@@ -1271,16 +1172,13 @@ and check_abs loc name abs tl st =
 
 let check_item st = function
   | Tl_let ({ id; pass; rhs; lmut; loc; _ } as tl) ->
-      print_debug ("tl let " ^ id);
       let rhs, pass, st = check_let ~toplevel:true st id loc pass lmut rhs in
       (st, Tl_let { tl with rhs; pass })
   | Tl_expr e ->
       let e, _, trees = check_expr st Dnorm [] e in
       let trees = Trst.update ~old:st.trees trees in
       ({ st with trees }, Tl_expr e)
-  | Tl_function (loc, id, _, abs) as e ->
-      print_debug ("tl function: " ^ id);
-      (check_abs loc id abs true st, e)
+  | Tl_function (loc, id, _, abs) as e -> (check_abs loc id abs true st, e)
   | Tl_bind (str, e) ->
       let bid, ids = Idst.insert str (Some st.mname) st.ids in
       let e, trees =
@@ -1325,7 +1223,6 @@ let check_expr ~mname ~params ~touched expr =
           | Dmove -> Owned { tl = false; mutated = true }
         in
         let trees = Trst.insert bid loc bstate st.trees in
-        print_debug ("add param " ^ id ^ " as " ^ show_borrow_state bstate);
         { st with ids; trees })
       state params
   in
@@ -1352,14 +1249,13 @@ let check_expr ~mname ~params ~touched expr =
     List.map
       (fun touched ->
         let bid = Idst.Id.(fst (Pathid.create touched.tname touched.tmname)) in
-        print_debug ("touched: " ^ Trst.Id.show bid);
         let tattr, tattr_loc = Trst.find_touched_attr bid trees in
         (match tattr with
         | Dmove ->
             let loc = tattr_loc and name = touched.tname in
             raise
               (Error (loc, "Cannot move value " ^ name ^ " from outer scope"))
-        | Dset | Dmut | Dnorm -> print_debug "no other");
+        | Dset | Dmut | Dnorm -> ());
         { touched with tattr; tattr_loc = Some tattr_loc })
       touched
   in
@@ -1371,6 +1267,5 @@ let check_items ~mname loc ~touched items =
   List.fold_left_map (fun st item -> check_item st item) state items
   |> fun (st, items) ->
   (* Ensure no parameter or outer value has been moved *)
-  Trst.print st.trees;
   let unmutated = Trst.check_moves st.trees mname in
   (unmutated, items)
