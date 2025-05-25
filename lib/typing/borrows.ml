@@ -117,13 +117,13 @@ module Make_tree (Id : Id_t) = struct
           Format.sprintf "%s was borrowed in line %i, cannot mutate" id
             (fst bind_loc.loc).pos_lnum
         in
-        raise (Error.Error (loc.loc, msg))
+        raise (Error.Error ((snd bor).loc, msg))
     | Error `Frozen ->
         let msg =
           Format.sprintf "%s was borrowed in line %i, cannot mutate frozen" id
             (fst bind_loc.loc).pos_lnum
         in
-        raise (Error.Error (loc.loc, msg))
+        raise (Error.Error ((snd bor).loc, msg))
 
   type contains = Other | Super of part | Sub of part
 
