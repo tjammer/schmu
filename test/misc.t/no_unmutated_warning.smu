@@ -1,0 +1,6 @@
+{
+  let tmp& = unsafe/nullptr()
+  let addr& = unsafe/(addr(&tmp) |> reinterpret)
+  let data& : int = &unsafe/get(addr, 0).[0]
+  &data = 10
+}

@@ -32,7 +32,8 @@ module Borrow = struct
     | Reserved_im, (Write, Local) -> Ok (Unique, action_loc)
     | Disabled, ((Read | Write), Foreign) -> Ok (Disabled, loc)
     | Disabled, ((Read | Write), Local) -> Error `Disabled
-    | Owned t, (Write, Local) -> Ok (Owned { t with mutated = true }, loc)
+    | Owned t, (Write, (Local | Foreign)) ->
+        Ok (Owned { t with mutated = true }, loc)
     | Owned t, _ -> Ok (Owned t, loc)
 end
 
@@ -257,7 +258,9 @@ module Make_tree (Id : Id_t) = struct
       in
 
       let bor =
-        if correct_part then
+        (* Needed for tracking mutations *)
+        let is_owned = match fst item.bor with Owned _ -> true | _ -> false in
+        if correct_part || is_owned then
           let access =
             match access.ac with Dmove | Dnorm -> Read | Dmut | Dset -> Write
           in
@@ -966,6 +969,17 @@ let rec check_expr st ac part tyex =
       in
       let expr = App { callee; args = [ (farr, snd arr); (fidx, snd idx) ] } in
       ({ tyex with expr }, bs, trees)
+  | App
+      {
+        callee =
+          ( { expr = Var ("__unsafe_ptr_get", _); _ }
+          | { expr = Var ("get", Some (Path.Pid "unsafe")); _ } ) as callee;
+        args = [ arr; idx ];
+      } ->
+      let _, _, trees = check_expr st Dnorm [] callee in
+      let _, _, trees = check_expr { st with trees } (snd idx) [] (fst idx) in
+      let _, bs, trees = check_expr { st with trees } ac part (fst arr) in
+      (tyex, bs, trees)
   | App
       {
         callee =

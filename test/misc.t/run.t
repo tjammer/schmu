@@ -2353,3 +2353,6 @@ Codgen fixes for recursive types
 
   $ schmu codegen_recursive2.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./codegen_recursive2
+
+No unmutated warning on addr
+  $ schmu --check no_unmutated_warning.smu
