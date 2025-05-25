@@ -4,7 +4,7 @@ type container = {index : int, arr : array[int]}
 let x = {x = 1}
 
 -- These are freed at the end of the program
-let arr = ["hey", "young", "world"]
+let arr = [copy("hey"), copy("young"), copy("world")]
 let arr = [copy(x), {x = 2}, {x = 3}]
 
 -- Arr is only alive inside the function and should be freed there

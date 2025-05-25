@@ -2507,7 +2507,7 @@ Check allocs in fixed array
   
   fixed_array_allocs.smu:8.5-8: warning: Unmutated mutable binding arr.
   
-  8 | let arr& = #["hey", "hie"] -- correctly free as mut
+  8 | let arr& = #[copy("hey"), copy("hie")] -- correctly free as mut
           ^^^
   
 
@@ -2522,7 +2522,7 @@ Also mutable fields and 'realloc' builtin
   $ schmu --dump-llvm free_array.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_array
   free_array.smu:7.5-8: warning: Unused binding arr.
   
-  7 | let arr = ["hey", "young", "world"]
+  7 | let arr = [copy("hey"), copy("young"), copy("world")]
           ^^^
   
   free_array.smu:8.5-8: warning: Unused binding arr.

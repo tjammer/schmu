@@ -1,4 +1,4 @@
-let arr = ["hello", "world", ":)"]
+let arr = [copy("hello"), copy("world"), copy(":)")]
 println(string/concat(", ", arr))
 
 let haystack = "this haystack contains a needle"

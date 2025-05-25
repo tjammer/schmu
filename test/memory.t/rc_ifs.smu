@@ -20,7 +20,8 @@ ignore(a)
 fun test(a!) {
   let ai = [10]
   let bi = [11]
-  let _ = !(if false {[12]}
+  let _ = !(
+    if false {[12]}
     else {
       if true {bi}
       else {
@@ -28,7 +29,8 @@ fun test(a!) {
           ignore((a, 0))
           ai
         } else {[10]}
-    }})
+      }
+  })
   ()
 }
 ignore(test(![10]))

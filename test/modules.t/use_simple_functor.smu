@@ -9,4 +9,4 @@ module string {
 
 module s = simple_functor/make(string)
 
-ignore(s/create(!"this", !"other", fmt/str))
+ignore(s/create(!copy("this"), !copy("other"), fmt/str))

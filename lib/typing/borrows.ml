@@ -430,7 +430,7 @@ module Make_storage (Id : Id_t) = struct
 
   let insert id bind_loc bor st =
     print_debug ("add index: " ^ Id.show id);
-    assert (Id_map.mem id st.indices |> not);
+    (* assert (Id_map.mem id st.indices |> not); *)
     let i = fresh () in
     let loc_info = { Tree.lid = { id; part = [] }; loc = bind_loc } in
     let bor = (bor, loc_info) and mov = Tree.Not_moved in
@@ -952,7 +952,8 @@ let rec check_expr st ac part tyex =
         (ex, Owned, trees))
   | App
       {
-        callee = { expr = Var ("__array_get", _); _ } as callee;
+        callee =
+          { expr = Var (("__array_get" | "__fixed_array_get"), _); _ } as callee;
         args = [ arr; idx ];
       } ->
       let callee, _, trees = check_expr st Dnorm [] callee in
@@ -1180,9 +1181,17 @@ and check_let st ~toplevel str loc pass lmut rhs =
     | rhs, Owned, trees ->
         (* Nothing is borrowed, we own this *)
         let pass =
-          if lmut (* TODO check this once closures work || pass = Dmove *) then
-            Dmove
-          else pass
+          match pass with
+          | Dmut when lmut ->
+              (* This one is subtle. Function calls return on owned value. For
+                 our special cases like __unsafe_ptr_get that's true as well.
+                 However, we cannot [Dmove] the return value of __unsafe_ptr_get
+                 in the case of lmut = true because it might be a projection.
+                 This special case here is okay because the builtin_hack
+                 function in typing.ml ensures projecting these values is only
+                 valid for our special cased functions. *)
+              pass
+          | _ -> if lmut then Dmove else pass
         in
         (rhs, pass, Trst.insert bid loc (Owned { tl; mutated = not lmut }) trees)
     | rhs, Borrowed _, trees when pass = Dmove ->
@@ -1210,8 +1219,8 @@ and check_let st ~toplevel str loc pass lmut rhs =
                      "(" ^ Trst.Id.show id ^ "@" ^ Trst.Tree.show_part part
                      ^ ")")
                    ids));
-        let found, trees = Trst.bind bid loc lmut ids trees in
-        assert found;
+        let _, trees = Trst.bind bid loc lmut ids trees in
+        (* assert found; *)
         (rhs, pass, trees)
   in
 

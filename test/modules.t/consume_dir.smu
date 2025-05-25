@@ -16,4 +16,5 @@ fun swapped(a!, i, j) {
   swap(&a, i, j)
   a
 }
-array/iter(swapped(!["world", "hello"], 0, 1)) |> iter/iter(fun s {println(s)})
+array/iter(swapped(![copy("world"), copy("hello")], 0, 1))
+|> iter/iter(fun s {println(s)})

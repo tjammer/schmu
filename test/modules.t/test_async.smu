@@ -22,5 +22,5 @@ import async
 
   let p2& = !p2
   println("resolving second promise")
-  async/promise_resolve(&p2, "a string")
+  async/promise_resolve(&p2, copy("a string"))
 }

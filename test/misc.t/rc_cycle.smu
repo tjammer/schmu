@@ -2,7 +2,7 @@
 type any_rc['a] = Strong(rc['a]) | Weak(weak_rc['a])
 type person = { name : string, partner& : option[any_rc[person]] }
 
-let person& = rc/create({ name = "schmu", partner = None })
+let person& = rc/create({ name = copy("schmu"), partner = None })
 {
   let weak = rc/to_weak(person)
   rc/mut_with(&person, !weak, fun (p&, weak!) {

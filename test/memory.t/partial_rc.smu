@@ -5,14 +5,14 @@ fun drop_rc(str&, rc!) {
   }
 }
 
-let str& = ""
-drop_rc(&str, !rc/create(!",.p"))
+let str& = copy("")
+drop_rc(&str, !rc/create(!copy(",.p")))
 
 fun move_out() {
-  let rc = rc/create(!Some("str"))
+  let rc = rc/create(!Some(copy("str")))
   match __unsafe_rc_get(rc) {
     Some(v) -> (v, 0)
-    None -> ("", 0)
+    None -> (copy(""), 0)
   }|> ignore
 }
 

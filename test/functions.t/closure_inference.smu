@@ -53,9 +53,9 @@ fun alt(a, b) {
   }}
 }
 
-let lx = {buf = "x", curr = 0}
-let li = {buf = "ix", curr = 0}
-let l0 = {buf = "xi", curr = 0}
+let lx = {buf = copy("x"), curr = 0}
+let li = {buf = copy("ix"), curr = 0}
+let l0 = {buf = copy("xi"), curr = 0}
 
 let c = alt(char('x'), char('i'))
 

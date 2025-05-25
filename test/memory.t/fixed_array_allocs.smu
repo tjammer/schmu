@@ -4,8 +4,8 @@ fun print_snd(fmt, arr) {
   fmt/(println(fmt, arr#[1]))
 }
 print_snd(fmt/int, #[1, 3, 2])
-print_snd(fmt/str, #["hey", "hi"]) -- correctly free
-let arr& = #["hey", "hie"] -- correctly free as mut
+print_snd(fmt/str, #[copy("hey"), copy("hi")]) -- correctly free
+let arr& = #[copy("hey"), copy("hie")] -- correctly free as mut
 ignore(copy(arr))
 print_snd(fmt/str, arr)
-fmt/(println(str, #[#["oho"]]#[0]#[0]))
+fmt/(println(str, #[#[copy("oho")]]#[0]#[0]))

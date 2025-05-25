@@ -20,7 +20,7 @@ fun rec consume(storage, opt) {
   }
 }
 
-consume([Some("thing", 1), None], 0)
+consume([Some(copy("thing"), 1), None], 0)
 
 -- simpler examples without the array/get
 fun rec simpler(arg, _) {
@@ -32,7 +32,7 @@ fun rec simpler(arg, _) {
   }
 }
 
-simpler(Some("thing", 0), 0)
+simpler(Some(copy("thing"), 0), 0)
 
 -- moved version
 fun rec simpler(arg!, _!) {
@@ -44,4 +44,4 @@ fun rec simpler(arg!, _!) {
   }
 }
 
-simpler(!Some("thing", 0), !0)
+simpler(!Some(copy("thing"), 0), !0)

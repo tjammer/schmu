@@ -1,4 +1,4 @@
-let arr = [("heya", 1)]
+let arr = [(copy("heya"), 1)]
 
 fun rec consume(storage, opt) {
   match storage.[opt] {

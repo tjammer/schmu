@@ -2,19 +2,19 @@ import stbl
 use stbl
 
 fun string() {
-    println("## string")
-    let tbl& = stbl/create(2)
-    stbl/insert(&tbl, !"key", !1.1)
-    fun find_println(key) {
-        match stbl/find(tbl, key) {
-            Some(_v) -> println("1.1") -- TODO format float
-            None -> println("none")
-        }
+  println("## string")
+  let tbl& = stbl/create(2)
+  stbl/insert(&tbl, copy("key"), !1.1)
+  fun find_println(tbl, key) {
+    match stbl/find(tbl, key) {
+      Some(_v) -> println("1.1") -- TODO format float
+      None -> println("none")
     }
-    find_println("key")
-    find_println("otherkey")
-    stbl/remove(&tbl, "key")
-    find_println("key")
+  }
+  find_println(tbl, "key")
+  find_println(tbl, "otherkey")
+  stbl/remove(&tbl, "key")
+  find_println(tbl, "key")
 }
 println("# hashtbl")
 string()

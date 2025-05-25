@@ -3,4 +3,4 @@ fun hm(a!) {
   ()
 }
 
-hm(!["aoeu"])
+hm(![copy("aoeu")])

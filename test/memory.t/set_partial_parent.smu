@@ -19,5 +19,5 @@ fun testing (state&) {
   }
 }
 
-let state& = Building({fut = "", deps = []})
+let state& = Building({fut = copy(""), deps = []})
 testing(&state)

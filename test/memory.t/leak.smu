@@ -1,10 +1,10 @@
 {
-  let arr& = ["thing"]
+  let arr& = [copy("thing")]
   -- str owns the same string as arr
   let str = !array/data(arr) |> unsafe/get(0)
   -- ownership of first elem in arr is dropped
   unsafe/leak(!arr.[0])
   -- reset arr
-  &arr.[0] = ""
+  &arr.[0] = copy("")
   println(str)
 }

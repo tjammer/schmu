@@ -1,6 +1,6 @@
 fun hmm((_, (x, _))) {println(x)}
 
-hmm((10, ("hello", 20.0)))
+hmm((10, (copy("hello"), 20.0)))
 
 let i, _ = (20, 30.0)
 fmt/(println(int, i))
