@@ -793,13 +793,6 @@ end = struct
       Borrows.check_expr ~mname:(Env.modpath env) ~params ~touched body
     in
 
-    (* let unmutated, touched, body = *)
-    (*   let get_decl = Hashtbl.find (Env.decl_tbl env) in *)
-    (*   Exclusivity.check_tree get_decl params_t ~mname:(Env.modpath env) *)
-    (*     (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params) *)
-    (*     touched body *)
-    (* in *)
-
     (* Copied from function below *)
     let closed_vars =
       List.fold_left
@@ -907,12 +900,6 @@ end = struct
       Borrows.check_expr ~mname:(Env.modpath env) ~params ~touched body
     in
 
-    (* let unmutated, touched, body = *)
-    (*   let get_decl = Hashtbl.find (Env.decl_tbl env) in *)
-    (*   Exclusivity.check_tree get_decl params_t ~mname:(Env.modpath env) *)
-    (*     (List.map2 (fun n (d : Ast.decl) -> (n, d.loc)) nparams params) *)
-    (*     touched body *)
-    (* in *)
     let inline, closed_vars =
       List.fold_left
         (fun (inl, clsd) -> function
@@ -1689,10 +1676,6 @@ let rec convert_module env loc mname prog check_ret =
   let _, _, touched, unused = Env.close_toplevel prog.env in
   let unmutated, items = Borrows.check_items ~mname loc ~touched prog.items in
 
-  (* let unmutated, items = *)
-  (*   let get_decl = Hashtbl.find (Env.decl_tbl prog.env) in *)
-  (*   Exclusivity.check_items ~mname get_decl touched prog.items *)
-  (* in *)
   let has_sign = match prog.sgn with [] -> false | _ -> true in
   if (not (is_module (Env.modpath prog.env))) || has_sign then
     check_unused prog.env unused unmutated;

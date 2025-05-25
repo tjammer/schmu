@@ -293,8 +293,7 @@ let test_sequence_fail () =
   test_exn
     "Left expression in sequence must be of type unit,\n\
      expecting unit\n\
-     but found int"
-    "fun add1(x) {x + 1}; add1(20); 1 + 1"
+     but found int" "fun add1(x) {x + 1}; add1(20); 1 + 1"
 
 let test_para_instantiate () =
   test "foo[int]"
@@ -734,8 +733,7 @@ let test_pattern_decl_tuple_missing () =
   test_exn
     "Tuple pattern has unexpected type:\n\
      expecting (int, float, int)\n\
-     but found (int, float)"
-    "let x, f = (12, 5.0, 20); f"
+     but found (int, float)" "let x, f = (12, 5.0, 20); f"
 
 let test_pattern_decl_wildcard_move () =
   test "fun ('a, 'b!) -> unit" "fun func(_, _!) {()}; func"
@@ -1320,8 +1318,7 @@ infun(C(0))
 |}
 
 let test_excl_pass_mutating_function () =
-  test "unit"
-     {|let pr& = [0]
+  test "unit" {|let pr& = [0]
 fun aux() { &pr = [] }
 ignore(aux)
 ignore(aux)
@@ -1558,15 +1555,13 @@ let test_functor_check_param () =
   test_exn
     "Signatures don't match for value create:\n\
      expecting fun (_) -> t[key]\n\
-     but found fun (_) -> t['a]"
-    (check_sig_test "key")
+     but found fun (_) -> t['a]" (check_sig_test "key")
 
 let test_functor_check_concrete () =
   test_exn
     "Signatures don't match for value create:\n\
      expecting fun (_) -> t[int]\n\
-     but found fun (_) -> t['a]"
-    (check_sig_test "int")
+     but found fun (_) -> t['a]" (check_sig_test "int")
 
 let test_functor_sgn_only_type () =
   test "unit"

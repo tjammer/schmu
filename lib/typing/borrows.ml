@@ -693,11 +693,70 @@ module Make_ids (Id : Id_t) = struct
     | Some i -> Id.shadowed id (i - 1)
 end
 
+module Id = struct
+  module Pathid = struct
+    type t = string * Path.t option
+
+    let create s p = (s, p)
+
+    let show (s, p) =
+      match p with Some p -> Path.show (Path.append s p) | None -> s
+
+    let pp ppf p = Format.fprintf ppf "%s" (show p)
+
+    let equal (a, ap) (b, bp) =
+      match (ap, bp) with
+      | Some ap, Some bp -> String.equal a b && Path.equal ap bp
+      | None, None -> String.equal a b
+      | None, Some _ | Some _, None -> false
+
+    let compare (a, ap) (b, bp) =
+      match (ap, bp) with
+      | Some ap, Some bp ->
+          let c = String.compare a b in
+          if c == 0 then Path.compare ap bp else c
+      | None, None -> String.compare a b
+      | None, Some _ | Some _, None -> Stdlib.compare (a, ap) (b, bp)
+
+    let startswith ~prefix (a, _) = String.starts_with ~prefix a
+  end
+
+  type t = Fst of Pathid.t | Shadowed of Pathid.t * int [@@deriving show]
+
+  let fst id = Fst id
+  let shadowed id i = Shadowed (id, i)
+  let compare a b = Stdlib.compare a b
+
+  let equal a b =
+    match (a, b) with
+    | Fst a, Fst b -> Pathid.equal a b
+    | Shadowed (a, ai), Shadowed (b, bi) ->
+        let c = Pathid.equal a b in
+        if c then Int.equal ai bi else c
+    | Fst _, Shadowed _ | Shadowed _, Fst _ -> false
+
+  let rec fmt s ~mname ~backup part =
+    let name = match s with Fst s -> s | Shadowed (s, _) -> s in
+    let f (name, p) =
+      match p with
+      | Some p -> Path.(rm_name mname (append name p) |> show)
+      | None -> name
+    in
+    match backup with
+    | Some (id, bkpart) ->
+        if Pathid.startswith ~prefix:"__expr" name then
+          fmt id ~mname ~backup:None bkpart
+        else f name ^ part
+    | None -> f name ^ part
+
+  let only_id = function Fst (id, _) -> id | Shadowed ((id, _), _) -> id
+end
+
 (* Tree storage *)
-module Trst = Make_storage (Exclusivity.Id)
+module Trst = Make_storage (Id)
 
 (* Id storage *)
-module Idst = Make_ids (Exclusivity.Id)
+module Idst = Make_ids (Id)
 open Types
 open Typed_tree
 open Error
