@@ -10,11 +10,11 @@ module type S = sig
     Llvm_types.param ->
     llvar ->
     Monomorph_tree.func_name ->
-    (string * int) list ->
+    (string * Malloc_types.Mod_id.t) list ->
     param list ->
     int ->
     Monomorph_tree.recurs ->
-    (int, llvar) Hashtbl.t ->
+    (Malloc_types.Mod_id.t, llvar) Hashtbl.t ->
     llvar Vars.t * rec_block option
 
   val llval_of_size : int -> Llvm.llvalue

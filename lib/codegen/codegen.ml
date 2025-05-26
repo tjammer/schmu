@@ -1649,7 +1649,8 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
                 ret = Tint;
                 kind = Simple;
               };
-            pnames = [ ("__argc", -1); ("__argv", -1) ];
+            pnames =
+              Malloc_types.Mod_id.[ ("__argc", whatever); ("__argv", whatever) ];
             body;
           };
         monomorphized = false;

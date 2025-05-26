@@ -25,7 +25,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     | Forward_decl of string * typ * upward
     | Mutual_rec of string * typ * upward
     | Builtin of Builtin.t
-    | Inline of (string * int) list * typ * monod_tree
+    | Inline of (string * Malloc_types.Mod_id.t) list * typ * monod_tree
     | No_function
 
   type alloc = Value of alloca | Two_values of alloc * alloc | No_value

@@ -1,3 +1,13 @@
+(* TODO rename once the other malloc types aren't used anymore *)
+module Mod_id = struct
+  type t = { path : Path.t; id : int } [@@deriving show]
+
+  let equal a b = Int.equal a.id b.id && Path.equal a.path b.path
+  let compare = Stdlib.compare
+  let hash = Hashtbl.hash
+  let whatever = { path = Path.Pid "whatever"; id = -1 }
+end
+
 module Mpath = struct
   type t = int list [@@deriving show]
 
@@ -21,15 +31,15 @@ end = struct
 end
 
 and Mid : sig
-  type t = { mid : int; typ : Cleaned_types.typ; parent : Malloc.t option }
+  type t = { mid : Mod_id.t; typ : Cleaned_types.typ; parent : Malloc.t option }
   [@@deriving show]
 
   val compare : t -> t -> int
 end = struct
-  type t = { mid : int; typ : Cleaned_types.typ; parent : Malloc.t option }
+  type t = { mid : Mod_id.t; typ : Cleaned_types.typ; parent : Malloc.t option }
   [@@deriving show]
 
-  let compare a b = Int.compare a.mid b.mid
+  let compare a b = Mod_id.compare a.mid b.mid
 end
 
 let rec get_parent = function
@@ -79,7 +89,7 @@ let pop_index_pset pset index =
   else if Pset.is_empty popped then Excl
   else Followup popped
 
-type malloc_id = { id : int; mtyp : Cleaned_types.typ; paths : pset }
+type malloc_id = { id : Mod_id.t; mtyp : Cleaned_types.typ; paths : pset }
 [@@deriving show]
 
 let () = ignore pp_malloc_id

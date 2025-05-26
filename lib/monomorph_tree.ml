@@ -28,7 +28,7 @@ module Mtree = struct
     | Mseq of (monod_tree * monod_tree)
     | Mctor of (string * int * monod_tree option) * alloca * malloc_list
     | Mvar_index of monod_tree
-    | Mvar_data of monod_tree * int option
+    | Mvar_data of monod_tree * Malloc_types.Mod_id.t option
     | Mfree_after of monod_tree * free_list
   [@@deriving show]
 
@@ -41,15 +41,15 @@ module Mtree = struct
     | I32 of int
     | F32 of float
     | String of string
-    | Array of monod_tree list * alloca * int
-    | Fixed_array of monod_tree list * alloca * int list
+    | Array of monod_tree list * alloca * Malloc_types.Mod_id.t
+    | Fixed_array of monod_tree list * alloca * Malloc_types.Mod_id.t list
     | Unit
 
   and func = { params : param list; ret : typ; kind : fun_kind }
 
   and abstraction = {
     func : func;
-    pnames : (string * int) list;
+    pnames : (string * Malloc_types.Mod_id.t) list;
     body : monod_tree;
   }
 
@@ -59,7 +59,7 @@ module Mtree = struct
     | Default
     | Recursive of { nonmono : string; call : string }
     | Builtin of Builtin.t * func
-    | Inline of (string * int) list * monod_tree
+    | Inline of (string * Malloc_types.Mod_id.t) list * monod_tree
 
   and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
 
@@ -77,7 +77,7 @@ module Mtree = struct
 
   and ifexpr = {
     cond : monod_tree;
-    owning : int option;
+    owning : Malloc_types.Mod_id.t option;
     e1 : monod_tree;
     e2 : monod_tree;
   }
@@ -92,7 +92,7 @@ module Mtree = struct
   and global_name = string option
   and fmt = Fstr of string | Fexpr of monod_tree
   and copy_kind = Cglobal of string | Cnormal of bool
-  and malloc_list = int list
+  and malloc_list = Malloc_types.Mod_id.t list
   and free_list = Except of malloc_id list | Only of malloc_id list
   and let_kind = Lowned | Lborrow
   and const_kind = Const | Cnot (* | Constexpr *)
@@ -392,9 +392,14 @@ let rec set_alloca p = function
       set_alloca p b
   | Value _ | No_value -> ()
 
-let mb_malloc parent ids typ =
+let create_mid p =
+  let id = new_id malloc_id in
+  Mod_id.{ path = p.mname; id }
+
+let mb_malloc parent path ids typ =
   if contains_allocation typ then
     let mid = new_id malloc_id in
+    let mid = Mod_id.{ path; id = mid } in
     let id = Malloc.Single { mid; typ; parent } in
     let mallocs = Mallocs.add id ids in
     (Some mid, id, mallocs)
@@ -628,7 +633,7 @@ and morph_array mk p a typ =
   let p, a = List.fold_left_map f p a in
   let p = leave_level p in
   let alloca = ref (request p) in
-  let mid = new_id malloc_id in
+  let mid = create_mid p in
   let id = { Mid.mid; typ; parent = None } in
   let mallocs = Mallocs.add (Single id) p.mallocs in
 
@@ -650,7 +655,7 @@ and morph_fixed_array mk p a typ =
   let p, a = List.fold_left_map f p a in
   let p = leave_level p in
 
-  let _, malloc, mallocs = mb_malloc None p.mallocs typ in
+  let _, malloc, mallocs = mb_malloc None p.mname p.mallocs typ in
   let ms = m_to_list malloc in
 
   let alloca = ref (request p) in
@@ -803,7 +808,7 @@ and morph_if mk p cond owning e1 e2 =
     in
 
     if owning && contains_allocation e1.typ then
-      let mid = new_id malloc_id in
+      let mid = create_mid p in
       let id = { Mid.mid; typ = e1.typ; parent = None } in
       let mallocs = Mallocs.add (Single id) mallocs in
       let mallocs =
@@ -842,7 +847,7 @@ and prep_let p id uniq e lmut pass toplvl =
     | Dmove ->
         (* Propagate parent through *)
         let parent = get_parent func.malloc in
-        let mid = new_id malloc_id in
+        let mid = create_mid p in
         let id = Mid.{ mid; typ = e1.typ; parent } in
         ([ mid ], Malloc.Single id, Mallocs.add (Single id) p.mallocs)
     | Dset | Dmut | Dnorm -> ([], func.malloc, p.mallocs)
@@ -897,7 +902,7 @@ and morph_record mk p labels typ =
   let p, labels = List.fold_left_map f p labels in
   let p = leave_level p in
 
-  let _, malloc, mallocs = mb_malloc None p.mallocs typ in
+  let _, malloc, mallocs = mb_malloc None p.mname p.mallocs typ in
   let ms = m_to_list malloc in
 
   let alloca = ref (request p) in
@@ -1020,8 +1025,8 @@ and prep_func p func_loc (usrname, uniq, abs) =
     let pnames =
       List.map
         (fun n ->
-          let malloc = new_id malloc_id in
-          (n, malloc))
+          let mid = create_mid p in
+          (n, mid))
         abs.nparams
     in
 
@@ -1152,7 +1157,7 @@ and morph_lambda mk typ p func_loc id abs =
     let pnames =
       List.map
         (fun n ->
-          let malloc = new_id malloc_id in
+          let malloc = create_mid p in
           (n, malloc))
         abs.nparams
     in
@@ -1312,7 +1317,7 @@ and morph_app mk p callee args ret_typ =
         let malloc = malloc_add_index (-1) (Option.get !fst_arg_malloc) in
         (malloc, p.mallocs)
     | _ ->
-        let _, malloc, mallocs = mb_malloc None p.mallocs ret_typ in
+        let _, malloc, mallocs = mb_malloc None p.mname p.mallocs ret_typ in
         (malloc, mallocs)
   in
 
@@ -1344,7 +1349,7 @@ and morph_ctor mk p variant index expr typ =
 
   let p = leave_level p in
 
-  let _, malloc, mallocs = mb_malloc None p.mallocs typ in
+  let _, malloc, mallocs = mb_malloc None p.mname p.mallocs typ in
   let ms = m_to_list malloc in
 
   let alloca = ref (request p) in
@@ -1366,7 +1371,7 @@ and morph_var_data mk p expr typ =
   let p, e, func = morph_expr { p with ret = false } expr in
   let mid, malloc =
     if contains_allocation typ then
-      let mid = new_id malloc_id in
+      let mid = create_mid p in
       let id = Malloc.Single { mid; typ; parent = Some func.malloc } in
       (Some mid, id)
     else (None, No_malloc)

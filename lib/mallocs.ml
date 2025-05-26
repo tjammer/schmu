@@ -47,7 +47,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
   let show_pmap m =
     Imap.to_seq m
     |> Seq.map (fun ((i : Mid.t), set) ->
-           Printf.sprintf "%i: (%s)" i.mid (show_pset set))
+           Format.asprintf "%a: (%s)" Mod_id.pp i.mid (show_pset set))
     |> List.of_seq |> String.concat "\n"
 
   let mapdiff ?(flip = true) a b =
