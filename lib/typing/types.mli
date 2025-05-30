@@ -16,7 +16,7 @@ type typ =
 
 and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
-and param = { pt : typ; pattr : Ast.decl_attr }
+and param = { pt : typ; pattr : Ast.decl_attr; pmode : mode }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 
@@ -34,6 +34,8 @@ and closed = {
   clmname : Path.t option;
   clcopy : bool; (* otherwise move *)
 }
+
+and mode = Many | Once
 
 type type_decl = {
   params : typ list;

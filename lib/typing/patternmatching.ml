@@ -1091,8 +1091,10 @@ module Make (C : Core) (R : Recs) = struct
             let rhs = { rhs with attr = { rhs.attr with mut = rmut } } in
             (* If the value we pattern match on is mutable, we have to mentio this
                here in order to increase rc correctly. Otherwise, we had reference semantics*)
-            let id_loc = loc in
-            let expr = Let { id; id_loc; uniq = None; lmut; pass; rhs; cont } in
+            let id_loc = loc and mode = Many in
+            let expr =
+              Let { id; id_loc; uniq = None; lmut; pass; rhs; cont; mode }
+            in
             { typ = cont.typ; expr; attr = cont.attr; loc }
         | Ctor ({ path; loc; d; patterns; pltyp = _ }, param) ->
             let a, b =

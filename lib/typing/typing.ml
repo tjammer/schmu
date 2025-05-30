@@ -227,7 +227,8 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         | (last, _) :: head ->
             Tfun
               ( List.map
-                  (fun (s, pattr) -> { pt = concrete_type false env s; pattr })
+                  (fun (s, pattr) ->
+                    { pt = concrete_type false env s; pattr; pmode = Many })
                   (List.rev head),
                 concrete_type false env last,
                 fn_kind )
@@ -251,9 +252,10 @@ let rec param_annots t =
 let param_annot annots i =
   if Array.length annots > i then Array.get annots i else None
 
-let check_modes mode =
+let check_mode mode =
   match mode with
-  | Some (_, "once") | None -> ()
+  | Some (_, "once") -> Once
+  | None -> Many
   | Some m ->
       raise
         (Error (fst m, "Unknown mode, expecting 'once', not '" ^ snd m ^ "'"))
@@ -278,7 +280,7 @@ let handle_params env (params : Ast.decl list) pattern_id ret =
 
   List.fold_left_map
     (fun (env, i) { Ast.loc; pattern; annot; mode } ->
-      check_modes mode;
+      let pmode = check_mode mode in
 
       let id, idloc, _, pattr = pattern_id i pattern in
       let type_id, qparams =
@@ -302,7 +304,7 @@ let handle_params env (params : Ast.decl list) pattern_id ret =
             }
             idloc env,
           i + 1 ),
-        ({ pt = type_id; pattr }, { pt = qparams; pattr }) ))
+        ({ pt = type_id; pattr; pmode }, { pt = qparams; pattr; pmode }) ))
     (env, 0) params
   |> fun ((env, _), lst) ->
   let ids, qparams = List.split lst in
@@ -582,7 +584,7 @@ module rec Core : sig
     Ast.loc ->
     Ast.decl ->
     Ast.passed_expr ->
-    Env.t * string * loc * typed_expr * bool * (string * typed_expr) list
+    Env.t * string * loc * typed_expr * bool * (string * typed_expr) list * mode
 
   val convert_function :
     Env.t ->
@@ -743,7 +745,7 @@ end = struct
 
   and convert_let ~global env loc (decl : Ast.decl) { Ast.pattr; pexpr = block }
       =
-    check_modes decl.mode;
+    let mode = check_mode decl.mode in
     let id, idloc, has_exprname, attr = pattern_id 0 decl.pattern in
     let e1 = typeof_annot_decl env loc decl.annot block in
     let lmut = mut_of_pattr attr in
@@ -769,7 +771,7 @@ end = struct
     in
     let env, pat_exprs = convert_decl env [ decl ] in
     let expr = { e1 with attr = { e1.attr with global; const } } in
-    (env, id, idloc, expr, lmut, pat_exprs)
+    (env, id, idloc, expr, lmut, pat_exprs, mode)
 
   and convert_lambda env loc pipe params attr ret_annot body =
     let env = Env.open_function env in
@@ -873,7 +875,7 @@ end = struct
           List.mapi
             (fun i p ->
               let id, _, _, pattr = pattern_id i Ast.(p.pattern) in
-              ({ pattr; pt = newvar () }, id))
+              ({ pattr; pt = newvar (); pmode = Many }, id))
             params
           |> List.split
         in
@@ -1024,7 +1026,9 @@ end = struct
     in
 
     let args =
-      List.map (fun (a, pattr, _) -> { pattr; pt = a.typ }) typed_exprs
+      List.map
+        (fun (a, pattr, _) -> { pattr; pt = a.typ; pmode = Many })
+        typed_exprs
     in
     let apply param (texpr, _, _) =
       ({ texpr with typ = param.pt }, param.pattr)
@@ -1238,14 +1242,14 @@ end = struct
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = tunit; expr = Const Unit; attr = no_attr; loc }, env)
       | Let (loc, decl, block) :: tl ->
-          let env, id, id_loc, rhs, lmut, pats =
+          let env, id, id_loc, rhs, lmut, pats, mode =
             convert_let ~global:false env loc decl block
           in
           let cont, env = to_expr env old_type tl in
           let cont = List.fold_left fold_decl cont pats in
           let uniq = if rhs.attr.const then uniq_name id else None
           and pass = block.pattr in
-          let expr = Let { id; id_loc; uniq; lmut; pass; rhs; cont } in
+          let expr = Let { id; id_loc; uniq; lmut; pass; rhs; cont; mode } in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, abs) = convert_function env loc func false in
@@ -1964,7 +1968,7 @@ and convert_prog env items modul =
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
     | Ast.Let (loc, decl, block) ->
-        let env, id, id_loc, rhs, lmut, pats =
+        let env, id, id_loc, rhs, lmut, pats, mode =
           Core.convert_let ~global:true env loc decl block
         in
         if is_module (Env.modpath env) && lmut then
@@ -1984,7 +1988,8 @@ and convert_prog env items modul =
                     (* We are using another module's toplevel binding. All of
                        this should be forbidden. So we set let and let it fail
                        in the exclusivity check *)
-                    Tl_let { loc; id; uniq; rhs; lmut; pass = block.pattr }
+                    Tl_let
+                      { loc; id; uniq; rhs; lmut; pass = block.pattr; mode }
               in
               let env = Env.add_callname ~key:id callname env in
               (env, expr, m)
@@ -1998,7 +2003,7 @@ and convert_prog env items modul =
                   ~closure:true m
               in
               let pass = block.pattr in
-              (env, Tl_let { loc = id_loc; id; uniq; rhs; lmut; pass }, m)
+              (env, Tl_let { loc = id_loc; id; uniq; rhs; lmut; pass; mode }, m)
         in
         let expr =
           match pats with

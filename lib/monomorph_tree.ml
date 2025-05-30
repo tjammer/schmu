@@ -514,7 +514,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   | Unop (unop, expr) -> morph_unop make param unop expr
   | If (_, None, _, _) -> failwith "Internal Error: Unset if owning"
   | If (cond, Some owning, e1, e2) -> morph_if make param cond owning e1 e2
-  | Let { id; uniq; rhs; cont; pass; lmut; id_loc = _ } ->
+  | Let { id; uniq; rhs; cont; pass; lmut; id_loc = _; mode = _ } ->
       let kind = let_kind pass in
       let un, p, e1, gn, ms = prep_let param id uniq rhs lmut pass false in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in

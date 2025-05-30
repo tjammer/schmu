@@ -71,7 +71,7 @@ type t =
 
 let tbl =
   let open Types in
-  let p = { Types.pattr = Dnorm; pt = tunit } in
+  let p = { Types.pattr = Dnorm; pt = tunit; pmode = Many } in
   let tbl = Hashtbl.create 64 in
 
   Hashtbl.add tbl "__unsafe_ptr_get"
@@ -84,9 +84,9 @@ let tbl =
     ( Unsafe_ptr_set,
       Tfun
         ( [
-            { pt = traw_ptr (Qvar "0"); pattr = Dmut };
+            { p with pt = traw_ptr (Qvar "0"); pattr = Dmut };
             { p with pt = tint };
-            { pt = Qvar "0"; pattr = Dmove };
+            { p with pt = Qvar "0"; pattr = Dmove };
           ],
           tunit,
           Simple ) );
@@ -102,11 +102,16 @@ let tbl =
     );
   Hashtbl.add tbl "__unsafe_addr"
     ( Unsafe_addr,
-      Tfun ([ { pt = Qvar "0"; pattr = Dmut } ], traw_ptr (Qvar "0"), Simple) );
+      Tfun
+        ([ { p with pt = Qvar "0"; pattr = Dmut } ], traw_ptr (Qvar "0"), Simple)
+    );
   Hashtbl.add tbl "__realloc"
     ( Realloc,
       Tfun
-        ( [ { pt = traw_ptr (Qvar "0"); pattr = Dmut }; { p with pt = tint } ],
+        ( [
+            { p with pt = traw_ptr (Qvar "0"); pattr = Dmut };
+            { p with pt = tint };
+          ],
           tunit,
           Simple ) );
   Hashtbl.add tbl "__malloc"
@@ -126,7 +131,9 @@ let tbl =
     (Array_length, Tfun ([ { p with pt = tarray (Qvar "0") } ], tint, Simple));
   Hashtbl.add tbl "__unsafe_array_pop_back"
     ( Unsafe_array_pop_back,
-      Tfun ([ { pt = tarray (Qvar "0"); pattr = Dmut } ], Qvar "0", Simple) );
+      Tfun
+        ([ { p with pt = tarray (Qvar "0"); pattr = Dmut } ], Qvar "0", Simple)
+    );
   Hashtbl.add tbl "__array_data"
     ( Array_data,
       Tfun ([ { p with pt = tarray (Qvar "0") } ], traw_ptr (Qvar "0"), Simple)
@@ -161,7 +168,9 @@ let tbl =
   Hashtbl.add tbl "__unsafe_array_realloc"
     ( Unsafe_array_realloc,
       Tfun
-        ( [ { pt = tarray (Qvar "0"); pattr = Dmut }; { p with pt = tint } ],
+        ( [
+            { p with pt = tarray (Qvar "0"); pattr = Dmut }; { p with pt = tint };
+          ],
           tunit,
           Simple ) );
   Hashtbl.add tbl "__unsafe_array_create"
@@ -177,7 +186,8 @@ let tbl =
   Hashtbl.add tbl "__unsafe_clsptr"
     (Unsafe_clsptr, Tfun ([ { p with pt = Qvar "0" } ], traw_ptr tunit, Simple));
   Hashtbl.add tbl "__unsafe_leak"
-    (Unsafe_leak, Tfun ([ { pt = Qvar "0"; pattr = Dmove } ], tunit, Simple));
+    ( Unsafe_leak,
+      Tfun ([ { p with pt = Qvar "0"; pattr = Dmove } ], tunit, Simple) );
   Hashtbl.add tbl "is_nullptr"
     (Is_nullptr, Tfun ([ { p with pt = traw_ptr (Qvar "0") } ], tbool, Simple));
   Hashtbl.add tbl "assert"
@@ -277,7 +287,8 @@ let tbl =
     );
   Hashtbl.add tbl "__rc_create"
     ( Rc_create,
-      Tfun ([ { pt = Qvar "0"; pattr = Dmove } ], trc (Qvar "0"), Simple) );
+      Tfun ([ { p with pt = Qvar "0"; pattr = Dmove } ], trc (Qvar "0"), Simple)
+    );
   Hashtbl.add tbl "__unsafe_rc_get"
     (Unsafe_rc_get, Tfun ([ { p with pt = trc (Qvar "0") } ], Qvar "0", Simple));
   Hashtbl.add tbl "__rc_to_weak"

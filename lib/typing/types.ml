@@ -24,7 +24,7 @@ type typ =
 
 and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
-and param = { pt : typ; pattr : dattr }
+and param = { pt : typ; pattr : dattr; pmode : mode }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 
@@ -44,6 +44,7 @@ and closed = {
 }
 
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
+and mode = Many | Once
 
 type type_decl = {
   params : typ list;

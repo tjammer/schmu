@@ -45,6 +45,7 @@ and let_data = {
   pass : dattr; (* is passed mutably on the rhs (def b& -> &a) *)
   rhs : typed_expr; (* attr.mut: is mutable *)
   cont : typed_expr;
+  mode : mode;
 }
 
 and const =
@@ -68,6 +69,7 @@ and toplevel_item =
       lmut : bool;
       pass : dattr;
       rhs : typed_expr;
+      mode : mode;
     }
   | Tl_bind of string * typed_expr
   | Tl_function of loc * string * int option * abstraction
