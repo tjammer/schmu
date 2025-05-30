@@ -1182,17 +1182,6 @@ fun () {
     &a.[0] = 12
 }|}
 
-(* let test_excl_track_rc_get () = *)
-(*   test_exn "state was borrowed in line 9, cannot mutate" *)
-(* {|type state['a, 'b] = { fst& : 'a, snd : 'b } *)
-
-   (* fun higher_lvl(thing&, f) {()} *)
-
-   (* fun process_state(state&) { *)
-   (*   let fst& = &__unsafe_rc_get(state).fst *)
-   (*   higher_lvl(&state, fun i {&fst = copy(i)}) *)
-   (* }|} *)
-
 let test_excl_move_lambda () =
   test_exn "Borrowed value a has been moved in line 5"
     "fun copy_param(a&) { fun () { &a = 12 } }"
@@ -1723,6 +1712,17 @@ let test_rec_type_record_wrap_twice () =
 type wrap['a] = { a : option['a] }
 type t = { a : rc[wrap[wrap[t]]] }|}
 
+let test_once_decl_let () = test "unit" "{let once foo = 10; ()}"
+let test_once_decl_param () = test "unit" "fun foo (once p) {()}"
+
+let test_once_wrong_mode_let () =
+  test_exn "Unknown mode, expecting 'once', not 'nonce'"
+    "{let nonce foo = 10; ()}"
+
+let test_once_wrong_mode_param () =
+  test_exn "Unknown mode, expecting 'once', not 'nonce'"
+    "fun foo (nonce p) {()}"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2162,7 +2162,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "array move wrong index" test_excl_array_move_wrong_index;
           case "array move dyn index" test_excl_array_move_dyn_index;
           case "array mutate part" test_excl_array_mutate_part;
-          (* case "track rc get" test_excl_track_rc_get; *)
           case "move mut param lambda" test_excl_move_lambda;
           case "move mut param fun" test_excl_move_fun;
           case "move outer branch" test_excl_move_outer_branch;
@@ -2247,5 +2246,12 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "record wrap" test_rec_type_record_wrap;
           case "record wrap no rc" test_rec_type_record_wrap_norc;
           case "record wrap twice" test_rec_type_record_wrap_twice;
+        ] );
+      ( "once",
+        [
+          case "decl let" test_once_decl_let;
+          case "decl param" test_once_decl_param;
+          case "wrong mode let" test_once_wrong_mode_let;
+          case "wrong mode param" test_once_wrong_mode_param;
         ] );
     ]

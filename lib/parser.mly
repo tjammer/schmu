@@ -200,15 +200,21 @@ block:
   | Lcurly; stmts = separated_nonempty_list(Semicolon, stmt); Rcurly { stmts }
 
 let_decl:
-  | pattern = let_pattern { {loc = $loc; pattern; annot = None } }
-  | pattern = let_pattern; Colon; annot = type_spec { {loc = $loc; pattern; annot = Some annot} }
+  | mode = mode; pattern = let_pattern { {loc = $loc; pattern; annot = None; mode} }
+  | mode = mode; pattern = let_pattern; Colon; annot = type_spec
+    { {loc = $loc; pattern; annot = Some annot; mode} }
+
+%inline mode:
+  | { None }
+  | mode = ident { Some(mode) }
 
 only_one_param:
-  | pattern = basic_pattern { {loc = $loc; pattern; annot = None} }
+  | pattern = basic_pattern { {loc = $loc; pattern; annot = None; mode = None} }
 
 param_decl:
-  | pattern = pattern { {loc = $loc; pattern; annot = None} }
-  | pattern = pattern; Colon; annot = type_spec { {loc = $loc; pattern; annot = Some annot} }
+  | mode = mode; pattern = pattern { {loc = $loc; pattern; annot = None; mode} }
+  | mode = mode; pattern = pattern; Colon; annot = type_spec
+    { {loc = $loc; pattern; annot = Some annot; mode} }
 
 return_annot:
    | Right_arrow; annot = type_spec { annot, $loc(annot) }

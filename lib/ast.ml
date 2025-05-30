@@ -14,7 +14,13 @@ type type_spec =
   | Ty_use_id of loc * Path.t
   | Ty_tuple of type_spec list
 
-and decl = { loc : loc; pattern : pattern; annot : type_spec option }
+and decl = {
+  loc : loc;
+  pattern : pattern;
+  annot : type_spec option;
+  mode : ident option;
+}
+
 and decl_attr = Dmut | Dmove | Dnorm | Dset
 and func_attr = Fa_single of ident | Fa_param of ident * ident list
 

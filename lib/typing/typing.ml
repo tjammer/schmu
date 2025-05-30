@@ -251,6 +251,13 @@ let rec param_annots t =
 let param_annot annots i =
   if Array.length annots > i then Array.get annots i else None
 
+let check_modes mode =
+  match mode with
+  | Some (_, "once") | None -> ()
+  | Some m ->
+      raise
+        (Error (fst m, "Unknown mode, expecting 'once', not '" ^ snd m ^ "'"))
+
 let handle_params env (params : Ast.decl list) pattern_id ret =
   (* return updated env with bindings for parameters and types of parameters *)
   let rec handle = function
@@ -270,7 +277,9 @@ let handle_params env (params : Ast.decl list) pattern_id ret =
   in
 
   List.fold_left_map
-    (fun (env, i) { Ast.loc; pattern; annot } ->
+    (fun (env, i) { Ast.loc; pattern; annot; mode } ->
+      check_modes mode;
+
       let id, idloc, _, pattr = pattern_id i pattern in
       let type_id, qparams =
         match annot with
@@ -734,6 +743,7 @@ end = struct
 
   and convert_let ~global env loc (decl : Ast.decl) { Ast.pattr; pexpr = block }
       =
+    check_modes decl.mode;
     let id, idloc, has_exprname, attr = pattern_id 0 decl.pattern in
     let e1 = typeof_annot_decl env loc decl.annot block in
     let lmut = mut_of_pattr attr in
@@ -1049,7 +1059,7 @@ end = struct
     let decls =
       List.init left_args (fun i ->
           let pattern = Pvar ((loc, p i), Dnorm) in
-          { loc; pattern; annot = None })
+          { loc; pattern; annot = None; mode = None })
     in
     let curry_args =
       List.init left_args (fun i ->
