@@ -67,6 +67,11 @@ module Make_tree (Id : Id_t) = struct
   type loc_info = { lid : access; loc : Ast.loc }
   type mov = Not_moved | Reset | Moved of loc_info
 
+  type mode =
+    | (* TODO infer for function types *) Many
+    | Once_notused
+    | Once_used
+
   let rec aux_fmt = function
     | [] -> ""
     | Pfield f :: tl -> "." ^ f ^ aux_fmt tl
@@ -88,6 +93,7 @@ module Make_tree (Id : Id_t) = struct
     mov : mov; (* loc: location where the binding was moved *)
     id : access;
     bind_loc : loc_info;
+    mode : mode;
     children : whole list;
   }
 
@@ -289,17 +295,30 @@ module Make_tree (Id : Id_t) = struct
       in
       let id = string_of_access item.bind_loc.lid mname in
       let bor = transition_exn item.bor id item.bind_loc access Local loc in
+      let mode =
+        if ends then
+          match item.mode with
+          | Once_notused -> Once_used
+          | Once_used ->
+              let msg =
+                Format.sprintf "Cannot use %s more than once"
+                  (string_of_access { item.id with part = [] } mname)
+              in
+              raise (Error.Error (loc.loc, msg))
+          | Many -> Many
+        else item.mode
+      in
       let found, children =
         List.fold_left_map
           (fun found tree -> down found tree)
           (ends || found) item.children
       in
-      (found, { item with bor; children; mov })
+      (found, { item with bor; children; mov; mode })
     in
 
     fold ~local ~foreign access.path false tree
 
-  let bind id bind_loc lmut mov path tree =
+  let bind id bind_loc lmut mov mode path tree =
     (* Only bind, i.e. add the child to the bound thing. Checking if the binding
        is legal has to have happened before. *)
     let foreign ~down:_ ~contains_part:_ ~correct_part:_ found item =
@@ -309,8 +328,19 @@ module Make_tree (Id : Id_t) = struct
       let found, children =
         if ends then
           let bor = if lmut then (Reserved, bind_loc) else (Frozen, bind_loc)
-          and id = { id; part = [] } in
-          (true, { bor; mov; id; bind_loc; children = [] } :: item.children)
+          and id = { id; part = [] }
+          and children = [] in
+          let mode =
+            match mode with
+            | Some m -> m
+            | None -> (
+                (* Inherit from item *)
+                match item.mode with
+                | Once_notused | Once_used -> Once_notused
+                | Many -> Many)
+          in
+
+          (true, { bor; mov; id; bind_loc; children; mode } :: item.children)
         else
           List.fold_left_map
             (fun found tree -> down found tree)
@@ -417,15 +447,19 @@ module Make_storage (Id : Id_t) = struct
     incr id;
     !id
 
-  let insert id bind_loc bor st =
+  let get_mode = function Types.Once -> Tree.Once_notused | Many -> Many
+
+  let insert id bind_loc bor mode st =
     (* assert (Id_map.mem id st.indices |> not); *)
     let i = fresh () in
     let loc_info = { Tree.lid = { id; part = [] }; loc = bind_loc } in
     let bor = (bor, loc_info) and mov = Tree.Not_moved in
+    let mode = get_mode mode in
+
     let trees =
-      let id = Tree.{ id; part = [] } in
+      let id = Tree.{ id; part = [] } and bind_loc = loc_info in
       Index_map.add i
-        (Tree.Twhole { bor; mov; id; bind_loc = loc_info; children = [] })
+        (Tree.Twhole { bor; mov; id; bind_loc; children = []; mode })
         st.trees
     in
     let index =
@@ -480,13 +514,13 @@ module Make_storage (Id : Id_t) = struct
     | None ->
         (* If the item has not been found, add it as a new, borrowed item. This will
            cause it to not be moved. *)
-        insert id loc Frozen st |> borrow id loc mname ac part
+        insert id loc Frozen Many st |> borrow id loc mname ac part
 
   let lmut_of_attr = function
     | { attr = Ast.Dmut | Dset; _ } -> true
     | { attr = Dnorm | Dmove; _ } -> false
 
-  let bind id loc lmut bounds st =
+  let bind id loc lmut mode bounds st =
     let bind_inner bound part attr (found, trees) { ipath; index; call_attr } =
       let loc = { Tree.lid = { id = bound; part }; loc } in
       let path = Tree.Path.{ ipath with part = ipath.part @ part } in
@@ -503,8 +537,9 @@ module Make_storage (Id : Id_t) = struct
             | Some attr -> (lmut_of_attr attr, call_attr, Reset)
             | None -> (lmut, call_attr, Not_moved))
       in
+      let mode = Option.map get_mode mode in
       let nfound, tree =
-        Tree.bind id loc lmut mov path (Index_map.find index trees)
+        Tree.bind id loc lmut mov mode path (Index_map.find index trees)
       in
       let trees = Index_map.add index tree trees
       and ipath = Tree.Path.append path id in
@@ -552,9 +587,9 @@ module Make_storage (Id : Id_t) = struct
     match Id_map.find_opt id st.indices with
     | Some { is = [ _ ]; _ } ->
         let indices = Id_map.remove id st.indices in
-        insert id bind_loc bor { st with indices }
+        insert id bind_loc bor Many { st with indices }
     | Some _ -> failwith "Is this not a string lateral"
-    | None -> insert id bind_loc bor st
+    | None -> insert id bind_loc bor Many st
 
   let rec part_contains_array = function
     | [] -> false
@@ -765,7 +800,7 @@ type state = { trees : Trst.t; ids : Idst.t; mname : Path.t }
 
 let state_empty mname loc =
   let id = Idst.get "string literal" (Some mname) Idst.empty in
-  let trees = Trst.insert id loc Frozen Trst.empty in
+  let trees = Trst.insert id loc Frozen Many Trst.empty in
   { trees; ids = Idst.empty; mname }
 
 type borrow_ids =
@@ -993,7 +1028,7 @@ let rec check_expr st ac part tyex =
               match attr with Dmut | Dset -> true | Dnorm | Dmove -> false
             in
             let _, _, tmpstate =
-              check_let tmpstate ~toplevel:false id arg.loc attr lmut arg
+              check_let tmpstate ~toplevel:false id arg.loc attr lmut Many arg
             in
             ((i + 1, tmpstate, trees), (narg, attr)))
           (0, { st with trees = callee_trees }, callee_trees)
@@ -1017,9 +1052,9 @@ let rec check_expr st ac part tyex =
       let value = { value with expr = Move value } in
       let was_moved = was_moved bs trees in
       ({ tyex with expr = Set (expr, value, was_moved) }, Owned, rettrees)
-  | Let ({ id; lmut; pass; rhs; cont; id_loc; _ } as lt) ->
+  | Let ({ id; lmut; pass; rhs; cont; id_loc; mode; _ } as lt) ->
       let rhs, pass, st =
-        check_let st ~toplevel:false id id_loc pass lmut rhs
+        check_let st ~toplevel:false id id_loc pass lmut mode rhs
       in
       let cont, bs, trees = check_expr st ac part cont in
       let expr = Let { lt with rhs; cont; pass } in
@@ -1134,10 +1169,12 @@ let rec check_expr st ac part tyex =
             ( expr,
               Trst.insert bid expr.loc
                 (Owned { tl = false; mutated = false })
-                trees )
+                Many trees )
         | expr, Borrowed rhs_ids, trees ->
             let lmut = expr.attr.mut in
-            let found, trees = Trst.bind bid expr.loc lmut rhs_ids trees in
+            let found, trees =
+              Trst.bind bid expr.loc lmut (Some Many) rhs_ids trees
+            in
             assert found;
             (expr, trees)
       in
@@ -1155,7 +1192,7 @@ let rec check_expr st ac part tyex =
       ({ tyex with expr = Mutual_rec_decls (ds, cont) }, bs, trees)
   | Move _ -> failwith "Internal Error: Move in borrows"
 
-and check_let st ~toplevel str loc pass lmut rhs =
+and check_let st ~toplevel str loc pass lmut mode rhs =
   let tl = toplevel in
   (match pass with
   | Dmut when toplevel -> raise (Error (rhs.loc, "Cannot project at top level"))
@@ -1180,12 +1217,14 @@ and check_let st ~toplevel str loc pass lmut rhs =
               pass
           | _ -> if lmut then Dmove else pass
         in
-        (rhs, pass, Trst.insert bid loc (Owned { tl; mutated = not lmut }) trees)
+        ( rhs,
+          pass,
+          Trst.insert bid loc (Owned { tl; mutated = not lmut }) mode trees )
     | rhs, Borrowed _, trees when pass = Dmove ->
         (* Transfer ownership *)
         ( rhs,
           Dmove,
-          Trst.insert bid loc (Owned { tl; mutated = not lmut }) trees )
+          Trst.insert bid loc (Owned { tl; mutated = not lmut }) mode trees )
     | _, Borrowed _, _trees when pass = Dnorm && lmut ->
         let msg =
           "Specify how rhs expression is passed. Either by move '!' or mutably \
@@ -1196,7 +1235,10 @@ and check_let st ~toplevel str loc pass lmut rhs =
         if toplevel && rhs.attr.mut then
           raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
         else
-          let _, trees = Trst.bind bid loc lmut ids trees in
+          (* [Many] currently means nothing was passed explictly. Using [None]
+             inherits the bound item's mode. *)
+          let mode = match mode with Once -> Some Once | Many -> None in
+          let _, trees = Trst.bind bid loc lmut mode ids trees in
           (* assert found; *)
           (rhs, pass, trees)
   in
@@ -1221,9 +1263,9 @@ and check_abs loc name abs tl st =
 
   let trees =
     match touched with
-    | [] -> Trst.insert bid loc (Owned { tl; mutated = true }) st.trees
+    | [] -> Trst.insert bid loc (Owned { tl; mutated = true }) Many st.trees
     | touched ->
-        let _, trees = Trst.bind bid loc false touched st.trees in
+        let _, trees = Trst.bind bid loc false (Some Many) touched st.trees in
         trees
   in
 
@@ -1231,7 +1273,9 @@ and check_abs loc name abs tl st =
 
 let check_item st = function
   | Tl_let ({ id; pass; rhs; lmut; loc; _ } as tl) ->
-      let rhs, pass, st = check_let ~toplevel:true st id loc pass lmut rhs in
+      let rhs, pass, st =
+        check_let ~toplevel:true st id loc pass lmut Many rhs
+      in
       (st, Tl_let { tl with rhs; pass })
   | Tl_expr e ->
       let e, _, trees = check_expr st Dnorm [] e in
@@ -1244,10 +1288,13 @@ let check_item st = function
         match check_expr st Dnorm [] e with
         | e, Owned, trees ->
             ( e,
-              Trst.insert bid e.loc (Owned { tl = true; mutated = true }) trees
-            )
+              Trst.insert bid e.loc
+                (Owned { tl = true; mutated = true })
+                Many trees )
         | e, Borrowed rhs_ids, trees ->
-            let found, trees = Trst.bind bid e.loc false rhs_ids trees in
+            let found, trees =
+              Trst.bind bid e.loc false (Some Many) rhs_ids trees
+            in
             assert found;
             (e, trees)
       in
@@ -1261,7 +1308,7 @@ let add_touched state loc touched =
       assert (
         Idst.Id.equal bid
           Idst.Id.(fst (Pathid.create touched.tname touched.tmname)));
-      let trees = Trst.insert bid loc Reserved st.trees in
+      let trees = Trst.insert bid loc Reserved Many st.trees in
       { st with trees; ids })
     state touched
 
@@ -1281,7 +1328,7 @@ let check_expr ~mname ~params ~touched expr =
           | Dset -> failwith "unreachable"
           | Dmove -> Owned { tl = false; mutated = true }
         in
-        let trees = Trst.insert bid loc bstate st.trees in
+        let trees = Trst.insert bid loc bstate p.pmode st.trees in
         { st with ids; trees })
       state params
   in
@@ -1293,14 +1340,14 @@ let check_expr ~mname ~params ~touched expr =
     | Owned -> trees
     | Borrowed ids ->
         let bid = Idst.get "return" None state.ids in
-        let _, trees = Trst.bind bid expr.loc false ids trees in
+        let _, trees = Trst.bind bid expr.loc false (Some Many) ids trees in
         let _, _, trees =
           Trst.borrow bid expr.loc mname (cond_move expr.typ) [] trees
         in
         trees
   in
 
-  (* Ensure no parameter has been moved *)
+  (* Ensure no parameter (or any other borrow) has been moved *)
   let unmutated = Trst.check_moves trees mname in
 
   (* Update attribute of touched *)

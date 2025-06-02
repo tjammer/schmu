@@ -1723,6 +1723,25 @@ let test_once_wrong_mode_param () =
   test_exn "Unknown mode, expecting 'once', not 'nonce'"
     "fun foo (nonce p) {()}"
 
+let test_once_let_use_twice () =
+  test_exn "Cannot use foo more than once"
+    "{let once foo = 10; ignore(foo); ignore(foo)}"
+
+let test_once_param_use_twice () =
+  test_exn "Cannot use p more than once"
+    "fun foo (once p) {ignore(p); ignore(p)}"
+
+let test_once_use_once_borrows () =
+  test "int" "{let once foo = 10; let a = foo; a}"
+
+let test_once_use_twice_borrows () =
+  test_exn "Cannot use a more than once"
+    "{let once foo = 10; let a = foo; ignore(a); a}"
+
+let test_once_use_twice_borrows_twice () =
+  test_exn "Cannot use b more than once"
+    "{let once foo = 10; let a = foo; let b = a; ignore(b); b}"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2253,5 +2272,10 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "decl param" test_once_decl_param;
           case "wrong mode let" test_once_wrong_mode_let;
           case "wrong mode param" test_once_wrong_mode_param;
+          case "let use twice" test_once_let_use_twice;
+          case "param use twice" test_once_param_use_twice;
+          case "once borrows" test_once_use_once_borrows;
+          case "twice borrows" test_once_use_twice_borrows;
+          case "twice borrows twice" test_once_use_twice_borrows_twice;
         ] );
     ]
