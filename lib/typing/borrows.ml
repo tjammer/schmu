@@ -608,6 +608,16 @@ module Make_storage (Id : Id_t) = struct
           | Reset -> ()
           | Moved _ | Not_moved -> unmutated := tree.bind_loc.loc :: !unmutated)
       | _ -> ());
+
+      (match tree.mode with
+      | Tree.Once_notused ->
+          let msg =
+            Format.sprintf "Value %s has not been used once"
+              Tree.(string_of_access tree.id mname)
+          in
+          raise (Error.Error (loc, msg))
+      | Once_used | Many -> ());
+
       match Tree.(tree.mov) with
       | Moved l -> (
           let r msg = raise (Error.Error (loc, msg)) in

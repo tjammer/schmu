@@ -1712,8 +1712,8 @@ let test_rec_type_record_wrap_twice () =
 type wrap['a] = { a : option['a] }
 type t = { a : rc[wrap[wrap[t]]] }|}
 
-let test_once_decl_let () = test "unit" "{let once foo = 10; ()}"
-let test_once_decl_param () = test "unit" "fun foo (once p) {()}"
+let test_once_decl_let () = test "unit" "{let once foo = 10; ignore(foo)}"
+let test_once_decl_param () = test "unit" "fun foo (once p) {ignore(p)}"
 
 let test_once_wrong_mode_let () =
   test_exn "Unknown mode, expecting 'once', not 'nonce'"
@@ -1741,6 +1741,16 @@ let test_once_use_twice_borrows () =
 let test_once_use_twice_borrows_twice () =
   test_exn "Cannot use b more than once"
     "{let once foo = 10; let a = foo; let b = a; ignore(b); b}"
+
+let test_once_decl_unused_let () =
+  test_exn "Value foo has not been used once" "{let once foo = 10; ()}"
+
+let test_once_decl_unused_param () =
+  test_exn "Value p has not been used once" "fun foo (once p) {()}"
+
+let test_once_unused_borrow () =
+  test_exn "Value b has not been used once"
+    "{let once foo = 10; let a = foo; let b = a; ()}"
 
 let case str test = test_case str `Quick test
 
@@ -2277,5 +2287,8 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "once borrows" test_once_use_once_borrows;
           case "twice borrows" test_once_use_twice_borrows;
           case "twice borrows twice" test_once_use_twice_borrows_twice;
+          case "unused let" test_once_decl_unused_let;
+          case "unused param" test_once_decl_unused_param;
+          case "unused borrow" test_once_unused_borrow;
         ] );
     ]
