@@ -12,7 +12,14 @@ let format_type_err pre mname t1 t2 =
   let sotr = string_of_type mname in
   let rec aux t1 t2 =
     let tlist sot ps = String.concat ", " (List.map sot ps) in
-    let plist sot ps = String.concat ", " (List.map (fun p -> sot p.pt) ps) in
+    let plist sot ps =
+      String.concat ", "
+        (List.map
+           (fun p ->
+             let mode = match p.pmode with Many -> "" | Once -> "once " in
+             mode ^ sot p.pt)
+           ps)
+    in
     (* TODO parameter version with passing *)
     let difflist l r =
       let _, found, l, r =

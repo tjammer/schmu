@@ -1752,6 +1752,9 @@ let test_once_unused_borrow () =
   test_exn "Value b has not been used once"
     "{let once foo = 10; let a = foo; let b = a; ()}"
 
+let test_once_print () =
+  test "fun (once 'a) -> unit" "fun foo (once p) {ignore(p)}; foo"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2290,5 +2293,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "unused let" test_once_decl_unused_let;
           case "unused param" test_once_decl_unused_param;
           case "unused borrow" test_once_unused_borrow;
+          case "print" test_once_print;
         ] );
     ]

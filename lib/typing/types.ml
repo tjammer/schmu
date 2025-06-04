@@ -107,7 +107,13 @@ let string_of_type_raw get_name typ mname =
           | [] -> "unit"
           | ts ->
               String.concat ", "
-                (List.map (fun p -> string_of_type p.pt ^ pattr p.pattr) ts)
+                (List.map
+                   (fun p ->
+                     let mode =
+                       match p.pmode with Many -> "" | Once -> "once "
+                     in
+                     mode ^ string_of_type p.pt ^ pattr p.pattr)
+                   ts)
         in
         Printf.sprintf "fun (%s) -> %s" ps (string_of_type t)
     | Tvar { contents = Link t } -> string_of_type t
