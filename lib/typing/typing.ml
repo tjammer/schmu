@@ -255,6 +255,7 @@ let param_annot annots i =
 let check_mode mode =
   match mode with
   | Some (_, "once") -> Once
+  | Some (_, "many") -> Many
   | None -> Many
   | Some m ->
       raise
@@ -1971,6 +1972,11 @@ and convert_prog env items modul =
         let env, id, id_loc, rhs, lmut, pats, mode =
           Core.convert_let ~global:true env loc decl block
         in
+        (match mode with
+        | Once ->
+            raise (Error (id_loc, "Cannot declare once value at toplevel"))
+        | Many -> ());
+
         if is_module (Env.modpath env) && lmut then
           raise
             (Error (loc, "Mutable top level bindings are not allowed in modules"));

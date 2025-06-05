@@ -1732,15 +1732,19 @@ let test_once_param_use_twice () =
     "fun foo (once p) {ignore(p); ignore(p)}"
 
 let test_once_use_once_borrows () =
-  test "int" "{let once foo = 10; let a = foo; a}"
+  test "int" "{let once foo = 10; let once a = foo; a}"
 
 let test_once_use_twice_borrows () =
   test_exn "Cannot use a more than once"
-    "{let once foo = 10; let a = foo; ignore(a); a}"
+    "{let once foo = 10; let once a = foo; ignore(a); a}"
+
+let test_once_use_borrows_twice () =
+  test_exn "Cannot pass once value a as many"
+    "{let once foo = 10; let once a = foo; let b = a; ignore(b)}"
 
 let test_once_use_twice_borrows_twice () =
   test_exn "Cannot use b more than once"
-    "{let once foo = 10; let a = foo; let b = a; ignore(b); b}"
+    "{let once foo = 10; let once a = foo; let once b = a; ignore(b); b}"
 
 let test_once_decl_unused_let () =
   test_exn "Value foo has not been used once" "{let once foo = 10; ()}"
@@ -1750,10 +1754,21 @@ let test_once_decl_unused_param () =
 
 let test_once_unused_borrow () =
   test_exn "Value b has not been used once"
-    "{let once foo = 10; let a = foo; let b = a; ()}"
+    "{let once foo = 10; let once a = foo; let once b = a; ()}"
 
 let test_once_print () =
-  test "fun (once 'a) -> unit" "fun foo (once p) {ignore(p)}; foo"
+  test "fun (once 'a) -> unit" "fun foo (once p) {ignore(p)}; {(); foo}"
+
+let test_once_pass () =
+  test_exn "Cannot pass once value foo as many"
+    {|{
+fun ignore(many p) { ignore(p) }
+  let once foo = 10
+  ignore(foo)
+}|}
+
+let test_once_toplevel () =
+  test_exn "Cannot declare once value at toplevel" "let once foo = 10"
 
 let case str test = test_case str `Quick test
 
@@ -2289,10 +2304,13 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "param use twice" test_once_param_use_twice;
           case "once borrows" test_once_use_once_borrows;
           case "twice borrows" test_once_use_twice_borrows;
+          case "borrows twice" test_once_use_borrows_twice;
           case "twice borrows twice" test_once_use_twice_borrows_twice;
           case "unused let" test_once_decl_unused_let;
           case "unused param" test_once_decl_unused_param;
           case "unused borrow" test_once_unused_borrow;
           case "print" test_once_print;
+          case "pass" test_once_pass;
+          case "toplevel" test_once_toplevel;
         ] );
     ]

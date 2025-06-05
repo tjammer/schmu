@@ -71,7 +71,7 @@ type t =
 
 let tbl =
   let open Types in
-  let p = { Types.pattr = Dnorm; pt = tunit; pmode = Many } in
+  let p = { Types.pattr = Dnorm; pt = tunit; pmode = Once } in
   let tbl = Hashtbl.create 64 in
 
   Hashtbl.add tbl "__unsafe_ptr_get"
