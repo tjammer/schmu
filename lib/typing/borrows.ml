@@ -911,6 +911,18 @@ let get_closed_usage kind (touched : touched) =
   in
   Trst.{ attr = touched.tattr; on_move }
 
+let let_mode_borrow = function
+  | `Many -> Types.Many
+  | `Once -> Once
+  | `Arg -> Once
+
+let let_mode_bind = function
+  | `Many -> Types.Many
+  | `Once -> Once
+  | `Arg -> Many
+
+let let_mode = function Types.Many -> `Many | Once -> `Once
+
 let rec move_closure ex = function
   | [] -> ex
   | c :: tl ->
@@ -1051,7 +1063,7 @@ let rec check_expr st ac part tyex =
               match attr with Dmut | Dset -> true | Dnorm | Dmove -> false
             in
             let _, _, tmpstate =
-              check_let tmpstate ~toplevel:false id arg.loc attr lmut mode arg
+              check_let tmpstate ~toplevel:false id arg.loc attr lmut `Arg arg
             in
             ((i + 1, tmpstate, trees), (narg, attr)))
           (0, { st with trees = callee_trees }, callee_trees)
@@ -1081,7 +1093,7 @@ let rec check_expr st ac part tyex =
       ({ tyex with expr = Set (expr, value, was_moved) }, Owned, rettrees)
   | Let ({ id; lmut; pass; rhs; cont; id_loc; mode; _ } as lt) ->
       let rhs, pass, st =
-        check_let st ~toplevel:false id id_loc pass lmut mode rhs
+        check_let st ~toplevel:false id id_loc pass lmut (let_mode mode) rhs
       in
       let cont, bs, trees = check_expr st ac part cont in
       let expr = Let { lt with rhs; cont; pass } in
@@ -1226,7 +1238,7 @@ and check_let st ~toplevel str loc pass lmut mode rhs =
   | _ -> ());
   let bid, ids = Idst.insert str (Some st.mname) st.ids in
   let rhs, pass, trees =
-    match check_expr st (pass, mode) [] rhs with
+    match check_expr st (pass, let_mode_borrow mode) [] rhs with
     | rhs, Owned, trees ->
         (* Nothing is borrowed, we own this *)
         let pass =
@@ -1244,12 +1256,16 @@ and check_let st ~toplevel str loc pass lmut mode rhs =
         in
         ( rhs,
           pass,
-          Trst.insert bid loc (Owned { tl; mutated = not lmut }) mode trees )
+          Trst.insert bid loc
+            (Owned { tl; mutated = not lmut })
+            (let_mode_bind mode) trees )
     | rhs, Borrowed _, trees when pass = Dmove ->
         (* Transfer ownership *)
         ( rhs,
           Dmove,
-          Trst.insert bid loc (Owned { tl; mutated = not lmut }) mode trees )
+          Trst.insert bid loc
+            (Owned { tl; mutated = not lmut })
+            (let_mode_bind mode) trees )
     | _, Borrowed _, _trees when pass = Dnorm && lmut ->
         let msg =
           "Specify how rhs expression is passed. Either by move '!' or mutably \
@@ -1260,7 +1276,9 @@ and check_let st ~toplevel str loc pass lmut mode rhs =
         if toplevel && rhs.attr.mut then
           raise (Error (rhs.loc, "Cannot borrow mutable binding at top level"))
         else
-          let _, trees = Trst.bind bid loc lmut mode ids trees in
+          let _, trees =
+            Trst.bind bid loc lmut (let_mode_bind mode) ids trees
+          in
           (* assert found; *)
           (rhs, pass, trees)
   in
@@ -1296,7 +1314,7 @@ and check_abs loc name abs tl st =
 let check_item st = function
   | Tl_let ({ id; pass; rhs; lmut; loc; _ } as tl) ->
       let rhs, pass, st =
-        check_let ~toplevel:true st id loc pass lmut Many rhs
+        check_let ~toplevel:true st id loc pass lmut `Many rhs
       in
       (st, Tl_let { tl with rhs; pass })
   | Tl_expr e ->
