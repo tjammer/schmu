@@ -284,7 +284,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
               List.fold_left2
                 (fun (ts, s, acc) pl pr ->
                   let pt, sub, b = aux ~strict:true ~in_ps s pl.pt pr.pt in
-                  let b = b && pl.pattr = pr.pattr in
+                  let b = b && pl.pattr = pr.pattr && pl.pmode = pr.pmode in
                   ({ pr with pt } :: ts, sub, acc && b))
                 ([], sub, true) ps_l ps_r
             in

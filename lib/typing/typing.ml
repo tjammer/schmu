@@ -796,7 +796,7 @@ end = struct
     leave_level ();
     let _, closed_vars, touched, unused = Env.close_function env in
 
-    let unmutated, body, touched =
+    let unmutated, body, touched, params_t =
       let params =
         List.map (fun (d : Ast.decl) -> d.loc) params
         |> List.map2
@@ -903,7 +903,7 @@ end = struct
 
     let env, closed_vars, touched, unused = Env.close_function env in
 
-    let unmutated, body, touched =
+    let unmutated, body, touched, params_t =
       let params =
         List.map (fun (d : Ast.decl) -> d.loc) params
         |> List.map2

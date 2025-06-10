@@ -12,11 +12,12 @@ let format_type_err pre mname t1 t2 =
   let sotr = string_of_type mname in
   let rec aux t1 t2 =
     let tlist sot ps = String.concat ", " (List.map sot ps) in
+    let pmode = function Many -> "" | Once -> "once " in
     let plist sot ps =
       String.concat ", "
         (List.map
            (fun p ->
-             let mode = match p.pmode with Many -> "" | Once -> "once " in
+             let mode = pmode p.pmode in
              mode ^ sot p.pt)
            ps)
     in
@@ -48,8 +49,11 @@ let format_type_err pre mname t1 t2 =
               | Dmove -> "!"
               | Dset -> "&"
             in
+            let lmode = pmode lt.pmode in
+            let rmode = pmode rt.pmode in
             let found, ls, rs = aux lt.pt rt.pt in
-            let ls = ls ^ pattr lt.pattr and rs = rs ^ pattr rt.pattr in
+            let ls = lmode ^ ls ^ pattr lt.pattr
+            and rs = rmode ^ rs ^ pattr rt.pattr in
             let found, ls, rs =
               if String.equal ls rs then (found, "_", "_")
               else if found then (found, ls, rs)
@@ -72,7 +76,7 @@ let format_type_err pre mname t1 t2 =
           (true, ls, rs)
         else
           let found, ls, rs =
-            (* Find different argument types *)
+            (* Find different parameter types *)
             pdifflist ls rs
           in
           (* Check if return type matches *)
