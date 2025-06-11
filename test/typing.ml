@@ -1770,6 +1770,9 @@ fun ignore(many p) { ignore(p) }
 let test_once_toplevel () =
   test_exn "Cannot declare once value at toplevel" "let once foo = 10"
 
+let test_once_apply_fun_annot () =
+  test "fun (once fun ('a) -> 'b, 'a) -> 'b" "fun (once f, arg) {f(arg)}"
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2312,5 +2315,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "print" test_once_print;
           case "pass" test_once_pass;
           case "toplevel" test_once_toplevel;
+          case "apply fun annot" test_once_apply_fun_annot;
         ] );
     ]

@@ -1070,8 +1070,7 @@ let rec check_expr st ac part tyex =
               check_let tmpstate ~toplevel:false id arg.loc attr lmut `Arg arg
             in
             ((i + 1, tmpstate, trees), (narg, attr)))
-          (0, { st with trees = callee_trees }, callee_trees)
-          args
+          (0, st, callee_trees) args
       in
       (* Borrow callee + args again *)
       let _, _, tmptrees = check_expr tmpstate (Dnorm, Once) [] callee in
