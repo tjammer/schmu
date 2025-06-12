@@ -24,7 +24,7 @@ type typ =
 
 and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
-and param = { pt : typ; pattr : dattr; pmode : mode }
+and param = { pt : typ; pattr : dattr; pmode : inferred_mode ref }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 
@@ -45,6 +45,7 @@ and closed = {
 
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
 and mode = Many | Once
+and inferred_mode = Iunknown | Iknown of mode | Ilinked of inferred_mode ref
 
 type type_decl = {
   params : typ list;
@@ -92,6 +93,20 @@ let rec repr = function
 
 let pp_to_name name = "'" ^ name
 
+let rec string_of_mode = function
+  | Iknown Many -> ""
+  | Iknown Once -> "once "
+  | Iunknown -> ""
+  | Ilinked { contents = m } -> string_of_mode m
+
+let rec repr_mode = function
+  | Ilinked ({ contents = m } as tvr) ->
+      (* Path compression *)
+      let m = repr_mode m in
+      tvr := m;
+      m
+  | m -> m
+
 let string_of_type_raw get_name typ mname =
   let open Printf in
   let rec string_of_type = function
@@ -109,9 +124,7 @@ let string_of_type_raw get_name typ mname =
               String.concat ", "
                 (List.map
                    (fun p ->
-                     let mode =
-                       match p.pmode with Many -> "" | Once -> "once "
-                     in
+                     let mode = string_of_mode !(p.pmode) in
                      mode ^ string_of_type p.pt ^ pattr p.pattr)
                    ts)
         in

@@ -64,7 +64,8 @@ let rec unify recurs t1 t2 =
             (fun left right ->
               (* Continue with unification to generate better type errors *)
               if not (left.pattr = right.pattr) then attr_mismatch := true;
-              unify recurs left.pt right.pt)
+              unify recurs left.pt right.pt;
+              unify_param_mode left.pmode right.pmode)
             params_l params_r;
           if !attr_mismatch then raise Unify
         with Invalid_argument _ -> raise Unify)
@@ -101,6 +102,16 @@ let rec unify recurs t1 t2 =
     | l, r when l == r -> ()
     | _ -> raise Unify
 
+and unify_param_mode l r =
+  if l == r then ()
+  else
+    match (repr_mode !l, repr_mode !r) with
+    | Ilinked l, _ -> unify_param_mode l r
+    | _, Ilinked r -> unify_param_mode l r
+    | Iknown l, Iknown r -> if l = r then () else raise Unify
+    | Iunknown, _ -> l := Ilinked r
+    | _, Iunknown -> r := Ilinked l
+
 let unify info t1 t2 env =
   let mn = Env.modpath env in
   let loc, pre = info in
@@ -116,7 +127,9 @@ let rec generalize = function
   | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
   | Tvar { contents = Link t } -> generalize t
   | Tfun (t1, t2, k) ->
-      let gen p = { p with pt = generalize p.pt } in
+      let gen p =
+        { p with pt = generalize p.pt; pmode = generalize_param_mode p.pmode }
+      in
       Tfun (List.map gen t1, generalize t2, generalize_closure k)
   | Ttuple ts -> Ttuple (List.map generalize ts)
   | Tconstr (p, ps, ca) -> Tconstr (p, List.map generalize ps, ca)
@@ -128,6 +141,14 @@ let rec generalize = function
       generalize (Tfixed_array (l, t))
   | Tfixed_array (i, t) -> Tfixed_array (i, generalize t)
   | t -> t
+
+and generalize_param_mode rf =
+  (* This should use levels *)
+  match repr_mode !rf with
+  | Iunknown ->
+      rf := Iknown Many;
+      rf
+  | _ -> rf
 
 and generalize_closure = function
   | Simple -> Simple

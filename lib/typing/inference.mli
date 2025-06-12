@@ -16,6 +16,6 @@ module Pmap : Map.S with type key = Path.t
 
 val types_match :
   ?abstracts_map:typ Pmap.t -> typ -> typ -> typ * string Smap.t * bool
-(** Checks if types match. [~strict] means Unbound vars will not match everything.
-   This is true for functions where we want to be as general as possible.
-       We need to match everything for weak vars though *)
+(** Checks if types match. [~strict] means Unbound vars will not match
+    everything. This is true for functions where we want to be as general as
+    possible. We need to match everything for weak vars though *)

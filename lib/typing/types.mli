@@ -16,7 +16,7 @@ type typ =
 
 and fun_kind = Simple | Closure of closed list
 and tv = Unbound of string * int | Link of typ
-and param = { pt : typ; pattr : Ast.decl_attr; pmode : mode }
+and param = { pt : typ; pattr : Ast.decl_attr; pmode : inferred_mode ref }
 and field = { fname : string; ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
 
@@ -36,6 +36,11 @@ and closed = {
 }
 
 and mode = Many | Once
+
+and inferred_mode =
+  | Iunknown (* TODO use levels *)
+  | Iknown of mode
+  | Ilinked of inferred_mode ref
 
 type type_decl = {
   params : typ list;
@@ -106,3 +111,6 @@ val recursion_allowed :
   Path.t ->
   typ ->
   (recursive * typ option, string) result
+
+val string_of_mode : inferred_mode -> string
+val repr_mode : inferred_mode -> inferred_mode

@@ -1047,9 +1047,16 @@ let rec check_expr st ac part tyex =
       (* No kebab-case allowed for user code, no clashes *)
       let id_i i = "borrow-arg-" ^ string_of_int i in
       let var st arg i = { arg with expr = Var (id_i i, Some st.mname) } in
+      (* While inferring the mode, we simple use [Many] for unknown modes *)
+      let rec use_mode = function
+        | Iknown m -> m
+        | Iunknown -> Many
+        | Ilinked { contents = m } -> use_mode m
+      in
       let (_, tmpstate, trees), nargs =
         List.fold_left_map
           (fun (i, tmpstate, trees) (arg, attr, mode) ->
+            let mode = use_mode !mode in
             let ac =
               match attr with
               | Dmove -> (cond_move arg.typ, mode)
@@ -1077,6 +1084,7 @@ let rec check_expr st ac part tyex =
       let _ =
         List.fold_left
           (fun (i, trees) (arg, attr, mode) ->
+            let mode = use_mode !mode in
             let st = { tmpstate with trees } in
             let _, _, trees = check_expr st (attr, mode) [] (var st arg i) in
             (i + 1, trees))
@@ -1371,18 +1379,24 @@ let check_expr ~mname ~params ~touched expr =
           | Dset -> failwith "unreachable"
           | Dmove -> Owned { tl = false; mutated = true }
         in
-        let rf = ref None in
-        let mode =
-          match (repr p.pt, p.pmode) with
-          | _, Once -> `Once
+        let mode, infer =
+          match (repr p.pt, !(p.pmode)) with
+          | _, Iknown Once -> (`Once, None)
+          | _, Iknown Many -> (`Many, None)
           | Tfun _, _ ->
-              let rf_ = ref true in
-              rf := Some rf_;
-              `Unknown rf_
-          | _ -> ( match p.pmode with Many -> `Many | Once -> `Once)
+              let rf = ref true in
+              (`Unknown rf, Some rf)
+          | _ -> (
+              match repr_mode !(p.pmode) with
+              | Iknown Many -> (`Many, None)
+              | Iknown Once -> (`Once, None)
+              | Iunknown ->
+                  (* Not a function, don't try to infer, use Many *)
+                  (`Many, None)
+              | Ilinked _ -> failwith "unreachable")
         in
         let trees = Trst.insert bid loc bstate mode st.trees in
-        ({ st with ids; trees }, (p, rf)))
+        ({ st with ids; trees }, (p, infer)))
       state params
   in
 
@@ -1403,17 +1417,15 @@ let check_expr ~mname ~params ~touched expr =
   (* Ensure no parameter (or any other borrow) has been moved *)
   let unmutated = Trst.check_moves trees mname in
 
-  let params =
-    List.map
-      (fun (p, rf) ->
-        let pmode =
-          match !rf with
-          | None | Some { contents = false } -> p.pmode
-          | Some { contents = true } -> Once
-        in
-        { p with pmode })
-      rfs
-  in
+  List.iter
+    (fun (p, rf) ->
+      match rf with
+      | None | Some { contents = false } -> (
+          match repr_mode !(p.pmode) with
+          | Iunknown -> p.pmode := Iknown Many
+          | _ -> ())
+      | Some { contents = true } -> p.pmode := Iknown Once)
+    rfs;
 
   (* Update attribute of touched *)
   let touched =
@@ -1430,7 +1442,7 @@ let check_expr ~mname ~params ~touched expr =
         { touched with tattr; tattr_loc = Some tattr_loc })
       touched
   in
-  (unmutated, expr, touched, params)
+  (unmutated, expr, touched)
 
 let check_items ~mname loc ~touched items =
   Trst.reset ();

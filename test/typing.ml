@@ -79,14 +79,15 @@ let test_func_external () =
   test "fun (int) -> unit" "external func : fun (int) -> unit; func"
 
 let test_func_1st_class () =
-  test "fun (fun (int) -> 'a, int) -> 'a" "fun (func, arg : int) {func(arg)}"
+  test "fun (once fun (int) -> 'a, int) -> 'a"
+    "fun (func, arg : int) {func(arg)}"
 
 let test_func_1st_hint () =
-  test "fun (fun (int) -> unit, int) -> unit"
+  test "fun (once fun (int) -> unit, int) -> unit"
     "fun (f : fun (int) -> unit, arg) {f(arg)}"
 
 let test_func_1st_stay_general () =
-  test "fun ('a, fun ('a) -> 'b) -> 'b"
+  test "fun ('a, once fun ('a) -> 'b) -> 'b"
     "fun foo(x, f) {f(x)}; fun add1(x) {x + 1}; let a = foo(1, add1); fun \
      boolean(x : bool) {x}; let b = foo(true, boolean); foo"
 
@@ -115,7 +116,7 @@ let test_func_missing_move_known () =
 let test_func_missing_move_unknown () =
   test_exn
     "In application\n\
-     expecting fun (fun (array[int]) -> _) -> _\n\
+     expecting fun (once fun (array[int]) -> _) -> _\n\
      but found fun (fun (array[int]!) -> _) -> _"
     {|fun move(a!) { ignore(a) }
 fun apply_move(move) { move([0]) }
@@ -1231,7 +1232,7 @@ fun (arr) {
 }|}
 
 let test_excl_variant_data () =
-  test "fun (array[option[value['a]]]&, int, fun ('a&) -> unit) -> unit"
+  test "fun (array[option[value['a]]]&, int, once fun ('a&) -> unit) -> unit"
     {|type option['a] = None | Some('a)
 type data['a] = { data& : 'a }
 type value['a] = { value& : 'a }
@@ -1772,6 +1773,9 @@ let test_once_toplevel () =
 
 let test_once_apply_fun_annot () =
   test "fun (once fun ('a) -> 'b, 'a) -> 'b" "fun (once f, arg) {f(arg)}"
+
+let test_once_apply_func_annot_many () =
+  test "fun (fun ('a) -> 'b, 'a) -> 'b" "fun (many func, arg) { func(arg) }"
 
 let case str test = test_case str `Quick test
 
@@ -2316,5 +2320,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "pass" test_once_pass;
           case "toplevel" test_once_toplevel;
           case "apply fun annot" test_once_apply_fun_annot;
+          case "apply fun annot many" test_once_apply_func_annot_many;
         ] );
     ]

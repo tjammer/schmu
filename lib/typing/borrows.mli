@@ -3,10 +3,7 @@ val check_expr :
   params:(Types.param * string * Ast.loc) list ->
   touched:Typed_tree.touched list ->
   Typed_tree.typed_expr ->
-  Ast.loc list
-  * Typed_tree.typed_expr
-  * Typed_tree.touched list
-  * Types.param list
+  Ast.loc list * Typed_tree.typed_expr * Typed_tree.touched list
 
 val check_items :
   mname:Path.t ->

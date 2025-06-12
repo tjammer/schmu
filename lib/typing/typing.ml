@@ -62,15 +62,14 @@ let reset_type_vars () =
 
 let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
 
-(*
-  Helper functions
-*)
+(* Helper functions *)
 
 let check_annot env loc l r =
   let typ, _, b = Inference.types_match l r in
   if b then typ
   else
     let mn = Env.modpath env in
+    (* TODO change to "Type annotation" *)
     let msg = Error.format_type_err "Var annotation" mn r l in
     raise (Error (loc, msg))
 
@@ -228,7 +227,11 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
             Tfun
               ( List.map
                   (fun (s, pattr) ->
-                    { pt = concrete_type false env s; pattr; pmode = Many })
+                    {
+                      pt = concrete_type false env s;
+                      pattr;
+                      pmode = ref (Iknown Many);
+                    })
                   (List.rev head),
                 concrete_type false env last,
                 fn_kind )
@@ -253,6 +256,15 @@ let param_annot annots i =
   if Array.length annots > i then Array.get annots i else None
 
 let check_mode mode =
+  match mode with
+  | Some (_, "once") -> ref (Iknown Once)
+  | Some (_, "many") -> ref (Iknown Many)
+  | None -> ref Iunknown
+  | Some m ->
+      raise
+        (Error (fst m, "Unknown mode, expecting 'once', not '" ^ snd m ^ "'"))
+
+let check_mode_noinfer mode =
   match mode with
   | Some (_, "once") -> Once
   | Some (_, "many") -> Many
@@ -746,7 +758,8 @@ end = struct
 
   and convert_let ~global env loc (decl : Ast.decl) { Ast.pattr; pexpr = block }
       =
-    let mode = check_mode decl.mode in
+    (* We don't infer modes for let bindings, only for function parameters *)
+    let mode = check_mode_noinfer decl.mode in
     let id, idloc, has_exprname, attr = pattern_id 0 decl.pattern in
     let e1 = typeof_annot_decl env loc decl.annot block in
     let lmut = mut_of_pattr attr in
@@ -796,7 +809,7 @@ end = struct
     leave_level ();
     let _, closed_vars, touched, unused = Env.close_function env in
 
-    let unmutated, body, touched, params_t =
+    let unmutated, body, touched =
       let params =
         List.map (fun (d : Ast.decl) -> d.loc) params
         |> List.map2
@@ -876,7 +889,8 @@ end = struct
           List.mapi
             (fun i p ->
               let id, _, _, pattr = pattern_id i Ast.(p.pattern) in
-              ({ pattr; pt = newvar (); pmode = Many }, id))
+              (* Recursive function are always many *)
+              ({ pattr; pt = newvar (); pmode = ref (Iknown Many) }, id))
             params
           |> List.split
         in
@@ -903,7 +917,7 @@ end = struct
 
     let env, closed_vars, touched, unused = Env.close_function env in
 
-    let unmutated, body, touched, params_t =
+    let unmutated, body, touched =
       let params =
         List.map (fun (d : Ast.decl) -> d.loc) params
         |> List.map2
@@ -1028,7 +1042,7 @@ end = struct
 
     let args =
       List.map
-        (fun (a, pattr, _) -> { pattr; pt = a.typ; pmode = Many })
+        (fun (a, pattr, _) -> { pattr; pt = a.typ; pmode = ref Iunknown })
         typed_exprs
     in
     let apply param (texpr, _, _) =
