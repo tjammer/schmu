@@ -14,9 +14,9 @@ type psub = Path.t Pmap.t
 type tsub = Types.typ Smap.t
 
 val adjust_for_checking : base:Path.t -> with_:Path.t -> t -> t
-(** [adjust_for_checking ~mname mtype] changes the type paths in [mtype] to [mname]
-    such that they nominally can be the same type. It also generates a new unbound
-    symbol for abstract types such that we can use linking correctly without
-    interfering with later checks. *)
+(** [adjust_for_checking ~mname mtype] changes the type paths in [mtype] to
+    [mname] such that they nominally can be the same type. It also generates a
+    new unbound symbol for abstract types such that we can use linking correctly
+    without interfering with later checks. *)
 
 val apply_pathsub : base:Path.t -> with_:Path.t -> Types.typ -> Types.typ

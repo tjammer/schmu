@@ -294,7 +294,8 @@ let test_sequence_fail () =
   test_exn
     "Left expression in sequence must be of type unit,\n\
      expecting unit\n\
-     but found int" "fun add1(x) {x + 1}; add1(20); 1 + 1"
+     but found int"
+    "fun add1(x) {x + 1}; add1(20); 1 + 1"
 
 let test_para_instantiate () =
   test "foo[int]"
@@ -734,7 +735,8 @@ let test_pattern_decl_tuple_missing () =
   test_exn
     "Tuple pattern has unexpected type:\n\
      expecting (int, float, int)\n\
-     but found (int, float)" "let x, f = (12, 5.0, 20); f"
+     but found (int, float)"
+    "let x, f = (12, 5.0, 20); f"
 
 let test_pattern_decl_wildcard_move () =
   test "fun ('a, 'b!) -> unit" "fun func(_, _!) {()}; func"
@@ -1232,7 +1234,7 @@ fun (arr) {
 }|}
 
 let test_excl_variant_data () =
-  test "fun (array[option[value['a]]]&, int, once fun ('a&) -> unit) -> unit"
+  test "fun (array[option[value['a]]]&, int, fun ('a&) -> unit) -> unit"
     {|type option['a] = None | Some('a)
 type data['a] = { data& : 'a }
 type value['a] = { value& : 'a }
@@ -1545,13 +1547,15 @@ let test_functor_check_param () =
   test_exn
     "Signatures don't match for value create:\n\
      expecting fun (_) -> t[key]\n\
-     but found fun (_) -> t['a]" (check_sig_test "key")
+     but found fun (_) -> t['a]"
+    (check_sig_test "key")
 
 let test_functor_check_concrete () =
   test_exn
     "Signatures don't match for value create:\n\
      expecting fun (_) -> t[int]\n\
-     but found fun (_) -> t['a]" (check_sig_test "int")
+     but found fun (_) -> t['a]"
+    (check_sig_test "int")
 
 let test_functor_sgn_only_type () =
   test "unit"
@@ -1713,8 +1717,10 @@ let test_rec_type_record_wrap_twice () =
 type wrap['a] = { a : option['a] }
 type t = { a : rc[wrap[wrap[t]]] }|}
 
-let test_once_decl_let () = test "unit" "{let once foo = 10; ignore(foo)}"
-let test_once_decl_param () = test "unit" "fun foo (once p) {ignore(p)}"
+let test_once_decl_let () =
+  test "unit" "{let once foo = 10; __ignore_once(foo)}"
+
+let test_once_decl_param () = test "unit" "fun foo (once p) {__ignore_once(p)}"
 
 let test_once_wrong_mode_let () =
   test_exn "Unknown mode, expecting 'once', not 'nonce'"
@@ -1726,18 +1732,18 @@ let test_once_wrong_mode_param () =
 
 let test_once_let_use_twice () =
   test_exn "Cannot use foo more than once"
-    "{let once foo = 10; ignore(foo); ignore(foo)}"
+    "{let once foo = 10; __ignore_once(foo); __ignore_once(foo)}"
 
 let test_once_param_use_twice () =
   test_exn "Cannot use p more than once"
-    "fun foo (once p) {ignore(p); ignore(p)}"
+    "fun foo (once p) {__ignore_once(p); __ignore_once(p)}"
 
 let test_once_use_once_borrows () =
   test "int" "{let once foo = 10; let once a = foo; a}"
 
 let test_once_use_twice_borrows () =
   test_exn "Cannot use a more than once"
-    "{let once foo = 10; let once a = foo; ignore(a); a}"
+    "{let once foo = 10; let once a = foo; __ignore_once(a); a}"
 
 let test_once_use_borrows_twice () =
   test_exn "Cannot pass once value a as many"
@@ -1745,7 +1751,7 @@ let test_once_use_borrows_twice () =
 
 let test_once_use_twice_borrows_twice () =
   test_exn "Cannot use b more than once"
-    "{let once foo = 10; let once a = foo; let once b = a; ignore(b); b}"
+    "{let once foo = 10; let once a = foo; let once b = a; __ignore_once(b); b}"
 
 let test_once_decl_unused_let () =
   test_exn "Value foo has not been used once" "{let once foo = 10; ()}"
@@ -1758,7 +1764,7 @@ let test_once_unused_borrow () =
     "{let once foo = 10; let once a = foo; let once b = a; ()}"
 
 let test_once_print () =
-  test "fun (once 'a) -> unit" "fun foo (once p) {ignore(p)}; {(); foo}"
+  test "fun (once 'a) -> unit" "fun foo (once p) {__ignore_once(p)}; {(); foo}"
 
 let test_once_pass () =
   test_exn "Cannot pass once value foo as many"
@@ -1776,6 +1782,34 @@ let test_once_apply_fun_annot () =
 
 let test_once_apply_func_annot_many () =
   test "fun (fun ('a) -> 'b, 'a) -> 'b" "fun (many func, arg) { func(arg) }"
+
+let test_once_move_function () =
+  test "fun (fun ('a) -> unit!) -> t['a]"
+    "type t['a] = { fn : fun ('a) -> unit }; fun (fn!) { { fn } }"
+
+let test_once_if () =
+  test "fun (t, fun (int) -> int) -> int" {|type t = None | Some(int)
+fun(v, f) {
+  match v {
+    None -> -1
+    Some(i) -> f(i)
+  }
+}|}
+
+let test_once_if_flipped () =
+  test "fun (t, fun (int) -> int) -> int" {|type t = None | Some(int)
+fun(v, f) {
+  match v {
+    Some(i) -> f(i)
+    None -> -1
+  }
+}|}
+
+let test_once_lambda_argument () =
+  test "unit" {|fun apply(many f : fun (fun (once 'a) -> unit) -> unit) {
+  f(fun (once i) {__ignore_once(i)})
+}
+apply(fun cb { cb(1) })|}
 
 let case str test = test_case str `Quick test
 
@@ -2321,5 +2355,9 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "toplevel" test_once_toplevel;
           case "apply fun annot" test_once_apply_fun_annot;
           case "apply fun annot many" test_once_apply_func_annot_many;
+          case "move function" test_once_move_function;
+          case "if" test_once_if;
+          case "if flipped" test_once_if_flipped;
+          case "lambda argument" test_once_lambda_argument;
         ] );
     ]

@@ -78,7 +78,7 @@ prog: External Ident Colon Fun Lpar Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Fun Lpar Rpar Right_arrow Quote Ident With
+prog: External Ident Colon Fun Lpar Rpar Right_arrow Ident Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -98,7 +98,7 @@ prog: External Ident Colon Ident Lbrack Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Fun Lpar Ident Semicolon
+prog: External Ident Colon Fun Lpar Quote Ident Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -110,6 +110,14 @@ prog: External Ident Colon Fun Lpar Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: External Ident Colon Fun Lpar Ident Semicolon
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar Ident Ident Semicolon
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: External Ident Colon Fun Lpar Ident Rpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -118,7 +126,7 @@ prog: External Ident Colon Fun Lpar Ident Rpar Right_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Fun Lpar Ident Rpar Right_arrow Quote Ident With
+prog: External Ident Colon Fun Lpar Ident Rpar Right_arrow Ident Quote
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

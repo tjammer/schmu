@@ -462,15 +462,15 @@ type_spec:
   | head = type_spec; Lbrack; tail = separated_nonempty_list(Comma, type_spec); Rbrack
     { Ty_applied (head :: tail) }
   | Fun; Lpar; Rpar; Right_arrow; ret = type_spec; %prec Type_application
-    { Ty_func ([Ty_id ($loc, "unit"), Dnorm; ret, Dnorm]) }
+    { Ty_func ([None, Ty_id ($loc, "unit"), Dnorm; None, ret, Dnorm]) }
   | Fun; Lpar; ps = separated_nonempty_list(Comma, type_param); Rpar; Right_arrow; ret = type_spec;
     %prec Type_application
-    { Ty_func (ps @ [ret, Dnorm]) }
+    { Ty_func (ps @ [None, ret, Dnorm]) }
   | Lpar; ts = separated_nonempty_list(Comma, type_spec); Rpar { Ty_tuple ts }
 
 type_param:
-  | spec = type_spec { spec, Dnorm }
-  | spec = type_spec; attr = decl_attr { spec, attr }
+  | mode = mode; spec = type_spec { mode, spec, Dnorm }
+  | mode = mode; spec = type_spec; attr = decl_attr { mode, spec, attr }
 
 ctor_type_spec:
   | normal = type_spec { normal }

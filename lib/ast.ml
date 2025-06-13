@@ -1,5 +1,8 @@
 type loc = (Lexing.position * Lexing.position[@opaque]) [@@deriving show]
+
 type ident = loc * string
+and mode = ident option
+
 type bop = Equal_i | And | Or [@@deriving show, sexp]
 (* Equal_i is used in pattern matches, so we keep it even though it is also
    defined as a builtin function *)
@@ -10,7 +13,7 @@ type type_spec =
   | Ty_id of ident
   | Ty_var of ident
   | Ty_applied of type_spec list
-  | Ty_func of (type_spec * decl_attr) list
+  | Ty_func of (mode * type_spec * decl_attr) list
   | Ty_use_id of loc * Path.t
   | Ty_tuple of type_spec list
 
@@ -18,7 +21,7 @@ and decl = {
   loc : loc;
   pattern : pattern;
   annot : type_spec option;
-  mode : ident option;
+  mode : mode;
 }
 
 and decl_attr = Dmut | Dmove | Dnorm | Dset

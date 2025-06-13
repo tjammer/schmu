@@ -314,7 +314,12 @@ module Make_tree (Id : Id_t) = struct
               in
               raise (Error.Error (loc.loc, msg))
           | Many -> Many
-          | Unknown (i, rf) -> Unknown (i + 1, rf)
+          | Unknown (i, rf) -> (
+              match use_mode with
+              | Many ->
+                  (* Ensure the value is used more than once *)
+                  Unknown (i + 2, rf)
+              | Once -> Unknown (i + 1, rf))
         else item.mode
       in
       let found, children =
@@ -383,10 +388,28 @@ module Make_tree (Id : Id_t) = struct
     in
 
     let merge_whole l r =
-      match pick_mov l.mov r.mov with
-      | `Left -> l
-      | `Right -> r
-      | `Either -> ( match pick_bor l.bor r.bor with `Left -> l | `Right -> r)
+      let base =
+        match pick_mov l.mov r.mov with
+        | `Left -> l
+        | `Right -> r
+        | `Either -> (
+            match pick_bor l.bor r.bor with `Left -> l | `Right -> r)
+      in
+      let mode =
+        match (l.mode, r.mode) with
+        | Unknown (l, lrf), Unknown (r, rrf) ->
+            assert (lrf == rrf);
+            let i =
+              (* If the value has been moved more than once it cannot be Once.
+                 Keep this state *)
+              if l > 1 then l else if r > 1 then r else Int.min l r
+            in
+            Unknown (i, lrf)
+        | Once_notused, Once_notused | Once_used, Once_used | Many, Many ->
+            l.mode
+        | _ -> failwith "Internal Error: Unexpected mode mismatch"
+      in
+      { base with mode }
     in
     match (l, r) with
     | Twhole l, Twhole r ->
@@ -911,7 +934,9 @@ let get_closed_usage kind (touched : touched) =
             else if c.clmut then Some c
             else
               (* Move the closed variable into the closure *)
-              match cond_move c.cltyp with Dmove -> Some c | _ -> None)
+              match cond_move c.cltyp with
+              | Dmove -> Some c
+              | _ -> None)
         | None ->
             (* Touched bit not closed? Let's read it *)
             None)
@@ -1048,15 +1073,17 @@ let rec check_expr st ac part tyex =
       let id_i i = "borrow-arg-" ^ string_of_int i in
       let var st arg i = { arg with expr = Var (id_i i, Some st.mname) } in
       (* While inferring the mode, we simple use [Many] for unknown modes *)
-      let rec use_mode = function
-        | Iknown m -> m
-        | Iunknown -> Many
-        | Ilinked { contents = m } -> use_mode m
+      let rec use_mode attr mode =
+        match (mode, attr) with
+        | _, Dmove -> Many
+        | Iknown m, _ -> m
+        | Iunknown, _ -> Many
+        | Ilinked { contents = m }, _ -> use_mode attr m
       in
       let (_, tmpstate, trees), nargs =
         List.fold_left_map
           (fun (i, tmpstate, trees) (arg, attr, mode) ->
-            let mode = use_mode !mode in
+            let mode = use_mode attr !mode in
             let ac =
               match attr with
               | Dmove -> (cond_move arg.typ, mode)
@@ -1084,7 +1111,7 @@ let rec check_expr st ac part tyex =
       let _ =
         List.fold_left
           (fun (i, trees) (arg, attr, mode) ->
-            let mode = use_mode !mode in
+            let mode = use_mode attr !mode in
             let st = { tmpstate with trees } in
             let _, _, trees = check_expr st (attr, mode) [] (var st arg i) in
             (i + 1, trees))

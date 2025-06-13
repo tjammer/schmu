@@ -110,6 +110,24 @@ let check_unused env unused unmutated =
 
 let string_of_bop = function Ast.Equal_i -> "==" | And -> "and" | Or -> "or"
 
+let check_mode mode =
+  match mode with
+  | Some (_, "once") -> ref (Iknown Once)
+  | Some (_, "many") -> ref (Iknown Many)
+  | None -> ref Iunknown
+  | Some m ->
+      raise
+        (Error (fst m, "Unknown mode, expecting 'once', not '" ^ snd m ^ "'"))
+
+let check_mode_noinfer mode =
+  match mode with
+  | Some (_, "once") -> Once
+  | Some (_, "many") -> Many
+  | None -> Many
+  | Some m ->
+      raise
+        (Error (fst m, "Unknown mode, expecting 'once', not '" ^ snd m ^ "'"))
+
 let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   let fn_kind = if param then Closure [] else Simple in
 
@@ -213,24 +231,24 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
             raise (Error (loc, msg)))
   and handle_func env = function
     | [] -> failwith "Internal Error: Type annot list should not be empty"
-    | [ (t, _) ] -> concrete_type false env t
-    | [ (Ast.Ty_id (_, "unit"), _); (t, _) ] ->
+    | [ (_, t, _) ] -> concrete_type false env t
+    | [ (_, Ast.Ty_id (_, "unit"), _); (_, t, _) ] ->
         Tfun ([], concrete_type false env t, fn_kind)
-    | [ (Ast.Ty_applied [ Ast.Ty_id (_, "unit") ], _); (t, _) ] ->
+    | [ (_, Ast.Ty_applied [ Ast.Ty_id (_, "unit") ], _); (_, t, _) ] ->
         Tfun ([], concrete_type false env t, fn_kind)
     (* For function definiton and application, 'unit' means an empty list.
        It's easier for typing and codegen to treat unit as a special case here *)
     | l -> (
         (* We reverse the list times :( *)
         match List.rev l with
-        | (last, _) :: head ->
+        | (_, last, _) :: head ->
             Tfun
               ( List.map
-                  (fun (s, pattr) ->
+                  (fun (mode, s, pattr) ->
                     {
                       pt = concrete_type false env s;
                       pattr;
-                      pmode = ref (Iknown Many);
+                      pmode = ref (Iknown (check_mode_noinfer mode));
                     })
                   (List.rev head),
                 concrete_type false env last,
@@ -254,24 +272,6 @@ let rec param_annots t =
 
 let param_annot annots i =
   if Array.length annots > i then Array.get annots i else None
-
-let check_mode mode =
-  match mode with
-  | Some (_, "once") -> ref (Iknown Once)
-  | Some (_, "many") -> ref (Iknown Many)
-  | None -> ref Iunknown
-  | Some m ->
-      raise
-        (Error (fst m, "Unknown mode, expecting 'once', not '" ^ snd m ^ "'"))
-
-let check_mode_noinfer mode =
-  match mode with
-  | Some (_, "once") -> Once
-  | Some (_, "many") -> Many
-  | None -> Many
-  | Some m ->
-      raise
-        (Error (fst m, "Unknown mode, expecting 'once', not '" ^ snd m ^ "'"))
 
 let handle_params env (params : Ast.decl list) pattern_id ret =
   (* return updated env with bindings for parameters and types of parameters *)
@@ -1078,7 +1078,7 @@ end = struct
     let decls =
       List.init left_args (fun i ->
           let pattern = Pvar ((loc, p i), Dnorm) in
-          { loc; pattern; annot = None; mode = None })
+          { loc; pattern; annot = None; mode = Some (loc, "many") })
     in
     let curry_args =
       List.init left_args (fun i ->
@@ -1200,7 +1200,10 @@ end = struct
        let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
        raise (Error (eloc, msg)));
     unify (loc, "In mutation") toset.typ valexpr.typ env;
-    let moved = Snot_moved (* will be set in excl pass *) in
+    let moved =
+      Snot_moved
+      (* will be set in excl pass *)
+    in
     { typ = tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
 
   and convert_pipe env loc e1 e2 inverse =
