@@ -110,11 +110,11 @@ let check_unused env unused unmutated =
 
 let string_of_bop = function Ast.Equal_i -> "==" | And -> "and" | Or -> "or"
 
-let check_mode mode =
+let check_mode_annot annot mode =
   match mode with
   | Some (_, "once") -> ref (Iknown Once)
   | Some (_, "many") -> ref (Iknown Many)
-  | None -> ref Iunknown
+  | None -> ( match annot with Some a -> a | None -> ref Iunknown)
   | Some m ->
       raise
         (Error (fst m, "Unknown mode, expecting 'once', not '" ^ snd m ^ "'"))
@@ -273,7 +273,7 @@ let rec param_annots t =
 let param_annot annots i =
   if Array.length annots > i then Array.get annots i else None
 
-let handle_params env (params : Ast.decl list) pattern_id ret =
+let handle_params env (params : Ast.decl list) pattern_id annot ret =
   (* return updated env with bindings for parameters and types of parameters *)
   let rec handle = function
     | Qvar _ as t -> (newvar (), t)
@@ -291,9 +291,18 @@ let handle_params env (params : Ast.decl list) pattern_id ret =
     | t -> (t, t)
   in
 
+  let pannot i =
+    Option.bind annot (fun t ->
+        match repr t with
+        | Tfun (ps, _, _) ->
+            let p = List.nth ps i in
+            Some p.pmode
+        | _ -> None)
+  in
+
   List.fold_left_map
     (fun (env, i) { Ast.loc; pattern; annot; mode } ->
-      let pmode = check_mode mode in
+      let pmode = check_mode_annot (pannot i) mode in
 
       let id, idloc, _, pattr = pattern_id i pattern in
       let type_id, qparams =
@@ -650,7 +659,7 @@ end = struct
         let attr = { no_attr with const = true } in
         { typ = tunit; expr = Const Unit; attr; loc }
     | Lambda (loc, id, attr, ret, e) ->
-        convert_lambda env loc pipe id attr ret e
+        convert_lambda env loc annot pipe id attr ret e
     | App (loc, e1, e2) -> convert_app ~pipe env loc e1 e2
     | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
@@ -787,11 +796,11 @@ end = struct
     let expr = { e1 with attr = { e1.attr with global; const } } in
     (env, id, idloc, expr, lmut, pat_exprs, mode)
 
-  and convert_lambda env loc pipe params attr ret_annot body =
+  and convert_lambda env loc annot pipe params attr ret_annot body =
     let env = Env.open_function env in
     enter_level ();
     let env, params_t, qparams, ret_annot =
-      handle_params env params pattern_id ret_annot
+      handle_params env params pattern_id annot ret_annot
     in
     let nparams =
       List.mapi
@@ -905,7 +914,7 @@ end = struct
     (* We duplicate some lambda code due to naming *)
     let env = Env.open_function env in
     let body_env, params_t, qparams, ret_annot =
-      handle_params env params pattern_id return_annot
+      handle_params env params pattern_id None return_annot
     in
 
     let body_env, param_exprs = convert_decl body_env params in
@@ -1200,10 +1209,7 @@ end = struct
        let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
        raise (Error (eloc, msg)));
     unify (loc, "In mutation") toset.typ valexpr.typ env;
-    let moved =
-      Snot_moved
-      (* will be set in excl pass *)
-    in
+    let moved = Snot_moved (* will be set in excl pass *) in
     { typ = tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
 
   and convert_pipe env loc e1 e2 inverse =
