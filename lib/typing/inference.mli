@@ -6,7 +6,7 @@ val reset : unit -> unit
 val newvar : unit -> typ
 val enter_level : unit -> unit
 val leave_level : unit -> unit
-val unify : err -> typ -> typ -> Env.t -> unit
+val unify : err -> ?flip:bool -> typ -> typ -> Env.t -> unit
 val generalize : typ -> typ
 val instantiate : typ -> typ
 val instantiate_sub : typ Smap.t -> typ -> typ Smap.t * typ

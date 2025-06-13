@@ -1788,7 +1788,8 @@ let test_once_move_function () =
     "type t['a] = { fn : fun ('a) -> unit }; fun (fn!) { { fn } }"
 
 let test_once_if () =
-  test "fun (t, fun (int) -> int) -> int" {|type t = None | Some(int)
+  test "fun (t, fun (int) -> int) -> int"
+    {|type t = None | Some(int)
 fun(v, f) {
   match v {
     None -> -1
@@ -1797,7 +1798,8 @@ fun(v, f) {
 }|}
 
 let test_once_if_flipped () =
-  test "fun (t, fun (int) -> int) -> int" {|type t = None | Some(int)
+  test "fun (t, fun (int) -> int) -> int"
+    {|type t = None | Some(int)
 fun(v, f) {
   match v {
     Some(i) -> f(i)
@@ -1806,10 +1808,24 @@ fun(v, f) {
 }|}
 
 let test_once_lambda_argument () =
-  test "unit" {|fun apply(many f : fun (fun (once 'a) -> unit) -> unit) {
+  test "unit"
+    {|fun apply(many f : fun (fun (once 'a) -> unit) -> unit) {
   f(fun (once i) {__ignore_once(i)})
 }
 apply(fun cb { cb(1) })|}
+
+let test_once_recursive () =
+  (* i cannot be once *)
+  test "fun ('a) -> unit"
+    {|fun rec foo(i) {
+  if true {
+    foo(i)
+  }
+  else {
+    __ignore_once(i)
+  }
+}
+foo|}
 
 let case str test = test_case str `Quick test
 
@@ -2359,5 +2375,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "if" test_once_if;
           case "if flipped" test_once_if_flipped;
           case "lambda argument" test_once_lambda_argument;
+          case "recursive" test_once_recursive;
         ] );
     ]

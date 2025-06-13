@@ -213,8 +213,8 @@ module type concrete_formatter {
 functor make_printer(m : concrete_formatter) {
   signature {
     type printer['a] = fun (formatter/t[m/return]!, 'a) -> formatter/t[m/return]
-    val print : fun (printer['a], 'a) -> m/return
-    val println : fun (printer['a], 'a) -> m/return
+    val print : fun (once printer['a], 'a) -> m/return
+    val println : fun (once printer['a], 'a) -> m/return
     val print_newline : fun () -> m/return
 
     val print1 : fun (string/t, printer['a], 'a) -> m/return

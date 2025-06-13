@@ -1051,10 +1051,10 @@ end = struct
     let targs = List.map2 apply args typed_exprs in
 
     let res_t = newvar () in
-    if pipe then
-      unify (loc, "In application") (Tfun (args, res_t, Simple)) callee.typ env
-    else
-      unify (loc, "In application") callee.typ (Tfun (args, res_t, Simple)) env;
+    let flip = pipe in
+    unify (loc, "In application") ~flip callee.typ
+      (Tfun (args, res_t, Simple))
+      env;
 
     (* Extract the returning type from the callee, because it's properly
        generalized and linked. This way, everything in a function body should be

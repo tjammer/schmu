@@ -112,12 +112,15 @@ and unify_param_mode l r =
     | Iunknown, _ -> l := Ilinked r
     | _, Iunknown -> r := Ilinked l
 
-let unify info t1 t2 env =
+let unify info ?(flip = false) t1 t2 env =
   let mn = Env.modpath env in
   let loc, pre = info in
   try unify Sset.empty t1 t2 with
   | Unify ->
-      let msg = Error.format_type_err pre mn t1 t2 in
+      let msg =
+        if flip then Error.format_type_err pre mn t2 t1
+        else Error.format_type_err pre mn t1 t2
+      in
       raise (Error (loc, msg))
   | Occurs ->
       let msg = "Recursive types are not supported right now" in
