@@ -1841,6 +1841,15 @@ let test_once_use_weak_many () =
 fun many(i) { i + 1 }
 f(0, many)|}
 
+let test_once_lambda_decl () =
+  test_exn "Cannot pass once value func as many"
+    {|{
+  fun f(i, many f) { f(i) }
+  let once func = fun i { i + 1 }
+  let i = 0
+  f(i, func)
+}|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2392,5 +2401,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "signature weak" test_once_signature_weak;
           case "use weak once" test_once_use_weak_once;
           case "use weak many" test_once_use_weak_many;
+          case "lambda decl" test_once_lambda_decl;
         ] );
     ]

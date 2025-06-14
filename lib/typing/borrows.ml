@@ -345,7 +345,6 @@ module Make_tree (Id : Id_t) = struct
           and id = { id; part = [] }
           and children = [] in
 
-          (* TODO copy unknown bind *)
           (true, { bor; mov; id; bind_loc; children; mode } :: item.children)
         else
           List.fold_left_map
@@ -603,11 +602,16 @@ module Make_storage (Id : Id_t) = struct
        changing all expressions. *)
     let st = { st with indices = Id_map.remove id st.indices } in
 
-    List.fold_left
-      (fun (found, st) bound ->
-        let nfound, st = aux bound st in
-        (found && nfound, st))
-      (true, st) bounds
+    match bounds with
+    | [] ->
+        let bor = if lmut then Reserved else Frozen in
+        (true, insert id loc bor mode st)
+    | bounds ->
+        List.fold_left
+          (fun (found, st) bound ->
+            let nfound, st = aux bound st in
+            (found && nfound, st))
+          (true, st) bounds
 
   let insert_string_literal id bind_loc bor st =
     (* If it doesn't exist then insert. Else update bind_loc *)
@@ -1075,7 +1079,7 @@ let rec check_expr st ac part tyex =
         match (mode, attr) with
         | _, Dmove -> Many
         | Iknown m, _ -> m
-        | Iunknown, _ -> Many
+        | Iunknown, _ -> Once
         | Ilinked { contents = m }, _ -> use_mode attr m
       in
       let (_, tmpstate, trees), nargs =
