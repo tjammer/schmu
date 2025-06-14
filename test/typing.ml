@@ -1831,6 +1831,16 @@ let test_once_recursive () =
 }
 foo|}
 
+let test_once_use_weak_once () =
+  test "int" {|fun f(i, once f) { f(i) }
+fun once(i) { i + 1 }
+f(0, once)|}
+
+let test_once_use_weak_many () =
+  test "int" {|fun f(i, many f) { f(i) }
+fun many(i) { i + 1 }
+f(0, many)|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2380,5 +2390,7 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "if flipped" test_once_if_flipped;
           case "lambda argument" test_once_lambda_argument;
           case "signature weak" test_once_signature_weak;
+          case "use weak once" test_once_use_weak_once;
+          case "use weak many" test_once_use_weak_many;
         ] );
     ]
