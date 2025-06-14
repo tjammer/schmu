@@ -9,15 +9,15 @@ signature {
   val range : fun (int, int, consumer[int]) -> continue
 
   -- manipulators
-  val map : fun (once t['a], fun ('a) -> 'b, consumer['b]) -> continue
-  val filter : fun (once t['a], fun ('a) -> bool, consumer['a]) -> continue
-  val take : fun (once t['a], int, consumer['b]) -> continue
+  val map : fun (t['a], fun ('a) -> 'b, consumer['b]) -> continue
+  val filter : fun (t['a], fun ('a) -> bool, consumer['a]) -> continue
+  val take : fun (t['a], int, consumer['b]) -> continue
 
   -- consumers
-  val iter : fun (once t['a], fun ('a) -> unit) -> unit
-  val iteri : fun (once t['a], fun (int, 'a) -> unit) -> unit
-  val fold : fun (once t['a], 'b!, fun ('b!, 'a) -> 'b) -> 'b
-  val foldi : fun (once t['a], 'b!, fun (int, 'b!, 'a) -> 'b) -> 'b
+  val iter : fun (t['a], fun ('a) -> unit) -> unit
+  val iteri : fun (t['a], fun (int, 'a) -> unit) -> unit
+  val fold : fun (t['a], 'b!, fun ('b!, 'a) -> 'b) -> 'b
+  val foldi : fun (t['a], 'b!, fun (int, 'b!, 'a) -> 'b) -> 'b
 }
 
 use prelude

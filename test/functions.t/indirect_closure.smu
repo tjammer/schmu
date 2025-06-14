@@ -10,7 +10,7 @@ fun apply2(x : 'a, f : fun ('a, fun ('a) -> 'b) -> 'b, env : fun ('a) -> 'b) {
 
 fun add1(x : int) {x + 1}
 
-fun boxed2int_int(t, many env) {
+fun boxed2int_int(t, env) {
   let a = env(t.x)
   {x = a}
 }

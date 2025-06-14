@@ -130,9 +130,7 @@ let rec generalize = function
   | Tvar { contents = Unbound (id, l) } when l > !current_level -> Qvar id
   | Tvar { contents = Link t } -> generalize t
   | Tfun (t1, t2, k) ->
-      let gen p =
-        { p with pt = generalize p.pt; pmode = generalize_param_mode p.pmode }
-      in
+      let gen p = { p with pt = generalize p.pt } in
       Tfun (List.map gen t1, generalize t2, generalize_closure k)
   | Ttuple ts -> Ttuple (List.map generalize ts)
   | Tconstr (p, ps, ca) -> Tconstr (p, List.map generalize ps, ca)
@@ -145,13 +143,13 @@ let rec generalize = function
   | Tfixed_array (i, t) -> Tfixed_array (i, generalize t)
   | t -> t
 
-and generalize_param_mode rf =
-  (* This should use levels *)
-  match repr_mode !rf with
-  | Iunknown ->
-      rf := Iknown Many;
-      rf
-  | _ -> rf
+(* and generalize_param_mode rf = *)
+(*   (\* This should use levels *\) *)
+(*   match repr_mode !rf with *)
+(*   | Iunknown -> *)
+(*       rf := Iknown Many; *)
+(*       rf *)
+(*   | _ -> rf *)
 
 and generalize_closure = function
   | Simple -> Simple
@@ -221,6 +219,16 @@ let regeneralize typ =
   typ
 
 module Pmap = Map.Make (Path)
+
+let pmode_matches l r =
+  match (repr_mode !l, repr_mode !r) with
+  | Iunknown, r ->
+      l := r;
+      true
+  | l, Iunknown ->
+      r := l;
+      true
+  | l, r -> l = r
 
 (* Checks if types match. [~strict] means Unbound vars will not match everything.
    This is true for functions where we want to be as general as possible.
@@ -310,8 +318,7 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
                   let pt, sub, b = aux ~strict:true ~in_ps s pl.pt pr.pt in
                   (* TODO check modes *)
                   let b =
-                    b && pl.pattr = pr.pattr
-                    && repr_mode !(pl.pmode) = repr_mode !(pr.pmode)
+                    b && pl.pattr = pr.pattr && pmode_matches pl.pmode pr.pmode
                   in
                   ({ pr with pt } :: ts, sub, acc && b))
                 ([], sub, true) ps_l ps_r

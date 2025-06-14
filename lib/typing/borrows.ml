@@ -934,9 +934,7 @@ let get_closed_usage kind (touched : touched) =
             else if c.clmut then Some c
             else
               (* Move the closed variable into the closure *)
-              match cond_move c.cltyp with
-              | Dmove -> Some c
-              | _ -> None)
+              match cond_move c.cltyp with Dmove -> Some c | _ -> None)
         | None ->
             (* Touched bit not closed? Let's read it *)
             None)
@@ -1451,7 +1449,10 @@ let check_expr ~mname ~params ~touched expr =
           match repr_mode !(p.pmode) with
           | Iunknown -> p.pmode := Iknown Many
           | _ -> ())
-      | Some { contents = true } -> p.pmode := Iknown Once)
+      | Some { contents = true } ->
+          (* Not setting to [Once] makes it a weak type in practice. Can be used
+             as either Many or Once *)
+          ())
     rfs;
 
   (* Update attribute of touched *)

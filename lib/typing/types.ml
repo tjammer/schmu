@@ -164,8 +164,7 @@ let string_of_type_get_name subst =
         if code > acc then code else acc)
       tbl
       (Char.code 'a' |> fun i -> i - 1)
-    |>
-    (* Pick next letter *)
+    |> (* Pick next letter *)
     ( + ) 1 |> Char.chr |> String.make 1
   in
 

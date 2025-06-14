@@ -21,7 +21,7 @@ signature {
   val ends_with : fun (t, t) -> bool
   -- (str, pattern)
 
-  val modify_buf : fun (t&, once fun (array[u8]&) -> unit) -> unit
+  val modify_buf : fun (t&, fun (array[u8]&) -> unit) -> unit
   val of_array : fun (array[u8]!) -> t
   val to_array : fun (t!) -> array[u8]
   val of_fixed_array : fun (array#?[u8]) -> t

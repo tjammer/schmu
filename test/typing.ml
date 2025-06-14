@@ -79,15 +79,14 @@ let test_func_external () =
   test "fun (int) -> unit" "external func : fun (int) -> unit; func"
 
 let test_func_1st_class () =
-  test "fun (once fun (int) -> 'a, int) -> 'a"
-    "fun (func, arg : int) {func(arg)}"
+  test "fun (fun (int) -> 'a, int) -> 'a" "fun (func, arg : int) {func(arg)}"
 
 let test_func_1st_hint () =
-  test "fun (once fun (int) -> unit, int) -> unit"
+  test "fun (fun (int) -> unit, int) -> unit"
     "fun (f : fun (int) -> unit, arg) {f(arg)}"
 
 let test_func_1st_stay_general () =
-  test "fun ('a, once fun ('a) -> 'b) -> 'b"
+  test "fun ('a, fun ('a) -> 'b) -> 'b"
     "fun foo(x, f) {f(x)}; fun add1(x) {x + 1}; let a = foo(1, add1); fun \
      boolean(x : bool) {x}; let b = foo(true, boolean); foo"
 
@@ -116,7 +115,7 @@ let test_func_missing_move_known () =
 let test_func_missing_move_unknown () =
   test_exn
     "In application\n\
-     expecting fun (once fun (array[int]) -> _) -> _\n\
+     expecting fun (fun (array[int]) -> _) -> _\n\
      but found fun (fun (array[int]!) -> _) -> _"
     {|fun move(a!) { ignore(a) }
 fun apply_move(move) { move([0]) }
@@ -294,8 +293,7 @@ let test_sequence_fail () =
   test_exn
     "Left expression in sequence must be of type unit,\n\
      expecting unit\n\
-     but found int"
-    "fun add1(x) {x + 1}; add1(20); 1 + 1"
+     but found int" "fun add1(x) {x + 1}; add1(20); 1 + 1"
 
 let test_para_instantiate () =
   test "foo[int]"
@@ -735,8 +733,7 @@ let test_pattern_decl_tuple_missing () =
   test_exn
     "Tuple pattern has unexpected type:\n\
      expecting (int, float, int)\n\
-     but found (int, float)"
-    "let x, f = (12, 5.0, 20); f"
+     but found (int, float)" "let x, f = (12, 5.0, 20); f"
 
 let test_pattern_decl_wildcard_move () =
   test "fun ('a, 'b!) -> unit" "fun func(_, _!) {()}; func"
@@ -1547,15 +1544,13 @@ let test_functor_check_param () =
   test_exn
     "Signatures don't match for value create:\n\
      expecting fun (_) -> t[key]\n\
-     but found fun (_) -> t['a]"
-    (check_sig_test "key")
+     but found fun (_) -> t['a]" (check_sig_test "key")
 
 let test_functor_check_concrete () =
   test_exn
     "Signatures don't match for value create:\n\
      expecting fun (_) -> t[int]\n\
-     but found fun (_) -> t['a]"
-    (check_sig_test "int")
+     but found fun (_) -> t['a]" (check_sig_test "int")
 
 let test_functor_sgn_only_type () =
   test "unit"
@@ -1814,10 +1809,19 @@ let test_once_lambda_argument () =
 }
 apply(fun cb { cb(1) })|}
 
+let test_once_signature_weak () =
+  test "unit"
+    {|signature {
+  val f : fun(int, once fun (int) -> unit) -> unit
+}
+fun f(i : int, f) { -- TODO cannot just use return annotation
+  f(i); ()
+}|}
+
 let test_once_recursive () =
   (* i cannot be once *)
-  test "fun ('a) -> unit"
-    {|fun rec foo(i) {
+  test_exn "Cannot pass once value i as many"
+    {|fun rec foo(once i) {
   if true {
     foo(i)
   }
@@ -2375,6 +2379,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "if" test_once_if;
           case "if flipped" test_once_if_flipped;
           case "lambda argument" test_once_lambda_argument;
-          case "recursive" test_once_recursive;
+          case "signature weak" test_once_signature_weak;
         ] );
     ]

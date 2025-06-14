@@ -6,10 +6,10 @@ signature {
   val count : fun (rc['a]) -> int
 
   val extract : fun (rc['a]!) -> option/t['a]
-  val read : fun (rc['a], once fun ('a) -> 'b) -> 'b
-  val read_with : fun (rc['a], 'b!, once fun ('a, 'b!) -> 'c) -> 'c
-  val mut : fun (rc['a]&, once fun ('a&) -> 'b) -> 'b
-  val mut_with : fun (rc['a]&, 'b!, once fun ('a&, 'b!) -> 'c) -> 'c
+  val read : fun (rc['a], fun ('a) -> 'b) -> 'b
+  val read_with : fun (rc['a], 'b!, fun ('a, 'b!) -> 'c) -> 'c
+  val mut : fun (rc['a]&, fun ('a&) -> 'b) -> 'b
+  val mut_with : fun (rc['a]&, 'b!, fun ('a&, 'b!) -> 'c) -> 'c
 
   val to_weak : fun (rc['a]) -> weak_rc['a]
   val of_weak : fun (weak_rc['a]) -> option/t[rc['a]]
