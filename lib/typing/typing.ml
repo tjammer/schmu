@@ -976,9 +976,10 @@ end = struct
               |> add_callname ~key:name (name, Some (modpath env), unique))
         in
         (* Discard usage of internal recursive calls *)
-        let changed = Env.set_used name env used in
-        if ((not changed) && not used) && is_rec && not inrec then
-          raise (Error (nameloc, "Unused rec flag"));
+        (if is_rec || inrec then
+           let changed = Env.set_used name env used in
+           if ((not changed) && not used) && is_rec && not inrec then
+             raise (Error (nameloc, "Unused rec flag")));
 
         (match ret_annot with
         | Some (ret, loc) ->
