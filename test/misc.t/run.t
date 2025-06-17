@@ -2356,3 +2356,7 @@ Codgen fixes for recursive types
 
 No unmutated warning on addr
   $ schmu --check no_unmutated_warning.smu
+
+Regression test for miscompile
+  $ schmu miscompile_variant_parents.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./miscompile_variant_parents

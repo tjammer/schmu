@@ -811,9 +811,7 @@ and morph_if mk p cond owning e1 e2 =
       let mid = create_mid p in
       let id = { Mid.mid; typ = e1.typ; parent = None } in
       let mallocs = Mallocs.add (Single id) mallocs in
-      let mallocs =
-        Mallocs.remove a.malloc mallocs |> Mallocs.remove b.malloc
-      in
+
       (e1, e2, Malloc.Single id, mallocs)
     else (e1, e2, No_malloc, mallocs)
   in

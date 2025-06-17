@@ -1,0 +1,28 @@
+type fut = rc[unit]
+module keytbl = hashtbl/make(int)
+type built = { deps : int }
+type rule = Module
+type buildinfo = { rule : rule }
+type building = {
+  fut : fut,
+  deps : array[int],
+  info : buildinfo
+}
+type resolv_deps = { fut : fut }
+type key_state = Resolv_deps(resolv_deps) | Building(building) | Built(built)
+fun _build(state, target) {
+    match keytbl/find(state, target) {
+      Some(v) -> match v {
+        Built(_) -> rc/create(())
+        Resolv_deps(d) -> d.fut
+        Building({ fut, deps = _ , info = _ }) -> fut }
+      None -> failwith("")
+    }
+  }
+
+let tbl& = keytbl/create(16)
+keytbl/insert(&tbl, 0, Building(
+  { fut = rc/create(()), deps = [], info = { rule = Module } }
+))
+
+_build(tbl, 0) |> ignore
