@@ -1099,6 +1099,8 @@ end = struct
         if pipe && missing_args > 0 then
           (* We convert e1 twice. Hopefully not a problem *)
           curry_app env loc e1 args missing_args
+        else if missing_args = 1 then
+          convert_app_impl ~pipe env loc (Subscript.get_callee callee) args
         else convert_app_impl ~pipe env loc callee args
     | _ -> convert_app_impl ~pipe env loc callee args
 

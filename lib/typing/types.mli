@@ -89,6 +89,7 @@ val fold_builtins : ('a -> string -> type_decl -> 'a) -> 'a -> 'a
 
 val is_builtin : typ -> bool
 val is_polymorphic : typ -> bool
+val is_unit : typ -> bool
 val is_weak : sub:Sset.t -> typ -> bool
 val is_poly_orphan : sub:Sset.t -> typ -> bool
 val mut_of_pattr : Ast.decl_attr -> bool

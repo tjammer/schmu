@@ -533,3 +533,6 @@ let rec contains_allocation ?(poly = true) t =
   | Tconstr (Pid "raw_ptr", _, _) -> false
   | Tconstr (_, ts, contains_alloc) -> contains_alloc || aux ts
   | Tfixed_array (_, t) -> contains_allocation t
+
+let is_unit t =
+  match repr t with Tconstr (Pid "unit", _, _) -> true | _ -> false
