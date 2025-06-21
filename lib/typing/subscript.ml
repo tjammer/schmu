@@ -6,13 +6,12 @@ let typ_of_one_param_fun t =
   | Tfun ([ p ], ret, _) when is_unit ret -> Some p.pt
   | _ -> None
 
-let get_callee callee =
+let get_callee env loc callee =
   (* Precondition: length params - length args == 1 *)
-  (* A call is eligible for a subscript if 1. the last parameter is a
-     function 2. that function is once 3. the function only has one
-     paramer, 4. the return type of the callee is unit and 5. the
-     callee expression is just a variable. Otherwise we can't
-     substitute the correct functions. *)
+  (* A call is eligible for a subscript if 1. the last parameter is a function
+     2. that function is once 3. the function only has one paramer, 4. the
+     return type of the callee is unit and 5. the callee expression is just a
+     variable. Otherwise we can't substitute the correct functions. *)
   match repr callee.typ with
   | Tfun (ps, ret, kind) -> (
       match List.rev ps with
@@ -21,6 +20,20 @@ let get_callee callee =
             (* The callee has te be a simple Var expression, for substitution *)
             match (typ_of_one_param_fun last.pt, callee.expr) with
             | Some ret, Var (name, modul) ->
+                (* A Var expression is not enough, we have to know it's
+                   real callname. It can't work with a passed higher order
+                   function *)
+                (match
+                   Option.map
+                     (fun modul -> Env.find_callname loc name modul env)
+                     modul
+                 with
+                | Some _ -> ()
+                | None ->
+                    (* This is a subscript in everything but callname. Raise a
+                       subscript-specific error. *)
+                    raise
+                      (Error.Error (loc, "Cannot find call name for subscript")));
                 (* This is a subscript. Substitute the correct name *)
                 (* TODO check mut attribute *)
                 let typ = Tfun (List.rev tl, ret, kind) in

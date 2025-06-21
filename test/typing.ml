@@ -1850,6 +1850,22 @@ let test_once_lambda_decl () =
   f(i, func)
 }|}
 
+let subs = {|fun subs(borrow, once f) {
+  f(borrow)
+  ()
+}
+|}
+
+let test_subs_parse () =
+  (* This will fail in the future *)
+  test "unit" (subs ^ "let a = subs(2); ()")
+
+let test_subs_no_callname () =
+  test_exn "Cannot find call name for subscript"
+    (subs
+   ^ "fun f (subs : fun (int, once fun (int) -> unit) -> unit) { let a = \
+      subs(2); () }")
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2402,5 +2418,9 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "use weak once" test_once_use_weak_once;
           case "use weak many" test_once_use_weak_many;
           case "lambda decl" test_once_lambda_decl;
+        ] );
+      ( "subscripts",
+        [
+          case "parse" test_subs_parse; case "no callname" test_subs_no_callname;
         ] );
     ]
