@@ -890,7 +890,8 @@ let add_callname ~key cname env =
   let cnames = Map.add key cname scope.cnames in
   { env with values = { scope with cnames } :: tl }
 
-let find_callname loc path env =
+let find_callname loc key path env =
+  let path = Path.append key path in
   find_general
     ~find:(fun key scope -> Map.find_opt key scope.cnames)
     ~found:(fun _ cname -> cname)

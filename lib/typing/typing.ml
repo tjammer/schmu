@@ -1100,7 +1100,9 @@ end = struct
           (* We convert e1 twice. Hopefully not a problem *)
           curry_app env loc e1 args missing_args
         else if missing_args = 1 then
-          convert_app_impl ~pipe env loc (Subscript.get_callee callee) args
+          convert_app_impl ~pipe env loc
+            (Subscript.get_callee env loc callee)
+            args
         else convert_app_impl ~pipe env loc callee args
     | _ -> convert_app_impl ~pipe env loc callee args
 
@@ -1656,7 +1658,7 @@ let let_fn_alias env loc expr =
       | Some (Var (id, Some md)) -> (
           if is_polymorphic expr.typ then Alias
           else
-            match Env.find_callname loc (Path.append id md) env with
+            match Env.find_callname loc id md env with
             | Some callname -> Callname (callname, false)
             | None ->
                 (* No callname here means it's an alias (of an alias). We
@@ -1677,7 +1679,7 @@ let let_fn_alias env loc expr =
       | Some (Var (id, Some md)) ->
           if (not (is_polymorphic expr.typ)) && not (Path.share_base md mname)
           then
-            match Env.find_callname loc (Path.append id md) env with
+            match Env.find_callname loc id md env with
             | Some callname -> Callname (callname, true)
             | None -> Not
           else Not

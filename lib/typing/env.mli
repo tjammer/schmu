@@ -119,7 +119,7 @@ val fix_scope_loc : scope -> Ast.loc -> scope
 (* Call names*)
 val add_callname : key:string -> callname -> t -> t
 
-val find_callname : Ast.loc -> Path.t -> t -> callname option
+val find_callname : Ast.loc -> key -> Path.t -> t -> callname option
 (** Don't return option because if a callname isn't found it's an internal error *)
 
 val decl_tbl : t -> (Path.t, type_decl) Hashtbl.t
