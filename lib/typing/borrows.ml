@@ -458,6 +458,13 @@ module Make_storage (Id : Id_t) = struct
            Dmove is implicit, then *)
   }
 
+  type borrowed = {
+    id : Id.t;
+    part : Tree.part;
+    oncall : on_call option;
+    cond_borrow : bool;
+  }
+
   type index = { ipath : Tree.Path.t; index : int; call_attr : on_call option }
   type indices = { is : index list; cond_borrow : bool }
   type t = { indices : indices Id_map.t; trees : Tree.t Index_map.t }
@@ -580,12 +587,12 @@ module Make_storage (Id : Id_t) = struct
           Id_map.add id { is = other.is @ indices.is; cond_borrow } st_indices
     in
 
-    let aux (bound, part, attr, cond_borrow) st =
+    let aux { id = bound; part; oncall; cond_borrow } st =
       match Id_map.find_opt bound st.indices with
       | Some inds ->
           let (found, trees), is =
             List.fold_left_map
-              (bind_inner bound part attr)
+              (bind_inner bound part oncall)
               (true, st.trees) inds.is
           in
           let indices = add_indices id { is; cond_borrow } st.indices in
@@ -846,20 +853,20 @@ let state_empty mname loc =
   let trees = Trst.insert id loc Frozen `Many Trst.empty in
   { trees; ids = Idst.empty; mname }
 
-type borrow_ids =
-  | Owned
-  | Borrowed of
-      (Trst.Id.t
-      * Trst.Tree.part
-      * Trst.on_call option
-      * bool (* conditional borrow *))
-      list
+type borrowed = Trst.borrowed = {
+  id : Trst.Id.t;
+  part : Trst.Tree.part;
+  oncall : Trst.on_call option;
+  cond_borrow : bool;
+}
+
+type borrow_ids = Owned | Borrowed of borrowed list
 
 let was_moved bs st =
   let open Trst in
   match bs with
   | Owned -> Snot_moved
-  | Borrowed [ (id, part, _, _) ] ->
+  | Borrowed [ { id; part; _ } ] ->
       let open Tree in
       let foreign ~down ~contains_part ~correct_part:_ moved item =
         let moved =
@@ -919,8 +926,7 @@ let own_local_borrow ~local old_tree =
      id's tree*)
   let rec aux = function
     | [] -> local
-    | (id, _part, _attr, _) :: tl ->
-        if Trst.mem id old_tree then aux tl else Owned
+    | { id; _ } :: tl -> if Trst.mem id old_tree then aux tl else Owned
   in
   match local with Owned -> Owned | Borrowed bs -> aux bs
 
@@ -977,7 +983,8 @@ let rec check_expr st ac part tyex =
       let trees = Trst.insert_string_literal id tyex.loc Frozen st.trees in
       let found, _, trees = Trst.borrow id tyex.loc st.mname ac [] trees in
       assert found;
-      (tyex, Borrowed [ (id, [], None, false) ], trees)
+      let part = [] and oncall = None and cond_borrow = false in
+      (tyex, Borrowed [ { id; part; oncall; cond_borrow } ], trees)
   | Const (Array items) ->
       let trees, items =
         List.fold_left_map
@@ -1017,7 +1024,8 @@ let rec check_expr st ac part tyex =
 
       (* Moved borrows don't return a borrow id *)
       if not (fst ac = Dmove && found) then
-        (ex, Borrowed [ (id, part, None, false) ], trees)
+        let oncall = None and cond_borrow = false in
+        (ex, Borrowed [ { id; part; oncall; cond_borrow } ], trees)
       else (ex, Owned, trees)
   | App
       {
@@ -1168,7 +1176,8 @@ let rec check_expr st ac part tyex =
             (* dedup? *)
             let bs =
               List.map
-                (fun (id, part, attr, _) -> (id, part, attr, true))
+                (fun { id; part; oncall; _ } ->
+                  { id; part; oncall; cond_borrow = true })
                 (t @ f)
             in
             (false, Borrowed bs)
@@ -1203,7 +1212,7 @@ let rec check_expr st ac part tyex =
       | Dmove ->
           let trees, moved =
             List.fold_left
-              (fun (trees, moved) (bid, _, usage, _) ->
+              (fun (trees, moved) { id; oncall = usage; _ } ->
                 let ac, moved =
                   match usage with
                   | Some oncall -> (
@@ -1213,7 +1222,7 @@ let rec check_expr st ac part tyex =
                   | None -> (Dmove, moved)
                 in
                 let found, _, trees =
-                  Trst.borrow bid tyex.loc st.mname (ac, Once) [] trees
+                  Trst.borrow id tyex.loc st.mname (ac, Once) [] trees
                 in
                 assert found;
                 (trees, moved))
@@ -1334,9 +1343,10 @@ and check_let st ~toplevel str loc pass lmut mode rhs =
 and bids_of_touched touched kind st =
   List.map
     (fun touched ->
-      let bid = Idst.get touched.tname touched.tmname st.ids
+      let id = Idst.get touched.tname touched.tmname st.ids
       and usage = get_closed_usage kind touched in
-      (bid, [] (* no part *), Some usage, false))
+      let part = [] and oncall = Some usage and cond_borrow = false in
+      { id; part; oncall; cond_borrow })
     touched
 
 and check_abs loc name abs tl st =
