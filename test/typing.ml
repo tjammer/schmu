@@ -1861,7 +1861,11 @@ let test_subs_parse () =
   test_exn
     "Cannot borrow from function call in let binding. Use let borrow form (let \
      _ <- app)"
-    (subs ^ "let a = subs(2); ()")
+    ("{" ^ subs ^ "let a = subs(2); ()}; ()")
+
+let test_subs_parse_tl () =
+  (* This will fail in the future *)
+  test_exn "Cannot return borrow at top level" (subs ^ "let a = subs(2); ()")
 
 let test_subs_no_callname () =
   test_exn "Cannot find call name for subscript"
@@ -2424,6 +2428,8 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
         ] );
       ( "subscripts",
         [
-          case "parse" test_subs_parse; case "no callname" test_subs_no_callname;
+          case "parse" test_subs_parse;
+          case "parse toplevel" test_subs_parse_tl;
+          case "no callname" test_subs_no_callname;
         ] );
     ]

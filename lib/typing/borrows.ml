@@ -847,7 +847,7 @@ open Typed_tree
 open Error
 
 type state = { trees : Trst.t; ids : Idst.t; mname : Path.t }
-type let_context = Cexpr | Clet
+type let_context = Cexpr | Clet | Ctl_let
 
 let state_empty mname loc =
   let id = Idst.get "string literal" (Some mname) Idst.empty in
@@ -1080,6 +1080,8 @@ let rec check_expr st ac part ctx tyex =
                ( tyex.loc,
                  "Cannot borrow from function call in let binding. Use let \
                   borrow form (let _ <- app)" ))
+      | Ctl_let when Subscript.is_borrow_call callee.expr ->
+          raise (Error (tyex.loc, "Cannot return borrow at top level"))
       | _ -> ());
 
       let ncallee, _, callee_trees =
@@ -1313,8 +1315,9 @@ and check_let st ~toplevel str loc pass lmut mode rhs =
       raise (Error (rhs.loc, "Cannot project immutable binding"))
   | _ -> ());
   let bid, ids = Idst.insert str (Some st.mname) st.ids in
+  let ctx = if toplevel then Ctl_let else Clet in
   let rhs, pass, trees =
-    match check_expr st (pass, let_mode_borrow mode) [] Clet rhs with
+    match check_expr st (pass, let_mode_borrow mode) [] ctx rhs with
     | rhs, Owned, trees ->
         (* Nothing is borrowed, we own this *)
         let pass =
