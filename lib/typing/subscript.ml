@@ -6,6 +6,8 @@ let typ_of_one_param_fun t =
   | Tfun ([ p ], ret, _) when is_unit ret -> Some p.pt
   | _ -> None
 
+let prefix = "__pre-"
+
 let get_callee env loc callee =
   (* Precondition: length params - length args == 1 *)
   (* A call is eligible for a subscript if 1. the last parameter is a function
@@ -37,8 +39,12 @@ let get_callee env loc callee =
                 (* This is a subscript. Substitute the correct name *)
                 (* TODO check mut attribute *)
                 let typ = Tfun (List.rev tl, ret, kind) in
-                { callee with expr = Var ("__pre-" ^ name, modul); typ }
+                { callee with expr = Var (prefix ^ name, modul); typ }
             | _ -> callee
           else callee
       | _ -> callee)
   | _ -> callee
+
+let is_borrow_call = function
+  | Var (n, _) -> String.starts_with ~prefix n
+  | _ -> false
