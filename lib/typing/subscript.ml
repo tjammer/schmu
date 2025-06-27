@@ -26,9 +26,8 @@ let get_callee env loc callee =
                    real callname. It can't work with a passed higher order
                    function *)
                 (match
-                   Option.map
-                     (fun modul -> Env.find_callname loc name modul env)
-                     modul
+                   Option.bind modul (fun modul ->
+                       Env.find_callname loc name modul env)
                  with
                 | Some _ -> ()
                 | None ->
@@ -39,12 +38,10 @@ let get_callee env loc callee =
                 (* This is a subscript. Substitute the correct name *)
                 (* TODO check mut attribute *)
                 let typ = Tfun (List.rev tl, ret, kind) in
-                { callee with expr = Var (prefix ^ name, modul); typ }
-            | _ -> callee
-          else callee
-      | _ -> callee)
-  | _ -> callee
+                Some { callee with expr = Var (prefix ^ name, modul); typ }
+            | _ -> None
+          else None
+      | _ -> None)
+  | _ -> None
 
-let is_borrow_call = function
-  | Var (n, _) -> String.starts_with ~prefix n
-  | _ -> false
+let is_borrow_call = function Ast.App_borrow _ -> true | _ -> false

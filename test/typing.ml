@@ -1859,18 +1859,19 @@ let subs = {|fun subs(borrow, once f) {
 let test_subs_parse () =
   (* This will fail in the future *)
   test_exn
-    "Cannot borrow from function call in let binding. Use let borrow form (let \
-     _ <- app)"
+    "In application\n\
+     expecting fun (int, once fun (int) -> unit) -> _\n\
+     but found fun (int) -> _"
     ("{" ^ subs ^ "let a = subs(2); ()}; ()")
 
 let test_subs_parse_tl () =
   (* This will fail in the future *)
-  test_exn "Cannot return borrow at top level" (subs ^ "let a = subs(2); ()")
+  test_exn "Cannot return borrow at top level" (subs ^ "let a <- subs(2); ()")
 
 let test_subs_no_callname () =
   test_exn "Cannot find call name for subscript"
     (subs
-   ^ "fun f (subs : fun (int, once fun (int) -> unit) -> unit) { let a = \
+   ^ "fun f (subs : fun (int, once fun (int) -> unit) -> unit) { let a <- \
       subs(2); () }")
 
 let case str test = test_case str `Quick test

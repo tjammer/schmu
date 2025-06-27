@@ -48,6 +48,7 @@ and expr =
   | Lambda of
       loc * decl list * func_attr list * (type_spec * loc) option * block
   | App of loc * expr * argument list
+  | App_borrow of loc * expr * argument list
   | Record of loc * (ident * expr) list
   | Tuple of loc * expr list
   | Record_update of loc * expr * (ident * expr) list

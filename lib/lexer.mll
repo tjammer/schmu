@@ -179,6 +179,7 @@ rule read =
   | "#?"     { Hash_quest }
   | '#'      { Hash }
   | "->"     { Right_arrow }
+  | "<-"     { Left_arrow }
   | "|>"     { Pipe }
   | "|>>"    { Pipe_last }
   | "--"     { line_comment lexbuf }

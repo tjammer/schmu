@@ -43,6 +43,7 @@
 %token Hash_quest
 %token Semicolon
 %token Right_arrow
+%token Left_arrow
 %token Pipe
 %token Pipe_last
 %token With
@@ -108,6 +109,9 @@ stmt_no_ident:
     { let pattr, pexpr = pexpr in Let($loc, decl, { pattr; pexpr })  }
   | Let; decl = let_decl; Equal; id = Builtin_id
     { let expr = {pattr = Dnorm; pexpr = Var($loc(id), id)} in Let($loc, decl, expr) }
+  | Let; decl = let_decl; Left_arrow; callee = ident; args = parens(call_arg)
+    { let pexpr = App_borrow (($startpos(callee), $endpos(args)), Var callee, args) in
+      Let($loc, decl, { pattr = Dnorm; pexpr }) }
   | Fun; func = func { let loc, func = func false in Function (loc, func) }
   | Fun; Rec; func = func { let loc, func = func true in Function (loc, func) }
   | Fun; Rec; func = func; And; tail = separated_nonempty_list(And, func)

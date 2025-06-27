@@ -652,6 +652,7 @@ end = struct
     | Lambda (loc, id, attr, ret, e) ->
         convert_lambda env loc pipe id attr ret e
     | App (loc, e1, e2) -> convert_app ~pipe env loc e1 e2
+    | App_borrow (loc, e1, e2) -> convert_app_borrow env loc e1 e2
     | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
     | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
@@ -1099,12 +1100,25 @@ end = struct
         if pipe && missing_args > 0 then
           (* We convert e1 twice. Hopefully not a problem *)
           curry_app env loc e1 args missing_args
-        else if missing_args = 1 then
-          convert_app_impl ~pipe env loc
-            (Subscript.get_callee env loc callee)
-            args
         else convert_app_impl ~pipe env loc callee args
     | _ -> convert_app_impl ~pipe env loc callee args
+
+  and convert_app_borrow env loc e1 args =
+    let callee = convert env e1 in
+
+    match callee.typ with
+    | Tfun (ps, _, _) ->
+        let missing_args = List.length ps - List.length args in
+        if missing_args = 1 then
+          match Subscript.get_callee env loc callee with
+          | Some callee -> convert_app_impl ~pipe:false env loc callee args
+          | None ->
+              (* Let it fail *)
+              convert_app_impl ~pipe:false env loc callee args
+        else
+          raise
+            (Error (loc, "Expecting missing function argument for borrow call"))
+    | _ -> raise (Error (loc, "Cannot borrow from calls with unknown type"))
 
   and convert_bop env loc bop e1 e2 =
     let check typ =
@@ -1987,9 +2001,12 @@ and convert_prog env items modul =
         let env = Module.import_module env loc ~regeneralize name in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
-    | Ast.Let (loc, decl, block) ->
+    | Ast.Let (loc, decl, pexpr) ->
+        if Subscript.is_borrow_call pexpr.pexpr then
+          raise (Error (loc, "Cannot return borrow at top level"));
+
         let env, id, id_loc, rhs, lmut, pats, mode =
-          Core.convert_let ~global:true env loc decl block
+          Core.convert_let ~global:true env loc decl pexpr
         in
         (match mode with
         | Once ->
@@ -2007,14 +2024,14 @@ and convert_prog env items modul =
                 Module.add_external loc rhs.typ id (Some callname) ~closure m
               in
               let expr =
-                match block.pattr with
+                match pexpr.pattr with
                 | Dnorm -> Tl_bind (id, rhs)
                 | Dset | Dmut | Dmove ->
                     (* We are using another module's toplevel binding. All of
                        this should be forbidden. So we set let and let it fail
                        in the exclusivity check *)
                     Tl_let
-                      { loc; id; uniq; rhs; lmut; pass = block.pattr; mode }
+                      { loc; id; uniq; rhs; lmut; pass = pexpr.pattr; mode }
               in
               let env = Env.add_callname ~key:id callname env in
               (env, expr, m)
@@ -2027,7 +2044,7 @@ and convert_prog env items modul =
                   (Some (id, Some (Env.modpath env), uniq))
                   ~closure:true m
               in
-              let pass = block.pattr in
+              let pass = pexpr.pattr in
               (env, Tl_let { loc = id_loc; id; uniq; rhs; lmut; pass; mode }, m)
         in
         let expr =
