@@ -1100,6 +1100,12 @@ end = struct
         if pipe && missing_args > 0 then
           (* We convert e1 twice. Hopefully not a problem *)
           curry_app env loc e1 args missing_args
+        else if missing_args = 1 then
+          match Subscript.get_callee env loc callee with
+          | Some callee -> convert_app_impl ~pipe:false env loc callee args
+          | None ->
+              (* Let it fail *)
+              convert_app_impl ~pipe:false env loc callee args
         else convert_app_impl ~pipe env loc callee args
     | _ -> convert_app_impl ~pipe env loc callee args
 
@@ -1275,15 +1281,18 @@ end = struct
           raise (Error (loc, "Block must end with an expression"))
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = tunit; expr = Const Unit; attr = no_attr; loc }, env)
-      | Let (loc, decl, block) :: tl ->
+      | Let (loc, decl, pexpr) :: tl ->
+          let borrow_app = Subscript.is_borrow_call pexpr.pexpr in
           let env, id, id_loc, rhs, lmut, pats, mode =
-            convert_let ~global:false env loc decl block
+            convert_let ~global:false env loc decl pexpr
           in
           let cont, env = to_expr env old_type tl in
           let cont = List.fold_left fold_decl cont pats in
           let uniq = if rhs.attr.const then uniq_name id else None
-          and pass = block.pattr in
-          let expr = Let { id; id_loc; uniq; lmut; pass; rhs; cont; mode } in
+          and pass = pexpr.pattr in
+          let expr =
+            Let { id; id_loc; uniq; lmut; pass; rhs; cont; mode; borrow_app }
+          in
           ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, abs) = convert_function env loc func false in

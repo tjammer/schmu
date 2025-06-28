@@ -45,3 +45,7 @@ let get_callee env loc callee =
   | _ -> None
 
 let is_borrow_call = function Ast.App_borrow _ -> true | _ -> false
+
+let is_borrow_call_typed = function
+  | Var (n, _) -> String.starts_with ~prefix n
+  | _ -> false

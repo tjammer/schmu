@@ -46,6 +46,7 @@ and let_data = {
   rhs : typed_expr; (* attr.mut: is mutable *)
   cont : typed_expr;
   mode : mode;
+  borrow_app : bool;
 }
 
 and const =

@@ -1859,9 +1859,8 @@ let subs = {|fun subs(borrow, once f) {
 let test_subs_parse () =
   (* This will fail in the future *)
   test_exn
-    "In application\n\
-     expecting fun (int, once fun (int) -> unit) -> _\n\
-     but found fun (int) -> _"
+    "Cannot borrow from function call in let binding. Use let borrow form (let \
+     _ <- app)"
     ("{" ^ subs ^ "let a = subs(2); ()}; ()")
 
 let test_subs_parse_tl () =
@@ -1874,6 +1873,7 @@ let test_subs_no_callname () =
    ^ "fun f (subs : fun (int, once fun (int) -> unit) -> unit) { let a <- \
       subs(2); () }")
 
+let test_subs_borrow_bind () = test "unit" (subs ^ "{ let a <- subs(2); () }")
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2432,5 +2432,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "parse" test_subs_parse;
           case "parse toplevel" test_subs_parse_tl;
           case "no callname" test_subs_no_callname;
+          case "borrow bind" test_subs_borrow_bind;
         ] );
     ]
