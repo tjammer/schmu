@@ -8,8 +8,14 @@
 
 all: dllbyval.so libbyval.a
 
+# we need different flags on macos
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    SOFLAGS += -undefined dynamic_lookup
+endif
+
 dllbyval.so: byval.o
-	${CC} -shared -o dllbyval.so byval.o
+	${CC} -shared -o dllbyval.so byval.o $(SOFLAGS)
 
 libbyval.a: byval.o
 	${AR} rvs libbyval.a byval.o
