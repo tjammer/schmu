@@ -1100,12 +1100,6 @@ end = struct
         if pipe && missing_args > 0 then
           (* We convert e1 twice. Hopefully not a problem *)
           curry_app env loc e1 args missing_args
-        else if missing_args = 1 then
-          match Subscript.get_callee env loc callee with
-          | Some callee -> convert_app_impl ~pipe:false env loc callee args
-          | None ->
-              (* Let it fail *)
-              convert_app_impl ~pipe:false env loc callee args
         else convert_app_impl ~pipe env loc callee args
     | _ -> convert_app_impl ~pipe env loc callee args
 
@@ -1116,8 +1110,9 @@ end = struct
     | Tfun (ps, _, _) ->
         let missing_args = List.length ps - List.length args in
         if missing_args = 1 then
-          match Subscript.get_callee env loc callee with
-          | Some callee -> convert_app_impl ~pipe:false env loc callee args
+          match Subscript.is_borrow_callable env loc callee with
+          | Some types ->
+              convert_app_impl ~pipe:false env loc types.tmp_callee args
           | None ->
               (* Let it fail *)
               convert_app_impl ~pipe:false env loc callee args

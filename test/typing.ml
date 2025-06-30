@@ -1859,8 +1859,9 @@ let subs = {|fun subs(borrow, once f) {
 let test_subs_parse () =
   (* This will fail in the future *)
   test_exn
-    "Cannot borrow from function call in let binding. Use let borrow form (let \
-     _ <- app)"
+    "In application\n\
+     expecting fun (int, once fun (int) -> unit) -> _\n\
+     but found fun (int) -> _"
     ("{" ^ subs ^ "let a = subs(2); ()}; ()")
 
 let test_subs_parse_tl () =
