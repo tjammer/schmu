@@ -1,12 +1,6 @@
 open Types
 open Typed_tree
 
-type borrow_call_types = {
-  bind_param : typ;
-  return : typ;
-  tmp_callee : typed_expr;
-}
-
 let typ_of_one_param_fun t =
   match repr t with Tfun ([ p ], return, _) -> Some (p.pt, return) | _ -> None
 
@@ -41,7 +35,8 @@ let is_borrow_callable env loc callee =
                 (* TODO check mut attribute *)
                 let tmp_fun = Tfun (List.rev tl, bind_param, kind) in
                 let tmp_callee = { callee with typ = tmp_fun } in
-                Some { bind_param; return; tmp_callee }
+                Some
+                  ({ bind_param; return; orig_callee = callee.typ }, tmp_callee)
             | _ -> None
           else None
       | _ -> None)

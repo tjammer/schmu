@@ -1012,7 +1012,7 @@ end = struct
     | Dmove | Dnorm -> ());
     e
 
-  and convert_app_impl ~pipe env loc callee args =
+  and convert_app_impl ~pipe env loc callee args borrow_call =
     let annots = param_annots callee.typ in
     let typed_exprs =
       mapi_with_callee_params
@@ -1070,7 +1070,7 @@ end = struct
     let attr = builtins_hack callee typed_exprs in
 
     (* For now, we don't support const functions *)
-    { typ; expr = App { callee; args = targs }; attr; loc }
+    { typ; expr = App { callee; args = targs; borrow_call }; attr; loc }
 
   and curry_app env loc callee args left_args =
     (* Create a lambda expr with [left args] parameters. The body just calls the
@@ -1100,8 +1100,8 @@ end = struct
         if pipe && missing_args > 0 then
           (* We convert e1 twice. Hopefully not a problem *)
           curry_app env loc e1 args missing_args
-        else convert_app_impl ~pipe env loc callee args
-    | _ -> convert_app_impl ~pipe env loc callee args
+        else convert_app_impl ~pipe env loc callee args None
+    | _ -> convert_app_impl ~pipe env loc callee args None
 
   and convert_app_borrow env loc e1 args =
     let callee = convert env e1 in
@@ -1111,11 +1111,11 @@ end = struct
         let missing_args = List.length ps - List.length args in
         if missing_args = 1 then
           match Subscript.is_borrow_callable env loc callee with
-          | Some types ->
-              convert_app_impl ~pipe:false env loc types.tmp_callee args
+          | Some (types, shortfn) ->
+              convert_app_impl ~pipe:false env loc shortfn args (Some types)
           | None ->
               (* Let it fail *)
-              convert_app_impl ~pipe:false env loc callee args
+              convert_app_impl ~pipe:false env loc callee args None
         else
           raise
             (Error (loc, "Expecting missing function argument for borrow call"))
@@ -1473,7 +1473,7 @@ and catch_weak_expr env sub e =
   | Let { rhs; cont; _ } | Bind (_, rhs, cont) ->
       catch_weak_expr env sub rhs;
       catch_weak_expr env sub cont
-  | App { callee; args } ->
+  | App { callee; args; _ } ->
       (* Check that argument to [funptr] or [clsptr] is a function type. We
          cannot test this in [convert_app], because typechecking isn't done
          there yet. An unbound type var might be a function later. *)

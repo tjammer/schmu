@@ -565,7 +565,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let p = List.fold_left rec_fs_to_env param decls in
       morph_expr p cont
   | Lambda (id, abs) -> morph_lambda make texpr.typ param texpr.loc id abs
-  | App { callee; args } ->
+  | App { callee; args; borrow_call = _ } ->
       morph_app make param callee args (cln param texpr.typ)
   | Ctor (variant, index, dataexpr) ->
       morph_ctor make param variant index dataexpr (cln param texpr.typ)

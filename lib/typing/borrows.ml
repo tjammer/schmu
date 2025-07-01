@@ -1032,6 +1032,7 @@ let rec check_expr st ac part tyex =
         callee =
           { expr = Var (("__array_get" | "__fixed_array_get"), _); _ } as callee;
         args = [ arr; idx ];
+        borrow_call;
       } ->
       let callee, _, trees = check_expr st (Dnorm, Once) [] callee in
       let fidx, _, trees =
@@ -1040,7 +1041,9 @@ let rec check_expr st ac part tyex =
       let farr, bs, trees =
         check_expr { st with trees } ac (Parr (fst idx).expr :: part) (fst arr)
       in
-      let expr = App { callee; args = [ (farr, snd arr); (fidx, snd idx) ] } in
+      let expr =
+        App { callee; args = [ (farr, snd arr); (fidx, snd idx) ]; borrow_call }
+      in
       ({ tyex with expr }, bs, trees)
   | App
       {
@@ -1048,6 +1051,7 @@ let rec check_expr st ac part tyex =
           ( { expr = Var ("__unsafe_ptr_get", _); _ }
           | { expr = Var ("get", Some (Path.Pid "unsafe")); _ } ) as callee;
         args = [ arr; idx ];
+        borrow_call = _;
       } ->
       let _, _, trees = check_expr st (Dnorm, Once) [] callee in
       let _, _, trees =
@@ -1061,14 +1065,15 @@ let rec check_expr st ac part tyex =
           ( { expr = Var ("__unsafe_rc_get", _); _ }
           | { expr = Var ("get", Some (Pid "rc")); _ } ) as callee;
         args = [ arg ];
+        borrow_call;
       } ->
       let callee, _, trees = check_expr st (Dnorm, Once) [] callee in
       let farg, bs, trees =
         check_expr { st with trees } ac (Prc :: part) (fst arg)
       in
-      let expr = App { callee; args = [ (farg, snd arg) ] } in
+      let expr = App { callee; args = [ (farg, snd arg) ]; borrow_call } in
       ({ tyex with expr }, bs, trees)
-  | App { callee; args } ->
+  | App { callee; args; borrow_call } ->
       let ncallee, _, callee_trees = check_expr st (Dnorm, Once) [] callee in
       let args =
         (* Add modes to args *)
@@ -1127,7 +1132,7 @@ let rec check_expr st ac part tyex =
             (i + 1, trees))
           (0, tmptrees) args
       in
-      let expr = App { callee = ncallee; args = nargs } in
+      let expr = App { callee = ncallee; args = nargs; borrow_call } in
       ({ tyex with expr }, Owned, trees)
   | Set (expr, value, _) ->
       let value, _, trees =

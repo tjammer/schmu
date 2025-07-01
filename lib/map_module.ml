@@ -122,7 +122,7 @@ module Make (C : Map_tree) = struct
         in
         let sub, cont = (map_body mname nsub) sub cont in
         (sub, Mutual_rec_decls (fs, cont))
-    | App { callee; args } ->
+    | App { callee; args; borrow_call } ->
         let sub, callee = (map_body mname nsub) sub callee in
         let sub, args =
           List.fold_left_map
@@ -131,7 +131,7 @@ module Make (C : Map_tree) = struct
               (sub, (e, mut)))
             sub args
         in
-        (sub, App { callee; args })
+        (sub, App { callee; args; borrow_call })
     | Record fs ->
         let sub, fs =
           List.fold_left_map
