@@ -1868,13 +1868,15 @@ let test_subs_parse_tl () =
   (* This will fail in the future *)
   test_exn "Cannot return borrow at top level" (subs ^ "let a <- subs(2); ()")
 
-let test_subs_no_callname () =
-  test_exn "Cannot find call name for subscript"
-    (subs
-   ^ "fun f (subs : fun (int, once fun (int) -> unit) -> unit) { let a <- \
-      subs(2); () }")
-
 let test_subs_borrow_bind () = test "unit" (subs ^ "{ let a <- subs(2); () }")
+
+let test_subs_borrow_return_param () =
+  test_exn
+    "In borrow call\n\
+     expecting fun (_, fun (_) -> int) -> _\n\
+     but found fun (_, once fun (_) -> unit) -> _"
+    (subs ^ "{ let a <- subs(2); a }")
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2432,7 +2434,7 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
         [
           case "parse" test_subs_parse;
           case "parse toplevel" test_subs_parse_tl;
-          case "no callname" test_subs_no_callname;
           case "borrow bind" test_subs_borrow_bind;
+          case "borrow return param" test_subs_borrow_return_param;
         ] );
     ]

@@ -257,6 +257,86 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
   in
   concrete_type false env annot
 
+let add_param env id idloc typ pattr =
+  Env.add_value id
+    {
+      typ;
+      const = false;
+      param = true;
+      global = false;
+      mut = mut_of_pattr pattr;
+      mname = None;
+    }
+    idloc env
+
+let fold_decl cont (id, e) = { cont with expr = Bind (id, e, cont) }
+
+let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
+    qparams =
+  (* Also used by the borrow call generation where a lambda is created
+     dyamically *)
+  let body = List.fold_left fold_decl body param_exprs in
+
+  leave_level ();
+  let _, closed_vars, touched, unused = Env.close_function env in
+
+  (* TODO factor out everything below this to a function and use is subscript *)
+  let unmutated, body, touched =
+    let params =
+      List.map (fun (d : Ast.decl) -> d.loc) params
+      |> List.map2
+           (fun (p, id) loc -> (p, id, loc))
+           (List.combine params_t nparams)
+    in
+    Borrows.check_expr ~mname:(Env.modpath env) ~params ~touched body
+  in
+
+  (* Copied from function below *)
+  let closed_vars =
+    List.fold_left
+      (fun clsd thing ->
+        match thing with
+        | Ast.Fa_single (loc, attr) ->
+            raise (Error (loc, "Unknown attribute: " ^ attr))
+        | Fa_param ((_, "copy"), lst) ->
+            List.fold_left
+              (fun clsd (loc, id) ->
+                match add_closure_copy clsd id with
+                | Some c -> c
+                | None ->
+                    let msg = "Value " ^ id ^ " is not captured, cannot copy" in
+                    raise (Error (loc, msg)))
+              clsd lst
+        | Fa_param ((loc, attr), _) ->
+            raise (Error (loc, "Unknown attribute: " ^ attr)))
+      closed_vars attr
+  in
+
+  let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
+  check_unused env unused unmutated;
+
+  let typ = Tfun (params_t, body.typ, kind) in
+  match typ with
+  | Tfun (tparams, ret, kind) ->
+      let typ =
+        match ret_annot with
+        | Some (ret, loc) ->
+            let qtyp = Tfun (qparams, ret, kind) in
+            check_annot env loc typ qtyp
+        | None ->
+            let qtyp = Tfun (qparams, ret, kind) in
+            check_annot env loc typ qtyp
+      in
+
+      let func = { tparams; ret; kind; touched } in
+      let inline = false and is_rec = false in
+      let abs =
+        { nparams; body = { body with typ = ret }; func; inline; is_rec }
+      in
+      let expr = Lambda (lambda_id (), abs) in
+      { typ; expr; attr = no_attr; loc }
+  | _ -> failwith "Internal Error: generalize produces a new type?"
+
 let rec param_annots t =
   let annot t =
     match repr t with
@@ -306,17 +386,7 @@ let handle_params env (params : Ast.decl list) pattern_id ret =
             (instantiate t, q)
       in
       (* Might be const, but not important here *)
-      ( ( Env.add_value id
-            {
-              typ = type_id;
-              const = false;
-              param = true;
-              global = false;
-              mut = mut_of_pattr pattr;
-              mname = None;
-            }
-            idloc env,
-          i + 1 ),
+      ( (add_param env id idloc type_id pattr, i + 1),
         ({ pt = type_id; pattr; pmode }, { pt = qparams; pattr; pmode }) ))
     (env, 0) params
   |> fun ((env, _), lst) ->
@@ -575,8 +645,6 @@ let builtins_hack callee args =
   | Some (Var ("get", Some Path.(Pid "rc"))) -> { no_attr with mut }
   | Some _ | None -> no_attr
 
-let fold_decl cont (id, e) = { cont with expr = Bind (id, e, cont) }
-
 module rec Core : sig
   val convert : Env.t -> Ast.expr -> typed_expr
 
@@ -805,67 +873,9 @@ end = struct
     let env, param_exprs = convert_decl env params in
 
     let body = convert_block ~pipe env body |> fst in
-    let body = List.fold_left fold_decl body param_exprs in
 
-    leave_level ();
-    let _, closed_vars, touched, unused = Env.close_function env in
-
-    let unmutated, body, touched =
-      let params =
-        List.map (fun (d : Ast.decl) -> d.loc) params
-        |> List.map2
-             (fun (p, id) loc -> (p, id, loc))
-             (List.combine params_t nparams)
-      in
-      Borrows.check_expr ~mname:(Env.modpath env) ~params ~touched body
-    in
-
-    (* Copied from function below *)
-    let closed_vars =
-      List.fold_left
-        (fun clsd -> function
-          | Ast.Fa_single (loc, attr) ->
-              raise (Error (loc, "Unknown attribute: " ^ attr))
-          | Fa_param ((_, "copy"), lst) ->
-              List.fold_left
-                (fun clsd (loc, id) ->
-                  match add_closure_copy clsd id with
-                  | Some c -> c
-                  | None ->
-                      let msg =
-                        "Value " ^ id ^ " is not captured, cannot copy"
-                      in
-                      raise (Error (loc, msg)))
-                clsd lst
-          | Fa_param ((loc, attr), _) ->
-              raise (Error (loc, "Unknown attribute: " ^ attr)))
-        closed_vars attr
-    in
-
-    let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
-    check_unused env unused unmutated;
-
-    let typ = Tfun (params_t, body.typ, kind) in
-    match typ with
-    | Tfun (tparams, ret, kind) ->
-        let typ =
-          match ret_annot with
-          | Some (ret, loc) ->
-              let qtyp = Tfun (qparams, ret, kind) in
-              check_annot env loc typ qtyp
-          | None ->
-              let qtyp = Tfun (qparams, ret, kind) in
-              check_annot env loc typ qtyp
-        in
-
-        let func = { tparams; ret; kind; touched } in
-        let inline = false and is_rec = false in
-        let abs =
-          { nparams; body = { body with typ = ret }; func; inline; is_rec }
-        in
-        let expr = Lambda (lambda_id (), abs) in
-        { typ; expr; attr = no_attr; loc }
-    | _ -> failwith "Internal Error: generalize produces a new type?"
+    post_lambda env loc body param_exprs params_t nparams params attr ret_annot
+      qparams
 
   and convert_function env loc
       Ast.{ name = nameloc, name; params; return_annot; body; attr; is_rec }
@@ -1110,7 +1120,7 @@ end = struct
     | Tfun (ps, _, _) ->
         let missing_args = List.length ps - List.length args in
         if missing_args = 1 then
-          match Subscript.is_borrow_callable env loc callee with
+          match Subscript.is_borrow_callable callee with
           | Some (types, shortfn) ->
               convert_app_impl ~pipe:false env loc shortfn args (Some types)
           | None ->
@@ -1277,18 +1287,48 @@ end = struct
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = tunit; expr = Const Unit; attr = no_attr; loc }, env)
       | Let (loc, decl, pexpr) :: tl ->
-          let borrow_app = Subscript.is_borrow_call pexpr.pexpr in
-          let env, id, id_loc, rhs, lmut, pats, mode =
-            convert_let ~global:false env loc decl pexpr
-          in
-          let cont, env = to_expr env old_type tl in
-          let cont = List.fold_left fold_decl cont pats in
-          let uniq = if rhs.attr.const then uniq_name id else None
-          and pass = pexpr.pattr in
-          let expr =
-            Let { id; id_loc; uniq; lmut; pass; rhs; cont; mode; borrow_app }
-          in
-          ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
+          if Subscript.is_borrow_call pexpr.pexpr then
+            (* Annotations need to go to the lambda *)
+            let rhs = convert env pexpr.pexpr in
+            let callee, args, bc =
+              match rhs.expr with
+              | App { callee; args; borrow_call = Some bc } -> (callee, args, bc)
+              | _ -> failwith "Internal Error: Not a borrow call"
+            in
+            let lambda =
+              Subscript.make_lambda env loc decl bc.bind_param pattern_id
+                add_param convert_decl
+                (fun env -> to_expr env old_type tl |> fst)
+                post_lambda
+            in
+
+            (* Build correct call and unify *)
+            match repr callee.typ with
+            | Tfun (ps, _, kind) ->
+                let ps =
+                  ps
+                  @ [ { pt = lambda.typ; pattr = Dnorm; pmode = ref Iunknown } ]
+                in
+                let typ = Tfun (ps, bc.return, kind) in
+                unify (loc, "In borrow call") typ bc.orig_callee env;
+                let callee = { callee with typ }
+                and args = args @ [ (lambda, Dnorm) ] in
+                let expr = App { callee; args; borrow_call = Some bc } in
+                ({ rhs with expr; typ = bc.return }, env)
+            | _ -> failwith "Internal Error: Borrow call not a function"
+          else
+            let env, id, id_loc, rhs, lmut, pats, mode =
+              convert_let ~global:false env loc decl pexpr
+            in
+            let cont, env = to_expr env old_type tl in
+            let cont = List.fold_left fold_decl cont pats in
+            let uniq = if rhs.attr.const then uniq_name id else None
+            and pass = pexpr.pattr
+            and borrow_app = false in
+            let expr =
+              Let { id; id_loc; uniq; lmut; pass; rhs; cont; mode; borrow_app }
+            in
+            ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, abs) = convert_function env loc func false in
           let cont, env = to_expr env old_type tl in
