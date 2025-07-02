@@ -15,16 +15,16 @@ let is_borrow_callable callee =
   | Tfun (ps, return, kind) as orig_callee -> (
       match List.rev ps with
       | last :: tl -> (
-          (* The callee has te be a simple Var expression, for substitution *)
-          match (typ_of_one_param_fun last.pt, callee.expr) with
-          | Some bind_param, Var (_name, _modul) ->
+          match typ_of_one_param_fun last.pt with
+          | Some bind_param ->
               (* A Var expression is not enough, we have to know it's
                  real callname. It can't work with a passed higher order
                  function *)
               (* TODO check mut attribute *)
               let tmp_fun = Tfun (List.rev tl, bind_param, kind) in
               let tmp_callee = { callee with typ = tmp_fun } in
-              Some ({ bind_param; return; orig_callee }, tmp_callee)
+              let fn_arg = List.rev ps |> List.hd in
+              Some ({ bind_param; return; fn_arg; orig_callee }, tmp_callee)
           | _ -> None)
       | _ -> None)
   | _ -> None

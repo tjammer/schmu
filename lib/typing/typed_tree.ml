@@ -113,7 +113,13 @@ and abstraction = {
 (* TODO function data *)
 and attr = { const : bool; global : bool; mut : bool }
 and set_move_kind = Snot_moved | Spartially_moved | Smoved
-and borrow_call = { bind_param : typ; return : typ; orig_callee : typ }
+
+and borrow_call = {
+  bind_param : typ;
+  return : typ;
+  fn_arg : param;
+  orig_callee : typ;
+}
 
 let no_attr = { const = false; global = false; mut = false }
 

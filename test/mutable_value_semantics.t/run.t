@@ -3820,3 +3820,7 @@ Mutable locals must not be globals even if constexpr
 Partial moves out of variants with in arrays with dynamic indices
   $ schmu dyn_partial_move.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./dyn_partial_move
+
+Nested simple borrow call
+  $ schmu borrow_call_nest.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_call_nest

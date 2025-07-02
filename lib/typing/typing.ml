@@ -1305,11 +1305,10 @@ end = struct
             (* Build correct call and unify *)
             match repr callee.typ with
             | Tfun (ps, _, kind) ->
-                let ps =
-                  ps
-                  @ [ { pt = lambda.typ; pattr = Dnorm; pmode = ref Iunknown } ]
-                in
+                let ps = ps @ [ bc.fn_arg ] in
                 let typ = Tfun (ps, bc.return, kind) in
+                (* Need to unify lambda to argument. This hasn't happened yet *)
+                unify (loc, "In borrow call") lambda.typ bc.fn_arg.pt env;
                 unify (loc, "In borrow call") typ bc.orig_callee env;
                 let callee = { callee with typ }
                 and args = args @ [ (lambda, Dnorm) ] in

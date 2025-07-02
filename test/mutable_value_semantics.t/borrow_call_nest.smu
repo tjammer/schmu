@@ -1,0 +1,7 @@
+{
+  use option
+  let a <- bind(Some(1))
+  let b <- bind(Some(2))
+  Some (a + b)
+}
+|> ignore

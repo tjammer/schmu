@@ -1871,10 +1871,7 @@ let test_subs_parse_tl () =
 let test_subs_borrow_bind () = test "unit" (subs ^ "{ let a <- subs(2); () }")
 
 let test_subs_borrow_return_param () =
-  test_exn
-    "In borrow call\n\
-     expecting fun (_, fun (_) -> int) -> _\n\
-     but found fun (_, once fun (_) -> unit) -> _"
+  test_exn "In borrow call expecting fun (_) -> int but found fun (_) -> unit"
     (subs ^ "{ let a <- subs(2); a }")
 
 let case str test = test_case str `Quick test
