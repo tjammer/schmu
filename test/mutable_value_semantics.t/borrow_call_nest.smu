@@ -5,3 +5,28 @@
   Some (a + b)
 }
 |> ignore
+
+{
+  let a <- option/bind(Some(1))
+  let b <- option/bind(Some(2))
+  Some (a + b)
+} |> fun a { match a {
+  Some(sum) -> fmt/(print1("some: {}\n", int, sum))
+  None -> println("non")
+  }
+}
+
+
+let rc& = rc/create(10)
+{
+  let a& <- rc/mut(&rc)
+  &a = 12
+  ()
+}
+
+{
+  let a <- rc/read(rc)
+  fmt/(println(int, a))
+  -- TODO in the future, this should also work
+  -- fmt/println(int, rc/read(rc))
+}

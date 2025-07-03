@@ -117,7 +117,7 @@ and set_move_kind = Snot_moved | Spartially_moved | Smoved
 and borrow_call = {
   bind_param : typ;
   return : typ;
-  fn_arg : param;
+  fn_param : param;
   orig_callee : typ;
 }
 

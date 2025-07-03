@@ -23,13 +23,11 @@ let is_borrow_callable callee =
               (* TODO check mut attribute *)
               let tmp_fun = Tfun (List.rev tl, bind_param, kind) in
               let tmp_callee = { callee with typ = tmp_fun } in
-              let fn_arg = List.rev ps |> List.hd in
-              Some ({ bind_param; return; fn_arg; orig_callee }, tmp_callee)
+              let fn_param = List.rev ps |> List.hd in
+              Some ({ bind_param; return; fn_param; orig_callee }, tmp_callee)
           | _ -> None)
       | _ -> None)
   | _ -> None
-
-let is_borrow_call = function Ast.App_borrow _ -> true | _ -> false
 
 let make_lambda env loc (decl : Ast.decl) typ pattern_id add_param convert_decl
     make_cont post_lambda =

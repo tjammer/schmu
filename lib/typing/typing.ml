@@ -337,6 +337,16 @@ let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
       { typ; expr; attr = no_attr; loc }
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
+let check_no_borrow_call loc expr =
+  match follow_expr expr with
+  | Some (App { borrow_call = Some _; _ }) ->
+      raise
+        (Error
+           ( loc,
+             "Cannot borrow from function call in let binding. Use let borrow \
+              form (let _ <- expr())" ))
+  | _ -> ()
+
 let rec param_annots t =
   let annot t =
     match repr t with
@@ -720,7 +730,6 @@ end = struct
     | Lambda (loc, id, attr, ret, e) ->
         convert_lambda env loc pipe id attr ret e
     | App (loc, e1, e2) -> convert_app ~pipe env loc e1 e2
-    | App_borrow (loc, e1, e2) -> convert_app_borrow env loc e1 e2
     | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
     | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
@@ -1110,26 +1119,15 @@ end = struct
         if pipe && missing_args > 0 then
           (* We convert e1 twice. Hopefully not a problem *)
           curry_app env loc e1 args missing_args
-        else convert_app_impl ~pipe env loc callee args None
-    | _ -> convert_app_impl ~pipe env loc callee args None
-
-  and convert_app_borrow env loc e1 args =
-    let callee = convert env e1 in
-
-    match callee.typ with
-    | Tfun (ps, _, _) ->
-        let missing_args = List.length ps - List.length args in
-        if missing_args = 1 then
-          match Subscript.is_borrow_callable callee with
+        else if missing_args = 1 then
+          match Borrow_call.is_borrow_callable callee with
           | Some (types, shortfn) ->
               convert_app_impl ~pipe:false env loc shortfn args (Some types)
           | None ->
               (* Let it fail *)
               convert_app_impl ~pipe:false env loc callee args None
-        else
-          raise
-            (Error (loc, "Expecting missing function argument for borrow call"))
-    | _ -> raise (Error (loc, "Cannot borrow from calls with unknown type"))
+        else convert_app_impl ~pipe env loc callee args None
+    | _ -> convert_app_impl ~pipe env loc callee args None
 
   and convert_bop env loc bop e1 e2 =
     let check typ =
@@ -1280,54 +1278,66 @@ end = struct
 
     let rec to_expr env old_type = function
       | [
-          (Ast.Let (loc, _, _) | Function (loc, _) | Rec (loc, _) | Use (loc, _));
+          ( Ast.Let (loc, _, _, _)
+          | Function (loc, _)
+          | Rec (loc, _)
+          | Use (loc, _) );
         ]
         when ret ->
           raise (Error (loc, "Block must end with an expression"))
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = tunit; expr = Const Unit; attr = no_attr; loc }, env)
-      | Let (loc, decl, pexpr) :: tl ->
-          if Subscript.is_borrow_call pexpr.pexpr then
-            (* Annotations need to go to the lambda *)
-            let rhs = convert env pexpr.pexpr in
-            let callee, args, bc =
-              match rhs.expr with
-              | App { callee; args; borrow_call = Some bc } -> (callee, args, bc)
-              | _ -> failwith "Internal Error: Not a borrow call"
-            in
-            let lambda =
-              Subscript.make_lambda env loc decl bc.bind_param pattern_id
-                add_param convert_decl
-                (fun env -> to_expr env old_type tl |> fst)
-                post_lambda
-            in
+      | Let (loc, decl, pexpr, true) :: tl -> (
+          (* Annotations need to go to the lambda *)
+          let rhs = convert env pexpr.pexpr in
+          let callee, args, bc =
+            match follow_expr rhs.expr with
+            | Some (App { callee; args; borrow_call = Some bc }) ->
+                (callee, args, bc)
+            | None ->
+                raise
+                  (Error (loc, "Cannot use complex expression as borrow call"))
+            | _ -> failwith "Internal Error: Not a borrow call"
+          in
+          let lambda =
+            Borrow_call.make_lambda env loc decl bc.bind_param pattern_id
+              add_param convert_decl
+              (fun env -> to_expr env old_type tl |> fst)
+              post_lambda
+          in
 
-            (* Build correct call and unify *)
-            match repr callee.typ with
-            | Tfun (ps, _, kind) ->
-                let ps = ps @ [ bc.fn_arg ] in
-                let typ = Tfun (ps, bc.return, kind) in
-                (* Need to unify lambda to argument. This hasn't happened yet *)
-                unify (loc, "In borrow call") lambda.typ bc.fn_arg.pt env;
-                unify (loc, "In borrow call") typ bc.orig_callee env;
-                let callee = { callee with typ }
-                and args = args @ [ (lambda, Dnorm) ] in
-                let expr = App { callee; args; borrow_call = Some bc } in
-                ({ rhs with expr; typ = bc.return }, env)
-            | _ -> failwith "Internal Error: Borrow call not a function"
-          else
-            let env, id, id_loc, rhs, lmut, pats, mode =
-              convert_let ~global:false env loc decl pexpr
-            in
-            let cont, env = to_expr env old_type tl in
-            let cont = List.fold_left fold_decl cont pats in
-            let uniq = if rhs.attr.const then uniq_name id else None
-            and pass = pexpr.pattr
-            and borrow_app = false in
-            let expr =
-              Let { id; id_loc; uniq; lmut; pass; rhs; cont; mode; borrow_app }
-            in
-            ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
+          (* Build correct call and unify *)
+          match repr callee.typ with
+          | Tfun (ps, _, kind) ->
+              (* The last parameter is our function *)
+              let ps = ps @ [ bc.fn_param ] in
+              let typ = Tfun (ps, bc.return, kind) in
+              (* Need to unify lambda to argument. This hasn't happened yet *)
+              unify (loc, "In borrow call") lambda.typ bc.fn_param.pt env;
+              unify (loc, "In borrow call") typ bc.orig_callee env;
+              let callee = { callee with typ }
+              and args = args @ [ (lambda, Dnorm) ] in
+              let expr = App { callee; args; borrow_call = Some bc } in
+              ({ rhs with expr; typ = bc.return }, env)
+          | _ -> failwith "Internal Error: Borrow call not a function")
+      | Let (loc, decl, pexpr, false) :: tl ->
+          let env, id, id_loc, rhs, lmut, pats, mode =
+            convert_let ~global:false env loc decl pexpr
+          in
+
+          (* rhs expression could be a borrow call. We must not allow a borrow
+             call without the let borrow form. *)
+          check_no_borrow_call loc rhs.expr;
+
+          let cont, env = to_expr env old_type tl in
+          let cont = List.fold_left fold_decl cont pats in
+          let uniq = if rhs.attr.const then uniq_name id else None
+          and pass = pexpr.pattr
+          and borrow_app = false in
+          let expr =
+            Let { id; id_loc; uniq; lmut; pass; rhs; cont; mode; borrow_app }
+          in
+          ({ typ = cont.typ; expr; attr = cont.attr; loc }, env)
       | Function (loc, func) :: tl ->
           let env, (name, unique, abs) = convert_function env loc func false in
           let cont, env = to_expr env old_type tl in
@@ -2044,13 +2054,16 @@ and convert_prog env items modul =
         let env = Module.import_module env loc ~regeneralize name in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
-    | Ast.Let (loc, decl, pexpr) ->
-        if Subscript.is_borrow_call pexpr.pexpr then
-          raise (Error (loc, "Cannot return borrow at top level"));
-
+    | Ast.Let (loc, _decl, _pexpr, true) ->
+        raise (Error (loc, "Cannot return borrow at top level"))
+    | Ast.Let (loc, decl, pexpr, false) ->
         let env, id, id_loc, rhs, lmut, pats, mode =
           Core.convert_let ~global:true env loc decl pexpr
         in
+
+        (* rhs expression could be a borrow call. We must not allow a borrow
+           call without the let borrow form. Especially at top level *)
+        check_no_borrow_call loc rhs.expr;
         (match mode with
         | Once ->
             raise (Error (id_loc, "Cannot declare once value at toplevel"))

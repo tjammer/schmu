@@ -106,12 +106,11 @@ top_item:
 stmt_no_ident:
 /* Needed to disambiguate block expression from record expression */
   | Let; decl = let_decl; Equal; pexpr = passed(expr)
-    { let pattr, pexpr = pexpr in Let($loc, decl, { pattr; pexpr })  }
+    { let pattr, pexpr = pexpr in Let($loc, decl, { pattr; pexpr }, false)  }
   | Let; decl = let_decl; Equal; id = Builtin_id
-    { let expr = {pattr = Dnorm; pexpr = Var($loc(id), id)} in Let($loc, decl, expr) }
-  | Let; decl = let_decl; Left_arrow; callee = ident; args = parens(call_arg)
-    { let pexpr = App_borrow (($startpos(callee), $endpos(args)), Var callee, args) in
-      Let($loc, decl, { pattr = Dnorm; pexpr }) }
+    { let expr = {pattr = Dnorm; pexpr = Var($loc(id), id)} in Let($loc, decl, expr, false) }
+  | Let; decl = let_decl; Left_arrow; pexpr = passed(expr)
+    { let pattr, pexpr = pexpr in Let($loc, decl, { pattr; pexpr }, true)  }
   | Fun; func = func { let loc, func = func false in Function (loc, func) }
   | Fun; Rec; func = func { let loc, func = func true in Function (loc, func) }
   | Fun; Rec; func = func; And; tail = separated_nonempty_list(And, func)

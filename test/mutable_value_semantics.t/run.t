@@ -3824,3 +3824,5 @@ Partial moves out of variants with in arrays with dynamic indices
 Nested simple borrow call
   $ schmu borrow_call_nest.smu
   $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_call_nest
+  some: 3
+  12
