@@ -1296,8 +1296,9 @@ end = struct
                 (callee, args, bc)
             | None ->
                 raise
-                  (Error (loc, "Cannot use complex expression as borrow call"))
-            | _ -> failwith "Internal Error: Not a borrow call"
+                  (Error (rhs.loc, "Cannot use complex expression as borrow call"))
+            | _ ->
+                raise (Error (rhs.loc, "Cannot use expression as borrow call"))
           in
           let lambda =
             Borrow_call.make_lambda env loc decl bc.bind_param pattern_id
