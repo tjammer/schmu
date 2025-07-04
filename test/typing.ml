@@ -703,6 +703,17 @@ match Some(0) {
   None -> { println("none") }
 }|}
 
+let test_match_unit () = test "unit" {|match () {
+  () -> ()
+}|}
+
+let test_match_unit_redundant () =
+  test_exn "Pattern match case is redundant"
+    {|match () {
+  () -> ()
+  () -> ()
+}|}
+
 let test_multi_record2 () =
   test "foo[int, bool]"
     "type foo['a, 'b] = {a : 'a, b : 'b}; {a = 0, b = false}"
@@ -1886,6 +1897,16 @@ fun test() {
   __unsafe_leak(a)
 }|}
 
+let test_subst_no_unit_param_lit () =
+  (* We get a borrow check error, not a parameter type or fn type error *)
+  test_exn "Borrowed value a has been moved in line 9"
+    {|fun higher_order(fn) { fn(); () }
+fun test() {
+  let a = "10"
+  let () <- higher_order()
+  __unsafe_leak(a)
+}|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2079,6 +2100,8 @@ let () =
           case "guard missing" test_match_guard_missing;
           case "guard missing spec" test_match_guard_missing_spec;
           case "guard no var leak" test_match_guard_dont_leak_vars;
+          case "unit" test_match_unit;
+          case "unit redundant" test_match_unit_redundant;
         ] );
       ( "multi params",
         [
@@ -2447,5 +2470,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "borrow bind" test_subs_borrow_bind;
           case "borrow return param" test_subs_borrow_return_param;
           case "no/unit param" test_subst_no_unit_param;
+          case "no/unit param lit" test_subst_no_unit_param_lit;
         ] );
     ]

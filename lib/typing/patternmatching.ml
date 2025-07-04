@@ -211,6 +211,7 @@ and tpat =
   | Tp_record of Ast.loc * record_field list * attr
   | Tp_int of Ast.loc * int64
   | Tp_char of Ast.loc * char
+  | Tp_unit of Ast.loc
 
 and ctor_param = { cindex : int; cpat : pathed_pattern option; ctname : string }
 
@@ -230,7 +231,8 @@ let loc_of_pat = function
   | Tp_record (loc, _, _)
   | Tp_ctor (loc, _)
   | Tp_int (loc, _)
-  | Tp_char (loc, _) ->
+  | Tp_char (loc, _)
+  | Tp_unit loc ->
       loc
 
 module Tup = struct
@@ -301,11 +303,12 @@ module Tup = struct
       | Tp_ctor _ -> 3
       | Tp_int _ | Tp_char _ -> 3
       | Tp_var _ -> 2
-      | Tp_wildcard _ -> failwith "Internal Error: Should have been dropped"
+      | Tp_wildcard _ | Tp_unit _ ->
+          failwith "Internal Error: Should have been dropped"
     in
     let sort_patterns a b = Int.compare (score_patterns a) (score_patterns b) in
     let filter_patterns p =
-      match (snd p).pat with Tp_wildcard _ -> false | _ -> true
+      match (snd p).pat with Tp_wildcard _ | Tp_unit _ -> false | _ -> true
     in
     let sorted =
       List.filter filter_patterns patterns |> List.sort sort_patterns
@@ -335,11 +338,11 @@ module Tup = struct
         match pat.pat with
         | Tp_char (loc, c) ->
             Lit_char ({ path; loc; d; patterns = sorted; pltyp = ptyp }, c)
-        | _ -> failwith "Internal Error: Not an int pattern")
+        | _ -> failwith "Internal Error: Not an char pattern")
     | (path, { pat = Tp_var (loc, name, dattr); ptyp }) :: patterns ->
         (* Drop var from patterns list *)
         Var ({ path; loc; d; patterns; pltyp = ptyp }, name, dattr)
-    | (_, { pat = Tp_wildcard _; _ }) :: _ ->
+    | (_, { pat = Tp_wildcard _ | Tp_unit _; _ }) :: _ ->
         failwith "Internal Error: Unexpected sorted pattern"
     | (path, { pat = Tp_record (loc, fields, dattr); ptyp }) :: patterns ->
         (* Drop record from patterns list *)
@@ -453,7 +456,9 @@ module Exhaustiveness = struct
               (* Drop row *)
               rows_empty := false;
               None
-          | { pat = Tp_wildcard _ | Tp_var _ | Tp_record _; _ } :: tl, guard ->
+          | ( { pat = Tp_wildcard _ | Tp_var _ | Tp_unit _ | Tp_record _; _ }
+              :: tl,
+              guard ) ->
               (* Discard head element *)
               new_col := true;
               rows_empty := false;
@@ -941,6 +946,11 @@ module Make (C : Core) (R : Recs) = struct
           (loc, "Char pattern has unexpected type:")
           (path_typ loc env path) tu8 env;
         [ (path, { ptyp = tu8; pat = Tp_char (loc, c) }) ]
+    | Plit_unit loc ->
+        unify
+          (loc, "Unit pattern has unexpected type:")
+          (path_typ loc env path) tunit env;
+        [ (path, { ptyp = tunit; pat = Tp_unit loc }) ]
     | Por (_, pats) ->
         (* Don't add to pattern *)
         let pats = List.map (fun p -> type_pattern env (path, p)) pats in
@@ -1248,7 +1258,7 @@ module Make (C : Core) (R : Recs) = struct
                This works for record patterns as well. We are searching for a ctor,
                a record is surely not the ctor we are searching for *)
             match_cases (i, case) tl if_ ((clauses, d) :: else_)
-        | Some { pat = Tp_var _ | Tp_wildcard _; _ } | None ->
+        | Some { pat = Tp_var _ | Tp_wildcard _ | Tp_unit _; _ } | None ->
             (* These match all, so we add them to both [if_] and [else_] *)
             (* We can also end up here if a record was not expanded.
                Treat like wildcard or var *)
@@ -1265,7 +1275,7 @@ module Make (C : Core) (R : Recs) = struct
             match_int (path, int) tl ((clauses, d) :: if_) else_
         | Some { pat = Tp_ctor _ | Tp_record _ | Tp_int _ | Tp_char _; _ } ->
             match_int (path, int) tl if_ ((clauses, d) :: else_)
-        | Some { pat = Tp_var _ | Tp_wildcard _; _ } | None ->
+        | Some { pat = Tp_var _ | Tp_wildcard _ | Tp_unit _; _ } | None ->
             match_int (path, int) tl ((clauses, d) :: if_)
               ((clauses, d) :: else_))
     | [] -> (List.rev if_, List.rev else_)
@@ -1279,7 +1289,7 @@ module Make (C : Core) (R : Recs) = struct
             match_char (path, char) tl ((clauses, d) :: if_) else_
         | Some { pat = Tp_ctor _ | Tp_record _ | Tp_int _ | Tp_char _; _ } ->
             match_char (path, char) tl if_ ((clauses, d) :: else_)
-        | Some { pat = Tp_var _ | Tp_wildcard _; _ } | None ->
+        | Some { pat = Tp_var _ | Tp_wildcard _ | Tp_unit _; _ } | None ->
             match_char (path, char) tl ((clauses, d) :: if_)
               ((clauses, d) :: else_))
     | [] -> (List.rev if_, List.rev else_)
@@ -1319,6 +1329,7 @@ module Make (C : Core) (R : Recs) = struct
 
   let pattern_id i = function
     | Ast.Pvar ((loc, id), dattr) -> (id, loc, false, dattr)
+    | Plit_unit loc -> (expr_name [ i ], loc, true, Ast.Dnorm)
     | Ptup (loc, _, dattr) | Precord (loc, _, dattr) ->
         (expr_name [ i ], loc, true, dattr)
     | Pwildcard (loc, dattr) -> (expr_name [ i ], loc, true, dattr)
@@ -1380,7 +1391,7 @@ module Make (C : Core) (R : Recs) = struct
                     loc env)
               in
               loop (env, (id, expr env path loc) :: binds) tl
-          | Tp_wildcard _ -> loop (env, binds) tl
+          | Tp_wildcard _ | Tp_unit _ -> loop (env, binds) tl
           | Tp_ctor _ | Tp_int _ | Tp_char _ ->
               failwith
                 "Internal Error: Should have been filtered in [convert_decl]")
@@ -1392,7 +1403,7 @@ module Make (C : Core) (R : Recs) = struct
     let f (env, i, ret) decl =
       match Ast.(decl.pattern) with
       | Ast.Pvar _ -> (env, i + 1, ret)
-      | Pwildcard (loc, _) ->
+      | Pwildcard (loc, _) | Plit_unit loc ->
           (* expr_name was added before to env in [handle_param].
              Make sure it's marked as used *)
           ignore

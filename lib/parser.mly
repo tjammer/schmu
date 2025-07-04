@@ -246,6 +246,7 @@ pattern:
   | tup = tup_patterns { tup }
   | Lpar; pat = pattern; Hbar; pats = separated_nonempty_list(Hbar, pattern); Rpar
     { Por ($loc, pat :: pats) }
+  | Lpar; Rpar { Plit_unit $loc }
 
 match_pattern:
   | pat = pattern { pat }

@@ -74,6 +74,7 @@ and pattern =
   | Precord of loc * (ident * pattern option) list * decl_attr
   | Plit_int of loc * int64
   | Plit_char of loc * char
+  | Plit_unit of loc
   | Por of loc * pattern list
 
 and literal =
