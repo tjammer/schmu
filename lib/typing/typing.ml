@@ -1296,7 +1296,8 @@ end = struct
                 (callee, args, bc)
             | None ->
                 raise
-                  (Error (rhs.loc, "Cannot use complex expression as borrow call"))
+                  (Error
+                     (rhs.loc, "Cannot use complex expression as borrow call"))
             | _ ->
                 raise (Error (rhs.loc, "Cannot use expression as borrow call"))
           in

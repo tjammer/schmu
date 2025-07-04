@@ -1862,7 +1862,9 @@ let test_subs_parse () =
      _ <- expr())"
     ("{" ^ subs ^ "let a = subs(2); ()}; ()")
 
-let test_subs_wrong_expr () = test_exn "Cannot use expression as borrow call" ("{ " ^ subs ^ "let a <- 12; () }; ()")
+let test_subs_wrong_expr () =
+  test_exn "Cannot use expression as borrow call"
+    ("{ " ^ subs ^ "let a <- 12; () }; ()")
 
 let test_subs_parse_tl () =
   (* This will fail in the future *)
@@ -1873,6 +1875,16 @@ let test_subs_borrow_bind () = test "unit" (subs ^ "{ let a <- subs(2); () }")
 let test_subs_borrow_return_param () =
   test_exn "In borrow call expecting fun (_) -> int but found fun (_) -> unit"
     (subs ^ "{ let a <- subs(2); a }")
+
+let test_subst_no_unit_param () =
+  (* We get a borrow check error, not a parameter type or fn type error *)
+  test_exn "Borrowed value a has been moved in line 9"
+    {|fun higher_order(fn) { fn(); () }
+fun test() {
+  let a = "10"
+  let _ <- higher_order()
+  __unsafe_leak(a)
+}|}
 
 let case str test = test_case str `Quick test
 
@@ -2434,5 +2446,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "wrong expr" test_subs_wrong_expr;
           case "borrow bind" test_subs_borrow_bind;
           case "borrow return param" test_subs_borrow_return_param;
+          case "no/unit param" test_subst_no_unit_param;
         ] );
     ]

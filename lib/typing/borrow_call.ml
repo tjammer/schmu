@@ -3,7 +3,10 @@ open Typed_tree
 open Inference
 
 let typ_of_one_param_fun t =
-  match repr t with Tfun ([ p ], _, _) -> Some p.pt | _ -> None
+  match repr t with
+  | Tfun ([ p ], _, _) -> Some p.pt
+  | Tfun ([], _, _) -> Some tunit
+  | _ -> None
 
 let is_borrow_callable callee =
   (* Precondition: length params - length args == 1 *)
