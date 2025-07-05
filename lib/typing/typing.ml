@@ -1316,6 +1316,14 @@ end = struct
               (fun env -> to_expr env old_type tl |> fst)
               post_lambda
           in
+          let lambda =
+            (* Hack for allowing unit lambdas to be borrow called into [()] *)
+            match (repr lambda.typ, repr bc.fn_param.pt) with
+            | ( Tfun ([ { pt = Tconstr (Pid "unit", _, _); _ } ], ret, cls),
+                Tfun ([], _, _) ) ->
+                { lambda with typ = Tfun ([], ret, cls) }
+            | _ -> lambda
+          in
 
           (* Build correct call and unify *)
           match repr callee.typ with

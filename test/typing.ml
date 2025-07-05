@@ -1889,22 +1889,18 @@ let test_subs_borrow_return_param () =
 
 let test_subst_no_unit_param () =
   (* We get a borrow check error, not a parameter type or fn type error *)
-  test_exn "Borrowed value a has been moved in line 9"
-    {|fun higher_order(fn) { fn(); () }
-fun test() {
-  let a = "10"
-  let _ <- higher_order()
-  __unsafe_leak(a)
+  test "unit"
+    {|fun higher_order(once fn) { fn(); () }
+fun test(a!) {
+  let _ <- higher_order(); ()
 }|}
 
 let test_subst_no_unit_param_lit () =
   (* We get a borrow check error, not a parameter type or fn type error *)
-  test_exn "Borrowed value a has been moved in line 9"
-    {|fun higher_order(fn) { fn(); () }
-fun test() {
-  let a = "10"
-  let () <- higher_order()
-  __unsafe_leak(a)
+  test "unit"
+    {|fun higher_order(once fn) { fn(()); () }
+fun test(a!) {
+  let () <- higher_order(); ()
 }|}
 
 let case str test = test_case str `Quick test
