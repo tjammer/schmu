@@ -61,6 +61,7 @@ let reset_type_vars () =
   Module.clear_cache ()
 
 let last_loc = ref (Lexing.dummy_pos, Lexing.dummy_pos)
+let no_annot = (None, None)
 
 (* Helper functions *)
 
@@ -353,15 +354,19 @@ let rec param_annots t =
     | Qvar _ | Tvar { contents = Unbound _ } -> None
     | _ -> Some t
   in
+  let annot_mode m =
+    match repr_mode !m with Iknown m -> Some m | Iunknown | Ilinked _ -> None
+  in
   (* We don't clean here, because it might mess with links *)
   match t with
   | Tvar { contents = Link t } -> param_annots t
   | Qvar _ | Tvar { contents = Unbound _ } -> [||]
-  | Tfun (typs, _, _) -> List.map (fun p -> annot p.pt) typs |> Array.of_list
+  | Tfun (typs, _, _) ->
+      List.map (fun p -> (annot p.pt, annot_mode p.pmode)) typs |> Array.of_list
   | _ -> [||]
 
 let param_annot annots i =
-  if Array.length annots > i then Array.get annots i else None
+  if Array.length annots > i then Array.get annots i else no_annot
 
 let handle_params env (params : Ast.decl list) pattern_id ret =
   (* return updated env with bindings for parameters and types of parameters *)
@@ -659,7 +664,11 @@ module rec Core : sig
   val convert : Env.t -> Ast.expr -> typed_expr
 
   val convert_annot :
-    Env.t -> Types.typ option -> bool -> Ast.expr -> Typed_tree.typed_expr
+    Env.t ->
+    Types.typ option * Types.mode option ->
+    bool ->
+    Ast.expr ->
+    Typed_tree.typed_expr
 
   val convert_var : Env.t -> Ast.loc -> Path.t -> typed_expr
 
@@ -704,7 +713,7 @@ end = struct
 
     aux 0 [] args params
 
-  let rec convert env expr = convert_annot env None false expr
+  let rec convert env expr = convert_annot env no_annot false expr
 
   and convert_annot env annot pipe = function
     | Ast.Var (loc, id) -> convert_var env loc (Path.Pid id)
@@ -821,7 +830,7 @@ end = struct
         { t with typ }
     | Some annot ->
         let t_annot = typeof_annot env loc annot in
-        let t = convert_annot env (Some t_annot) false block in
+        let t = convert_annot env (Some t_annot, None) false block in
         leave_level ();
 
         let typ =
@@ -1107,7 +1116,7 @@ end = struct
     in
     let block = Expr (loc, App (loc, callee, args @ curry_args)) :: [] in
     let expr = Lambda (loc, decls, [], None, block) in
-    convert_annot env None true expr
+    convert_annot env no_annot true expr
 
   and convert_app ~pipe env loc e1 args =
     let callee = convert env e1 in
@@ -1241,7 +1250,7 @@ end = struct
           (if not inverse then e1 :: args else args @ [ e1 ])
     | Ctor (_, name, expr) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
-        convert_ctor env loc name (Some e1.aexpr) None
+        convert_ctor env loc name (Some e1.aexpr) no_annot
     | e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~pipe env loc e2 [ e1 ]
@@ -1392,7 +1401,7 @@ end = struct
     to_expr env (loc, tunit) stmts
 
   and convert_block ?(ret = true) ~pipe env stmts =
-    convert_block_annot ~ret env None pipe stmts
+    convert_block_annot ~ret env no_annot pipe stmts
 
   and disambiguate_uses env loc annot path = function
     | Ast.Local_use (_, id, tl) ->

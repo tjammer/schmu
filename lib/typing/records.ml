@@ -7,21 +7,25 @@ module type Core = sig
   val convert : Env.t -> Ast.expr -> Typed_tree.typed_expr
 
   val convert_annot :
-    Env.t -> Types.typ option -> bool -> Ast.expr -> Typed_tree.typed_expr
+    Env.t ->
+    Types.typ option * Types.mode option ->
+    bool ->
+    Ast.expr ->
+    Typed_tree.typed_expr
 end
 
 module type S = sig
   val convert_record :
     Env.t ->
     Ast.loc ->
-    Types.typ option ->
+    Types.typ option * Types.mode option ->
     (Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_record_update :
     Env.t ->
     Ast.loc ->
-    Types.typ option ->
+    Types.typ option * Types.mode option ->
     Ast.expr ->
     (Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
@@ -104,7 +108,7 @@ module Make (C : Core) = struct
         Ok fields
     | _ -> Error ()
 
-  let rec convert_record env loc annot labels =
+  let rec convert_record env loc (annot, _) labels =
     let raise_ msg lname rname =
       let msg = Printf.sprintf "%s field %s on record %s" msg lname rname in
       raise (Error (loc, msg))
@@ -138,9 +142,9 @@ module Make (C : Core) = struct
               in
               let annot =
                 match typ with
-                | Tvar { contents = Unbound _ } -> None
+                | Tvar { contents = Unbound _ } -> (None, None)
                 | Qvar _ -> failwith "unreachable"
-                | _ -> Some typ
+                | _ -> (Some typ, None)
               in
               let expr = convert_annot env annot false expr in
               unify (loc, "In record expression") typ expr.typ env;

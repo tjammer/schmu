@@ -38,7 +38,7 @@ module type S = sig
     Ast.loc ->
     Ast.loc * string ->
     Ast.expr option ->
-    Types.typ option ->
+    Types.typ option * Types.mode option ->
     Typed_tree.typed_expr
 
   val convert_match :
@@ -693,7 +693,7 @@ module Make (C : Core) (R : Recs) = struct
         raise (Error (loc, msg))
     | _ -> failwith "Internal Error: Not a mismatch"
 
-  let convert_ctor env loc name arg annot =
+  let convert_ctor env loc name arg (annot, _) =
     match lor_clike_hack env loc (snd name) annot with
     | Some expr -> expr
     | None -> (

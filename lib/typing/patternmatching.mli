@@ -35,7 +35,7 @@ module type S = sig
     Ast.loc ->
     Ast.loc * string ->
     Ast.expr option ->
-    Types.typ option ->
+    Types.typ option * Types.mode option ->
     Typed_tree.typed_expr
 
   val convert_match :

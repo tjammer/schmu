@@ -2,21 +2,25 @@ module type Core = sig
   val convert : Env.t -> Ast.expr -> Typed_tree.typed_expr
 
   val convert_annot :
-    Env.t -> Types.typ option -> bool -> Ast.expr -> Typed_tree.typed_expr
+    Env.t ->
+    Types.typ option * Types.mode option ->
+    bool ->
+    Ast.expr ->
+    Typed_tree.typed_expr
 end
 
 module type S = sig
   val convert_record :
     Env.t ->
     Ast.loc ->
-    Types.typ option ->
+    Types.typ option * Types.mode option ->
     (Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_record_update :
     Env.t ->
     Ast.loc ->
-    Types.typ option ->
+    Types.typ option * Types.mode option ->
     Ast.expr ->
     (Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
