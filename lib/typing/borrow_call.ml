@@ -48,4 +48,4 @@ let make_lambda env loc (decl : Ast.decl) typ pattern_id add_param convert_decl
   let params_t = [ { pt = typ; pattr; pmode = ref (Iknown Many) } ]
   and nparams = [ id ] in
   post_lambda env loc body param_exprs params_t nparams [ decl ] [] None
-    params_t
+    params_t None

@@ -273,13 +273,15 @@ let add_param env id idloc typ pattr =
 let fold_decl cont (id, e) = { cont with expr = Bind (id, e, cont) }
 
 let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
-    qparams =
+    qparams mode_annot =
   (* Also used by the borrow call generation where a lambda is created
      dyamically *)
   let body = List.fold_left fold_decl body param_exprs in
 
   leave_level ();
   let _, closed_vars, touched, unused = Env.close_function env in
+
+  (match mode_annot with Some Once -> print_endline "found once" | _ -> ());
 
   (* TODO factor out everything below this to a function and use is subscript *)
   let unmutated, body, touched =
@@ -737,7 +739,7 @@ end = struct
         let attr = { no_attr with const = true } in
         { typ = tunit; expr = Const Unit; attr; loc }
     | Lambda (loc, id, attr, ret, e) ->
-        convert_lambda env loc pipe id attr ret e
+        convert_lambda env loc annot pipe id attr ret e
     | App (loc, e1, e2) -> convert_app ~pipe env loc e1 e2
     | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
@@ -874,7 +876,7 @@ end = struct
     let expr = { e1 with attr = { e1.attr with global; const } } in
     (env, id, idloc, expr, lmut, pat_exprs, mode)
 
-  and convert_lambda env loc pipe params attr ret_annot body =
+  and convert_lambda env loc (_, mannot) pipe params attr ret_annot body =
     let env = Env.open_function env in
     enter_level ();
     let env, params_t, qparams, ret_annot =
@@ -893,7 +895,7 @@ end = struct
     let body = convert_block ~pipe env body |> fst in
 
     post_lambda env loc body param_exprs params_t nparams params attr ret_annot
-      qparams
+      qparams mannot
 
   and convert_function env loc
       Ast.{ name = nameloc, name; params; return_annot; body; attr; is_rec }

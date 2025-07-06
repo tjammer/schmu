@@ -95,6 +95,8 @@ module Make_tree (Id : Id_t) = struct
     id : access;
     bind_loc : loc_info;
     mode : mode;
+    movable_outer_scope : bool;
+        (* A touched binding in a once function is movable directly *)
     children : whole list;
   }
 
@@ -332,7 +334,7 @@ module Make_tree (Id : Id_t) = struct
 
     fold ~local ~foreign access.path false tree
 
-  let bind id bind_loc lmut mov mode path tree =
+  let bind id bind_loc lmut mov mode movable_outer_scope path tree =
     (* Only bind, i.e. add the child to the bound thing. Checking if the binding
        is legal has to have happened before. *)
     let foreign ~down:_ ~contains_part:_ ~correct_part:_ found item =
@@ -345,7 +347,9 @@ module Make_tree (Id : Id_t) = struct
           and id = { id; part = [] }
           and children = [] in
 
-          (true, { bor; mov; id; bind_loc; children; mode } :: item.children)
+          ( true,
+            { bor; mov; id; bind_loc; children; mode; movable_outer_scope }
+            :: item.children )
         else
           List.fold_left_map
             (fun found tree -> down found tree)
@@ -482,7 +486,7 @@ module Make_storage (Id : Id_t) = struct
     | `Many -> Many
     | `Unknown rf -> Unknown (0, rf)
 
-  let insert id bind_loc bor mode st =
+  let insert id bind_loc bor mode ?(movable_outer_scope = false) st =
     (* assert (Id_map.mem id st.indices |> not); *)
     let i = fresh () in
     let loc_info = { Tree.lid = { id; part = [] }; loc = bind_loc } in
@@ -492,7 +496,8 @@ module Make_storage (Id : Id_t) = struct
     let trees =
       let id = Tree.{ id; part = [] } and bind_loc = loc_info in
       Index_map.add i
-        (Tree.Twhole { bor; mov; id; bind_loc; children = []; mode })
+        (Tree.Twhole
+           { bor; mov; id; bind_loc; children = []; mode; movable_outer_scope })
         st.trees
     in
     let index =
@@ -572,7 +577,7 @@ module Make_storage (Id : Id_t) = struct
       in
       let mode = get_mode mode in
       let nfound, tree =
-        Tree.bind id loc lmut mov mode path (Index_map.find index trees)
+        Tree.bind id loc lmut mov mode false path (Index_map.find index trees)
       in
       let trees = Index_map.add index tree trees
       and ipath = Tree.Path.append path id in
@@ -677,14 +682,19 @@ module Make_storage (Id : Id_t) = struct
           List.iter (check_move ~tl ~owned id loc) tree.children
     in
     Index_map.iter
-      (fun _ -> function
+      (fun _ t ->
+        match t with
         | Tree.Twhole tree -> (
             match tree.bor |> fst with
             | Owned { tl; mutated = _ } (* top level *) ->
                 (check_move ~owned:true ~tl tree.id tree.bind_loc.loc) tree
             | _ ->
-                (check_move ~owned:false ~tl:false tree.id tree.bind_loc.loc)
-                  tree)
+                (* If it's movable from an outer scope (through a once
+                   function), it's not really owned. But it behaves the same way
+                   wrt moves. *)
+                let owned = tree.movable_outer_scope in
+
+                (check_move ~owned ~tl:false tree.id tree.bind_loc.loc) tree)
         | Tparts { rest; parts } -> (
             match rest.bor |> fst with
             | Owned { tl; mutated = _ } (* top level *) ->
@@ -694,12 +704,11 @@ module Make_storage (Id : Id_t) = struct
                     (check_move ~owned:true ~tl tree.id tree.bind_loc.loc) tree)
                   parts
             | _ ->
-                (check_move ~owned:false ~tl:false rest.id rest.bind_loc.loc)
-                  rest;
+                let owned = rest.movable_outer_scope in
+                (check_move ~owned ~tl:false rest.id rest.bind_loc.loc) rest;
                 List.iter
                   (fun (tree : Tree.whole) ->
-                    (check_move ~owned:false ~tl:false tree.id tree.bind_loc.loc)
-                      tree)
+                    (check_move ~owned ~tl:false tree.id tree.bind_loc.loc) tree)
                   parts))
       st.trees;
     !unmutated
@@ -950,7 +959,10 @@ let get_closed_usage kind (touched : touched) =
             None)
     | Simple -> None
   in
-  Trst.{ attr = touched.tattr; on_move }
+  let attr =
+    match touched.tattr with Dmove -> cond_move touched.ttyp | attr -> attr
+  in
+  Trst.{ attr; on_move }
 
 let let_mode_borrow = function
   | `Many -> Types.Many
@@ -973,6 +985,20 @@ let rec move_closure ex = function
       in
       let move = { var with expr = Move var } in
       move_closure { ex with expr = Sequence (move, ex) } tl
+
+let borrow_lambda_expr loc mname ac expr bs trees =
+  match (Typed_tree.follow_expr expr, bs) with
+  | Some (Lambda _), Borrowed bs ->
+      List.fold_left
+        (fun trees { id; oncall; _ } ->
+          let ac =
+            match oncall with Some oncall -> oncall.attr | None -> ac
+          in
+          let found, _, trees = Trst.borrow id loc mname (ac, Many) [] trees in
+          assert found;
+          trees)
+        trees bs
+  | _ -> trees
 
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
@@ -1104,7 +1130,11 @@ let rec check_expr st ac part tyex =
               | Dmove -> (cond_move arg.typ, mode)
               | _ -> (attr, mode)
             in
-            let narg, _bs, trees = check_expr { st with trees } ac [] arg in
+            let narg, bs, trees = check_expr { st with trees } ac [] arg in
+            let trees =
+              borrow_lambda_expr tyex.loc st.mname (fst ac) arg.expr bs trees
+            in
+
             let narg =
               match fst ac with
               | Dmove -> { narg with expr = Move narg }
@@ -1396,21 +1426,24 @@ let check_item st = function
       ({ st with ids; trees }, Tl_bind (str, e))
   | (Tl_mutual_rec_decls _ | Tl_module _ | Tl_module_alias _) as e -> (st, e)
 
-let add_touched state loc touched =
+let add_touched state loc once touched =
   List.fold_left
     (fun st touched ->
       let bid, ids = Idst.insert touched.tname touched.tmname st.ids in
       assert (
         Idst.Id.equal bid
           Idst.Id.(fst (Pathid.create touched.tname touched.tmname)));
-      let trees = Trst.insert bid loc Reserved `Many st.trees in
+      let movable_outer_scope = once in
+      let trees =
+        Trst.insert bid loc Reserved `Many ~movable_outer_scope st.trees
+      in
       { st with trees; ids })
     state touched
 
 let check_expr ~mname ~params ~touched expr =
   Trst.reset ();
 
-  let state = add_touched (state_empty mname expr.loc) expr.loc touched in
+  let state = add_touched (state_empty mname expr.loc) expr.loc true touched in
 
   let state, rfs =
     List.fold_left_map
@@ -1480,12 +1513,6 @@ let check_expr ~mname ~params ~touched expr =
       (fun touched ->
         let bid = Idst.Id.(fst (Pathid.create touched.tname touched.tmname)) in
         let tattr, tattr_loc = Trst.find_touched_attr bid trees in
-        (match tattr with
-        | Dmove ->
-            let loc = tattr_loc and name = touched.tname in
-            raise
-              (Error (loc, "Cannot move value " ^ name ^ " from outer scope"))
-        | Dset | Dmut | Dnorm -> ());
         { touched with tattr; tattr_loc = Some tattr_loc })
       touched
   in
@@ -1493,7 +1520,7 @@ let check_expr ~mname ~params ~touched expr =
 
 let check_items ~mname loc ~touched items =
   Trst.reset ();
-  let state = add_touched (state_empty mname loc) loc touched in
+  let state = add_touched (state_empty mname loc) loc false touched in
   List.fold_left_map (fun st item -> check_item st item) state items
   |> fun (st, items) ->
   (* Ensure no parameter or outer value has been moved *)
