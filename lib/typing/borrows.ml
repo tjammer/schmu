@@ -975,16 +975,20 @@ let let_mode = function Types.Many -> `Many | Once -> `Once
 let rec move_closure ex = function
   | [] -> ex
   | c :: tl ->
-      let var =
-        {
-          loc = ex.loc;
-          typ = c.cltyp;
-          attr = no_attr;
-          expr = Var (c.clname, c.clmname);
-        }
-      in
-      let move = { var with expr = Move var } in
-      move_closure { ex with expr = Sequence (move, ex) } tl
+      (* This used to move every cloned variable unconditionally, even copied
+         ones. I don't think it was correct *)
+      if c.clcopy then ex
+      else
+        let var =
+          {
+            loc = ex.loc;
+            typ = c.cltyp;
+            attr = no_attr;
+            expr = Var (c.clname, c.clmname);
+          }
+        in
+        let move = { var with expr = Move var } in
+        move_closure { ex with expr = Sequence (move, ex) } tl
 
 let borrow_lambda_expr loc mname ac expr bs trees =
   match (Typed_tree.follow_expr expr, bs) with
