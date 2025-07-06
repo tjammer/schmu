@@ -53,7 +53,7 @@
   (rx symbol-start (group (seq (any word ?_) (* (any word ?_)))) ?/))
 
 (defconst schmu-ctor-pattern
-  (rx symbol-start (group (seq ?# (any word ?_) (* (any word ?_))))))
+  (rx symbol-start (group (seq upper (* (any word ?_))))))
 
 (defconst schmu-fixed-array-pattern
   (rx symbol-start (group (seq ?# (any word ?_) (* (any word ?_)))) ?\[))
