@@ -3826,3 +3826,7 @@ Nested simple borrow call
   $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_call_nest
   some: 3
   12
+
+Move variables directly in 'once' context
+  $ schmu borrow_call_move_once.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_call_move_once

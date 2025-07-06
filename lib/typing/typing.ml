@@ -281,8 +281,6 @@ let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
   leave_level ();
   let _, closed_vars, touched, unused = Env.close_function env in
 
-  (match mode_annot with Some Once -> print_endline "found once" | _ -> ());
-
   (* TODO factor out everything below this to a function and use is subscript *)
   let unmutated, body, touched =
     let params =
@@ -291,7 +289,10 @@ let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
            (fun (p, id) loc -> (p, id, loc))
            (List.combine params_t nparams)
     in
-    Borrows.check_expr ~mname:(Env.modpath env) ~params ~touched body
+    let once =
+      match mode_annot with Some Once -> true | Some Many | None -> false
+    in
+    Borrows.check_expr ~mname:(Env.modpath env) ~params ~touched ~once body
   in
 
   (* Copied from function below *)
@@ -955,7 +956,8 @@ end = struct
              (fun (p, id) loc -> (p, id, loc))
              (List.combine params_t nparams)
       in
-      Borrows.check_expr ~mname:(Env.modpath env) ~params ~touched body
+      Borrows.check_expr ~mname:(Env.modpath env) ~params ~touched ~once:false
+        body
     in
 
     let inline, closed_vars =
@@ -1313,7 +1315,12 @@ end = struct
                 raise (Error (rhs.loc, "Cannot use expression as borrow call"))
           in
           let lambda =
-            Borrow_call.make_lambda env loc decl bc.bind_param pattern_id
+            let once =
+              match repr_mode !(bc.fn_param.pmode) with
+              | Iknown Once -> true
+              | _ -> false
+            in
+            Borrow_call.make_lambda env loc decl once bc.bind_param pattern_id
               add_param convert_decl
               (fun env -> to_expr env old_type tl |> fst)
               post_lambda

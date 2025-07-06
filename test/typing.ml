@@ -1887,7 +1887,7 @@ let test_subs_borrow_return_param () =
   test_exn "In borrow call expecting fun (_) -> int but found fun (_) -> unit"
     (subs ^ "{ let a <- subs(2); a }")
 
-let test_subst_no_unit_param () =
+let test_subs_no_unit_param () =
   (* We get a borrow check error, not a parameter type or fn type error *)
   test "unit"
     {|fun higher_order(once fn) { fn(); () }
@@ -1895,13 +1895,49 @@ fun test(a!) {
   let _ <- higher_order(); ()
 }|}
 
-let test_subst_no_unit_param_lit () =
+let test_subs_no_unit_param_lit () =
   (* We get a borrow check error, not a parameter type or fn type error *)
   test "unit"
     {|fun higher_order(once fn) { fn(()); () }
 fun test(a!) {
   let () <- higher_order(); ()
 }|}
+
+let test_subs_move_once_fn () =
+  test "unit"
+    {|fun higher_order(once fn) { fn(); () }
+fun test(a!) {
+  higher_order (fun () { __unsafe_leak(a) })
+}
+|}
+
+let test_subs_move_once_fn_use_after () =
+  test_exn "a was moved in line 7, cannot use"
+    {|fun higher_order(once fn) { fn(); () }
+fun test(a!) {
+  higher_order (fun () { __unsafe_leak(a) })
+  ignore(a)
+}
+|}
+
+let test_subs_move_once_borrowcall () =
+  test "unit"
+    {|fun higher_order(once fn) { fn(); () }
+fun test(a!) {
+  let () <- higher_order()
+  __unsafe_leak(a)
+}
+|}
+
+let test_subs_move_once_borrowcall_use_after () =
+  test_exn "a was moved in line 8, cannot use"
+    {|fun higher_order(once fn) { fn(); () }
+fun test(a!) {
+  let () <- higher_order()
+  __unsafe_leak(a)
+  ignore(a)
+}
+|}
 
 let case str test = test_case str `Quick test
 
@@ -2465,7 +2501,12 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "wrong expr" test_subs_wrong_expr;
           case "borrow bind" test_subs_borrow_bind;
           case "borrow return param" test_subs_borrow_return_param;
-          case "no/unit param" test_subst_no_unit_param;
-          case "no/unit param lit" test_subst_no_unit_param_lit;
+          case "no/unit param" test_subs_no_unit_param;
+          case "no/unit param lit" test_subs_no_unit_param_lit;
+          case "move once fn" test_subs_move_once_fn;
+          case "move once fn use after" test_subs_move_once_fn_use_after;
+          case "move once borrowcall" test_subs_move_once_borrowcall;
+          case "move once borrowcall use after"
+            test_subs_move_once_borrowcall_use_after;
         ] );
     ]

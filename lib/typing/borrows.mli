@@ -2,6 +2,7 @@ val check_expr :
   mname:Path.t ->
   params:(Types.param * string * Ast.loc) list ->
   touched:Typed_tree.touched list ->
+  once:bool ->
   Typed_tree.typed_expr ->
   Ast.loc list * Typed_tree.typed_expr * Typed_tree.touched list
 

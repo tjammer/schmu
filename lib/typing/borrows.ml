@@ -972,37 +972,43 @@ let let_mode_borrow = function
 let let_mode_bind = function `Many -> `Many | `Once -> `Once | `Arg -> `Many
 let let_mode = function Types.Many -> `Many | Once -> `Once
 
+let move_closed c ex =
+  let var =
+    {
+      loc = ex.loc;
+      typ = c.cltyp;
+      attr = no_attr;
+      expr = Var (c.clname, c.clmname);
+    }
+  in
+  let move = { var with expr = Move var } in
+  { ex with expr = Sequence (move, ex) }
+
 let rec move_closure ex = function
   | [] -> ex
   | c :: tl ->
       (* This used to move every cloned variable unconditionally, even copied
          ones. I don't think it was correct *)
-      if c.clcopy then ex
-      else
-        let var =
-          {
-            loc = ex.loc;
-            typ = c.cltyp;
-            attr = no_attr;
-            expr = Var (c.clname, c.clmname);
-          }
-        in
-        let move = { var with expr = Move var } in
-        move_closure { ex with expr = Sequence (move, ex) } tl
+      if c.clcopy then ex else move_closure (move_closed c ex) tl
 
-let borrow_lambda_expr loc mname ac expr bs trees =
-  match (Typed_tree.follow_expr expr, bs) with
+let borrow_lambda_expr loc mname ac arg bs trees =
+  match (Typed_tree.follow_expr arg.expr, bs) with
   | Some (Lambda _), Borrowed bs ->
       List.fold_left
-        (fun trees { id; oncall; _ } ->
-          let ac =
-            match oncall with Some oncall -> oncall.attr | None -> ac
+        (fun (trees, arg) { id; oncall; _ } ->
+          let ac, arg =
+            match oncall with
+            | Some oncall -> (
+                match (oncall.attr, oncall.on_move) with
+                | Dmove, Some c -> (Dmove, move_closed c arg)
+                | ac, _ -> (ac, arg))
+            | None -> (ac, arg)
           in
           let found, _, trees = Trst.borrow id loc mname (ac, Many) [] trees in
           assert found;
-          trees)
-        trees bs
-  | _ -> trees
+          (trees, arg))
+        (trees, arg) bs
+  | _ -> (trees, arg)
 
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
@@ -1135,8 +1141,8 @@ let rec check_expr st ac part tyex =
               | _ -> (attr, mode)
             in
             let narg, bs, trees = check_expr { st with trees } ac [] arg in
-            let trees =
-              borrow_lambda_expr tyex.loc st.mname (fst ac) arg.expr bs trees
+            let trees, narg =
+              borrow_lambda_expr tyex.loc st.mname (fst ac) narg bs trees
             in
 
             let narg =
@@ -1444,10 +1450,10 @@ let add_touched state loc once touched =
       { st with trees; ids })
     state touched
 
-let check_expr ~mname ~params ~touched expr =
+let check_expr ~mname ~params ~touched ~once expr =
   Trst.reset ();
 
-  let state = add_touched (state_empty mname expr.loc) expr.loc true touched in
+  let state = add_touched (state_empty mname expr.loc) expr.loc once touched in
 
   let state, rfs =
     List.fold_left_map

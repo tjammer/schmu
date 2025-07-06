@@ -32,8 +32,8 @@ let is_borrow_callable callee =
       | _ -> None)
   | _ -> None
 
-let make_lambda env loc (decl : Ast.decl) typ pattern_id add_param convert_decl
-    make_cont post_lambda =
+let make_lambda env loc (decl : Ast.decl) once typ pattern_id add_param
+    convert_decl make_cont post_lambda =
   (* TODO mode and qparam *)
   let env = Env.open_function env in
   enter_level ();
@@ -47,5 +47,6 @@ let make_lambda env loc (decl : Ast.decl) typ pattern_id add_param convert_decl
 
   let params_t = [ { pt = typ; pattr; pmode = ref (Iknown Many) } ]
   and nparams = [ id ] in
+  let once = if once then Some Once else None in
   post_lambda env loc body param_exprs params_t nparams [ decl ] [] None
-    params_t None
+    params_t once
