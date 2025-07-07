@@ -281,7 +281,6 @@ let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
   leave_level ();
   let _, closed_vars, touched, unused = Env.close_function env in
 
-  (* TODO factor out everything below this to a function and use is subscript *)
   let unmutated, body, touched =
     let params =
       List.map (fun (d : Ast.decl) -> d.loc) params
@@ -1328,9 +1327,9 @@ end = struct
           let lambda =
             (* Hack for allowing unit lambdas to be borrow called into [()] *)
             match (repr lambda.typ, repr bc.fn_param.pt) with
-            | ( Tfun ([ { pt = Tconstr (Pid "unit", _, _); _ } ], ret, cls),
+            | ( Tfun ([ { pt = Tconstr (Pid "unit", _, _); _ } ], _, _),
                 Tfun ([], _, _) ) ->
-                { lambda with typ = Tfun ([], ret, cls) }
+                Borrow_call.remove_unit_param lambda
             | _ -> lambda
           in
 

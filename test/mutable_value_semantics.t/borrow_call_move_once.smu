@@ -9,11 +9,10 @@ fun test(a!) {
 
 test(copy("10"))
 
--- TODO param count
--- fun test(a!) {
---   let () <-higher_order ()
---   -- free a at end of scope
---   ignore((a, ()))
--- }
+fun test(a!) {
+  let () <-higher_order ()
+  -- free a at end of scope
+  ignore((a, ()))
+}
 
--- test(copy("10"))
+test(copy("10"))

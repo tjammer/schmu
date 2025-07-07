@@ -50,3 +50,14 @@ let make_lambda env loc (decl : Ast.decl) once typ pattern_id add_param
   let once = if once then Some Once else None in
   post_lambda env loc body param_exprs params_t nparams [ decl ] [] None
     params_t once
+
+let remove_unit_param lambda =
+  let decap = function [] -> [] | _ :: tl -> tl in
+  match (repr lambda.typ, lambda.expr) with
+  | Tfun ([ { pt = Tconstr (Pid "unit", _, _); _ } ], ret, cls), Lambda (i, abs)
+    ->
+      let typ = Tfun ([], ret, cls) in
+      let nparams = decap abs.nparams in
+      let func = { abs.func with tparams = decap abs.func.tparams } in
+      { lambda with typ; expr = Lambda (i, { abs with nparams; func }) }
+  | _ -> lambda
