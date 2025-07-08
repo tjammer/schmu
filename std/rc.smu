@@ -6,10 +6,8 @@ signature {
   val count : fun (rc['a]) -> int
 
   val extract : fun (rc['a]!) -> option/t['a]
-  val read : fun (rc['a], fun ('a) -> 'b) -> 'b
-  val read_with : fun (rc['a], 'b!, fun ('a, 'b!) -> 'c) -> 'c
-  val mut : fun (rc['a]&, fun ('a&) -> 'b) -> 'b
-  val mut_with : fun (rc['a]&, 'b!, fun ('a&, 'b!) -> 'c) -> 'c
+  val read : fun (rc['a], once fun ('a) -> 'b) -> 'b
+  val mut : fun (rc['a]&, once fun ('a&) -> 'b) -> 'b
 
   val to_weak : fun (rc['a]) -> weak_rc['a]
   val of_weak : fun (weak_rc['a]) -> option/t[rc['a]]
@@ -37,14 +35,6 @@ fun read(rc, fn) {
   fn(__unsafe_rc_get(rc))
 }
 
-fun read_with(rc, mvd!, fn) {
-  fn(__unsafe_rc_get(rc), !mvd)
-}
-
 fun mut(rc&, fn) {
   fn(&__unsafe_rc_get(rc))
-}
-
-fun mut_with(rc&, mvd!, fn) {
-  fn(&__unsafe_rc_get(rc), !mvd)
 }

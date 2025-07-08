@@ -9,14 +9,14 @@ module async {
     copy(pr), pr
   }
   fun resolve(p&, v!) {
-    rc/mut_with(&p, v, fun (inner&, v!) {
-      match inner {
-        Queued1(cb) -> {
-          let _b = !cb
-          &inner = Resolved(v)
-        }
-        _b -> &inner = Pending
-    }})
+    let inner& <- rc/mut(&p)
+    match inner {
+      Queued1(cb) -> {
+        let _b = !cb
+        &inner = Resolved(v)
+      }
+      _b -> &inner = Pending
+    }
   }
   fun add_cb(fn!) {
     let fut, pr = wait()
@@ -48,15 +48,14 @@ module async {
   }
   fun bind(fut, fn!) {
     let cp& = copy(fut)
-    rc/mut_with(&cp, fn, fun (cp&, fn!) {
-      match cp {
-        Pending -> {
-          let _fut, cb = add_cb(fn)
-          &cp = Queued1(cb)
-        }
-        _ -> ()
+    let cp& <- rc/mut(&cp)
+    match cp {
+      Pending -> {
+        let _fut, cb = add_cb(fn)
+        &cp = Queued1(cb)
       }
-    })
+      _ -> ()
+    }
   }
 }
 {

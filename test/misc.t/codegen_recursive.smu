@@ -9,18 +9,16 @@ fun wait() {
   copy(pr), pr
 }
 
-fun resolve(p&, v!) {
-  fun rec aux (inner&, v!) {
-    match &inner {
-      Resolved(_) -> ()
-      Pending ->
-      &inner = Resolved(v)
-      Queued1(_b) ->
-      &inner = Resolved(v)
-      Other(pr&) -> rc/mut_with(&pr, v, aux)
-    }
+fun rec resolve(p&, v!) {
+  let inner& <- rc/mut(&p)
+  match &inner {
+    Resolved(_) -> ()
+    Pending ->
+    &inner = Resolved(v)
+    Queued1(_b) ->
+    &inner = Resolved(v)
+    Other(pr&) -> resolve(&pr, !v)
   }
-  rc/mut_with(&p, v, aux)
 }
 
 fun add_cb(pr&, cnt&, _len) {

@@ -52,8 +52,10 @@ module async {
             let index = array/length(tmp)
             let f& = rc/of_weak(futs.[index])
             match &f {
-              Some(f&) ->
-                rc/mut_with(&f, v, fun (f&, v!) { &f = Resolved(v) })
+              Some(f&) -> {
+                let f& <- rc/mut(&f)
+                &f = Resolved(v)
+              }
               None -> ()
             }
             _aux()

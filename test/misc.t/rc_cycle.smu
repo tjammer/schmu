@@ -5,7 +5,6 @@ type person = { name : string, partner& : option[any_rc[person]] }
 let person& = rc/create({ name = copy("schmu"), partner = None })
 {
   let weak = rc/to_weak(person)
-  rc/mut_with(&person, !weak, fun (p&, weak!) {
-    &p.partner = Some(Weak(weak))
-  })
+  let p& <- rc/mut(&person)
+  &p.partner = Some(Weak(weak))
 }
