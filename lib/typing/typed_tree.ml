@@ -27,7 +27,7 @@ type expr =
   | App of {
       callee : typed_expr;
       args : arg list;
-      borrow_call : borrow_call option;
+      borrow_call : borrow_call_opt;
     }
   | Record of (string * typed_expr) list
   | Field of (typed_expr * int * string)
@@ -120,6 +120,8 @@ and borrow_call = {
   fn_param : param;
   orig_callee : typ;
 }
+
+and borrow_call_opt = No_bc | Bc_pending of borrow_call | Bc_resolved
 
 let no_attr = { const = false; global = false; mut = false }
 

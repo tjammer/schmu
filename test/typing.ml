@@ -1939,6 +1939,15 @@ fun test(a!) {
 }
 |}
 
+let test_subs_return_from_call () =
+  test "unit"
+    {|fun higher_order(once fn) { fn() }
+let returned = {
+  let () <- higher_order()
+  12
+}
+|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2508,5 +2517,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "move once borrowcall" test_subs_move_once_borrowcall;
           case "move once borrowcall use after"
             test_subs_move_once_borrowcall_use_after;
+          case "return from call" test_subs_return_from_call;
         ] );
     ]

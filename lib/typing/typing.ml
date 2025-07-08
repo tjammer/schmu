@@ -342,7 +342,7 @@ let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
 
 let check_no_borrow_call loc expr =
   match follow_expr expr with
-  | Some (App { borrow_call = Some _; _ }) ->
+  | Some (App { borrow_call = Bc_pending _; _ }) ->
       raise
         (Error
            ( loc,
@@ -1134,12 +1134,13 @@ end = struct
         else if missing_args = 1 then
           match Borrow_call.is_borrow_callable callee with
           | Some (types, shortfn) ->
-              convert_app_impl ~pipe:false env loc shortfn args (Some types)
+              convert_app_impl ~pipe:false env loc shortfn args
+                (Bc_pending types)
           | None ->
               (* Let it fail *)
-              convert_app_impl ~pipe:false env loc callee args None
-        else convert_app_impl ~pipe env loc callee args None
-    | _ -> convert_app_impl ~pipe env loc callee args None
+              convert_app_impl ~pipe:false env loc callee args No_bc
+        else convert_app_impl ~pipe env loc callee args No_bc
+    | _ -> convert_app_impl ~pipe env loc callee args No_bc
 
   and convert_bop env loc bop e1 e2 =
     let check typ =
@@ -1304,7 +1305,7 @@ end = struct
           let rhs = convert env pexpr.pexpr in
           let callee, args, bc =
             match follow_expr rhs.expr with
-            | Some (App { callee; args; borrow_call = Some bc }) ->
+            | Some (App { callee; args; borrow_call = Bc_pending bc }) ->
                 (callee, args, bc)
             | None ->
                 raise
@@ -1344,7 +1345,7 @@ end = struct
               unify (loc, "In borrow call") typ bc.orig_callee env;
               let callee = { callee with typ }
               and args = args @ [ (lambda, Dnorm) ] in
-              let expr = App { callee; args; borrow_call = Some bc } in
+              let expr = App { callee; args; borrow_call = Bc_resolved } in
               ({ rhs with expr; typ = bc.return }, env)
           | _ -> failwith "Internal Error: Borrow call not a function")
       | Let (loc, decl, pexpr, false) :: tl ->
