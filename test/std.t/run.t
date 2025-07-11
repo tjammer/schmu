@@ -259,3 +259,7 @@ Formatting
   -12345.6789
   0.000001234
   123456000.0
+
+Unchecked and leak
+  $ schmu unsafe_unchecked.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./unsafe_unchecked
