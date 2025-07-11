@@ -4,8 +4,6 @@ type t =
   | Unsafe_ptr_at
   | Unsafe_ptr_reinterpret
   | Unsafe_addr
-  | Realloc
-  | Malloc
   | Ignore
   | Cast of Types.typ * Types.typ
   | Not
@@ -108,17 +106,6 @@ let tbl =
         ( [ { pm with pt = Qvar "0"; pattr = Dmut } ],
           traw_ptr (Qvar "0"),
           Simple ) );
-  Hashtbl.add tbl "__realloc"
-    ( Realloc,
-      Tfun
-        ( [
-            { pm with pt = traw_ptr (Qvar "0"); pattr = Dmut };
-            { pm with pt = tint };
-          ],
-          tunit,
-          Simple ) );
-  Hashtbl.add tbl "__malloc"
-    (Malloc, Tfun ([ { pm with pt = tint } ], traw_ptr (Qvar "0"), Simple));
   Hashtbl.add tbl "ignore"
     (Ignore, Tfun ([ { pm with pt = Qvar "0" } ], tunit, Simple));
   Hashtbl.add tbl "__ignore_once"

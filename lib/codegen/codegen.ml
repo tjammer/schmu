@@ -818,40 +818,6 @@ end = struct
     | Unsafe_nullptr ->
         let value = Llvm.const_null ptr_t in
         { value; typ = Traw_ptr Tunit; lltyp = ptr_t; kind = Const }
-    | Realloc ->
-        let ptr, size =
-          match args with
-          | [ ptr; size ] ->
-              let item_size =
-                match ptr.typ with
-                | Traw_ptr t -> sizeof_typ t |> Llvm.const_int int_t
-                | _ ->
-                    print_endline (show_typ ptr.typ);
-                    failwith "Internal Error: Nonptr return of alloc"
-              in
-              let size = Llvm.build_mul size.value item_size "" builder in
-              (ptr, size)
-          | _ -> failwith "Internal Error: Arity mismatch in builtin"
-        in
-        let value = realloc (bring_default ptr) ~size in
-        ignore (Llvm.build_store value ptr.value builder);
-        { dummy_fn_value with lltyp = unit_t }
-    | Malloc ->
-        let item_size =
-          match fnc.ret with
-          | Traw_ptr t -> sizeof_typ t |> Llvm.const_int int_t
-          | _ -> failwith "Internal Error: Nonptr return of alloc"
-        in
-
-        let size =
-          match args with
-          | [ size ] -> Llvm.build_mul size.value item_size "" builder
-          | _ -> failwith "Internal Error: Arity mismatch in builder"
-        in
-        let lltyp = get_lltype_def fnc.ret in
-        let value = malloc ~size in
-
-        { value; typ = fnc.ret; lltyp; kind = Ptr }
     | Ignore -> dummy_fn_value
     | Cast (to_, from_) ->
         let to_ = of_typ to_ and from_ = of_typ from_ in

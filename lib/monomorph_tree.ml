@@ -591,11 +591,7 @@ and morph_var mk p v mname typ =
       | Some mname -> reconstr_module_username ~mname ~mainmod:p.mainmodule v
       | None -> v
     in
-    match v with
-    | "__malloc" ->
-        let var = { no_var with fn = Builtin Malloc } in
-        ((v, Vnorm), var)
-    | v -> find_var v p.vars
+    find_var v p.vars
   in
 
   let mono_id =
