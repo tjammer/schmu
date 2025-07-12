@@ -366,7 +366,7 @@ module Make_tree (Id : Id_t) = struct
     let compare l r = Stdlib.compare l r
   end
 
-  let merge (l : t) (r : t) =
+  let merge ~mname loc (l : t) (r : t) =
     (* We don't merge the whole two trees together. Instead, we pick the most
        interesting of the two and make it the main one. 'Interesting' is picked
        based on scores below. Moved > Borrowed. Added parts are also taken. *)
@@ -410,7 +410,23 @@ module Make_tree (Id : Id_t) = struct
             Unknown (i, lrf)
         | Once_notused, Once_notused | Once_used, Once_used | Many, Many ->
             l.mode
-        | _ -> failwith "Internal Error: Unexpected mode mismatch"
+        | Once_notused, Once_used | Once_used, Once_notused ->
+            let id = string_of_access l.bind_loc.lid mname in
+            let msg =
+              Format.sprintf "Value %s has not been used once in branch" id
+            in
+            raise (Error.Error (loc, msg))
+        | l, r ->
+            let str = function
+              | Once_notused | Once_used -> "once"
+              | Many -> "many"
+              | Unknown _ -> "unknown"
+            in
+            let f = Format.sprintf in
+            raise
+              (Error.Error
+                 ( loc,
+                   f "Branches have different mode: %s vs %s" (str l) (str r) ))
       in
       { base with mode }
     in
@@ -749,7 +765,7 @@ module Make_storage (Id : Id_t) = struct
 
   let mem id st = Id_map.mem id st.indices
 
-  let merge l r =
+  let merge ~mname loc l r =
     let trees =
       Index_map.merge
         (fun _id l r ->
@@ -757,7 +773,7 @@ module Make_storage (Id : Id_t) = struct
           | None, Some _ -> r
           | Some _, None -> l
           | None, None -> None
-          | Some l, Some r -> Some (Tree.merge l r))
+          | Some l, Some r -> Some (Tree.merge ~mname loc l r))
         l.trees r.trees
     in
     { l with trees }
@@ -1246,7 +1262,10 @@ let rec check_expr st ac part tyex =
               raise (Error (cond.loc, prefix ^ "owned vs borrowed"))
             else (true, Owned)
       in
-      let trees = Trst.(update ~old:st.trees (merge ttrees ftrees)) in
+      let trees =
+        Trst.(
+          update ~old:st.trees (merge ~mname:st.mname tyex.loc ttrees ftrees))
+      in
       let expr = If (cond, Some owning, t, f) in
       ({ tyex with expr }, borrow, trees)
   | Field (e, i, name) ->
