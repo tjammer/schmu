@@ -1,6 +1,7 @@
 import array
 import option
 import prelude
+import unsafe
 
 module type key {
   type t
@@ -16,12 +17,11 @@ module type sig {
   val length : fun (t['value]) -> int
   val insert : fun (t['value]&, key!, 'value!) -> unit
   val remove : fun (t['value]&, key) -> unit
-  val find : fun (t['value], key) -> option/t['value]
-  val find_map : fun (t['value], key, fun ('value) -> 'a) -> option/t['a]
-  val find_mut : fun (t['value]&, key, fun ('value&) -> unit) -> bool
-  -- Need this until we have functions with 'once' mode
-  val find_mut_with : fun (t['value]&, key, 'a!, fun ('value&, 'a!) -> unit) -> bool
+
+  val find : fun (t['value], key, once fun (option/t['value]) -> 'a) -> 'a
+  val find_mut : fun (t['value]&, key, once fun (option/t['value]&) -> 'a) -> 'a
   val mem : fun (t['value], key) -> bool
+
   val fold : fun (t['value], 'b!, fun ('b!, key, 'value) -> 'c) -> 'c
   val clear : fun (t['value]&) -> unit
   val to_array : fun (t['value]) -> array[(key, 'value)]
@@ -155,79 +155,6 @@ functor make : sig(m : key) {
     insert(hash, 0, !key, !value)
   }
 
-  fun rec find_index(i, tbl, key, pathlen) {
-    match tbl.data.[i] {
-      Some(item) ->
-        if m/equal(key, item.key) { Some(i) }
-        else {
-          if pathlen > item.pathlen { None }
-          else {
-            let next = next_wrapped(i, array/length(tbl.data))
-            find_index(next, tbl, key, pathlen + 1)
-          }
-        }
-      None -> None
-    }
-  }
-
-  fun find(tbl, key) {
-    let hash = idx(tbl, key)
-    match find_index(hash, tbl, key, 0) {
-      Some(i) -> match tbl.data.[i] {
-        Some(item) -> Some(copy(item.value))
-        None -> None
-      }
-      None -> None
-    }
-  }
-
-  fun find_map(tbl, key, f) {
-    let hash = idx(tbl, key)
-    match find_index(hash, tbl, key, 0) {
-      Some(i) -> match tbl.data.[i] {
-        Some(item) -> Some(f(item.value))
-        None -> None
-      }
-      None -> None
-    }
-  }
-
-  fun find_mut(tbl&, key, f) {
-    let hash = idx(tbl, key)
-    match find_index(hash, tbl, key, 0) {
-      Some(i) -> match &tbl.data.[i] {
-        Some(item&) -> {
-          f(&item.value)
-          true
-        }
-        None -> false
-      }
-      None -> false
-    }
-  }
-
-  fun find_mut_with(tbl&, key, mv!, f) {
-    let hash = idx(tbl, key)
-    match find_index(hash, tbl, key, 0) {
-      Some(i) -> match &tbl.data.[i] {
-        Some(item&) -> {
-          f(&item.value, !mv)
-          true
-        }
-        None -> false
-      }
-      None -> false
-    }
-  }
-
-  fun mem(tbl, key) {
-    let hash = idx(tbl, key)
-    match find_index(hash, tbl, key, 0) {
-      Some(_) -> true
-      None -> false
-    }
-  }
-
   fun rec fixup(data&, old) {
     let next = next_wrapped(old, array/length(data))
     match &data.[next] {
@@ -244,6 +171,22 @@ functor make : sig(m : key) {
     }
   }
 
+  fun rec find_index(i, tbl, key, pathlen) {
+    match tbl.data.[i] {
+      Some(item) ->
+        if m/equal(key, item.key) { Some(i) }
+        else {
+          if pathlen > item.pathlen { None }
+          else {
+            let next = next_wrapped(i, array/length(tbl.data))
+            find_index(next, tbl, key, pathlen + 1)
+          }
+        }
+      None -> None
+    }
+  }
+
+
   fun remove(tbl&, key) {
     let hash = idx(tbl, key)
     match find_index(hash, tbl, key, 0) {
@@ -253,6 +196,71 @@ functor make : sig(m : key) {
         fixup(&tbl.data, i)
       }
       None -> ()
+    }
+  }
+
+  fun find(tbl, key, once fn) {
+    let hash = idx(tbl, key)
+    match find_index(hash, tbl, key, 0) {
+      Some(i) -> match tbl.data.[i] {
+        Some(item) -> {
+          let tmp = unsafe/unchecked(Some(item.value))
+          let ret = fn(tmp)
+          unsafe/leak(tmp)
+          ret
+        }
+        None -> fn(None)
+      }
+      None -> fn(None)
+    }
+  }
+
+  fun find_mut(tbl&, key, once fn) {
+    let hash = idx(tbl, key)
+    match find_index(hash, tbl, key, 0) {
+      Some(i) -> match &tbl.data.[i] {
+        Some(item&) -> {
+          let tmp& = Some(item.value)
+          let ret = fn(&tmp)
+          -- our value could have been deleted or changed
+          match tmp {
+            Some(value) -> &item.value = value
+            None -> {
+              -- partially copied from [remove]
+              &tbl.data.[i] = None
+              &tbl.nitems = tbl.nitems - 1
+              fixup(&tbl.data, i)
+            }
+          }
+          ret
+        }
+        None -> {
+          let tmp& = None
+          let ret = fn(&tmp)
+          match tmp {
+            None -> ()
+            Some(value) -> insert(&tbl, copy(key), value)
+          }
+          ret
+        }
+      }
+      None -> {
+          let tmp& = None
+          let ret = fn(&tmp)
+          match tmp {
+            None -> ()
+            Some(value) -> insert(&tbl, copy(key), value)
+          }
+          ret
+        }
+    }
+  }
+
+  fun mem(tbl, key) {
+    let hash = idx(tbl, key)
+    match find_index(hash, tbl, key, 0) {
+      Some(_) -> true
+      None -> false
     }
   }
 

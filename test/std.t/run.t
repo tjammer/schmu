@@ -10,6 +10,7 @@ Test hashtbl
   ## key
   some v: 10
   ## mut array
+  ## project mut
 
 String module test
   $ schmu string.smu

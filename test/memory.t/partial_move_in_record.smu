@@ -18,8 +18,10 @@ module state {
 use state
 
 fun resolve_build(staterc&, key) {
-  rc/mut(&staterc, fun state& {
-    keytbl/find_mut(&state.targets, key, fun state& {
+  let state& <- rc/mut(&staterc)
+  let state& <- keytbl/find_mut(&state.targets, key)
+  match & state {
+    Some(state&) -> {
       match state.state {
         Resolv_deps(_) -> {
           -- Could be possible, see [set_building] below
@@ -30,8 +32,9 @@ fun resolve_build(staterc&, key) {
           &state = {state with state = Built({ deps = b.deps})}
         }
       }
-    }) |> assert
-  })
+    }
+    None -> assert(false)
+  }
 }
 
 let state& = {

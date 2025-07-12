@@ -11,11 +11,12 @@ type building = {
 type resolv_deps = { fut : fut }
 type key_state = Resolv_deps(resolv_deps) | Building(building) | Built(built)
 fun _build(state, target) {
-    match keytbl/find(state, target) {
+  let v <- keytbl/find(state, target)
+  match v {
       Some(v) -> match v {
         Built(_) -> rc/create(())
-        Resolv_deps(d) -> d.fut
-        Building({ fut, deps = _ , info = _ }) -> fut }
+        Resolv_deps(d) -> copy(d.fut)
+        Building({ fut, deps = _ , info = _ }) -> copy(fut) }
       None -> failwith("")
     }
   }
