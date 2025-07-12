@@ -1980,6 +1980,14 @@ let returned = {
 }
 |}
 
+let test_subs_use_in_expr () =
+  test_exn
+    "In application\n\
+     expecting fun (once fun (unit) -> unit) -> _\n\
+     but found fun () -> _"
+    {|fun higher_order(once fn) { fn(); () }
+ignore(higher_order())|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2552,5 +2560,6 @@ type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : arra
           case "move once borrowcall use after"
             test_subs_move_once_borrowcall_use_after;
           case "return from call" test_subs_return_from_call;
+          case "use in expr" test_subs_use_in_expr;
         ] );
     ]

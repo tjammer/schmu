@@ -1026,6 +1026,21 @@ let borrow_lambda_expr loc mname ac arg bs trees =
         (trees, arg) bs
   | _ -> (trees, arg)
 
+let fail_pending_borrow_call mname loc args = function
+  | Bc_resolved | No_bc -> ()
+  | Bc_pending bc ->
+      (* Print error like in unification failure *)
+      let args =
+        List.map
+          (fun (a, pattr) -> { pattr; pt = a.typ; pmode = ref Iunknown })
+          args
+      in
+      let msg =
+        Error.format_type_err "In application" mname bc.orig_callee
+          (Tfun (args, bc.return, Simple))
+      in
+      raise (Error.Error (loc, msg))
+
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
      Ids on the other hand follow lexical scope *)
@@ -1113,9 +1128,7 @@ let rec check_expr st ac part tyex =
       (tyex, bs, trees)
   | App
       {
-        callee =
-          ( { expr = Var ("__unsafe_rc_get", _); _ }
-          | { expr = Var ("get", Some (Pid "rc")); _ } ) as callee;
+        callee = { expr = Var ("__unsafe_rc_get", _); _ } as callee;
         args = [ arg ];
         borrow_call;
       } ->
@@ -1126,6 +1139,7 @@ let rec check_expr st ac part tyex =
       let expr = App { callee; args = [ (farg, snd arg) ]; borrow_call } in
       ({ tyex with expr }, bs, trees)
   | App { callee; args; borrow_call } ->
+      fail_pending_borrow_call st.mname tyex.loc args borrow_call;
       let ncallee, _, callee_trees = check_expr st (Dnorm, Once) [] callee in
       let unchecked = is_unchecked callee in
       let args =
