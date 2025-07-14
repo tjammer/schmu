@@ -1,5 +1,6 @@
 import array
 import iter
+import libc
 import prelude
 import schubfach
 import string
@@ -35,19 +36,17 @@ module formatter {
 }
 
 type file = raw_ptr[u8]
-external stdout : file
-external stderr : file
 external fwrite : fun (raw_ptr[u8], int, int, file) -> unit
 
 fun pr() {
   formatter/create(
-    fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, stdout) }, ()
+    fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, libc/stdout) }, ()
   )
 }
 
 fun prerr() {
   formatter/create(
-    fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, stderr) }, ()
+    fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, libc/stderr) }, ()
   )
 }
 
@@ -388,7 +387,7 @@ module fmt_stdout {
 
   fun create() {
     formatter/create(
-      fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, stdout) }, ()
+      fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, libc/stdout) }, ()
     )
   }
 }
@@ -398,7 +397,7 @@ module fmt_stderr {
 
   fun create() {
     formatter/create(
-      fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, stderr) }, ()
+      fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, libc/stderr) }, ()
     )
   }
 }

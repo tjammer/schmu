@@ -1,0 +1,5 @@
+type file = raw_ptr[u8]
+external stdout : file = "__stdoutp"
+external stderr : file = "__stderrp"
+
+external assert_fail : fun (raw_ptr[u8], raw_ptr[u8], i32, raw_ptr[u8]) -> unit = "__assert_rtn"

@@ -268,7 +268,7 @@ struct
       lazy
         Llvm.(
           let ft = function_type unit_t [| ptr_t; ptr_t; i32_t; ptr_t |] in
-          (ft, declare_function "__assert_fail" ft the_module))
+          (ft, declare_function "prelude_assert_fail" ft the_module))
     in
 
     let typ = Tarray Tu8 in

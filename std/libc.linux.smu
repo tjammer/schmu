@@ -1,0 +1,5 @@
+type file = raw_ptr[u8]
+external stdout : file
+external stderr : file
+
+external assert_fail : fun (raw_ptr[u8], raw_ptr[u8], i32, raw_ptr[u8]) -> unit = "__assert_fail"

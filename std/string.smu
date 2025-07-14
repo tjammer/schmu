@@ -1,5 +1,6 @@
 import array
 import iter
+import libc
 import option
 import prelude
 
@@ -194,26 +195,24 @@ fun of_cstr(cstr) {
 }
 
 type file = raw_ptr[u8]
-external stdout : file
-external stderr : file
 external fwrite : fun (cstr, int, int, file) -> unit
 
 let newline = #['\n']
 
 fun println(str : t) {
-  fwrite(array/data(str), 1, array/length(str), stdout)
-  fwrite(__fixed_array_data(newline), 1, 1, stdout)
+  fwrite(array/data(str), 1, array/length(str), libc/stdout)
+  fwrite(__fixed_array_data(newline), 1, 1, libc/stdout)
 }
 
 fun print(str : t) {
-  fwrite(array/data(str), 1, array/length(str), stdout)
+  fwrite(array/data(str), 1, array/length(str), libc/stdout)
 }
 
 fun prerrln(str : t) {
-  fwrite(array/data(str), 1, array/length(str), stderr)
-  fwrite(__fixed_array_data(newline), 1, 1, stderr)
+  fwrite(array/data(str), 1, array/length(str), libc/stderr)
+  fwrite(__fixed_array_data(newline), 1, 1, libc/stderr)
 }
 
 fun prerr(str : t) {
-  fwrite(array/data(str), 1, array/length(str), stderr)
+  fwrite(array/data(str), 1, array/length(str), libc/stderr)
 }

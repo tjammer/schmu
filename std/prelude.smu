@@ -1,3 +1,5 @@
+import libc
+
 -- common functionality used by the stdlib
 let + = __addi
 let - = __subi
@@ -32,4 +34,8 @@ fun rec power_2_above(x, n) {
     if (x * 2) < 0 { x }
     else { power_2_above(x * 2, n) }
   }
+}
+
+fun assert_fail(func, file, line, expr) {
+  libc/assert_fail(func, file, line, expr)
 }
