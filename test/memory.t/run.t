@@ -1,5 +1,5 @@
 Drop last element
-  $ schmu --dump-llvm array_drop_back.smu && valgrind -q --leak-check=yes --show-reachable=yes ./array_drop_back
+  $ schmu --dump-llvm array_drop_back.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./array_drop_back
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -432,53 +432,7 @@ Drop last element
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "array_drop_back.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64.c", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "array.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 140, column: 7, scope: !2)
-  !7 = distinct !DISubprogram(name: "_array_pop_back", linkageName: "__array_pop_back_a.a.lroption.t.a.l", scope: !3, file: !3, line: 85, type: !4, scopeLine: 85, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DILocation(line: 87, column: 5, scope: !7)
-  !9 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_fmt.formatter.t.uru", scope: !10, file: !10, line: 143, type: !4, scopeLine: 143, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !10 = !DIFile(filename: "fmt.smu", directory: "")
-  !11 = !DILocation(line: 145, column: 2, scope: !9)
-  !12 = !DILocation(line: 146, column: 15, scope: !9)
-  !13 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_fmt.formatter.t.uru", scope: !10, file: !10, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !14 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u", scope: !10, file: !10, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !15 = !DILocation(line: 24, column: 4, scope: !14)
-  !16 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u", scope: !10, file: !10, line: 56, type: !4, scopeLine: 56, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !17 = !DILocation(line: 58, column: 6, scope: !16)
-  !18 = !DILocation(line: 59, column: 4, scope: !16)
-  !19 = !DILocation(line: 76, column: 17, scope: !16)
-  !20 = !DILocation(line: 79, column: 4, scope: !16)
-  !21 = !DILocation(line: 83, column: 4, scope: !16)
-  !22 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_fmt.formatter.t.urfmt.formatter.t.u", scope: !10, file: !10, line: 111, type: !4, scopeLine: 111, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !23 = !DILocation(line: 112, column: 2, scope: !22)
-  !24 = distinct !DISubprogram(name: "_fmt_stdout_println", linkageName: "__fmt_stdout_println_fmt_stdout_println_ll", scope: !10, file: !10, line: 292, type: !4, scopeLine: 292, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !25 = !DILocation(line: 293, column: 9, scope: !24)
-  !26 = !DILocation(line: 293, column: 4, scope: !24)
-  !27 = !DILocation(line: 293, column: 31, scope: !24)
-  !28 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !10, file: !10, line: 79, type: !4, scopeLine: 79, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !29 = !DILocation(line: 80, column: 6, scope: !28)
-  !30 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !10, file: !10, line: 62, type: !4, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !31 = !DILocation(line: 65, column: 21, scope: !30)
-  !32 = !DILocation(line: 66, column: 10, scope: !30)
-  !33 = !DILocation(line: 69, column: 11, scope: !30)
-  !34 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !35, file: !35, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !35 = !DIFile(filename: "array_drop_back.smu", directory: "")
-  !36 = !DILocation(line: 2, column: 5, scope: !34)
-  !37 = !DILocation(line: 3, column: 6, scope: !34)
-  !38 = !DILocation(line: 3, column: 32, scope: !34)
-  !39 = !DILocation(line: 3, column: 43, scope: !34)
-  !40 = !DILocation(line: 4, column: 5, scope: !34)
-  !41 = !DILocation(line: 5, scope: !34)
-  !42 = !DILocation(line: 6, column: 5, scope: !34)
-  !43 = !DILocation(line: 7, column: 6, scope: !34)
-  !44 = !DILocation(line: 7, column: 31, scope: !34)
-  !45 = !DILocation(line: 7, column: 54, scope: !34)
-  !46 = !DILocation(line: 8, column: 5, scope: !34)
   2
   some
   1
@@ -487,7 +441,7 @@ Drop last element
   0
 
 Array push
-  $ schmu --dump-llvm array_push.smu && valgrind -q --leak-check=yes --show-reachable=yes ./array_push
+  $ schmu --dump-llvm array_push.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./array_push
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1045,56 +999,7 @@ Array push
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "array_push.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64.c", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "array.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 140, column: 7, scope: !2)
-  !7 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_a.a.la.l", scope: !3, file: !3, line: 30, type: !4, scopeLine: 30, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DILocation(line: 34, column: 5, scope: !7)
-  !9 = !DILocation(line: 35, column: 7, scope: !7)
-  !10 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_a.ll", scope: !3, file: !3, line: 30, type: !4, scopeLine: 30, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !11 = !DILocation(line: 34, column: 5, scope: !10)
-  !12 = !DILocation(line: 35, column: 7, scope: !10)
-  !13 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_fmt.formatter.t.uru", scope: !14, file: !14, line: 143, type: !4, scopeLine: 143, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !14 = !DIFile(filename: "fmt.smu", directory: "")
-  !15 = !DILocation(line: 145, column: 2, scope: !13)
-  !16 = !DILocation(line: 146, column: 15, scope: !13)
-  !17 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_fmt.formatter.t.uru", scope: !14, file: !14, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !18 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u", scope: !14, file: !14, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !19 = !DILocation(line: 24, column: 4, scope: !18)
-  !20 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u", scope: !14, file: !14, line: 56, type: !4, scopeLine: 56, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !21 = !DILocation(line: 58, column: 6, scope: !20)
-  !22 = !DILocation(line: 59, column: 4, scope: !20)
-  !23 = !DILocation(line: 76, column: 17, scope: !20)
-  !24 = !DILocation(line: 79, column: 4, scope: !20)
-  !25 = !DILocation(line: 83, column: 4, scope: !20)
-  !26 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_fmt.formatter.t.urfmt.formatter.t.u", scope: !14, file: !14, line: 111, type: !4, scopeLine: 111, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !27 = !DILocation(line: 112, column: 2, scope: !26)
-  !28 = distinct !DISubprogram(name: "_fmt_stdout_println", linkageName: "__fmt_stdout_println_fmt_stdout_println_ll", scope: !14, file: !14, line: 292, type: !4, scopeLine: 292, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !29 = !DILocation(line: 293, column: 9, scope: !28)
-  !30 = !DILocation(line: 293, column: 4, scope: !28)
-  !31 = !DILocation(line: 293, column: 31, scope: !28)
-  !32 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !14, file: !14, line: 79, type: !4, scopeLine: 79, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !33 = !DILocation(line: 80, column: 6, scope: !32)
-  !34 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !14, file: !14, line: 62, type: !4, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !35 = !DILocation(line: 65, column: 21, scope: !34)
-  !36 = !DILocation(line: 66, column: 10, scope: !34)
-  !37 = !DILocation(line: 69, column: 11, scope: !34)
-  !38 = distinct !DISubprogram(name: "in_fun", linkageName: "schmu_in_fun", scope: !39, file: !39, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !39 = !DIFile(filename: "array_push.smu", directory: "")
-  !40 = !DILocation(line: 13, column: 2, scope: !38)
-  !41 = !DILocation(line: 15, column: 7, scope: !38)
-  !42 = !DILocation(line: 16, column: 7, scope: !38)
-  !43 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !39, file: !39, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !44 = !DILocation(line: 4, scope: !43)
-  !45 = !DILocation(line: 6, column: 5, scope: !43)
-  !46 = !DILocation(line: 7, column: 5, scope: !43)
-  !47 = !DILocation(line: 19, scope: !43)
-  !48 = !DILocation(line: 23, scope: !43)
-  !49 = !DILocation(line: 26, scope: !43)
   3
   2
   3
@@ -1111,7 +1016,7 @@ Use captured record-field functions
   printing 1.1
 
 Monomorphization in closures
-  $ schmu --dump-llvm closure_monomorph.smu && ./closure_monomorph
+  $ schmu --dump-llvm closure_monomorph.smu 2>&1 | grep -v !DI && ./closure_monomorph
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -2018,90 +1923,7 @@ Monomorphization in closures
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "closure_monomorph.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64.c", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "array.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 140, column: 7, scope: !2)
-  !7 = distinct !DISubprogram(name: "_array_inner", linkageName: "__array_inner__2_Ca.larray_inner__2_lrb", scope: !3, file: !3, line: 47, type: !4, scopeLine: 47, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DILocation(line: 48, column: 7, scope: !7)
-  !9 = !DILocation(line: 50, column: 9, scope: !7)
-  !10 = distinct !DISubprogram(name: "_array_iter", linkageName: "__array_iter_a.larray_iter_l", scope: !3, file: !3, line: 46, type: !4, scopeLine: 46, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !11 = !DILocation(line: 54, column: 2, scope: !10)
-  !12 = distinct !DISubprogram(name: "_array_swap_items", linkageName: "__array_swap_items_a.l", scope: !3, file: !3, line: 95, type: !4, scopeLine: 95, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !13 = !DILocation(line: 96, column: 5, scope: !12)
-  !14 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_fmt.formatter.t.uru", scope: !15, file: !15, line: 143, type: !4, scopeLine: 143, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !15 = !DIFile(filename: "fmt.smu", directory: "")
-  !16 = !DILocation(line: 145, column: 2, scope: !14)
-  !17 = !DILocation(line: 146, column: 15, scope: !14)
-  !18 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_fmt.formatter.t.uru", scope: !15, file: !15, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !19 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u", scope: !15, file: !15, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !20 = !DILocation(line: 24, column: 4, scope: !19)
-  !21 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u", scope: !15, file: !15, line: 56, type: !4, scopeLine: 56, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !22 = !DILocation(line: 58, column: 6, scope: !21)
-  !23 = !DILocation(line: 59, column: 4, scope: !21)
-  !24 = !DILocation(line: 76, column: 17, scope: !21)
-  !25 = !DILocation(line: 79, column: 4, scope: !21)
-  !26 = !DILocation(line: 83, column: 4, scope: !21)
-  !27 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_fmt.formatter.t.urfmt.formatter.t.u", scope: !15, file: !15, line: 111, type: !4, scopeLine: 111, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !28 = !DILocation(line: 112, column: 2, scope: !27)
-  !29 = distinct !DISubprogram(name: "_fmt_stdout_println", linkageName: "__fmt_stdout_println_fmt_stdout_println_ll", scope: !15, file: !15, line: 292, type: !4, scopeLine: 292, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !30 = !DILocation(line: 293, column: 9, scope: !29)
-  !31 = !DILocation(line: 293, column: 4, scope: !29)
-  !32 = !DILocation(line: 293, column: 31, scope: !29)
-  !33 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !15, file: !15, line: 79, type: !4, scopeLine: 79, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !34 = !DILocation(line: 80, column: 6, scope: !33)
-  !35 = distinct !DISubprogram(name: "__fun_iter5", linkageName: "__fun_iter5_lC__fun_iter5_lru", scope: !36, file: !36, line: 85, type: !4, scopeLine: 85, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !36 = !DIFile(filename: "iter.smu", directory: "")
-  !37 = !DILocation(line: 86, column: 4, scope: !35)
-  !38 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0_Ca.l__fun_schmu0_llrlll", scope: !39, file: !39, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !39 = !DIFile(filename: "closure_monomorph.smu", directory: "")
-  !40 = !DILocation(line: 6, column: 9, scope: !38)
-  !41 = !DILocation(line: 8, column: 8, scope: !38)
-  !42 = distinct !DISubprogram(name: "__fun_schmu1", linkageName: "__fun_schmu1", scope: !39, file: !39, line: 36, type: !4, scopeLine: 36, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !43 = distinct !DISubprogram(name: "__fun_schmu2", linkageName: "__fun_schmu2", scope: !39, file: !39, line: 37, type: !4, scopeLine: 37, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !44 = !DILocation(line: 37, scope: !43)
-  !45 = distinct !DISubprogram(name: "__fun_schmu3", linkageName: "__fun_schmu3", scope: !39, file: !39, line: 37, type: !4, scopeLine: 37, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !46 = !DILocation(line: 37, column: 42, scope: !45)
-  !47 = distinct !DISubprogram(name: "__fun_schmu4", linkageName: "__fun_schmu4_Ca.l__fun_schmu4_llrlll", scope: !39, file: !39, line: 44, type: !4, scopeLine: 44, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !48 = !DILocation(line: 45, column: 9, scope: !47)
-  !49 = !DILocation(line: 47, column: 8, scope: !47)
-  !50 = distinct !DISubprogram(name: "__fun_schmu5", linkageName: "__fun_schmu5", scope: !39, file: !39, line: 75, type: !4, scopeLine: 75, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !51 = distinct !DISubprogram(name: "__fun_schmu6", linkageName: "__fun_schmu6", scope: !39, file: !39, line: 76, type: !4, scopeLine: 76, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !52 = !DILocation(line: 76, scope: !51)
-  !53 = distinct !DISubprogram(name: "__fun_schmu7", linkageName: "__fun_schmu7", scope: !39, file: !39, line: 76, type: !4, scopeLine: 76, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !54 = !DILocation(line: 76, column: 42, scope: !53)
-  !55 = distinct !DISubprogram(name: "_iter_iter", linkageName: "__iter_iter_iter_iter_iter_iter_liter_iter_l", scope: !36, file: !36, line: 84, type: !4, scopeLine: 84, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !56 = !DILocation(line: 85, column: 2, scope: !55)
-  !57 = distinct !DISubprogram(name: "partition", linkageName: "__schmu_partition__2_a.lCschmu_partition__2_llrl", scope: !39, file: !39, line: 41, type: !4, scopeLine: 41, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !58 = !DILocation(line: 44, column: 4, scope: !57)
-  !59 = !DILocation(line: 51, column: 4, scope: !57)
-  !60 = distinct !DISubprogram(name: "partition", linkageName: "__schmu_partition_a.lCschmu_partition_llrl", scope: !39, file: !39, line: 2, type: !4, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !61 = !DILocation(line: 5, column: 4, scope: !60)
-  !62 = !DILocation(line: 12, column: 4, scope: !60)
-  !63 = distinct !DISubprogram(name: "quicksort", linkageName: "__schmu_quicksort__2_a.lCschmu_quicksort__2_a.lllrlCschmu_quicksort__2_llrl", scope: !39, file: !39, line: 62, type: !4, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !64 = !DILocation(line: 63, column: 7, scope: !63)
-  !65 = !DILocation(line: 66, column: 14, scope: !63)
-  !66 = !DILocation(line: 67, column: 6, scope: !63)
-  !67 = distinct !DISubprogram(name: "quicksort", linkageName: "__schmu_quicksort_a.lCschmu_quicksort_a.lllrlCschmu_quicksort_llrl", scope: !39, file: !39, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !68 = !DILocation(line: 23, column: 7, scope: !67)
-  !69 = !DILocation(line: 26, column: 14, scope: !67)
-  !70 = !DILocation(line: 27, column: 6, scope: !67)
-  !71 = distinct !DISubprogram(name: "sort", linkageName: "__schmu_sort__2_a.lschmu_sort__2_ll", scope: !39, file: !39, line: 40, type: !4, scopeLine: 40, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !72 = !DILocation(line: 72, column: 2, scope: !71)
-  !73 = distinct !DISubprogram(name: "sort", linkageName: "__schmu_sort_a.lschmu_sort_ll", scope: !39, file: !39, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !74 = !DILocation(line: 32, column: 2, scope: !73)
-  !75 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !15, file: !15, line: 62, type: !4, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !76 = !DILocation(line: 65, column: 21, scope: !75)
-  !77 = !DILocation(line: 66, column: 10, scope: !75)
-  !78 = !DILocation(line: 69, column: 11, scope: !75)
-  !79 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !39, file: !39, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !80 = !DILocation(line: 36, scope: !79)
-  !81 = !DILocation(line: 37, column: 19, scope: !79)
-  !82 = !DILocation(line: 75, scope: !79)
-  !83 = !DILocation(line: 76, column: 19, scope: !79)
   0
   9
   30
@@ -2116,7 +1938,7 @@ Monomorphization in closures
   2030
 
 Const fixed array
-  $ schmu --dump-llvm const_fixed_arr.smu
+  $ schmu --dump-llvm const_fixed_arr.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -2385,46 +2207,12 @@ Const fixed array
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "const_fixed_arr.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64.c", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "array.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 140, column: 7, scope: !2)
-  !7 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_fmt.formatter.t.uru", scope: !8, file: !8, line: 143, type: !4, scopeLine: 143, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DIFile(filename: "fmt.smu", directory: "")
-  !9 = !DILocation(line: 145, column: 2, scope: !7)
-  !10 = !DILocation(line: 146, column: 15, scope: !7)
-  !11 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_fmt.formatter.t.uru", scope: !8, file: !8, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !12 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !13 = !DILocation(line: 24, column: 4, scope: !12)
-  !14 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 56, type: !4, scopeLine: 56, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !15 = !DILocation(line: 58, column: 6, scope: !14)
-  !16 = !DILocation(line: 59, column: 4, scope: !14)
-  !17 = !DILocation(line: 76, column: 17, scope: !14)
-  !18 = !DILocation(line: 79, column: 4, scope: !14)
-  !19 = !DILocation(line: 83, column: 4, scope: !14)
-  !20 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 111, type: !4, scopeLine: 111, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !21 = !DILocation(line: 112, column: 2, scope: !20)
-  !22 = distinct !DISubprogram(name: "_fmt_stdout_println", linkageName: "__fmt_stdout_println_fmt_stdout_println_ll", scope: !8, file: !8, line: 292, type: !4, scopeLine: 292, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !23 = !DILocation(line: 293, column: 9, scope: !22)
-  !24 = !DILocation(line: 293, column: 4, scope: !22)
-  !25 = !DILocation(line: 293, column: 31, scope: !22)
-  !26 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !8, file: !8, line: 79, type: !4, scopeLine: 79, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !27 = !DILocation(line: 80, column: 6, scope: !26)
-  !28 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !8, file: !8, line: 62, type: !4, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !29 = !DILocation(line: 65, column: 21, scope: !28)
-  !30 = !DILocation(line: 66, column: 10, scope: !28)
-  !31 = !DILocation(line: 69, column: 11, scope: !28)
-  !32 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !33, file: !33, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !33 = !DIFile(filename: "const_fixed_arr.smu", directory: "")
-  !34 = !DILocation(line: 4, column: 5, scope: !32)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./const_fixed_arr
   17
 
 Decrease ref counts for local variables in if branches
-  $ schmu --dump-llvm decr_rc_if.smu && valgrind -q --leak-check=yes --show-reachable=yes ./decr_rc_if
+  $ schmu --dump-llvm decr_rc_if.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./decr_rc_if
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -2489,14 +2277,7 @@ Decrease ref counts for local variables in if branches
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "decr_rc_if.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "ret_true", linkageName: "schmu_ret_true", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "decr_rc_if.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !7 = !DILocation(line: 3, column: 4, scope: !6)
 
 Check allocs in fixed array
   $ schmu fixed_array_allocs.smu
@@ -2519,7 +2300,7 @@ Check allocs in fixed array
 
 Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
 Also mutable fields and 'realloc' builtin
-  $ schmu --dump-llvm free_array.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_array
+  $ schmu --dump-llvm free_array.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./free_array
   free_array.smu:7.5-8: warning: Unused binding arr.
   
   7 | let arr = [copy("hey"), copy("young"), copy("world")]
@@ -3105,46 +2886,7 @@ Also mutable fields and 'realloc' builtin
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "free_array.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_a.a.la.l", scope: !3, file: !3, line: 30, type: !4, scopeLine: 30, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "array.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 34, column: 5, scope: !2)
-  !7 = !DILocation(line: 35, column: 7, scope: !2)
-  !8 = distinct !DISubprogram(name: "_array_push", linkageName: "__array_push_a.foofoo", scope: !3, file: !3, line: 30, type: !4, scopeLine: 30, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !9 = !DILocation(line: 34, column: 5, scope: !8)
-  !10 = !DILocation(line: 35, column: 7, scope: !8)
-  !11 = distinct !DISubprogram(name: "arr_inside", linkageName: "schmu_arr_inside", scope: !12, file: !12, line: 11, type: !4, scopeLine: 11, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !12 = !DIFile(filename: "free_array.smu", directory: "")
-  !13 = !DILocation(line: 14, column: 2, scope: !11)
-  !14 = distinct !DISubprogram(name: "arr_of_records", linkageName: "schmu_arr_of_records", scope: !12, file: !12, line: 44, type: !4, scopeLine: 44, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !15 = !DILocation(line: 45, column: 3, scope: !14)
-  !16 = !DILocation(line: 45, column: 21, scope: !14)
-  !17 = distinct !DISubprogram(name: "inner_parent_scope", linkageName: "schmu_inner_parent_scope", scope: !12, file: !12, line: 21, type: !4, scopeLine: 21, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !18 = !DILocation(line: 22, column: 9, scope: !17)
-  !19 = distinct !DISubprogram(name: "make_arr", linkageName: "schmu_make_arr", scope: !12, file: !12, line: 17, type: !4, scopeLine: 17, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !20 = distinct !DISubprogram(name: "make_nested_arr", linkageName: "schmu_make_nested_arr", scope: !12, file: !12, line: 27, type: !4, scopeLine: 27, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !21 = distinct !DISubprogram(name: "nest_allocs", linkageName: "schmu_nest_allocs", scope: !12, file: !12, line: 31, type: !4, scopeLine: 31, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !22 = !DILocation(line: 32, column: 2, scope: !21)
-  !23 = distinct !DISubprogram(name: "nest_fns", linkageName: "schmu_nest_fns", scope: !12, file: !12, line: 25, type: !4, scopeLine: 25, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !24 = !DILocation(line: 25, column: 16, scope: !23)
-  !25 = distinct !DISubprogram(name: "nest_local", linkageName: "schmu_nest_local", scope: !12, file: !12, line: 35, type: !4, scopeLine: 35, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !26 = distinct !DISubprogram(name: "record_of_arrs", linkageName: "schmu_record_of_arrs", scope: !12, file: !12, line: 39, type: !4, scopeLine: 39, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !27 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !12, file: !12, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !28 = !DILocation(line: 47, column: 10, scope: !27)
-  !29 = !DILocation(line: 48, scope: !27)
-  !30 = !DILocation(line: 49, scope: !27)
-  !31 = !DILocation(line: 50, column: 13, scope: !27)
-  !32 = !DILocation(line: 53, scope: !27)
-  !33 = !DILocation(line: 54, column: 13, scope: !27)
-  !34 = !DILocation(line: 55, column: 13, scope: !27)
-  !35 = !DILocation(line: 56, scope: !27)
-  !36 = !DILocation(line: 59, column: 17, scope: !27)
-  !37 = !DILocation(line: 61, column: 18, scope: !27)
-  !38 = !DILocation(line: 61, column: 36, scope: !27)
-  !39 = !DILocation(line: 62, column: 17, scope: !27)
 
 Free correctly when moving ifs with outer borrows
   $ schmu free_cond.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_cond
@@ -3162,7 +2904,7 @@ Functions in arrays
   $ schmu function_array.smu && valgrind -q --leak-check=yes --show-reachable=yes ./function_array
 
 Global lets with expressions
-  $ schmu --dump-llvm global_let.smu && valgrind -q --leak-check=yes --show-reachable=yes ./global_let
+  $ schmu --dump-llvm global_let.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./global_let
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -3279,17 +3021,7 @@ Global lets with expressions
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "global_let.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "ret_none", linkageName: "schmu_ret_none", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "global_let.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = distinct !DISubprogram(name: "ret_rec", linkageName: "schmu_ret_rec", scope: !3, file: !3, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !7 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DILocation(line: 5, column: 15, scope: !7)
-  !9 = !DILocation(line: 5, column: 27, scope: !7)
-  !10 = !DILocation(line: 11, column: 10, scope: !7)
 
 Don't try to free string literals in ifs
   $ schmu incr_str_lit_ifs.smu && valgrind -q --leak-check=yes --show-reachable=yes ./incr_str_lit_ifs
@@ -3307,7 +3039,7 @@ Incr refcounts correctly for closed over returns
   $ schmu rc_linear_closed_return.smu && valgrind -q --leak-check=yes --show-reachable=yes ./rc_linear_closed_return
 
 Regression test for issue #19
-  $ schmu --dump-llvm regression_issue_19.smu && ./regression_issue_19
+  $ schmu --dump-llvm regression_issue_19.smu 2>&1 | grep -v !DI && ./regression_issue_19
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -3378,22 +3110,10 @@ Regression test for issue #19
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "regression_issue_19.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "v3_add", linkageName: "schmu_v3_add", scope: !3, file: !3, line: 3, type: !4, scopeLine: 3, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "regression_issue_19.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = distinct !DISubprogram(name: "v3_scale", linkageName: "schmu_v3_scale", scope: !3, file: !3, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !7 = distinct !DISubprogram(name: "wrap", linkageName: "schmu_wrap", scope: !3, file: !3, line: 11, type: !4, scopeLine: 11, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DILocation(line: 12, column: 2, scope: !7)
-  !9 = !DILocation(line: 13, column: 12, scope: !7)
-  !10 = !DILocation(line: 13, column: 5, scope: !7)
-  !11 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !12 = !DILocation(line: 16, column: 7, scope: !11)
 
 Tailcall loops
-  $ schmu --dump-llvm regression_issue_26.smu && ./regression_issue_26
+  $ schmu --dump-llvm regression_issue_26.smu 2>&1 | grep -v !DI && ./regression_issue_26
   regression_issue_26.smu:25.9-15: warning: Unused binding nested.
   
   25 | fun rec nested(a, b, c) {
@@ -4095,89 +3815,7 @@ Tailcall loops
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "regression_issue_26.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64.c", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "array.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 140, column: 7, scope: !2)
-  !7 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_fmt.formatter.t.uru", scope: !8, file: !8, line: 143, type: !4, scopeLine: 143, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DIFile(filename: "fmt.smu", directory: "")
-  !9 = !DILocation(line: 145, column: 2, scope: !7)
-  !10 = !DILocation(line: 146, column: 15, scope: !7)
-  !11 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_fmt.formatter.t.uru", scope: !8, file: !8, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !12 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !13 = !DILocation(line: 24, column: 4, scope: !12)
-  !14 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 56, type: !4, scopeLine: 56, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !15 = !DILocation(line: 58, column: 6, scope: !14)
-  !16 = !DILocation(line: 59, column: 4, scope: !14)
-  !17 = !DILocation(line: 76, column: 17, scope: !14)
-  !18 = !DILocation(line: 79, column: 4, scope: !14)
-  !19 = !DILocation(line: 83, column: 4, scope: !14)
-  !20 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 111, type: !4, scopeLine: 111, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !21 = !DILocation(line: 112, column: 2, scope: !20)
-  !22 = distinct !DISubprogram(name: "_fmt_stdout_impl_fmt_fail_missing", linkageName: "__fmt_stdout_impl_fmt_fail_missing_rfmt.formatter.t.u", scope: !8, file: !8, line: 230, type: !4, scopeLine: 230, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !23 = !DILocation(line: 231, column: 6, scope: !22)
-  !24 = !DILocation(line: 231, column: 17, scope: !22)
-  !25 = !DILocation(line: 232, column: 9, scope: !22)
-  !26 = distinct !DISubprogram(name: "_fmt_stdout_impl_fmt_fail_too_many", linkageName: "__fmt_stdout_impl_fmt_fail_too_many_ru", scope: !8, file: !8, line: 236, type: !4, scopeLine: 236, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !27 = !DILocation(line: 237, column: 6, scope: !26)
-  !28 = !DILocation(line: 237, column: 17, scope: !26)
-  !29 = !DILocation(line: 238, column: 9, scope: !26)
-  !30 = distinct !DISubprogram(name: "_fmt_stdout_print2", linkageName: "__fmt_stdout_print2_fmt_stdout_print2_llfmt_stdout_print2_ll", scope: !8, file: !8, line: 327, type: !4, scopeLine: 327, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !31 = !DILocation(line: 328, column: 22, scope: !30)
-  !32 = !DILocation(line: 335, column: 7, scope: !30)
-  !33 = !DILocation(line: 335, column: 21, scope: !30)
-  !34 = !DILocation(line: 336, column: 11, scope: !30)
-  !35 = distinct !DISubprogram(name: "_fmt_stdout_print3", linkageName: "__fmt_stdout_print3_fmt_stdout_print3_llfmt_stdout_print3_llfmt_stdout_print3_ll", scope: !8, file: !8, line: 339, type: !4, scopeLine: 339, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !36 = !DILocation(line: 340, column: 22, scope: !35)
-  !37 = !DILocation(line: 348, column: 7, scope: !35)
-  !38 = !DILocation(line: 348, column: 21, scope: !35)
-  !39 = !DILocation(line: 349, column: 11, scope: !35)
-  !40 = distinct !DISubprogram(name: "_fmt_str", linkageName: "__fmt_str_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 124, type: !4, scopeLine: 124, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !41 = !DILocation(line: 125, column: 22, scope: !40)
-  !42 = !DILocation(line: 125, column: 40, scope: !40)
-  !43 = !DILocation(line: 125, column: 2, scope: !40)
-  !44 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !8, file: !8, line: 79, type: !4, scopeLine: 79, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !45 = !DILocation(line: 80, column: 6, scope: !44)
-  !46 = distinct !DISubprogram(name: "__fun_fmt_stdout3", linkageName: "__fun_fmt_stdout3_C__fun_fmt_stdout3_fmt.formatter.t.ulrfmt.formatter.t.u__fun_fmt_stdout3_fmt.formatter.t.ulrfmt.formatter.t.ull", scope: !8, file: !8, line: 328, type: !4, scopeLine: 328, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !47 = !DILocation(line: 330, column: 8, scope: !46)
-  !48 = !DILocation(line: 330, column: 13, scope: !46)
-  !49 = !DILocation(line: 331, column: 8, scope: !46)
-  !50 = !DILocation(line: 331, column: 13, scope: !46)
-  !51 = !DILocation(line: 332, column: 13, scope: !46)
-  !52 = distinct !DISubprogram(name: "__fun_fmt_stdout4", linkageName: "__fun_fmt_stdout4_C__fun_fmt_stdout4_fmt.formatter.t.ulrfmt.formatter.t.u__fun_fmt_stdout4_fmt.formatter.t.ulrfmt.formatter.t.u__fun_fmt_stdout4_fmt.formatter.t.ulrfmt.formatter.t.ulll", scope: !8, file: !8, line: 340, type: !4, scopeLine: 340, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !53 = !DILocation(line: 342, column: 8, scope: !52)
-  !54 = !DILocation(line: 342, column: 13, scope: !52)
-  !55 = !DILocation(line: 343, column: 8, scope: !52)
-  !56 = !DILocation(line: 343, column: 13, scope: !52)
-  !57 = !DILocation(line: 344, column: 8, scope: !52)
-  !58 = !DILocation(line: 344, column: 13, scope: !52)
-  !59 = !DILocation(line: 345, column: 13, scope: !52)
-  !60 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !8, file: !8, line: 62, type: !4, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !61 = !DILocation(line: 65, column: 21, scope: !60)
-  !62 = !DILocation(line: 66, column: 10, scope: !60)
-  !63 = !DILocation(line: 69, column: 11, scope: !60)
-  !64 = distinct !DISubprogram(name: "nested", linkageName: "schmu_nested", scope: !65, file: !65, line: 4, type: !4, scopeLine: 4, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !65 = !DIFile(filename: "regression_issue_26.smu", directory: "")
-  !66 = !DILocation(line: 5, column: 5, scope: !64)
-  !67 = !DILocation(line: 6, column: 10, scope: !64)
-  !68 = !DILocation(line: 8, column: 9, scope: !64)
-  !69 = distinct !DISubprogram(name: "nested", linkageName: "schmu_nested__2", scope: !65, file: !65, line: 15, type: !4, scopeLine: 15, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !70 = !DILocation(line: 16, column: 5, scope: !69)
-  !71 = !DILocation(line: 17, column: 10, scope: !69)
-  !72 = !DILocation(line: 18, column: 10, scope: !69)
-  !73 = !DILocation(line: 20, column: 9, scope: !69)
-  !74 = distinct !DISubprogram(name: "nested", linkageName: "schmu_nested__3", scope: !65, file: !65, line: 25, type: !4, scopeLine: 25, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !75 = !DILocation(line: 26, column: 5, scope: !74)
-  !76 = !DILocation(line: 27, column: 10, scope: !74)
-  !77 = !DILocation(line: 28, column: 10, scope: !74)
-  !78 = !DILocation(line: 30, column: 9, scope: !74)
-  !79 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !65, file: !65, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !80 = !DILocation(line: 12, scope: !79)
-  !81 = !DILocation(line: 14, scope: !79)
-  !82 = !DILocation(line: 24, scope: !79)
   0, 0
   0, 1
   0, 2
@@ -4217,7 +3855,7 @@ Tailcall loops
   2, 2, 2
 
 Make sure an if returns either Const or Const_ptr, but in a consistent way
-  $ schmu -c --dump-llvm regression_issue_30.smu
+  $ schmu -c --dump-llvm regression_issue_30.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -4282,23 +3920,10 @@ Make sure an if returns either Const or Const_ptr, but in a consistent way
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "regression_issue_30.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "calc_acc", linkageName: "schmu_calc_acc", scope: !3, file: !3, line: 8, type: !4, scopeLine: 8, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "regression_issue_30.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 10, column: 7, scope: !2)
-  !7 = !DILocation(line: 11, column: 6, scope: !2)
-  !8 = !DILocation(line: 15, column: 15, scope: !2)
-  !9 = !DILocation(line: 15, column: 24, scope: !2)
-  !10 = !DILocation(line: 16, column: 12, scope: !2)
-  !11 = !DILocation(line: 16, column: 21, scope: !2)
-  !12 = !DILocation(line: 17, column: 10, scope: !2)
-  !13 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
 
 Ensure global are loadad correctly when passed to functions
-  $ schmu --dump-llvm regression_load_global.smu
+  $ schmu --dump-llvm regression_load_global.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -4333,19 +3958,10 @@ Ensure global are loadad correctly when passed to functions
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "regression_load_global.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "get_seg", linkageName: "__schmu_get_seg_bar", scope: !3, file: !3, line: 16, type: !4, scopeLine: 16, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "regression_load_global.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = distinct !DISubprogram(name: "wrap_seg", linkageName: "schmu_wrap_seg", scope: !3, file: !3, line: 18, type: !4, scopeLine: 18, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !7 = !DILocation(line: 18, column: 16, scope: !6)
-  !8 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !9 = !DILocation(line: 20, scope: !8)
 
 Return closures
-  $ schmu --dump-llvm return_closure.smu && valgrind -q --leak-check=yes --show-reachable=yes ./return_closure
+  $ schmu --dump-llvm return_closure.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./return_closure
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -4711,59 +4327,13 @@ Return closures
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "return_closure.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64.c", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "array.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 140, column: 7, scope: !2)
-  !7 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_fmt.formatter.t.uru", scope: !8, file: !8, line: 143, type: !4, scopeLine: 143, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DIFile(filename: "fmt.smu", directory: "")
-  !9 = !DILocation(line: 145, column: 2, scope: !7)
-  !10 = !DILocation(line: 146, column: 15, scope: !7)
-  !11 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_fmt.formatter.t.uru", scope: !8, file: !8, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !12 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !13 = !DILocation(line: 24, column: 4, scope: !12)
-  !14 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 56, type: !4, scopeLine: 56, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !15 = !DILocation(line: 58, column: 6, scope: !14)
-  !16 = !DILocation(line: 59, column: 4, scope: !14)
-  !17 = !DILocation(line: 76, column: 17, scope: !14)
-  !18 = !DILocation(line: 79, column: 4, scope: !14)
-  !19 = !DILocation(line: 83, column: 4, scope: !14)
-  !20 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 111, type: !4, scopeLine: 111, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !21 = !DILocation(line: 112, column: 2, scope: !20)
-  !22 = distinct !DISubprogram(name: "_fmt_stdout_println", linkageName: "__fmt_stdout_println_fmt_stdout_println_ll", scope: !8, file: !8, line: 292, type: !4, scopeLine: 292, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !23 = !DILocation(line: 293, column: 9, scope: !22)
-  !24 = !DILocation(line: 293, column: 4, scope: !22)
-  !25 = !DILocation(line: 293, column: 31, scope: !22)
-  !26 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !8, file: !8, line: 79, type: !4, scopeLine: 79, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !27 = !DILocation(line: 80, column: 6, scope: !26)
-  !28 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !29, file: !29, line: 7, type: !4, scopeLine: 7, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !29 = !DIFile(filename: "return_closure.smu", directory: "")
-  !30 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !8, file: !8, line: 62, type: !4, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !31 = !DILocation(line: 65, column: 21, scope: !30)
-  !32 = !DILocation(line: 66, column: 10, scope: !30)
-  !33 = !DILocation(line: 69, column: 11, scope: !30)
-  !34 = distinct !DISubprogram(name: "bla", linkageName: "schmu_bla", scope: !29, file: !29, line: 2, type: !4, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !35 = distinct !DISubprogram(name: "ret_fn", linkageName: "schmu_ret_fn", scope: !29, file: !29, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !36 = distinct !DISubprogram(name: "ret_lambda", linkageName: "schmu_ret_lambda", scope: !29, file: !29, line: 6, type: !4, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !37 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !29, file: !29, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !38 = !DILocation(line: 10, column: 8, scope: !37)
-  !39 = !DILocation(line: 11, column: 9, scope: !37)
-  !40 = !DILocation(line: 12, column: 18, scope: !37)
-  !41 = !DILocation(line: 12, column: 5, scope: !37)
-  !42 = !DILocation(line: 13, column: 18, scope: !37)
-  !43 = !DILocation(line: 13, column: 5, scope: !37)
-  !44 = !DILocation(line: 15, column: 8, scope: !37)
-  !45 = !DILocation(line: 16, column: 18, scope: !37)
-  !46 = !DILocation(line: 16, column: 5, scope: !37)
   25
   47
   146
 
 Return nonclosure functions
-  $ schmu --dump-llvm return_fn.smu && ./return_fn
+  $ schmu --dump-llvm return_fn.smu 2>&1 | grep -v !DI && ./return_fn
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -5095,55 +4665,12 @@ Return nonclosure functions
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "return_fn.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_array_fixed_swap_items", linkageName: "__array_fixed_swap_items_A64.c", scope: !3, file: !3, line: 139, type: !4, scopeLine: 139, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "array.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = !DILocation(line: 140, column: 7, scope: !2)
-  !7 = distinct !DISubprogram(name: "_fmt_endl", linkageName: "__fmt_endl_fmt.formatter.t.uru", scope: !8, file: !8, line: 143, type: !4, scopeLine: 143, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !8 = !DIFile(filename: "fmt.smu", directory: "")
-  !9 = !DILocation(line: 145, column: 2, scope: !7)
-  !10 = !DILocation(line: 146, column: 15, scope: !7)
-  !11 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_fmt.formatter.t.uru", scope: !8, file: !8, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !12 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !13 = !DILocation(line: 24, column: 4, scope: !12)
-  !14 = distinct !DISubprogram(name: "_fmt_int_base", linkageName: "__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 56, type: !4, scopeLine: 56, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !15 = !DILocation(line: 58, column: 6, scope: !14)
-  !16 = !DILocation(line: 59, column: 4, scope: !14)
-  !17 = !DILocation(line: 76, column: 17, scope: !14)
-  !18 = !DILocation(line: 79, column: 4, scope: !14)
-  !19 = !DILocation(line: 83, column: 4, scope: !14)
-  !20 = distinct !DISubprogram(name: "_fmt_int", linkageName: "__fmt_int_fmt.formatter.t.urfmt.formatter.t.u", scope: !8, file: !8, line: 111, type: !4, scopeLine: 111, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !21 = !DILocation(line: 112, column: 2, scope: !20)
-  !22 = distinct !DISubprogram(name: "_fmt_stdout_println", linkageName: "__fmt_stdout_println_fmt_stdout_println_ll", scope: !8, file: !8, line: 292, type: !4, scopeLine: 292, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !23 = !DILocation(line: 293, column: 9, scope: !22)
-  !24 = !DILocation(line: 293, column: 4, scope: !22)
-  !25 = !DILocation(line: 293, column: 31, scope: !22)
-  !26 = distinct !DISubprogram(name: "__fun_fmt2", linkageName: "__fun_fmt2", scope: !8, file: !8, line: 79, type: !4, scopeLine: 79, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !27 = !DILocation(line: 80, column: 6, scope: !26)
-  !28 = distinct !DISubprogram(name: "__fun_schmu0", linkageName: "__fun_schmu0", scope: !29, file: !29, line: 2, type: !4, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !29 = !DIFile(filename: "return_fn.smu", directory: "")
-  !30 = distinct !DISubprogram(name: "_fmt_aux", linkageName: "fmt_aux", scope: !8, file: !8, line: 62, type: !4, scopeLine: 62, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !31 = !DILocation(line: 65, column: 21, scope: !30)
-  !32 = !DILocation(line: 66, column: 10, scope: !30)
-  !33 = !DILocation(line: 69, column: 11, scope: !30)
-  !34 = distinct !DISubprogram(name: "named", linkageName: "schmu_named", scope: !29, file: !29, line: 6, type: !4, scopeLine: 6, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !35 = distinct !DISubprogram(name: "ret_fn", linkageName: "schmu_ret_fn", scope: !29, file: !29, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !36 = distinct !DISubprogram(name: "ret_named", linkageName: "schmu_ret_named", scope: !29, file: !29, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !37 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !29, file: !29, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !38 = !DILocation(line: 10, column: 8, scope: !37)
-  !39 = !DILocation(line: 11, column: 18, scope: !37)
-  !40 = !DILocation(line: 11, column: 5, scope: !37)
-  !41 = !DILocation(line: 13, column: 8, scope: !37)
-  !42 = !DILocation(line: 14, column: 18, scope: !37)
-  !43 = !DILocation(line: 14, column: 5, scope: !37)
   24
   25
 
 Take/use not all allocations of a record in tailrec calls
-  $ schmu --dump-llvm take_partial_alloc.smu
+  $ schmu --dump-llvm take_partial_alloc.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -5517,37 +5044,7 @@ Take/use not all allocations of a record in tailrec calls
   
   !llvm.dbg.cu = !{!0}
   
-  !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
-  !1 = !DIFile(filename: "take_partial_alloc.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "_fmt_formatter_extract", linkageName: "__fmt_formatter_extract_fmt.formatter.t.a.cra.c", scope: !3, file: !3, line: 28, type: !4, scopeLine: 28, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !3 = !DIFile(filename: "fmt.smu", directory: "")
-  !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = distinct !DISubprogram(name: "_fmt_formatter_format", linkageName: "__fmt_formatter_format_fmt.formatter.t.a.crfmt.formatter.t.a.c", scope: !3, file: !3, line: 22, type: !4, scopeLine: 22, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !7 = !DILocation(line: 24, column: 4, scope: !6)
-  !8 = distinct !DISubprogram(name: "_fmt_str", linkageName: "__fmt_str_fmt.formatter.t.a.crfmt.formatter.t.a.c", scope: !3, file: !3, line: 124, type: !4, scopeLine: 124, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !9 = !DILocation(line: 125, column: 22, scope: !8)
-  !10 = !DILocation(line: 125, column: 40, scope: !8)
-  !11 = !DILocation(line: 125, column: 2, scope: !8)
-  !12 = distinct !DISubprogram(name: "_fmt_str_print", linkageName: "__fmt_str_print_fmt_str_print_a.ca.c", scope: !3, file: !3, line: 288, type: !4, scopeLine: 288, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !13 = !DILocation(line: 289, column: 9, scope: !12)
-  !14 = !DILocation(line: 289, column: 4, scope: !12)
-  !15 = !DILocation(line: 289, column: 41, scope: !12)
-  !16 = distinct !DISubprogram(name: "aux", linkageName: "schmu_aux", scope: !17, file: !17, line: 19, type: !4, scopeLine: 19, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !17 = !DIFile(filename: "take_partial_alloc.smu", directory: "")
-  !18 = !DILocation(line: 20, column: 10, scope: !16)
-  !19 = !DILocation(line: 21, column: 6, scope: !16)
-  !20 = distinct !DISubprogram(name: "ch", linkageName: "schmu_ch", scope: !17, file: !17, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !21 = !DILocation(line: 10, column: 16, scope: !20)
-  !22 = !DILocation(line: 10, column: 5, scope: !20)
-  !23 = distinct !DISubprogram(name: "many_count", linkageName: "schmu_many_count", scope: !17, file: !17, line: 18, type: !4, scopeLine: 18, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !24 = !DILocation(line: 27, column: 2, scope: !23)
-  !25 = distinct !DISubprogram(name: "view_of_string", linkageName: "schmu_view_of_string", scope: !17, file: !17, line: 5, type: !4, scopeLine: 5, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !26 = !DILocation(line: 6, column: 37, scope: !25)
-  !27 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !17, file: !17, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !28 = !DILocation(line: 29, column: 13, scope: !27)
-  !29 = !DILocation(line: 31, column: 10, scope: !27)
-  !30 = !DILocation(line: 32, column: 7, scope: !27)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./take_partial_alloc
 
 Take/use not all allocations of a record in tailrec calls, different order for pattern matches
