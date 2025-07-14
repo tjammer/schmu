@@ -1,0 +1,328 @@
+signature {
+  type promise['a]
+  type future['a]
+
+  val return : fun ('a!) -> future['a]
+  val wait : fun () -> (future['a], promise['a])
+  val resolve : fun (promise['a]&, 'a!) -> unit
+
+  val bind : fun (future['a], fun ('a) -> future['b]!) -> future['b]
+  val iter : fun (future['a], fun ('a) -> unit) -> unit
+  val resolved : fun (future['a]) -> bool
+
+  val join : fun (array[future['a]]) -> future[unit]
+  val join_bind : fun (array[future['a]], fun (array['a]) -> future['b]!) -> future['b]
+
+  val extract : fun (future['a], fun ('a) -> 'b) -> option['b]
+}
+
+type prom_state['a] =
+  | Pending
+  | Queued1(fun ('a) -> unit)
+  | Queued_n(array[fun ('a) -> unit])
+  | Resolved('a)
+  | Link(rc[prom_state])
+
+type promise['a] = rc[prom_state['a]]
+type future['a] = promise['a]
+
+fun return(v!) { rc/create(!Resolved(v)) }
+
+fun wait() {
+  let pr = rc/create(!Pending)
+  (copy(pr), pr)
+}
+
+fun rec resolve(p&, v!) {
+  let inner& <- rc/mut(&p)
+  match &inner {
+    Resolved(_) -> ()
+    Pending -> {
+      &inner = Resolved(v)
+    }
+    Queued1(cb) -> {
+      let cb = !cb
+      &inner = Resolved(v)
+      -- make sure promise is resolved when callback is called
+      match inner { Resolved(v) -> cb(v) | _ -> () }
+    }
+    Queued_n(cbs) -> {
+      let cbs = !cbs
+      -- make sure promise is resolved when callback is called
+      &inner = Resolved(v)
+      match inner {
+        Resolved(v) -> array/iter(cbs) |> iter/iter(fun cb { cb(v) })
+        | _ -> ()
+      }
+    }
+    Link(pr&) -> resolve(&pr, v)
+  }
+}
+
+fun add_cb(fn!) {
+  let fut, pr = wait()
+  let pr = !pr -- move out because we have a bug in the borrow checker
+  let weak = rc/to_weak(pr)
+  fun cb(v) {
+    let new& = fn(v)
+    let newcpy& = copy(new) -- needed to resolve newcpy after linking pr
+
+    -- this works because future and promise are really the same type
+    fun rec aux(inner&) {
+      match &inner {
+        Resolved(v) -> {
+          match rc/of_weak(weak) {
+            Some(pr) -> {
+              let v = !v
+              &inner = Link(copy(pr))
+              resolve(&newcpy, !v)
+            }
+            None -> ()
+          }
+        }
+        Pending -> {
+          -- the (user-) returned future is pending. Swap our return future for
+          -- the user one, so when the user promise is resolved, our registered
+          -- callbacks are called
+          let cpy = copy(pr)
+          &inner = Link(cpy)
+        }
+        Link(pr&) -> rc/mut(&pr, aux)
+        Queued1(_) -> failwith("TODO 1")
+        Queued_n(_) -> failwith("TODO n")
+      }
+    }
+    rc/mut(&new, aux)
+  }
+  (fut, cb)
+}
+
+fun rec bind(fut, fn!) {
+  -- we make a copy to mutate the future. [fut] is really an rc under the hood,
+  -- so we can do this.
+  let cp& = copy(fut)
+  let cp& <- rc/mut(&cp)
+  match &cp {
+    Pending -> {
+      let fut, cb = add_cb(!fn)
+      &cp = Queued1(cb)
+      fut
+    }
+    Queued1(cb1) -> {
+      let fut, cb = add_cb(!fn)
+      &cp = Queued_n([cb1, cb])
+      fut
+    }
+    Queued_n(cbs&) -> {
+      println("qn")
+      let fut, cb = add_cb(!fn)
+      array/push(&cbs, !cb)
+      fut
+    }
+    Resolved(v) -> {
+      fn(v)
+    }
+    Link(pr&) -> bind(pr, fn)
+  }
+}
+
+fun add_cb(pr&, cnt&, len) {
+  fun _ [pr, cnt, len] {
+    rc/mut(&cnt, fun cnt& {
+      &cnt = cnt + 1
+      if cnt == len {
+        resolve(&pr, ())
+      }
+    })
+  }
+}
+
+fun join(futs) {
+  let len = array/length(futs)
+  let fut, pr = wait()
+  let cnt& = rc/create(0)
+  let pr& = !pr
+
+  -- TODO Defining a cb here and copying it with copy() doesn't work. Copy is
+  -- probably broken for functions.
+
+  fun rec aux(cp&) {
+    match &cp {
+      Pending -> &cp = Queued1(add_cb(&pr, &cnt, len))
+      Queued1(cb1) -> &cp = Queued_n([cb1, add_cb(&pr, &cnt, len)])
+      Queued_n(cbs&) -> array/push(&cbs, add_cb(&pr, &cnt, len))
+      Resolved(_) -> rc/mut(&cnt, fun cnt& { &cnt = cnt + 1 })
+      Link(pr&) -> rc/mut(&pr, aux)
+    }
+  }
+  array/iter(futs) |> iter/iter(fun fut {
+    let cp& = copy(fut)
+    rc/mut(&cp, aux)
+  })
+
+
+  rc/read(cnt, fun cnt {
+    if cnt == len {
+      resolve(&pr, ())
+    }
+  })
+
+  fut
+}
+
+fun resolved(fut) {
+  fun rec aux(fut) {
+    match fut {
+      Resolved(_) -> true
+      Queued1(_) | Queued_n(_) | Pending -> false
+      Link(pr) -> rc/read(pr, aux)
+    }
+  }
+  rc/read(fut, aux)
+}
+
+fun iter(fut, fn) {
+  fun rec aux(fut) {
+    match fut {
+      Resolved(v) -> fn(v)
+      Queued1(_) | Queued_n(_) | Pending -> ()
+      Link(pr) -> rc/read(pr, aux)
+    }
+  }
+  rc/read(fut, aux)
+}
+
+
+fun add_cnt_cb(final!, cnt&, len) {
+  fun _ [cnt] {
+    rc/mut(&cnt, fun cnt& {
+      &cnt = cnt + 1
+      if cnt == len {
+        rc/read(final, fun final { final() })
+      }
+    })
+  }
+}
+
+fun add_final(futs, pr&, fn!) {
+  -- futures are cheap to copy
+  let futs& = array/map(futs, fun f { rc/to_weak(f) })
+  fun () [pr] {
+    -- temporarily move values out of futures and put them back after the cb has
+    -- finished
+    let tmp& = array/create(array/length(futs))
+    let i& = 0
+    array/map_inplace(&futs, fun f& {
+      let f& = rc/of_weak(f)
+      match &f {
+        Some(f&) -> {
+          rc/mut(&f, fun f& {
+            match &f {
+              Resolved(v) -> {
+                array/push(&tmp, v)
+                -- so we can move it out. Will be re-set after the callback
+                -- [fn] has been calleda
+                &f = Pending
+                &i = i + 1
+              }
+              _ -> failwith("Not resolved in join_bind")
+            }
+          })
+
+        }
+        None -> ()
+      }
+    })
+
+    let new& = fn(tmp)
+
+    -- put values back in
+    fun rec aux() {
+      match array/pop_back(&tmp) {
+        None -> ()
+        Some(v) -> {
+          let index = array/length(tmp)
+          let f& = rc/of_weak(futs.[index])
+          match &f {
+            Some(f&) -> {
+              let f& <- rc/mut(&f)
+              &f = Resolved(v)
+            }
+            None -> ()
+          }
+          aux()
+        }
+      }
+    }
+    aux()
+
+    let newcpy& = copy(new)  -- needed to resolve newcpy after linking pr
+    -- copied from [add_cb] of bind
+    -- this works because future and promise are really the same type
+    fun rec aux(new&) {
+      match &new {
+        Resolved(v) -> {
+          let v = !v
+          &new = Link(copy(pr))
+          resolve(&newcpy, !v)
+        }
+        Pending -> {
+          -- the (user-) returned future is pending. Swap our return future for
+          -- the user one, so when the user promise is resolved, our registered
+          -- callbacks are called
+          let cpy = copy(pr)
+          &new = Link(cpy)
+        }
+        Link(pr&) -> rc/mut(&pr, aux)
+        Queued1(_) -> failwith("TODO 1")
+        Queued_n(_) -> failwith("TODO n")
+      }
+    }
+    rc/mut(&new, aux)
+  }
+}
+
+fun join_bind(futs, fn!) {
+  let len = array/length(futs)
+  let fut, pr = wait()
+  let cnt& = rc/create(0)
+  let pr& = !pr
+
+  -- TODO Defining a cb here and copying it with copy() doesn't work. Copy is
+  -- probably broken for functions.
+  let final = rc/create(add_final(futs, &pr, fn))
+
+  fun rec aux(cp&) {
+    match &cp {
+      Pending -> &cp = Queued1(add_cnt_cb(copy(final), &cnt, len))
+      Queued1(cb1) -> &cp = Queued_n([cb1, add_cnt_cb(copy(final), &cnt, len)])
+      Queued_n(cbs&) -> array/push(&cbs, add_cnt_cb(copy(final), &cnt, len))
+      Resolved(_) -> rc/mut(&cnt, fun cnt& { &cnt = cnt + 1 })
+      Link(pr&) -> rc/mut(&pr, aux)
+    }
+  }
+  array/iter(futs) |> iter/iter(fun fut {
+    let cp& = copy(fut)
+    rc/mut(&cp, aux)
+  })
+
+  rc/read(cnt, fun cnt {
+    if cnt == len {
+      rc/read(final, fun f { f() })
+    }
+  })
+
+
+  fut
+}
+
+fun extract(fut, f) {
+  fun rec aux(fut) {
+    match fut {
+      Resolved(v) -> Some(f(v))
+      Pending | Queued1(_) | Queued_n(_) -> None
+      Link(pr) -> rc/read(pr, aux)
+    }
+  }
+  rc/read(fut, aux)
+}

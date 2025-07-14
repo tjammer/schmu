@@ -1344,7 +1344,7 @@ end = struct
               unify (loc, "In borrow call") lambda.typ bc.fn_param.pt env;
               unify (loc, "In borrow call") typ bc.orig_callee env;
               let callee = { callee with typ }
-              and args = args @ [ (lambda, Dnorm) ] in
+              and args = args @ [ (lambda, bc.fn_param.pattr) ] in
               let expr = App { callee; args; borrow_call = Bc_resolved } in
               ({ rhs with expr; typ = bc.return }, env)
           | _ -> failwith "Internal Error: Borrow call not a function")
