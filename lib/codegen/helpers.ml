@@ -4,17 +4,24 @@ module type S = sig
 
   val dummy_fn_value : llvar
   val declare_function : c_linkage:bool -> string -> typ -> llvar
-  val add_closure : llvar Vars.t -> llvar -> bool -> fun_kind -> llvar Vars.t
+
+  val add_closure :
+    llvar Vars.t ->
+    llvar ->
+    (Mod_id.t, llvar) Hashtbl.t ->
+    bool ->
+    fun_kind ->
+    llvar Vars.t
 
   val add_params :
     Llvm_types.param ->
     llvar ->
     Monomorph_tree.func_name ->
-    (string * Malloc_types.Mod_id.t) list ->
+    (string * Mod_id.t) list ->
     param list ->
     int ->
     Monomorph_tree.recurs ->
-    (Malloc_types.Mod_id.t, llvar) Hashtbl.t ->
+    (Mod_id.t, llvar) Hashtbl.t ->
     llvar Vars.t * rec_block option
 
   val llval_of_size : int -> Llvm.llvalue
@@ -492,7 +499,7 @@ struct
        when passed *)
     { value = clsr_struct; typ = func.typ; lltyp = func.lltyp; kind = Ptr }
 
-  let add_closure vars func upward = function
+  let add_closure vars func free_tbl upward = function
     | Simple -> vars
     | Closure assoc when is_only_units assoc ->
         List.fold_left
@@ -513,6 +520,12 @@ struct
                 Llvm.build_struct_gep clsr_type clsr_param i cl.clname builder
               in
               let item = get_closure_item cl item_ptr upward in
+
+              (* Add moved closed variables to free table so we can properly
+                 free them. *)
+              (match cl.clmoved with
+              | Some id -> Hashtbl.replace free_tbl id item
+              | None -> ());
               (Vars.add cl.clname item env, i + 1)
         in
         (* [2] as starting index, because [0] is ref count, and [1] is dtor *)

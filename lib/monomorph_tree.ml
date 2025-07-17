@@ -28,7 +28,7 @@ module Mtree = struct
     | Mseq of (monod_tree * monod_tree)
     | Mctor of (string * int * monod_tree option) * alloca * malloc_list
     | Mvar_index of monod_tree
-    | Mvar_data of monod_tree * Malloc_types.Mod_id.t option
+    | Mvar_data of monod_tree * Mod_id.t option
     | Mfree_after of monod_tree * free_list
   [@@deriving show]
 
@@ -41,15 +41,15 @@ module Mtree = struct
     | I32 of int
     | F32 of float
     | String of string
-    | Array of monod_tree list * alloca * Malloc_types.Mod_id.t
-    | Fixed_array of monod_tree list * alloca * Malloc_types.Mod_id.t list
+    | Array of monod_tree list * alloca * Mod_id.t
+    | Fixed_array of monod_tree list * alloca * Mod_id.t list
     | Unit
 
   and func = { params : param list; ret : typ; kind : fun_kind }
 
   and abstraction = {
     func : func;
-    pnames : (string * Malloc_types.Mod_id.t) list;
+    pnames : (string * Mod_id.t) list;
     body : monod_tree;
   }
 
@@ -59,7 +59,7 @@ module Mtree = struct
     | Default
     | Recursive of { nonmono : string; call : string }
     | Builtin of Builtin.t * func
-    | Inline of (string * Malloc_types.Mod_id.t) list * monod_tree
+    | Inline of (string * Mod_id.t) list * monod_tree
 
   and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
 
@@ -77,7 +77,7 @@ module Mtree = struct
 
   and ifexpr = {
     cond : monod_tree;
-    owning : Malloc_types.Mod_id.t option;
+    owning : Mod_id.t option;
     e1 : monod_tree;
     e2 : monod_tree;
   }
@@ -92,7 +92,7 @@ module Mtree = struct
   and global_name = string option
   and fmt = Fstr of string | Fexpr of monod_tree
   and copy_kind = Cglobal of string | Cnormal of bool
-  and malloc_list = Malloc_types.Mod_id.t list
+  and malloc_list = Mod_id.t list
   and free_list = Except of malloc_id list | Only of malloc_id list
   and let_kind = Lowned | Lborrow
   and const_kind = Const | Cnot (* | Constexpr *)
@@ -162,6 +162,48 @@ let reconstr_module_username ~mname ~mainmod username =
 let decl_tbl = ref None
 let decls () = Option.get !decl_tbl
 
+(* State *)
+
+let alloc_id = ref 1
+let malloc_id = ref 1
+
+let new_id id =
+  let ret_id = !id in
+  incr id;
+  ret_id
+
+let enter_level p = { p with alloc_lvl = p.alloc_lvl + 1 }
+let leave_level p = { p with alloc_lvl = p.alloc_lvl - 1 }
+let request p = Request { id = new_id alloc_id; lvl = p.alloc_lvl }
+
+let reset () =
+  alloc_id := 1;
+  malloc_id := 1;
+  decl_tbl := None
+
+let rec set_alloca p = function
+  | Value ({ contents = Request req } as a) when req.lvl >= p.alloc_lvl ->
+      a := Preallocated
+  | Two_values (a, b) ->
+      set_alloca p a;
+      set_alloca p b
+  | Value _ | No_value -> ()
+
+let create_mid p =
+  let id = new_id malloc_id in
+  Mod_id.{ path = p.mname; id }
+
+let mb_malloc parent path ids typ =
+  if contains_allocation typ then
+    let mid = new_id malloc_id in
+    let mid = Mod_id.{ path; id = mid } in
+    let id = Malloc.Single { mid; typ; parent } in
+    let mallocs = Mallocs.add id ids in
+    (Some mid, id, mallocs)
+  else (None, No_malloc, ids)
+
+let malloc_id_of_param mid p = { Mid.mid; typ = p.pt; parent = None }
+
 module Ss = Set.Make (String)
 
 let cleaned_tbl = Hashtbl.create 512
@@ -194,7 +236,7 @@ let rec cln ss p t =
             Tfun
               ( List.map (cln_param ss p) params,
                 cln ss p ret,
-                cln_kind ss p kind )
+                cln_kind ss p [] kind )
         | Tconstr (Pid "raw_ptr", [ t ], _) -> Traw_ptr (cln ss p t)
         | Tconstr (Pid "array", [ t ], _) -> Tarray (cln ss p t)
         | Tconstr (Pid "rc", [ t ], _) -> Trc (Strong, cln ss p t)
@@ -320,7 +362,7 @@ let rec cln ss p t =
       Hashtbl.add cleaned_tbl hsh t;
       t
 
-and cln_kind ss p = function
+and cln_kind ss p touched = function
   | Simple -> Simple
   | Closure vals ->
       let vals =
@@ -340,16 +382,34 @@ and cln_kind ss p = function
                   (Mvar (modded_name, Vnorm, None))
               else modded_name
             in
+            let clmoved = find_moved p cl.clname touched in
             {
               clname;
               cltyp = typ;
               clmut = cl.clmut;
               clparam = cl.clparam;
               clcopy = cl.clcopy;
+              clmoved;
             })
           vals
       in
       Closure vals
+
+and find_moved p clname touched =
+  match
+    List.find_opt
+      (fun (t : Typed_tree.touched) -> String.equal t.tname clname)
+      touched
+  with
+  | None -> None
+  | Some t -> (
+      match t.tattr with
+      | Dmove ->
+          if Types.contains_allocation t.ttyp then
+            let mid = create_mid p in
+            Some mid
+          else None
+      | _ -> None)
 
 and cln_param ss param p =
   let pt = cln ss param Types.(p.pt) in
@@ -365,48 +425,6 @@ let cln p typ = cln Ss.empty p typ
 let cln_kind p typ = cln_kind Ss.empty p typ
 let cln_param param p = cln_param Ss.empty param p
 
-(* State *)
-
-let alloc_id = ref 1
-let malloc_id = ref 1
-
-let new_id id =
-  let ret_id = !id in
-  incr id;
-  ret_id
-
-let enter_level p = { p with alloc_lvl = p.alloc_lvl + 1 }
-let leave_level p = { p with alloc_lvl = p.alloc_lvl - 1 }
-let request p = Request { id = new_id alloc_id; lvl = p.alloc_lvl }
-
-let reset () =
-  alloc_id := 1;
-  malloc_id := 1;
-  decl_tbl := None
-
-let rec set_alloca p = function
-  | Value ({ contents = Request req } as a) when req.lvl >= p.alloc_lvl ->
-      a := Preallocated
-  | Two_values (a, b) ->
-      set_alloca p a;
-      set_alloca p b
-  | Value _ | No_value -> ()
-
-let create_mid p =
-  let id = new_id malloc_id in
-  Mod_id.{ path = p.mname; id }
-
-let mb_malloc parent path ids typ =
-  if contains_allocation typ then
-    let mid = new_id malloc_id in
-    let mid = Mod_id.{ path; id = mid } in
-    let id = Malloc.Single { mid; typ; parent } in
-    let mallocs = Mallocs.add id ids in
-    (Some mid, id, mallocs)
-  else (None, No_malloc, ids)
-
-let malloc_id_of_param mid p = { Mid.mid; typ = p.pt; parent = None }
-
 let add_params vars mallocs pnames params =
   (* Add parameters to the env and create malloc ids if they have been moved *)
   List.fold_left2
@@ -419,6 +437,21 @@ let add_params vars mallocs pnames params =
       let vars = Vars.add name var vars in
       (vars, mallocs))
     (vars, mallocs) pnames params
+
+let add_moved_touched vars mallocs = function
+  | Simple -> (vars, mallocs)
+  | Closure cls ->
+      List.fold_left
+        (fun (vars, mallocs) c ->
+          match c.clmoved with
+          | Some mid when contains_allocation c.cltyp ->
+              let id = { Mid.mid; typ = c.cltyp; parent = None } in
+              let malloc = Malloc.Single id in
+              let var = Normal { no_var with malloc } in
+
+              (Vars.add c.clname var vars, Mallocs.add malloc mallocs)
+          | _ -> (vars, mallocs))
+        (vars, mallocs) cls
 
 let constant_uniq_state = ref 1
 let constant_tbl = Hashtbl.create 64
@@ -708,6 +741,7 @@ and morph_if mk p cond owning e1 e2 =
   let p, e1, a =
     morph_expr { p with ret; mallocs = Mallocs.push Mlocal oldmallocs } e1
   in
+
   let e1, a, amallocs =
     (* For tailrecursive calls, every ref is already decreased in [morph_app].
        Furthermore, if both branches are tailrecursive, calling decr_ref might
@@ -994,7 +1028,9 @@ and prep_func p func_loc (usrname, uniq, abs) =
     | None -> ref false
   in
 
-  let kind = cln_kind p abs.func.kind in
+  (* Add moved closed variables *)
+  let kind = cln_kind p abs.func.touched abs.func.kind in
+
   if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
     let fn = Polymorphic (call, upward) in
     let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
@@ -1040,6 +1076,11 @@ and prep_func p func_loc (usrname, uniq, abs) =
       let mallocs = Mallocs.push Mfunc p.mallocs in
       let vars, mallocs = add_params vars mallocs pnames func.params
       and recursion_stack = (call, recursive) :: p.recursion_stack in
+
+      (* Touched variables can be moved with into once functions. These
+         variables are freed at the call site and won't be availble in the
+         malloc set for the body. We have to re-add them here. *)
+      let vars, mallocs = add_moved_touched vars mallocs kind in
 
       {
         p with
@@ -1126,7 +1167,9 @@ and morph_lambda mk typ p func_loc id abs =
   let upward = ref false in
   let ret = p.ret in
 
-  let kind = cln_kind p abs.func.kind in
+  (* Add moved closed variables *)
+  let kind = cln_kind p abs.func.touched abs.func.kind in
+
   if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
     let fn = Polymorphic (name, upward) in
     let vars = Vars.add name (Normal { no_var with fn }) p.vars in
@@ -1164,6 +1207,11 @@ and morph_lambda mk typ p func_loc id abs =
          The existing values might not be 'normal' *)
       let mallocs = Mallocs.push Mfunc p.mallocs in
       let vars, mallocs = add_params vars mallocs pnames func.params in
+
+      (* Touched variables can be moved with into once functions. These
+         variables are freed at the call site and won't be availble in the
+         malloc set for the body. We have to re-add them here. *)
+      let vars, mallocs = add_moved_touched vars mallocs kind in
 
       { p with vars; ret = true; mallocs; toplvl = false; recursion_stack }
     in

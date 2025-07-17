@@ -32,6 +32,7 @@ and closed = {
   cltyp : typ;
   clparam : bool;
   clcopy : bool;
+  clmoved : Mod_id.t option;
 }
 
 and rc_kind = Strong | Weak

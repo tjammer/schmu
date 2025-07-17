@@ -148,21 +148,22 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     type t = (malloc_scope * pmap) list
 
     let show t =
+      let print pmap =
+        Imap.to_seq pmap
+        |> Seq.map (fun (mid, set) ->
+               Mid.show mid ^ ": {"
+               ^ (Pset.to_seq set |> Seq.map Mpath.show |> List.of_seq
+                |> String.concat " and ")
+               ^ "}")
+        |> List.of_seq |> String.concat "\n"
+      in
       "["
       ^ String.concat "\n::\n"
           (List.map
              (fun (scope, pmap) ->
                match scope with
-               | Mfunc -> "Mfunc"
-               | Mlocal ->
-                   "Mlocal"
-                   ^ (Imap.to_seq pmap
-                     |> Seq.map (fun (mid, set) ->
-                            Mid.show mid ^ ": {"
-                            ^ (Pset.to_seq set |> Seq.map Mpath.show
-                             |> List.of_seq |> String.concat " and ")
-                            ^ "}")
-                     |> List.of_seq |> String.concat "\n"))
+               | Mfunc -> "Mfunc" ^ print pmap
+               | Mlocal -> "Mlocal" ^ print pmap)
              t)
       ^ "]"
 

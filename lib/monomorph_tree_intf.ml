@@ -29,7 +29,7 @@ module type S = sig
     | Mseq of (monod_tree * monod_tree)
     | Mctor of (string * int * monod_tree option) * alloca * malloc_list
     | Mvar_index of monod_tree
-    | Mvar_data of monod_tree * Malloc_types.Mod_id.t option
+    | Mvar_data of monod_tree * Mod_id.t option
     | Mfree_after of monod_tree * free_list
   [@@deriving show]
 
@@ -42,8 +42,8 @@ module type S = sig
     | I32 of int
     | F32 of float
     | String of string
-    | Array of monod_tree list * alloca * Malloc_types.Mod_id.t
-    | Fixed_array of monod_tree list * alloca * Malloc_types.Mod_id.t list
+    | Array of monod_tree list * alloca * Mod_id.t
+    | Fixed_array of monod_tree list * alloca * Mod_id.t list
     | Unit
   (* The int is the malloc id used for freeing later *)
 
@@ -51,7 +51,7 @@ module type S = sig
 
   and abstraction = {
     func : func;
-    pnames : (string * Malloc_types.Mod_id.t) list;
+    pnames : (string * Mod_id.t) list;
     body : monod_tree;
   }
 
@@ -63,7 +63,7 @@ module type S = sig
     (* Recursive function call.
        The nonmono name is only for housekeeping *)
     | Builtin of Builtin.t * func
-    | Inline of (string * Malloc_types.Mod_id.t) list * monod_tree
+    | Inline of (string * Mod_id.t) list * monod_tree
   (* Builtin function with special codegen *)
 
   and monod_expr = { ex : monod_tree; monomorph : call_name; mut : bool }
@@ -82,7 +82,7 @@ module type S = sig
 
   and ifexpr = {
     cond : monod_tree;
-    owning : Malloc_types.Mod_id.t option;
+    owning : Mod_id.t option;
     e1 : monod_tree;
     e2 : monod_tree;
   }
@@ -97,7 +97,7 @@ module type S = sig
   and global_name = string option
   and fmt = Fstr of string | Fexpr of monod_tree
   and copy_kind = Cglobal of string | Cnormal of bool
-  and malloc_list = Malloc_types.Mod_id.t list
+  and malloc_list = Mod_id.t list
 
   and free_list =
     | Except of Malloc_types.malloc_id list

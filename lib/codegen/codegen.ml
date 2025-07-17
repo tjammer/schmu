@@ -76,7 +76,7 @@ end = struct
 
         (* Add params from closure *)
         (* We generate both the code for extracting the closure and add the vars to the environment *)
-        let tvars = add_closure vars.vars func !upward kind in
+        let tvars = add_closure vars.vars func free_tbl !upward kind in
 
         (* Add parameters to env *)
         let tvars, rec_block =
@@ -1616,8 +1616,7 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
                 ret = Tint;
                 kind = Simple;
               };
-            pnames =
-              Malloc_types.Mod_id.[ ("__argc", whatever); ("__argv", whatever) ];
+            pnames = Mod_id.[ ("__argc", whatever); ("__argv", whatever) ];
             body;
           };
         monomorphized = false;
