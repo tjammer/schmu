@@ -1300,7 +1300,7 @@ end = struct
           raise (Error (loc, "Block must end with an expression"))
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = tunit; expr = Const Unit; attr = no_attr; loc }, env)
-      | Let (loc, decl, pexpr, true) :: tl -> (
+      | Let (loc, decl, pexpr, Some copies) :: tl -> (
           (* Annotations need to go to the lambda *)
           let rhs = convert env pexpr.pexpr in
           let callee, args, bc =
@@ -1321,7 +1321,7 @@ end = struct
               | _ -> false
             in
             Borrow_call.make_lambda env loc decl once bc.bind_param pattern_id
-              add_param convert_decl
+              copies add_param convert_decl
               (fun env -> to_expr env old_type tl |> fst)
               post_lambda
           in
@@ -1348,7 +1348,7 @@ end = struct
               let expr = App { callee; args; borrow_call = Bc_resolved } in
               ({ rhs with expr; typ = bc.return }, env)
           | _ -> failwith "Internal Error: Borrow call not a function")
-      | Let (loc, decl, pexpr, false) :: tl ->
+      | Let (loc, decl, pexpr, None) :: tl ->
           let env, id, id_loc, rhs, lmut, pats, mode =
             convert_let ~global:false env loc decl pexpr
           in
@@ -2082,9 +2082,9 @@ and convert_prog env items modul =
         let env = Module.import_module env loc ~regeneralize name in
         (env, items, m)
   and aux_stmt (old, env, items, m) = function
-    | Ast.Let (loc, _decl, _pexpr, true) ->
+    | Ast.Let (loc, _decl, _pexpr, Some _) ->
         raise (Error (loc, "Cannot return borrow at top level"))
-    | Ast.Let (loc, decl, pexpr, false) ->
+    | Ast.Let (loc, decl, pexpr, None) ->
         let env, id, id_loc, rhs, lmut, pats, mode =
           Core.convert_let ~global:true env loc decl pexpr
         in

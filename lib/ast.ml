@@ -92,7 +92,7 @@ and literal =
   | Unit
 
 and stmt =
-  | Let of loc * decl * passed_expr * bool (* is borrow call *)
+  | Let of loc * decl * passed_expr * func_attr list option (* is borrow call *)
   | Function of loc * func
   | Expr of loc * expr
   | Rec of loc * (loc * func) list

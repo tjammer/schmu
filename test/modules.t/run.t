@@ -3272,6 +3272,14 @@ More complicated case, also regression test for frees from once moved closed var
   resolving second promise
   resolved later to a string
 
+Borrow call case with capture copies
+  $ schmu test_async_borrow_call_copies.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./test_async_borrow_call_copies
+  resolving first promise
+  resolved to 3
+  resolving second promise
+  resolved later to a string
+
 Support functor with inner modules
   $ schmu functor_inner_module.smu
 

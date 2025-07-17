@@ -1,0 +1,26 @@
+import async
+
+{
+  let future, promise = async/wait()
+  let f2, p2 = async/wait()
+
+
+  let _ = {
+    let v <- async/bind(future)
+    let v <- async/bind(async/return(!fmt/(str/print1("resolved to {}", int, v)))) [f2]
+    let v <- async/bind({
+      println(v)
+      copy(f2)
+    })
+    fmt/(print1("resolved later to {}\n", str, v))
+    async/return(())
+  }
+
+  let pr& = !promise -- make mutable by moving
+  println("resolving first promise")
+  async/resolve(&pr, 3)
+
+  let p2& = !p2
+  println("resolving second promise")
+  async/resolve(&p2, copy("a string"))
+}
