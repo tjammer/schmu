@@ -3264,6 +3264,14 @@ Same thing borrow calls, also test module outname
   resolving second promise
   resolved later to a string
 
+More complicated case, also regression test for frees from once moved closed variables
+  $ schmu test_expl.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./test_expl
+  resolving first promise
+  resolved to 3
+  resolving second promise
+  resolved later to a string
+
 Support functor with inner modules
   $ schmu functor_inner_module.smu
 
