@@ -7,9 +7,9 @@ external argc : int = "__schmu_argc"
 external argv_ : raw_ptr[raw_ptr[u8]] = "__schmu_argv"
 
 fun argv() {
-  let arr& = array/create(argc)
+  let mut arr = array/create(argc)
   prelude/iter_range(0, argc, fun i {
-    array/push(&arr, !string/of_cstr(unsafe/get(argv_, i)))
+    array/push(mut arr, mov string/of_cstr(unsafe/get(argv_, i)))
   })
   arr
 }

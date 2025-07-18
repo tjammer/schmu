@@ -19,8 +19,8 @@ module float {
   let sign_mask = lxor(0, -1) |> lshr(1) |> lxor(-1)
 
   fun reinterpret(f : float) {
-    let f& = copy(f)
-    let i : int = unsafe/(addr(&f) |> reinterpret() |> get(0))
+    let mut f = copy(f)
+    let i : int = unsafe/(addr(mut f) |> reinterpret() |> get(0))
     i
   }
 
@@ -832,25 +832,25 @@ fun decimal_length(v) {
 }
 
 fun format_fixed(digits, exponent, sign_bit, int_digits) {
-  let arr& = #64['\000']
+  let mut arr = #64['\000']
 
   fun rec fixed(value, index, trailing, dot) {
     if dot == index {
       if index == 0 {
         -- add ".0"
-        &arr#[index] = '0'
-        &arr#[index + 1] = '.'
+        mut arr#[index] = '0'
+        mut arr#[index + 1] = '.'
         fixed(value, index + 2, trailing, dot)
       }
       else if value == 0 {
         -- add "0."
-        &arr#[index] = '.'
-        &arr#[index + 1] = '0'
+        mut arr#[index] = '.'
+        mut arr#[index + 1] = '0'
         index + 1
       }
       else {
         -- add "."
-        &arr#[index] = '.'
+        mut arr#[index] = '.'
         fixed(value, index + 1, trailing, dot)
       }
     }
@@ -863,7 +863,7 @@ fun format_fixed(digits, exponent, sign_bit, int_digits) {
         fixed(value, index, trailing, dot - 1)
       }
       else {
-        &arr#[index] = string/get(int_digits, 35 + digit)
+        mut arr#[index] = string/get(int_digits, 35 + digit)
         if value <> 0 { fixed(value, index + 1, false, dot) }
         else {
           if dot > index {
@@ -879,21 +879,21 @@ fun format_fixed(digits, exponent, sign_bit, int_digits) {
   let dot = -exponent
   let length = fixed(digits, 0, trailing, dot) + 1
   let length = if sign_bit {
-    &arr#[length] = '-'
+    mut arr#[length] = '-'
     length + 1
   }
   else { length }
 
   -- reverse
   iter_range(0, length / 2, fun i {
-    array/fixed/swap_items(&arr, i, length - i - 1)
+    array/fixed/swap_items(mut arr, i, length - i - 1)
   })
 
   ( arr, length )
 }
 
 fun format_scientific(digits, exponent, sign_bit, num_digits, int_digits) {
-  let arr& = #64['\000']
+  let mut arr = #64['\000']
 
   fun rec scientific(value, index, position, round_up) {
     let tmp = value
@@ -905,12 +905,12 @@ fun format_scientific(digits, exponent, sign_bit, num_digits, int_digits) {
     if position == 1 {
       let index = if index == 0 {
         -- add trailing dot
-        &arr#[index] = '0'
+        mut arr#[index] = '0'
         index + 1
       }
       else { index }
-      &arr#[index] = '.'
-      &arr#[index + 1] = string/get(int_digits, 35 + digit)
+      mut arr#[index] = '.'
+      mut arr#[index + 1] = string/get(int_digits, 35 + digit)
       index + 1
     }
     else if position <= 6 {
@@ -919,7 +919,7 @@ fun format_scientific(digits, exponent, sign_bit, num_digits, int_digits) {
         scientific(value, index, position - 1, round_up)
       }
       else {
-        &arr#[index] = string/get(int_digits, 35 + digit)
+        mut arr#[index] = string/get(int_digits, 35 + digit)
         scientific(value, index + 1, position - 1, round_up)
       }
     }
@@ -929,18 +929,18 @@ fun format_scientific(digits, exponent, sign_bit, num_digits, int_digits) {
   }
   let length = scientific(digits, 0, num_digits, false) + 1
   let length = if sign_bit {
-    &arr#[length] = '-'
+    mut arr#[length] = '-'
     length + 1
   }
   else { length }
 
   -- reverse
   iter_range(0, length / 2, fun i {
-    array/fixed/swap_items(&arr, i, length - i - 1)
+    array/fixed/swap_items(mut arr, i, length - i - 1)
   })
   let exponent = num_digits + exponent - 1
-  &arr#[length] = 'e'
-  &arr#[length + 1] = if exponent >= 0 { '+' } else { '-' }
+  mut arr#[length] = 'e'
+  mut arr#[length + 1] = if exponent >= 0 { '+' } else { '-' }
 
   (arr, length + 2, if exponent < 0 { -exponent } else { exponent })
 }

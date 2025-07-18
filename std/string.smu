@@ -14,7 +14,7 @@ signature {
   val hash : fun (t) -> int
   val equal: fun (t, t) -> bool
   val compare : fun (t, t) -> int
-  val append : fun (t&, t) -> unit
+  val append : fun (mut t, t) -> unit
   val concat : fun (t, array[t]) -> t
   val substr : fun (t, int, int) -> t
   val boyer_moore_horspool : fun (t, t) -> option/t[int]
@@ -22,9 +22,9 @@ signature {
   val ends_with : fun (t, t) -> bool
   -- (str, pattern)
 
-  val modify_buf : fun (t&, fun (array[u8]&) -> unit) -> unit
-  val of_array : fun (array[u8]!) -> t
-  val to_array : fun (t!) -> array[u8]
+  val modify_buf : fun (mut t, fun (mut array[u8]) -> unit) -> unit
+  val of_array : fun (mov array[u8]) -> t
+  val to_array : fun (mov t) -> array[u8]
   val of_fixed_array : fun (array#?[u8]) -> t
   val of_cstr : fun (cstr) -> t
 
@@ -54,7 +54,7 @@ fun hash(str) {
   --     return hash;
   -- }
   use iter
-  array/iter(str) |> fold(!5381, fun (hash!, c) {
+  array/iter(str) |> fold(mov 5381, fun (mov hash, c) {
     (hash * 33) + int_of_u8(c)
   })
 }
@@ -79,19 +79,19 @@ fun compare(l, r) {
   }
 }
 
-fun append(str&, other) {
+fun append(mut str, other) {
   use iter
-  array/iter(other) |> iter(fun(c : u8) { array/push(&str, !c) })
+  array/iter(other) |> iter(fun(c : u8) { array/push(mut str, mov c) })
 }
 
 fun concat(delim, strings) {
-  let ret& = array/create(32)
+  let mut ret = array/create(32)
   array/iter(strings) |> iter/iteri(fun(i, str) {
-    if not(i == 0) { append(&ret, delim) }
-    append(&ret, str)
+    if not(i == 0) { append(mut ret, delim) }
+    append(mut ret, str)
   })
-  array/push(&ret, !'\000')
-  array/pop_back(&ret) |> ignore
+  array/push(mut ret, mov '\000')
+  array/pop_back(mut ret) |> ignore
   ret
 }
 
@@ -104,19 +104,19 @@ fun substr(str : t, start, end) {
   let size = end - start
   assert(size >= 0)
 
-  let arr& = array/create(size + 1)
+  let mut arr = array/create(size + 1)
   memcpy(array/data(arr), __unsafe_ptr_at(data(str), start), size)
-  &arr.[size] = '\000'
-  &__unsafe_array_length(arr) = size
+  mut arr.[size] = '\000'
+  mut __unsafe_array_length(arr) = size
   arr
 }
 
 fun make_skips(pattern) {
   let len = array/length(pattern)
-  let skips& = #256[len]
+  let mut skips = #256[len]
   array/iter(pattern) |> iter/iteri(fun(i, c) {
     if not(i == len - 1) { -- ignore last char
-      &skips#[int_of_u8(c)] = len - 1 - i
+      mut skips#[int_of_u8(c)] = len - 1 - i
     }
   })
   skips
@@ -167,14 +167,15 @@ fun ends_with(str, pat) {
   aux(len(str) - 1, len(pat) - 1)
 }
 
-fun modify_buf(str& : t, f) {
-  f(&str)
+-- TODO this can be once
+fun modify_buf(mut str : t, f) {
+  f(mut str)
   -- return type needs to be inferred as unit
   ()
 }
 
-fun of_array(arr! : array[u8]) { arr }
-fun to_array(str! : t) { str }
+fun of_array(mov arr : array[u8]) { arr }
+fun to_array(mov str : t) { str }
 
 fun of_fixed_array(arr : array#?[u8]) {
   let ret = array/create(__fixed_array_length(arr))
@@ -187,10 +188,10 @@ external strlen : fun (raw_ptr[u8]) -> int
 fun of_cstr(cstr) {
   -- NOTE we could implement this without traversing the string twice
   let size = strlen(cstr)
-  let arr& = array/create(size + 1)
+  let mut arr = array/create(size + 1)
   -- copy null terminator
   memcpy(array/data(arr), cstr, size + 1)
-  &__unsafe_array_length(arr) = size
+  mut __unsafe_array_length(arr) = size
   arr
 }
 

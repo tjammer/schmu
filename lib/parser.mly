@@ -1,10 +1,5 @@
 %{
     open Ast
-
-    let pass_attr_of_opt = function
-      | Some (Ast.Dmut | Dset) -> Ast.Dmut
-      | Some Dmove -> Dmove
-      | Some Dnorm | None -> Dnorm
 %}
 
 %token Eof
@@ -27,8 +22,8 @@
 %token Import
 %token If
 %token Else
-%token Ampersand
-%token Exclamation
+%token Mut
+%token Mov
 %token Wildcard
 %token <int64> Int
 %token <char> U8
@@ -178,7 +173,7 @@ ctor:
   | name = ctor_ident; Lpar; index = Int; Rpar { {name; typ_annot = None; index = Some (Int64.to_int index)} }
 
 record_item_decl:
-  | name = Ident; mut = boption(Ampersand); Colon; spec = type_spec { mut, name, spec }
+  | mut = boption(Mut); name = Ident; Colon; spec = type_spec { mut, name, spec }
 
 decl_typename:
   | name = Ident { { name; poly_param = [] } }
@@ -230,11 +225,9 @@ capture_copies:
 
 basic_pattern:
   | id = ident { Pvar ((fst id, snd id), Dnorm) }
-  | id = ident; Ampersand { Pvar ((fst id, snd id), Dmut) }
-  | id = ident; Exclamation { Pvar ((fst id, snd id), Dmove) }
+  | attr = decl_attr; id = ident { Pvar ((fst id, snd id), attr) }
   | Wildcard; { Pwildcard ($loc, Dnorm) }
-  | Wildcard; Exclamation { Pwildcard ($loc, Dmove) }
-  | Wildcard; Ampersand { Pwildcard ($loc, Dmut) }
+  | attr = decl_attr; Wildcard; { Pwildcard ($loc, attr) }
   | infix = infix { Pvar (($loc(infix), infix), Dnorm) }
   | rec_ = record_pattern(pattern) { rec_ }
   | i = Int { Plit_int($loc, i) }
@@ -260,8 +253,7 @@ let_pattern:
 
 tup_patterns:
   | Lpar; tups = tup_tups(pattern); Rpar { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
-  | Lpar; tups = tup_tups(pattern); Rpar; Ampersand { let loc, tups = tups in Ptup (loc, tups, Dmut) }
-  | Lpar; tups = tup_tups(pattern); Rpar; Exclamation { let loc, tups = tups in Ptup (loc, tups, Dmove) }
+  | attr = decl_attr; Lpar; tups = tup_tups(pattern); Rpar { let loc, tups = tups in Ptup (loc, tups, attr) }
 
 inner_tup_pattern(x):
   | tups = tup_tups(x); { let loc, tups = tups in Ptup (loc, tups, Dnorm) }
@@ -301,7 +293,7 @@ expr_no_ident:
   | callee = expr; args = parens(call_arg) { App ($loc, callee, args) }
   | callee = Builtin_id; args = parens(call_arg) { App ($loc, Var($loc(callee), callee), args) }
   | aexpr = expr; inverse = pipe; pipeable = expr
-    { let arg = {apass = pass_attr_of_opt None; aexpr; aloc = $loc(aexpr)} in
+    { let arg = {apass = Dnorm; aexpr; aloc = $loc(aexpr)} in
       Pipe ($loc, arg, pipeable, inverse) }
   | expr = expr; Dot; ident = ident { Field ($loc, expr, snd ident) }
   | lambda = lambda { lambda }
@@ -318,7 +310,7 @@ expr_no_ident:
     { Record_update ($loc, record, items) }
   | Match; expr = passed(expr); Lcurly; clauses = clauses; Rcurly
     { Match (($startpos, $endpos(expr)), fst expr, snd expr, clauses) }
-  | Ampersand; expr = expr; Equal; newval = expr; %prec Below_Ampersand
+  | Mut; expr = expr; Equal; newval = expr; %prec Below_Ampersand
     { Set ($loc, ($loc(expr), expr), newval) }
   | id = Path_id; expr = expr; %prec Path { Local_use ($loc, id, expr) }
 
@@ -422,7 +414,8 @@ call_arg:
   | apass = decl_attr; aexpr = expr { {apass; aexpr; aloc = $loc} }
 
 %inline decl_attr:
-  | Ampersand { Dmut } | Exclamation { Dmove }
+  | Mut { Dmut }
+  | Mov { Dmove }
 
 ifcont:
   | { None}
@@ -432,8 +425,7 @@ ifcont:
 
 passed(x):
   | pexpr = x { Dnorm, pexpr }
-  | Ampersand; pexpr = x { Dmut, pexpr }
-  | Exclamation; pexpr = x { Dmove, pexpr }
+  | attr = decl_attr; pexpr = x { attr, pexpr }
 
 use_path:
   | id = Ident { Path.Pid (id) }
@@ -476,7 +468,7 @@ type_spec:
 
 type_param:
   | mode = mode; spec = type_spec { mode, spec, Dnorm }
-  | mode = mode; spec = type_spec; attr = decl_attr { mode, spec, attr }
+  | mode = mode; attr = decl_attr; spec = type_spec { mode, spec, attr }
 
 ctor_type_spec:
   | normal = type_spec { normal }

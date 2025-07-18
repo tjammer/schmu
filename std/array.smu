@@ -8,18 +8,18 @@ let length = __array_length
 use prelude
 
 fun create(len) {
-  let ret& = __unsafe_array_create(len)
-  &__unsafe_array_length(ret) = 0
+  let mut ret = __unsafe_array_create(len)
+  mut __unsafe_array_length(ret) = 0
   ret
 }
 
-fun init(len, value!) {
-  let ret& = __unsafe_array_create(len)
-  &__unsafe_array_length(ret) = len
+fun init(len, mov value) {
+  let mut ret = __unsafe_array_create(len)
+  mut __unsafe_array_length(ret) = len
   fun rec inner(i) {
     if i == len { () }
     else {
-      &ret.[i] = copy(value)
+      mut ret.[i] = copy(value)
       inner(i + 1)
     }
   }
@@ -27,20 +27,20 @@ fun init(len, value!) {
   ret
 }
 
-fun push(arr&, value!) {
+fun push(mut arr, mov value) {
   let capacity = __array_capacity(arr)
   let length = length(arr)
 
   if capacity == length {
     if capacity == 0 {
-      __unsafe_array_realloc(&arr, 4)
+      __unsafe_array_realloc(mut arr, 4)
     } else {
-      __unsafe_array_realloc(&arr, 2 * capacity)
+      __unsafe_array_realloc(mut arr, 2 * capacity)
     }
   }
 
-  __unsafe_ptr_set(&data(arr), length, !value)
-  &__unsafe_array_length(arr) = length + 1
+  __unsafe_ptr_set(mut data(arr), length, mov value)
+  mut __unsafe_array_length(arr) = length + 1
 }
 
 fun iter(arr, cont) {
@@ -56,25 +56,25 @@ fun iter(arr, cont) {
 
 fun map(arr, f) {
   let ret = create(length(arr))
-  fun rec inner(ret!, i) {
-    let ret& = !ret
+  fun rec inner(mov ret, i) {
+    let mut ret = mov ret
     if i == length(arr) {
       ret
     } else {
-      push(&ret, !f(arr.[i]))
-      inner(!ret, i + 1)
+      push(mut ret, mov f(arr.[i]))
+      inner(mov ret, i + 1)
     }
   }
 
-  inner(!ret, 0)
+  inner(mov ret, 0)
 }
 
-fun map_inplace(arr&, f) {
+fun map_inplace(mut arr, f) {
   fun rec inner(i) {
     if i == length(arr) {
       ()
     } else {
-      f(&arr.[i])
+      f(mut arr.[i])
       inner(i + 1)
     }
   }
@@ -82,30 +82,30 @@ fun map_inplace(arr&, f) {
   inner(0)
 }
 
-fun pop_back(arr&) {
+fun pop_back(mut arr) {
   use option
   if length(arr) == 0 {
     None
   }
   else {
-    Some(__unsafe_array_pop_back(&arr))
+    Some(__unsafe_array_pop_back(mut arr))
   }
 }
 
-fun swap_items(arr&, i, j) {
+fun swap_items(mut arr, i, j) {
   if not (i == j) {
-    let itmp = !arr.[i]
-    &arr.[i] = arr.[j]
-    &arr.[j] = itmp
+    let itmp = mov arr.[i]
+    mut arr.[i] = arr.[j]
+    mut arr.[j] = itmp
   }
 }
 
-fun clear(arr&) {
+fun clear(mut arr) {
   fun rec inner() {
     if 0 == length(arr) {
       ()
     } else {
-      pop_back(&arr) |> ignore
+      pop_back(mut arr) |> ignore
       inner()
     }
   }
@@ -113,19 +113,19 @@ fun clear(arr&) {
   inner()
 }
 
-fun reserve(arr&, size) {
+fun reserve(mut arr, size) {
   fun rec aux(newcap) {
     if newcap < size { aux(2 * newcap) }
-    else { __unsafe_array_realloc(&arr, newcap) }
+    else { __unsafe_array_realloc(mut arr, newcap) }
   }
   let cap = __array_capacity(arr)
   if cap < size { aux(cap * 2) }
 }
 
-fun reverse(arr&) {
+fun reverse(mut arr) {
   let length = length(arr)
   iter_range(0, length / 2, fun i {
-    swap_items(&arr, i, length - i - 1)
+    swap_items(mut arr, i, length - i - 1)
   })
 }
 
@@ -136,18 +136,18 @@ module fixed {
   let length = __fixed_array_length
   let data = __fixed_array_data
 
-  fun swap_items(arr&, i, j) {
+  fun swap_items(mut arr, i, j) {
     if not (i == j) {
-      let itmp = !arr#[i]
-      &arr#[i] = arr#[j]
-      &arr#[j] = itmp
+      let itmp = mov arr#[i]
+      mut arr#[i] = arr#[j]
+      mut arr#[j] = itmp
     }
   }
 
-  fun reverse(arr&) {
+  fun reverse(mut arr) {
     let length = length(arr)
     iter_range(0, length / 2, fun i {
-      swap_items(&arr, i, length - i - 1)
+      swap_items(mut arr, i, length - i - 1)
     })
   }
 

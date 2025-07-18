@@ -44,18 +44,18 @@ fun hash(i) {
   -- basically murmurhash
   let m = 0xc6a4a7935bd1e995
   let r = 47
-  let h& = lxor(0, 8 * m)
-  let k& = !i
-  &k = k * m
-  &k = lxor(k, lshr(k, r))
-  &k = k * m
+  let mut h = lxor(0, 8 * m)
+  let mut k = mov i
+  mut k = k * m
+  mut k = lxor(k, lshr(k, r))
+  mut k = k * m
 
-  &h = lxor(h, k)
-  &h = h * m
+  mut h = lxor(h, k)
+  mut h = h * m
 
-  &h = lxor(h, lshr(h, r))
-  &h = h * m
-  &h = lxor(h, lshr(h, r))
+  mut h = lxor(h, lshr(h, r))
+  mut h = h * m
+  mut h = lxor(h, lshr(h, r))
   h
 }
 

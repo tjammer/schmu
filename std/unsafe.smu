@@ -6,10 +6,10 @@ signature {
   val +> : fun (raw_ptr['a], int) -> 'a
   val at : fun (raw_ptr['a], int) -> raw_ptr['a]
   val reinterpret : fun (raw_ptr['a]) -> raw_ptr['b]
-  val addr : fun ('a&) -> raw_ptr['a]
+  val addr : fun (mut 'a) -> raw_ptr['a]
   val funptr : fun ('a) -> raw_ptr[unit]
   val clsptr : fun ('a) -> raw_ptr[unit]
-  val leak : fun ('a!) -> unit
+  val leak : fun (mov 'a) -> unit
   val unchecked : fun (once 'a) -> 'a
 }
 

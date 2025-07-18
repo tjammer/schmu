@@ -12,17 +12,17 @@ signature {
   val close : fun (t) -> unit
 
   -- high level interface
-  val with_open : fun (string/t, fun (t&) -> 'a) -> option/t['a]
-  val readall : fun (t&) -> string/t
-  val lines : fun (t&, iter/consumer[string/t]) -> iter/continue
+  val with_open : fun (string/t, fun (mut t) -> 'a) -> option/t['a]
+  val readall : fun (mut t) -> string/t
+  val lines : fun (mut t, iter/consumer[string/t]) -> iter/continue
   val size : fun (t) -> int
 
   -- low level interface
   type buf = array[u8]
-  val readbuf : fun (t&, buf&) -> option/t[int]
-  val readn : fun (t&, buf&, int) -> option/t[int]
-  val readline : fun (t&, buf&) -> option/t[int]
-  val readrem : fun (t&, buf&) -> option/t[int]
+  val readbuf : fun (mut t, mut buf) -> option/t[int]
+  val readn : fun (mut t, mut buf, int) -> option/t[int]
+  val readline : fun (mut t, mut buf) -> option/t[int]
+  val readrem : fun (mut t, mut buf) -> option/t[int]
 
   type file
   val of_file : fun (file) -> t
@@ -31,7 +31,7 @@ signature {
 
 type file = raw_ptr[u8]
 
-type t = {buf& : array#4096[u8], head& : int, unseen& : int, file : file}
+type t = {mut buf : array#4096[u8], mut head : int, mut unseen : int, file : file}
 
 type cstr = raw_ptr[u8]
 external fread : fun (cstr, int, int, file) -> int
@@ -59,8 +59,8 @@ fun close(ic) {
 fun with_open(name, f) {
   match open(name) {
     Some(ic) -> {
-      let ic& = !ic
-      let ret = f(&ic)
+      let mut ic = mov ic
+      let ret = f(mut ic)
       close(ic)
       Some(ret)
     }
@@ -70,17 +70,17 @@ fun with_open(name, f) {
 
 external memcpy : fun (raw_ptr[u8], raw_ptr[u8], int) -> unit
 
-fun fill(buf&, icbuf, lower, upper) {
+fun fill(mut buf, icbuf, lower, upper) {
   let diff = upper - lower
   let len = array/length(buf)
   -- We call [fill] often in [readall] so we allocate eagerly
-  array/reserve(&buf, prelude/power_2_above(16, len + diff))
+  array/reserve(mut buf, prelude/power_2_above(16, len + diff))
 
   memcpy(array/data(buf) |> unsafe/at(len), array/fixed/data(icbuf) |> unsafe/at(lower), diff)
-  &__unsafe_array_length(buf) = len + diff
+  mut __unsafe_array_length(buf) = len + diff
 }
 
-fun readbuf(ic&, buf&) {
+fun readbuf(mut ic, mut buf) {
   let lower, upper = {
     if ic.unseen > 0 {
       (ic.head, ic.head + ic.unseen)
@@ -88,23 +88,23 @@ fun readbuf(ic&, buf&) {
       (0, fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file))
     }}
   -- copy content to buf
-  fill(&buf, ic.buf, lower, upper)
-  &ic.head = 0
-  &ic.unseen = 0
+  fill(mut buf, ic.buf, lower, upper)
+  mut ic.head = 0
+  mut ic.unseen = 0
   Some(upper - lower)
 }
 
-fun rec readn_impl(ic&, buf&, n, readacc) {
+fun rec readn_impl(mut ic, mut buf, n, readacc) {
   if ic.unseen >= n {
-    fill(&buf, ic.buf, ic.head, ic.head + n)
-    &ic.head = ic.head + n
-    &ic.unseen = ic.unseen - n
+    fill(mut buf, ic.buf, ic.head, ic.head + n)
+    mut ic.head = ic.head + n
+    mut ic.unseen = ic.unseen - n
     Some(readacc + n)
   } else if ic.unseen > 0 {
-    match readbuf(&ic, &buf) {
+    match readbuf(mut ic, mut buf) {
       Some(nread) -> {
         assert((n - nread) < 0)
-        readn_impl(&ic, &buf, n - nread, nread + readacc)
+        readn_impl(mut ic, mut buf, n - nread, nread + readacc)
       }
       None -> {
         assert(false)
@@ -113,60 +113,60 @@ fun rec readn_impl(ic&, buf&, n, readacc) {
     }
   } else {
     let nread = fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file)
-    &ic.head = 0
-    &ic.unseen = copy(nread)
+    mut ic.head = 0
+    mut ic.unseen = copy(nread)
     if nread == 0 {
       if readacc == 0 { None } else { Some(readacc) }
     } else {
-      readn_impl(&ic, &buf, n, readacc)
+      readn_impl(mut ic, mut buf, n, readacc)
     }}
 }
 
-fun readn(ic&, buf&, n) { readn_impl(&ic, &buf, n, 0) }
+fun readn(mut ic, mut buf, n) { readn_impl(mut ic, mut buf, n, 0) }
 
-fun rec readall_impl(ic&, buf&, acc) {
+fun rec readall_impl(mut ic, mut buf, acc) {
   -- assumes ic.unseen = 0
   let nread = fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file)
   if nread == 0  {
     if acc == 0 { None } else { Some(acc) }
   } else {
-    fill(&buf, ic.buf, 0, nread)
-    readall_impl(&ic, &buf, nread + acc)
+    fill(mut buf, ic.buf, 0, nread)
+    readall_impl(mut ic, mut buf, nread + acc)
   }
 }
 
-fun readrem(ic&, buf&) {
-  let ret = match readbuf(&ic, &buf) {
+fun readrem(mut ic, mut buf) {
+  let ret = match readbuf(mut ic, mut buf) {
     Some(nread) -> {
-      fill(&buf, ic.buf, ic.head, ic.head + ic.unseen)
-      readall_impl(&ic, &buf, nread)
+      fill(mut buf, ic.buf, ic.head, ic.head + ic.unseen)
+      readall_impl(mut ic, mut buf, nread)
     }
     None -> None
   }
   -- make other (read) calls fail after this
-  &ic.unseen = 0
-  &ic.head = 0
+  mut ic.unseen = 0
+  mut ic.head = 0
   ret
 }
 
-fun readline(ic&, buf&) {
+fun readline(mut ic, mut buf) {
   fun rec find_newline(acc) {
     if ic.unseen > 0 {
       if prelude/char_equal('\n', ic.buf#[ic.head]) {
-        &ic.unseen = ic.unseen - 1
-        &ic.head = ic.head + 1
+        mut ic.unseen = ic.unseen - 1
+        mut ic.head = ic.head + 1
         Some(acc)
       } else {
-        array/push(&buf, !copy(ic.buf#[ic.head]))
-        &ic.unseen = ic.unseen - 1
-        &ic.head = ic.head + 1
+        array/push(mut buf, mov copy(ic.buf#[ic.head]))
+        mut ic.unseen = ic.unseen - 1
+        mut ic.head = ic.head + 1
         find_newline(acc + 1)
       }
     } else {
       -- re-read file, then recurse, copied from readn_impl
       let nread = fread(__fixed_array_data(ic.buf), 1, bufsize, ic.file)
-      &ic.head = 0
-      &ic.unseen = copy(nread)
+      mut ic.head = 0
+      mut ic.unseen = copy(nread)
       if nread == 0 {
         if acc == 0 {
           None
@@ -178,23 +178,23 @@ fun readline(ic&, buf&) {
   find_newline(0)
 }
 
-fun readall(ic&) {
-  let buf& = array/create(bufsize)
-  match readrem(&ic, &buf) {
-    Some(_) -> string/of_array(!buf)
+fun readall(mut ic) {
+  let mut buf = array/create(bufsize)
+  match readrem(mut ic, mut buf) {
+    Some(_) -> string/of_array(mov buf)
     None -> copy("")
   }
 }
 
-fun lines(ic&, cont) {
-  fun rec aux(buf!) {
-    let buf& = !buf
-    match readline(&ic, &buf) {
+fun lines(mut ic, cont) {
+  fun rec aux(mov buf) {
+    let mut buf = mov buf
+    match readline(mut ic, mut buf) {
       Some(_) -> {
-        let str = string/of_array(!buf)
+        let str = string/of_array(mov buf)
         if cont(str) {
-          &buf = string/to_array(!str)
-          array/clear(&buf)
+          mut buf = string/to_array(mov str)
+          array/clear(mut buf)
           aux(buf)
         }
         else { false }

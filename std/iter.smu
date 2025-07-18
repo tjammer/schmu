@@ -16,8 +16,8 @@ signature {
   -- consumers
   val iter : fun (t['a], fun ('a) -> unit) -> unit
   val iteri : fun (t['a], fun (int, 'a) -> unit) -> unit
-  val fold : fun (t['a], 'b!, fun ('b!, 'a) -> 'b) -> 'b
-  val foldi : fun (t['a], 'b!, fun (int, 'b!, 'a) -> 'b) -> 'b
+  val fold : fun (t['a], mov 'b, fun (mov 'b, 'a) -> 'b) -> 'b
+  val foldi : fun (t['a], mov 'b, fun (int, mov 'b, 'a) -> 'b) -> 'b
 }
 
 use prelude
@@ -47,12 +47,12 @@ fun filter(it : t['a], f, cont){
 }
 
 fun take(it : t['a], stop, cont) {
-  let curr& = 0
+  let mut curr = 0
   it(fun x {
     if curr == stop { false }
     else {
       if cont(x) {
-        &curr = curr + 1
+        mut curr = curr + 1
         true
       }
       else { false }
@@ -61,21 +61,21 @@ fun take(it : t['a], stop, cont) {
 }
 
 -- iter consumers
-fun fold(it : t['a], init!, f) {
-  let r& = !init
+fun fold(it : t['a], mov init, f) {
+  let mut r = mov init
   it(fun x {
-    &r = f(!r, x)
+    mut r = f(mov r, x)
     true
   }) |> ignore
   r
 }
 
-fun foldi(it : t['a], init!, f) {
-  let r& = !init
-  let i& = 0
+fun foldi(it : t['a], mov init, f) {
+  let mut r = mov init
+  let mut i = 0
   it(fun x {
-    &r = f(i, !r, x)
-    &i = i + 1
+    mut r = f(i, mov r, x)
+    mut i = i + 1
     true
   }) |> ignore
   r
@@ -89,10 +89,10 @@ fun iter(it : t['a], f) {
 }
 
 fun iteri(it : t['a], f) {
-  let i& = 0
+  let mut i = 0
   it(fun x {
     f(i, x)
-    &i = i + 1
+    mut i = i + 1
     true
   }) |> ignore
 }

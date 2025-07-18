@@ -2,12 +2,12 @@ import option
 import prelude
 
 signature {
-  val create : fun ('a!) -> rc['a]
+  val create : fun (mov 'a) -> rc['a]
   val count : fun (rc['a]) -> int
 
-  val extract : fun (rc['a]!) -> option/t['a]
+  val extract : fun (mov rc['a]) -> option/t['a]
   val read : fun (rc['a], once fun ('a) -> 'b) -> 'b
-  val mut : fun (rc['a]&, once fun ('a&) -> 'b) -> 'b
+  val write: fun (mut rc['a], once fun (mut 'a) -> 'b) -> 'b
 
   val to_weak : fun (rc['a]) -> weak_rc['a]
   val of_weak : fun (weak_rc['a]) -> option/t[rc['a]]
@@ -25,7 +25,7 @@ fun of_weak(wrc) {
   else { Some(__unsafe_rc_of_weak(wrc)) }
 }
 
-fun extract(rc!) {
+fun extract(mov rc) {
   let inner = __unsafe_rc_get(rc)
   if count(rc) == 1 { Some(inner) }
   else { None }
@@ -35,6 +35,6 @@ fun read(rc, fn) {
   fn(__unsafe_rc_get(rc))
 }
 
-fun mut(rc&, fn) {
-  fn(&__unsafe_rc_get(rc))
+fun write(mut rc, fn) {
+  fn(mut __unsafe_rc_get(rc))
 }

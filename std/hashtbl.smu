@@ -15,15 +15,15 @@ module type sig {
 
   val create : fun (int) -> t['value]
   val length : fun (t['value]) -> int
-  val insert : fun (t['value]&, key!, 'value!) -> unit
-  val remove : fun (t['value]&, key) -> unit
+  val insert : fun (mut t['value], mov key, mov 'value) -> unit
+  val remove : fun (mut t['value], key) -> unit
 
   val find : fun (t['value], key, once fun (option/t['value]) -> 'a) -> 'a
-  val find_mut : fun (t['value]&, key, once fun (option/t['value]&) -> 'a) -> 'a
+  val find_mut : fun (mut t['value], key, once fun (mut option/t['value]) -> 'a) -> 'a
   val mem : fun (t['value], key) -> bool
 
-  val fold : fun (t['value], 'b!, fun ('b!, key, 'value) -> 'c) -> 'c
-  val clear : fun (t['value]&) -> unit
+  val fold : fun (t['value], mov 'b, fun (mov 'b, key, 'value) -> 'c) -> 'c
+  val clear : fun (mut t['value]) -> unit
   val to_array : fun (t['value]) -> array[(key, 'value)]
 }
 
@@ -32,15 +32,15 @@ functor make : sig(m : key) {
   use prelude
 
   type key = m/t
-  type item['a] = {key : m/t, value& : 'a, pathlen& : int}
+  type item['a] = {key : m/t, mut value : 'a, mut pathlen : int}
   type slot['a] = option/t[item['a]]
-  type t['a] = {data& : array[slot['a]], nitems& : int}
+  type t['a] = {mut data : array[slot['a]], mut nitems : int}
 
   fun create(size) {
     let size = power_2_above(16, size)
-    let data& = __unsafe_array_create(size)
+    let mut data = __unsafe_array_create(size)
     prelude/iter_range(0, size, fun i {
-      __unsafe_ptr_set(&array/data(data), i, !None)
+      __unsafe_ptr_set(mut array/data(data), i, mov None)
     })
     {data, nitems = 0}
   }
@@ -56,26 +56,26 @@ functor make : sig(m : key) {
     if (curr + 1) == size { 0 } else { curr + 1 }
   }
 
-  fun rec redist(tbl&, item!, curr, pathlen) {
+  fun rec redist(mut tbl, mov item, curr, pathlen) {
     let size = array/length(tbl.data)
     match tbl.data.[curr] {
       None -> {
-        let item& = !item
-        &item.pathlen = pathlen
-        &tbl.data.[curr] = Some(item)
+        let mut item = mov item
+        mut item.pathlen = pathlen
+        mut tbl.data.[curr] = Some(item)
       }
       Some(other) -> {
         let next = next_wrapped(curr, size)
         if pathlen > other.pathlen {
           let other_pathlen = copy(other.pathlen)
-          let new_item = !other
-          let item& = !item
-          &item.pathlen = pathlen
-          &tbl.data.[curr] = Some(item)
-          redist(&tbl, !new_item, next, other_pathlen + 1)
+          let new_item = mov other
+          let mut item = mov item
+          mut item.pathlen = pathlen
+          mut tbl.data.[curr] = Some(item)
+          redist(mut tbl, mov new_item, next, other_pathlen + 1)
         }
         else {
-          redist(&tbl, !item, next, pathlen + 1)
+          redist(mut tbl, mov item, next, pathlen + 1)
         }
       }
     }
@@ -87,16 +87,16 @@ functor make : sig(m : key) {
     float_of_int(tbl.nitems) /. float_of_int(array/length(tbl.data))
   }
 
-  fun iter_data_move(data&, f) {
+  fun iter_data_move(mut data, f) {
     fun rec inner(i) {
       if i == array/length(data) {
-        &__unsafe_array_length(data) = 0
+        mut __unsafe_array_length(data) = 0
       }
       else {
         match __unsafe_ptr_get(array/data(data), i) {
           None -> inner(i + 1)
           Some({key, value, pathlen = _}) -> {
-            f(!key, !value)
+            f(mov key, mov value)
             inner(i + 1)
           }
         }
@@ -105,67 +105,67 @@ functor make : sig(m : key) {
     inner(0)
   }
 
-  fun rec grow(tbl&) {
+  fun rec grow(mut tbl) {
     let size = 2 * array/length(tbl.data)
-    let data& = __unsafe_array_create(size)
+    let mut data = __unsafe_array_create(size)
     prelude/iter_range(0, size, fun i {
-      __unsafe_ptr_set(&array/data(data), i, !None)
+      __unsafe_ptr_set(mut array/data(data), i, mov None)
     })
-    let old_data& = !tbl.data
-    &tbl.data = data
-    &tbl.nitems = 0
-    iter_data_move(&old_data, fun(key!, value!) {
-      insert(&tbl, !key, !value)
+    let mut old_data = mov tbl.data
+    mut tbl.data = data
+    mut tbl.nitems = 0
+    iter_data_move(mut old_data, fun(mov key, mov value) {
+      insert(mut tbl, mov key, mov value)
     })
   }
 
-  and insert(tbl&, key!, value!) {
-    if load_factor(tbl) >. load_limit { grow(&tbl) }
+  and insert(mut tbl, mov key, mov value) {
+    if load_factor(tbl) >. load_limit { grow(mut tbl) }
     let hash = idx(tbl, key)
     let size = array/length(tbl.data)
 
-    fun rec insert(i, pathlen, key!, value!) {
+    fun rec insert(i, pathlen, mov key, mov value) {
       match tbl.data.[i] {
         None -> {
-          &tbl.data.[i] = Some({key, value, pathlen})
-          &tbl.nitems = tbl.nitems + 1
+          mut tbl.data.[i] = Some({key, value, pathlen})
+          mut tbl.nitems = tbl.nitems + 1
         }
         Some(other) -> {
           if m/equal(key, other.key) {
             -- overwrite
-            &tbl.data.[i] = Some({key, value, pathlen})
+            mut tbl.data.[i] = Some({key, value, pathlen})
           }
           else {
             let next = next_wrapped(i, size)
             if pathlen > other.pathlen {
               let other_pathlen = copy(other.pathlen)
               -- probe sequence length of new value is larger. robin hood
-              let other_item = !other
-              &tbl.data.[i] = Some({key, value, pathlen})
-              &tbl.nitems = tbl.nitems + 1
-              redist(&tbl, !other_item, next, other_pathlen + 1)
+              let other_item = mov other
+              mut tbl.data.[i] = Some({key, value, pathlen})
+              mut tbl.nitems = tbl.nitems + 1
+              redist(mut tbl, mov other_item, next, other_pathlen + 1)
             }
             else {
-              insert(next, pathlen + 1, !key, !value)
+              insert(next, pathlen + 1, mov key, mov value)
             }
           }
         }
       }
     }
-    insert(hash, 0, !key, !value)
+    insert(hash, 0, mov key, mov value)
   }
 
-  fun rec fixup(data&, old) {
+  fun rec fixup(mut data, old) {
     let next = next_wrapped(old, array/length(data))
-    match &data.[next] {
-      Some(item&) ->
+    match mut data.[next] {
+      Some(mut item) ->
         if not(item.pathlen == 0) {
-          &item.pathlen = item.pathlen - 1
+          mut item.pathlen = item.pathlen - 1
           -- swap with old slot, inline
-          let oldtmp = !data.[old]
-          &data.[old] = data.[next]
-          &data.[next] = oldtmp
-          fixup(&data, next)
+          let oldtmp = mov data.[old]
+          mut data.[old] = data.[next]
+          mut data.[next] = oldtmp
+          fixup(mut data, next)
         }
       None -> ()
     }
@@ -187,13 +187,13 @@ functor make : sig(m : key) {
   }
 
 
-  fun remove(tbl&, key) {
+  fun remove(mut tbl, key) {
     let hash = idx(tbl, key)
     match find_index(hash, tbl, key, 0) {
       Some(i) -> {
-        &tbl.data.[i] = None
-        &tbl.nitems = tbl.nitems - 1
-        fixup(&tbl.data, i)
+        mut tbl.data.[i] = None
+        mut tbl.nitems = tbl.nitems - 1
+        fixup(mut tbl.data, i)
       }
       None -> ()
     }
@@ -215,41 +215,41 @@ functor make : sig(m : key) {
     }
   }
 
-  fun find_mut(tbl&, key, once fn) {
+  fun find_mut(mut tbl, key, once fn) {
     let hash = idx(tbl, key)
     match find_index(hash, tbl, key, 0) {
-      Some(i) -> match &tbl.data.[i] {
-        Some(item&) -> {
-          let tmp& = Some(item.value)
-          let ret = fn(&tmp)
+      Some(i) -> match mut tbl.data.[i] {
+        Some(mut item) -> {
+          let mut tmp = Some(item.value)
+          let ret = fn(mut tmp)
           -- our value could have been deleted or changed
           match tmp {
-            Some(value) -> &item.value = value
+            Some(value) -> mut item.value = value
             None -> {
               -- partially copied from [remove]
-              &tbl.data.[i] = None
-              &tbl.nitems = tbl.nitems - 1
-              fixup(&tbl.data, i)
+              mut tbl.data.[i] = None
+              mut tbl.nitems = tbl.nitems - 1
+              fixup(mut tbl.data, i)
             }
           }
           ret
         }
         None -> {
-          let tmp& = None
-          let ret = fn(&tmp)
+          let mut tmp = None
+          let ret = fn(mut tmp)
           match tmp {
             None -> ()
-            Some(value) -> insert(&tbl, copy(key), value)
+            Some(value) -> insert(mut tbl, copy(key), value)
           }
           ret
         }
       }
       None -> {
-          let tmp& = None
-          let ret = fn(&tmp)
+          let mut tmp = None
+          let ret = fn(mut tmp)
           match tmp {
             None -> ()
-            Some(value) -> insert(&tbl, copy(key), value)
+            Some(value) -> insert(mut tbl, copy(key), value)
           }
           ret
         }
@@ -264,25 +264,25 @@ functor make : sig(m : key) {
     }
   }
 
-  fun fold(tbl, init!, f) {
-    fun rec inner(i, acc!) {
+  fun fold(tbl, mov init, f) {
+    fun rec inner(i, mov acc) {
       if array/length(tbl.data) == i {
         acc
       }
       else {
         match tbl.data.[i] {
-          None -> inner(i + 1, !acc)
+          None -> inner(i + 1, mov acc)
           Some({key, value, pathlen = _}) ->
-          inner(i + 1, !f(!acc, key, value))
+          inner(i + 1, mov f(mov acc, key, value))
         }
       }
     }
-    inner(0, !init)
+    inner(0, mov init)
   }
 
-  fun clear(tbl&) {
-    array/clear(&tbl.data)
-    &tbl.nitems = 0
+  fun clear(mut tbl) {
+    array/clear(mut tbl.data)
+    mut tbl.nitems = 0
   }
 
   fun iter_data(data, f) {
@@ -302,9 +302,9 @@ functor make : sig(m : key) {
   }
 
   fun to_array(tbl) {
-    let arr& = array/create(tbl.nitems)
+    let mut arr = array/create(tbl.nitems)
     iter_data(tbl.data, fun(key, value) {
-      array/push(&arr, !(copy(key), copy(value)))
+      array/push(mut arr, mov (copy(key), copy(value)))
     })
     arr
   }

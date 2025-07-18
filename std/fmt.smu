@@ -12,25 +12,25 @@ module formatter {
   signature {
     type t['a]
 
-    val format : fun (t['a]!, raw_ptr[u8], int) -> t['a]
-    val extract : fun (t['a]!) -> 'a
+    val format : fun (mov t['a], raw_ptr[u8], int) -> t['a]
+    val extract : fun (mov t['a]) -> 'a
 
-    val create : fun (fun ('a&, raw_ptr[u8], int) -> unit!, 'a!) -> t['a]
+    val create : fun (mov fun (mut 'a, raw_ptr[u8], int) -> unit, mov 'a) -> t['a]
   }
 
-  type t['a] = { fn : fun ('a&, raw_ptr[u8], int) -> unit, data& : 'a }
+  type t['a] = { fn : fun (mut 'a, raw_ptr[u8], int) -> unit, mut data : 'a }
 
-  fun format(fm!, ptr, len) {
-    let fm& = !fm
-    fm.fn(&fm.data, ptr, len)
+  fun format(mov fm, ptr, len) {
+    let mut fm = mov fm
+    fm.fn(mut fm.data, ptr, len)
     fm
   }
 
-  fun extract(fm!) {
+  fun extract(mov fm) {
     fm.data
   }
 
-  fun create(fn!, data!) {
+  fun create(mov fn, mov data) {
     { fn, data }
   }
 }
@@ -40,20 +40,20 @@ external fwrite : fun (raw_ptr[u8], int, int, file) -> unit
 
 fun pr() {
   formatter/create(
-    fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, libc/stdout) }, ()
+    fun(mut _ : unit, ptr, len) { fwrite(ptr, 1, len, libc/stdout) }, ()
   )
 }
 
 fun prerr() {
   formatter/create(
-    fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, libc/stderr) }, ()
+    fun(mut _ : unit, ptr, len) { fwrite(ptr, 1, len, libc/stderr) }, ()
   )
 }
 
 let int_digits = "zyxwvutsrqponmlkjihgfedcba9876543210123456789abcdefghijklmnopqrstuvwxyz"
 
-fun int_base(p!, value, base) {
-  let arr& = #64['\000']
+fun int_base(mov p, value, base) {
+  let mut arr = #64['\000']
   if (base < 2 or base > 36) {
     formatter/format(p, array/fixed/data(arr), 1)
   }
@@ -61,12 +61,12 @@ fun int_base(p!, value, base) {
     fun rec aux(value, index) {
       let tmp_value = value
       let value = value / base
-      &arr#[index] = string/get(int_digits, 35 + (tmp_value - (value * base)))
+      mut arr#[index] = string/get(int_digits, 35 + (tmp_value - (value * base)))
       if (value <> 0) { aux(value, index + 1) }
       else {
         -- sign
         if tmp_value < 0 {
-          &arr#[index + 1] = '-'
+          mut arr#[index + 1] = '-'
           index + 1
         }
         else { index }
@@ -76,15 +76,15 @@ fun int_base(p!, value, base) {
 
     -- reverse
     iter_range(0, length / 2, fun i {
-      array/fixed/swap_items(&arr, i, length - i - 1)
+      array/fixed/swap_items(mut arr, i, length - i - 1)
     })
 
     formatter/format(p, array/fixed/data(arr), length)
   }
 }
 
-fun int_base_unsigned(p!, value, base) {
-  let arr& = #64['\000']
+fun int_base_unsigned(mov p, value, base) {
+  let mut arr = #64['\000']
   if (base < 2 or base > 36) {
     formatter/format(p, array/fixed/data(arr), 1)
   }
@@ -92,7 +92,7 @@ fun int_base_unsigned(p!, value, base) {
     fun rec aux(value, index) {
       let tmp_value = value
       let value = div_unsigned(value, base)
-      &arr#[index] = string/get(int_digits, 35 + (tmp_value - (value * base)))
+      mut arr#[index] = string/get(int_digits, 35 + (tmp_value - (value * base)))
       if (value <> 0) { aux(value, index + 1) }
       else { index }
     }
@@ -100,52 +100,52 @@ fun int_base_unsigned(p!, value, base) {
 
     -- reverse
     iter_range(0, length / 2, fun i {
-      array/fixed/swap_items(&arr, i, length - i - 1)
+      array/fixed/swap_items(mut arr, i, length - i - 1)
     })
 
     formatter/format(p, array/fixed/data(arr), length)
   }
 }
 
-fun int(p!, i) {
+fun int(mov p, i) {
   int_base(p, i, 10)
 }
 
-fun uint(p!, i) {
+fun uint(mov p, i) {
   int_base_unsigned(p, i, 10)
 }
 
-fun char(p!, c) {
+fun char(mov p, c) {
   let arr = #[c]
   formatter/format(p, array/fixed/data(arr), 1)
 }
 
-fun str(p!, str) {
+fun str(mov p, str) {
   formatter/format(p, string/data(str), string/len(str))
 }
 
 external strlen : fun (raw_ptr[u8]) -> int
 
-fun cstr(p!, cstr) {
+fun cstr(mov p, cstr) {
   formatter/format(p, cstr, strlen(cstr))
 }
 
-fun u8(p!, u) {
+fun u8(mov p, u) {
   int(p, int_of_u8(u)) |> str("u8")
 }
 
-fun bool(p!, b) {
+fun bool(mov p, b) {
   if b { str(p, "true") }
   else { str(p, "false") }
 }
 
-fun endl(p!) {
+fun endl(mov p) {
   let newline = #['\n']
   formatter/format(p, array/fixed/data(newline), 1)
   |> formatter/extract
 }
 
-fun float(p!, f) {
+fun float(mov p, f) {
   use schubfach
 
   let significand = float/physical_significand(f)
@@ -154,7 +154,7 @@ fun float(p!, f) {
   if exponent <> float/max_ieee_exponent {
     -- finite
     if exponent <> 0 or significand <> 0 {
-      -- != 0
+      -- mov = 0
       let dec = to_decimal64(significand, exponent)
       let min_fixed_decs = -6
       let max_fixed_decs = 17
@@ -198,9 +198,9 @@ fun float(p!, f) {
   }
 }
 
-fun raw_ptr(p!, ptr : raw_ptr['a]) {
-  let ptr& = !ptr
-  let addr : int = unsafe/(addr(&ptr) |> reinterpret |> get(0))
+fun raw_ptr(mov p, ptr : raw_ptr['a]) {
+  let mut ptr = mov ptr
+  let addr : int = unsafe/(addr(mut ptr) |> reinterpret |> get(0))
   str(p, "0x") |> int_base(addr, 16)
 }
 
@@ -211,7 +211,7 @@ module type concrete_formatter {
 
 functor make_printer(m : concrete_formatter) {
   signature {
-    type printer['a] = fun (formatter/t[m/return]!, 'a) -> formatter/t[m/return]
+    type printer['a] = fun (mov formatter/t[m/return], 'a) -> formatter/t[m/return]
     val print : fun (printer['a], 'a) -> m/return
     val println : fun (printer['a], 'a) -> m/return
     val print_newline : fun () -> m/return
@@ -285,25 +285,25 @@ functor make_printer(m : concrete_formatter) {
   }
 
   fun print(fmt : printer['a], value) {
-    fmt(!m/create(), value) |> formatter/extract
+    fmt(mov m/create(), value) |> formatter/extract
   }
 
   fun println(fmt : printer['a], value) {
-    fmt(!m/create(), value) |> endl
+    fmt(mov m/create(), value) |> endl
   }
 
   fun helper_printn(fmtstr, cb) {
-    let formatter& = m/create()
-    let fmtnum& = 0
+    let mut formatter = m/create()
+    let mut fmtnum = 0
     impl/iter_fmt(fmtstr) |> iter/iter(fun f {
       match f {
         impl/Str({ start, len }) -> {
           let ptr = string/data(fmtstr) |> __unsafe_ptr_at(start)
-          &formatter = formatter/format(formatter, ptr, len)
+          mut formatter = formatter/format(formatter, ptr, len)
         }
         Fmt(num) -> {
-          &fmtnum = num + 1
-          &formatter = cb(!formatter, num)
+          mut fmtnum = num + 1
+          mut formatter = cb(mov formatter, num)
         }
       }
     })
@@ -311,9 +311,9 @@ functor make_printer(m : concrete_formatter) {
   }
 
   fun print1(fmtstr, f0, v0) {
-    let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
+    let fmtnum, ret = helper_printn(fmtstr, fun (mov fmter, i) {
       match i {
-        0 -> f0(!fmter, v0)
+        0 -> f0(mov fmter, v0)
         _ -> impl/fmt_fail_missing()
       }
     })
@@ -324,10 +324,10 @@ functor make_printer(m : concrete_formatter) {
   }
 
   fun print2(fmtstr, f0, v0, f1, v1) {
-    let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
+    let fmtnum, ret = helper_printn(fmtstr, fun (mov fmter, i) {
       match i {
-        0 -> f0(!fmter, v0)
-        1 -> f1(!fmter, v1)
+        0 -> f0(mov fmter, v0)
+        1 -> f1(mov fmter, v1)
         _ -> impl/fmt_fail_missing()
       }
     })
@@ -336,11 +336,11 @@ functor make_printer(m : concrete_formatter) {
   }
 
   fun print3(fmtstr, f0, v0, f1, v1, f2, v2) {
-    let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
+    let fmtnum, ret = helper_printn(fmtstr, fun (mov fmter, i) {
       match i {
-        0 -> f0(!fmter, v0)
-        1 -> f1(!fmter, v1)
-        2 -> f2(!fmter, v2)
+        0 -> f0(mov fmter, v0)
+        1 -> f1(mov fmter, v1)
+        2 -> f2(mov fmter, v2)
         _ -> impl/fmt_fail_missing()
       }
     })
@@ -349,12 +349,12 @@ functor make_printer(m : concrete_formatter) {
   }
 
   fun print4(fmtstr, f0, v0, f1, v1, f2, v2, f3, v3) {
-    let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
+    let fmtnum, ret = helper_printn(fmtstr, fun (mov fmter, i) {
       match i {
-        0 -> f0(!fmter, v0)
-        1 -> f1(!fmter, v1)
-        2 -> f2(!fmter, v2)
-        3 -> f3(!fmter, v3)
+        0 -> f0(mov fmter, v0)
+        1 -> f1(mov fmter, v1)
+        2 -> f2(mov fmter, v2)
+        3 -> f3(mov fmter, v3)
         _ -> impl/fmt_fail_missing()
       }
     })
@@ -363,13 +363,13 @@ functor make_printer(m : concrete_formatter) {
   }
 
   fun print5(fmtstr, f0, v0, f1, v1, f2, v2, f3, v3, f4, v4) {
-    let fmtnum, ret = helper_printn(fmtstr, fun (fmter!, i) {
+    let fmtnum, ret = helper_printn(fmtstr, fun (mov fmter, i) {
       match i {
-        0 -> f0(!fmter, v0)
-        1 -> f1(!fmter, v1)
-        2 -> f2(!fmter, v2)
-        3 -> f3(!fmter, v3)
-        4 -> f4(!fmter, v4)
+        0 -> f0(mov fmter, v0)
+        1 -> f1(mov fmter, v1)
+        2 -> f2(mov fmter, v2)
+        3 -> f3(mov fmter, v3)
+        4 -> f4(mov fmter, v4)
         _ -> impl/fmt_fail_missing()
       }
     })
@@ -387,7 +387,7 @@ module fmt_stdout {
 
   fun create() {
     formatter/create(
-      fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, libc/stdout) }, ()
+      fun(mut _ : unit, ptr, len) { fwrite(ptr, 1, len, libc/stdout) }, ()
     )
   }
 }
@@ -397,7 +397,7 @@ module fmt_stderr {
 
   fun create() {
     formatter/create(
-      fun(_& : unit, ptr, len) { fwrite(ptr, 1, len, libc/stderr) }, ()
+      fun(mut _ : unit, ptr, len) { fwrite(ptr, 1, len, libc/stderr) }, ()
     )
   }
 }
@@ -408,18 +408,18 @@ module fmt_str {
   external memcpy : fun (raw_ptr[u8], raw_ptr[u8], int) -> unit
   fun create() {
     formatter/create(
-      fun(s&, ptr, len) {
-        let arr& = string/to_array(s)
+      fun(mut s, ptr, len) {
+        let mut arr = string/to_array(s)
         let arrlen = array/length(arr)
-        array/reserve(&arr, arrlen + len + 1)
+        array/reserve(mut arr, arrlen + len + 1)
 
         let dst = array/data(arr) |> __unsafe_ptr_at(arrlen)
         memcpy(dst, ptr, len)
         let size = arrlen + len
-        &arr.[size] = '\000'
-        &__unsafe_array_length(arr) = size
+        mut arr.[size] = '\000'
+        mut __unsafe_array_length(arr) = size
 
-        &s = string/of_array(arr)
+        mut s = string/of_array(arr)
       },
       array/create(128) |> string/of_array
     )

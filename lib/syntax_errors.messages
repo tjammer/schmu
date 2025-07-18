@@ -98,11 +98,23 @@ prog: External Ident Colon Ident Lbrack Ident Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Fun Lpar Quote Ident Semicolon
+prog: External Ident Colon Fun Lpar Mut With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: External Ident Colon Fun Lpar Ident Ampersand With
+prog: External Ident Colon Fun Lpar Mut Ident Semicolon
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar Mov With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar Mov Ident Semicolon
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar Quote Ident Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -111,6 +123,22 @@ prog: External Ident Colon Fun Lpar Ident Comma With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: External Ident Colon Fun Lpar Ident Semicolon
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar Ident Mut With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar Ident Mut Ident Semicolon
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar Ident Mov With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: External Ident Colon Fun Lpar Ident Mov Ident Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -138,23 +166,23 @@ prog: Type Ident Equal Lcurly With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Type Ident Equal Lcurly Ident With
+prog: Type Ident Equal Lcurly Ident Colon Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Type Ident Equal Lcurly Ident Ampersand With
+prog: Type Ident Equal Lcurly Mut With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Type Ident Equal Lcurly Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Type Ident Equal Lcurly Ident Colon With
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Type Ident Equal Lcurly Ident Colon Ident Semicolon
-
 Expecting square brackets for parameterized type
 
-prog: Type Ident Equal Lcurly Ident Colon Ident Comma With
+prog: Type Ident Equal Lcurly Ident Colon Ident Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -294,7 +322,15 @@ prog: Path_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Mut With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Match With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Match Mut With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -310,7 +346,19 @@ prog: Let With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Wildcard With
+prog: Let Mut With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Mut Lpar With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Mov With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Mov Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -322,7 +370,7 @@ prog: Fun Lcurly With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lcurly Ident Equal Cmp_op With
+prog: Fun Lcurly Ident Equal Ident Right_arrow
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -346,11 +394,15 @@ prog: Fun Ctor Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Let Mov Lpar Ident Right_arrow
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Let Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Let Ident Comma Cmp_op With
+prog: Let Ident Comma Ident Right_arrow
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -358,11 +410,7 @@ prog: Let Ident Comma Ident Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ampersand Fun Ident With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Fun Ctor Lpar Cmp_op With
+prog: Fun Ctor Lpar Ident Right_arrow
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -374,11 +422,7 @@ prog: Let Lpar Ident Comma Ident Colon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Let Lpar Ident Comma Ident Rpar With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Let Lpar Cmp_op With
+prog: Let Lpar Ident Right_arrow
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -390,7 +434,7 @@ prog: Let Lpar Ident Hbar Ident Right_arrow
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Let Lpar Ident Hbar Cmp_op With
+prog: Let Lpar Ident Hbar Ident Rcurly
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -398,7 +442,15 @@ prog: Let Lpar Ident Hbar Ident Hbar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Let Cmp_op With
+prog: Let Mov Lpar Ident Comma Ident Colon
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Mut Lpar Ident Comma Ident Colon
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Let Cmp_op Right_arrow
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -418,6 +470,10 @@ prog: Let Ident Left_arrow With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Match Mov With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -434,7 +490,15 @@ prog: Hash Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ampersand Fun With
+prog: If Fun With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Mut With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Fun Mov With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -442,7 +506,7 @@ prog: Fun Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lpar Cmp_op With
+prog: Fun Lpar Cmp_op Right_arrow
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -462,7 +526,7 @@ prog: Fun Lpar Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lpar Ident Cmp_op With
+prog: Fun Lpar Ident Ident Right_arrow
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -558,7 +622,7 @@ prog: Fun Cmp_op With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Int With
+prog: Fun Ctor Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -586,15 +650,11 @@ prog: False Lpar With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Lpar Exclamation With
+prog: False Lpar Mut With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ampersand With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Ampersand False Wildcard
+prog: False Lpar Mut False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -686,23 +746,19 @@ prog: False And False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ampersand False Equal With
+prog: Mut False Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ampersand False Equal False Wildcard
+prog: Mut False Equal False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Lpar Exclamation False Wildcard
+prog: False Lpar Mov With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Lpar Ampersand With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Lpar Ampersand False Wildcard
+prog: False Lpar Mov False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -746,7 +802,7 @@ prog: Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Wildcard
+prog: False Rpar
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -798,19 +854,7 @@ prog: If False Lcurly Ident Rcurly Else If False Lcurly Ident Rcurly Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match Exclamation With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Exclamation False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Ampersand With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Match Ampersand False Wildcard
+prog: Match Mov False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -890,6 +934,10 @@ prog: Lpar False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Match Mut False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Match False Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -902,7 +950,7 @@ prog: Match False Lcurly Path_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Match False Lcurly Cmp_op With
+prog: Match False Lcurly Ident Rcurly
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -931,6 +979,10 @@ prog: Match False Lcurly Ident Right_arrow False Wildcard
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Match False Lcurly Ident Right_arrow False Hbar With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Mut False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

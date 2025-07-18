@@ -148,6 +148,8 @@ rule read =
   | "with"   { With }
   | "val"    { Val }
   | "rec"    { Rec }
+  | "mut"    { Mut }
+  | "mov"    { Mov }
   | '|'      { Hbar }
   | ';'      { Semicolon }
   | ident    { Ident (Lexing.lexeme lexbuf) }
@@ -168,8 +170,6 @@ rule read =
   | "'" '\\' 'x'
        (['0'-'9' 'a'-'f' 'A'-'F'] as d) (['0'-'9' 'a'-'f' 'A'-'F'] as u) "'"
        { U8 (char_for_hexadecimal_code d u) }
-  | '&'      { Ampersand }
-  | '!'      { Exclamation }
   | '('      { Lpar }
   | ')'      { Rpar }
   | '{'      { Lcurly }
