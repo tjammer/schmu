@@ -25,45 +25,45 @@ In channel module test
   c) -> 
   read 1 bytes
   {
-  read 17 bytes
-      let ic& = !ic
-  read 1475 bytes
-      let buf& = array/create(4096)
-      in_channel/readn(&ic, &buf, 50) |> ignore
-      let str& = !string/of_array(!buf)
+  read 23 bytes
+      let mut ic = mov ic
+  read 1598 bytes
+      let mut buf = array/create(4096)
+      in_channel/readn(mut ic, mut buf, 50) |> ignore
+      let mut str = mov string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      in_channel/readn(&ic, &buf, 6) |> ignore
-      &str = string/of_array(!buf)
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      in_channel/readn(mut ic, mut buf, 6) |> ignore
+      mut str = string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      match in_channel/readline(&ic, &buf) {
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      match in_channel/readline(mut ic, mut buf) {
         Some(n) -> fmt/(print1("read {} bytes\n", int, n))
         None -> println("read nothing")
       }
-      &str = string/of_array(!buf)
+      mut str = string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      match in_channel/readline(&ic, &buf) {
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      match in_channel/readline(mut ic, mut buf) {
         Some(n) -> fmt/(print1("read {} bytes\n", int, n))
         None -> println("read nothing")
       }
-      &str = string/of_array(!buf)
+      mut str = string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      match in_channel/readrem(&ic, &buf) {
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      match in_channel/readrem(mut ic, mut buf) {
         Some(n) -> fmt/(print1("read {} bytes\n", int, n))
         None -> println("read nothing")
       }
-      &str = string/of_array(!buf)
+      mut str = string/of_array(mov buf)
       println(str)
   
       in_channel/close(ic)
@@ -73,8 +73,8 @@ In channel module test
   
   match in_channel/open("in_channel.smu") {
     Some(ic) -> {
-      let ic& = !ic
-      println(in_channel/readall(&ic))
+      let mut ic = mov ic
+      println(in_channel/readall(mut ic))
       in_channel/close(ic)
     }
     None -> ()
@@ -82,9 +82,9 @@ In channel module test
   
   match in_channel/open("in_channel.smu") {
     Some(ic) -> {
-      let ic& = !ic
-      -- in_channel/lines(&ic) |> iter/iter(println)
-      in_channel/lines(&ic) |> iter/iter(fun line {println(line)})
+      let mut ic = mov ic
+      -- in_channel/lines(mut ic) |> iter/iter(println)
+      in_channel/lines(mut ic) |> iter/iter(fun line {println(line)})
       in_channel/close(ic)
     }
     None -> ()
@@ -92,43 +92,43 @@ In channel module test
   
   match in_channel/open("in_channel.smu") {
     Some(ic) -> {
-      let ic& = !ic
-      let buf& = array/create(4096)
-      in_channel/readn(&ic, &buf, 50) |> ignore
-      let str& = !string/of_array(!buf)
+      let mut ic = mov ic
+      let mut buf = array/create(4096)
+      in_channel/readn(mut ic, mut buf, 50) |> ignore
+      let mut str = mov string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      in_channel/readn(&ic, &buf, 6) |> ignore
-      &str = string/of_array(!buf)
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      in_channel/readn(mut ic, mut buf, 6) |> ignore
+      mut str = string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      match in_channel/readline(&ic, &buf) {
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      match in_channel/readline(mut ic, mut buf) {
         Some(n) -> fmt/(print1("read {} bytes\n", int, n))
         None -> println("read nothing")
       }
-      &str = string/of_array(!buf)
+      mut str = string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      match in_channel/readline(&ic, &buf) {
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      match in_channel/readline(mut ic, mut buf) {
         Some(n) -> fmt/(print1("read {} bytes\n", int, n))
         None -> println("read nothing")
       }
-      &str = string/of_array(!buf)
+      mut str = string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      match in_channel/readrem(&ic, &buf) {
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      match in_channel/readrem(mut ic, mut buf) {
         Some(n) -> fmt/(print1("read {} bytes\n", int, n))
         None -> println("read nothing")
       }
-      &str = string/of_array(!buf)
+      mut str = string/of_array(mov buf)
       println(str)
   
       in_channel/close(ic)
@@ -138,8 +138,8 @@ In channel module test
   
   match in_channel/open("in_channel.smu") {
     Some(ic) -> {
-      let ic& = !ic
-      println(in_channel/readall(&ic))
+      let mut ic = mov ic
+      println(in_channel/readall(mut ic))
       in_channel/close(ic)
     }
     None -> ()
@@ -147,9 +147,9 @@ In channel module test
   
   match in_channel/open("in_channel.smu") {
     Some(ic) -> {
-      let ic& = !ic
-      -- in_channel/lines(&ic) |> iter/iter(println)
-      in_channel/lines(&ic) |> iter/iter(fun line {println(line)})
+      let mut ic = mov ic
+      -- in_channel/lines(mut ic) |> iter/iter(println)
+      in_channel/lines(mut ic) |> iter/iter(fun line {println(line)})
       in_channel/close(ic)
     }
     None -> ()
@@ -157,43 +157,43 @@ In channel module test
   
   match in_channel/open("in_channel.smu") {
     Some(ic) -> {
-      let ic& = !ic
-      let buf& = array/create(4096)
-      in_channel/readn(&ic, &buf, 50) |> ignore
-      let str& = !string/of_array(!buf)
+      let mut ic = mov ic
+      let mut buf = array/create(4096)
+      in_channel/readn(mut ic, mut buf, 50) |> ignore
+      let mut str = mov string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      in_channel/readn(&ic, &buf, 6) |> ignore
-      &str = string/of_array(!buf)
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      in_channel/readn(mut ic, mut buf, 6) |> ignore
+      mut str = string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      match in_channel/readline(&ic, &buf) {
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      match in_channel/readline(mut ic, mut buf) {
         Some(n) -> fmt/(print1("read {} bytes\n", int, n))
         None -> println("read nothing")
       }
-      &str = string/of_array(!buf)
+      mut str = string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      match in_channel/readline(&ic, &buf) {
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      match in_channel/readline(mut ic, mut buf) {
         Some(n) -> fmt/(print1("read {} bytes\n", int, n))
         None -> println("read nothing")
       }
-      &str = string/of_array(!buf)
+      mut str = string/of_array(mov buf)
       println(str)
   
-      &buf = string/to_array(!str)
-      array/clear(&buf)
-      match in_channel/readrem(&ic, &buf) {
+      mut buf = string/to_array(mov str)
+      array/clear(mut buf)
+      match in_channel/readrem(mut ic, mut buf) {
         Some(n) -> fmt/(print1("read {} bytes\n", int, n))
         None -> println("read nothing")
       }
-      &str = string/of_array(!buf)
+      mut str = string/of_array(mov buf)
       println(str)
   
       in_channel/close(ic)
@@ -203,8 +203,8 @@ In channel module test
   
   match in_channel/open("in_channel.smu") {
     Some(ic) -> {
-      let ic& = !ic
-      println(in_channel/readall(&ic))
+      let mut ic = mov ic
+      println(in_channel/readall(mut ic))
       in_channel/close(ic)
     }
     None -> ()
@@ -212,9 +212,9 @@ In channel module test
   
   match in_channel/open("in_channel.smu") {
     Some(ic) -> {
-      let ic& = !ic
-      -- in_channel/lines(&ic) |> iter/iter(println)
-      in_channel/lines(&ic) |> iter/iter(fun line {println(line)})
+      let mut ic = mov ic
+      -- in_channel/lines(mut ic) |> iter/iter(println)
+      in_channel/lines(mut ic) |> iter/iter(fun line {println(line)})
       in_channel/close(ic)
     }
     None -> ()

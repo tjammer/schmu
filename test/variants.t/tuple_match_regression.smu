@@ -1,7 +1,7 @@
 type tok = A | B | C(int)
 
 fun infun(tok) {
-  let delim& = None
+  let mut delim = None
   (fun tok {
     match tok { C(_) -> println("c") | _ -> () }
     match (delim, tok) {
@@ -10,7 +10,7 @@ fun infun(tok) {
       (Some(_), _) -> println("some other")
       (None, tk) -> {
         println("none")
-        &delim = Some(tk)
+        mut delim = Some(tk)
       }
     }
   })(tok)

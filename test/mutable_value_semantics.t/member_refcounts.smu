@@ -1,14 +1,14 @@
 type r = {a : array[int]}
-let a& = [10]
+let mut a = [10]
 let r = {a = copy(a)}
-&a.[0] = 20
+mut a.[0] = 20
 fmt/(println(int, r.a.[0]))
 
 
 let r = [copy(a)]
-&a.[0] = 30
+mut a.[0] = 30
 fmt/(println(int, r.[0].[0]))
 
 let r = Some(copy(a))
-&a.[0] = 40
+mut a.[0] = 40
 match r { Some(a) -> fmt/(println(int, a.[0])) | None -> println("none") }

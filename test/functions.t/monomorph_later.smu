@@ -2,9 +2,9 @@ module async {
   signature {
     type promise['a]
     type future['a]
-    val return : fun ('a!) -> future['a]
+    val return : fun (mov 'a) -> future['a]
     val wait : fun () -> (future['a], promise['a])
-    val join_bind : fun (array[future['a]], fun (array['a]) -> future['b]!) -> future['b]
+    val join_bind : fun (array[future['a]], mov fun (array['a]) -> future['b]) -> future['b]
   }
   type prom_state['a] =
   Pending
@@ -14,29 +14,28 @@ module async {
   | Other(rc[prom_state])
   type promise['a] = rc[prom_state['a]]
   type future['a] = promise[a]
-  fun return(v!) { rc/create(Resolved(v)) }
+  fun return(mov v) { rc/create(Resolved(v)) }
   fun wait() {
     let pr = rc/create(Pending)
     copy(pr), pr
   }
-  fun add_cnt_cb(final!, cnt&, _len) {
+  fun add_cnt_cb(mov final, mut cnt, _len) {
     fun _ [cnt] {
-      rc/mut(&cnt, fun _cnt&
-        {
+      rc/write(mut cnt, fun mut _cnt {
           rc/read(final, fun _final { () })
         }
       )
     }
   }
-  fun add_final(futs, pr&, fn!) {
-    let futs& = array/map(futs, fun f { rc/to_weak(f) })
+  fun add_final(futs, mut pr, mov fn) {
+    let mut futs = array/map(futs, fun f { rc/to_weak(f) })
     fun () [pr] {
-      let tmp& = array/create(array/length(futs))
-      array/map_inplace(&futs, fun f& {
-        let f& = rc/of_weak(f)
-        match &f {
-          Some(f&) ->
-            rc/mut(&f, fun f& {
+      let mut tmp = array/create(array/length(futs))
+      array/map_inplace(mut futs, fun mut f {
+        let mut f = rc/of_weak(f)
+        match mut f {
+          Some(mut f) ->
+            rc/write(mut f, fun mut f {
               match f {
                 _ -> ()
               }
@@ -44,17 +43,17 @@ module async {
           None -> ()
         }
       })
-      let new& = fn(tmp)
+      let mut new = fn(tmp)
       fun rec _aux() {
-        match array/pop_back(&tmp) {
+        match array/pop_back(mut tmp) {
           None -> 0
           Some(v) -> {
             let index = array/length(tmp)
-            let f& = rc/of_weak(futs.[index])
-            match &f {
-              Some(f&) -> {
-                let f& <- rc/mut(&f)
-                &f = Resolved(v)
+            let mut f = rc/of_weak(futs.[index])
+            match mut f {
+              Some(mut f) -> {
+                let mut f <- rc/write(mut f)
+                mut f = Resolved(v)
               }
               None -> ()
             }
@@ -62,29 +61,29 @@ module async {
           }
         }
       }
-      fun rec aux(new&) {
+      fun rec aux(mut new) {
         match new {
-          Resolved(_vpr) -> rc/mut(&pr, aux)
+          Resolved(_vpr) -> rc/write(mut pr, aux)
           _ -> 0
         }
       }
-      rc/mut(&new, aux)
+      rc/write(mut new, aux)
     }
   }
-  fun join_bind(futs, fn!) {
+  fun join_bind(futs, mov fn) {
     let len = futs
     let fut, pr = wait()
-    let cnt& = rc/create(0)
-    let pr& = !pr
-    let tmp = add_final(futs, &pr, fn)
+    let mut cnt = rc/create(0)
+    let mut pr = mov pr
+    let tmp = add_final(futs, mut pr, fn)
     let final = rc/create(tmp)
-    fun rec _aux(cp&) {
-      match &cp {
-        Pending -> &cp = Queued1(add_cnt_cb(copy(final), &cnt, len))
-        Queued1(_b1) -> &cp = Queued_n([])
-        Queued_n(cbs&) -> array/push(&cbs, add_cnt_cb(copy(final), &cnt, len))
-        Resolved(_) -> rc/mut(&cnt, fun cnt& { &cnt = 1 })
-        Other(pr&) -> rc/mut(&pr, _aux)
+    fun rec _aux(mut cp) {
+      match mut cp {
+        Pending -> mut cp = Queued1(add_cnt_cb(copy(final), mut cnt, len))
+        Queued1(_b1) -> mut cp = Queued_n([])
+        Queued_n(mut cbs) -> array/push(mut cbs, add_cnt_cb(copy(final), mut cnt, len))
+        Resolved(_) -> rc/write(mut cnt, fun mut cnt { mut cnt = 1 })
+        Other(mut pr) -> rc/write(mut pr, _aux)
       }
     }
     fut
@@ -97,7 +96,7 @@ module async {
   let f4, _ = async/wait()
   let futs = [f1, f2, f3, f4]
   let _f = async/join_bind(futs, fun vs {
-    let _res = array/iter(vs) |> iter/fold(copy(""), fun (acc!, _v : string) {
+    let _res = array/iter(vs) |> iter/fold(copy(""), fun (mov acc, _v : string) {
       acc
     })
     async/return(0)

@@ -1,8 +1,8 @@
-fun do_nothing(a&) { ignore(a) }
+fun do_nothing(mut a) { ignore(a) }
 
-fun do_mut(a&, b) {&a = copy(b)}
+fun do_mutate(mut a, b) {mut a = copy(b)}
 
-let b& = 0
+let mut b = 0
 ignore(b)
-let a& = 0
-do_mut(&a, 1)
+let mut a = 0
+do_mutate(mut a, 1)

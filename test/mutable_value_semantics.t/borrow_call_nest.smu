@@ -17,10 +17,10 @@
 }
 
 
-let rc& = rc/create(10)
+let mut rc = rc/create(10)
 {
-  let a& <- rc/mut(&rc)
-  &a = 12
+  let mut a <- rc/write(mut rc)
+  mut a = 12
   ()
 }
 

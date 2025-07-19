@@ -10,13 +10,13 @@ fun test_record_in_variant(inner) {
 }
 test_record_in_variant(Some(10))
 test_record_in_variant(None)
-fun test_nested_records(inner!) {
+fun test_nested_records(mov inner) {
   let a = match {a = inner, b = 45.0} {
     {a = {a = c, b = _}, b = _} -> c
   }
   fmt/(println(int, a))
 }
-test_nested_records(!{a = 20, b = 30.0})
+test_nested_records(mov {a = 20, b = 30.0})
 
 fun test_record_wildcard(inner) {
   let a = match(Some({a = inner, b = 53.0})) {

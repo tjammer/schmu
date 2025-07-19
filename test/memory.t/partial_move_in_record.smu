@@ -11,25 +11,25 @@ type command = { target : key, cmd : int }
 
 module state {
   type t = {
-    targets& : keytbl/t[value],
+    mut targets : keytbl/t[value],
   }
 }
 
 use state
 
-fun resolve_build(staterc&, key) {
-  let state& <- rc/mut(&staterc)
-  let state& <- keytbl/find_mut(&state.targets, key)
-  match & state {
-    Some(state&) -> {
+fun resolve_build(mut staterc, key) {
+  let mut state <- rc/write(mut staterc)
+  let mut state <- keytbl/find_mut(mut state.targets, key)
+  match mut  state {
+    Some(mut state) -> {
       match state.state {
         Resolv_deps(_) -> {
           -- Could be possible, see [set_building] below
-          &state = {state with state = Built({ deps = []})}
+          mut state = {state with state = Built({ deps = []})}
         }
         Built(_) -> failwith("Expected to resolve build")
         Building(b) -> {
-          &state = {state with state = Built({ deps = b.deps})}
+          mut state = {state with state = Built({ deps = b.deps})}
         }
       }
     }
@@ -37,10 +37,10 @@ fun resolve_build(staterc&, key) {
   }
 }
 
-let state& = {
-  let targets& = keytbl/create(16)
-  keytbl/insert(&targets, 0, { rule = Executable, state = Resolv_deps([]), src = 0 })
+let mut state = {
+  let mut targets = keytbl/create(16)
+  keytbl/insert(mut targets, 0, { rule = Executable, state = Resolv_deps([]), src = 0 })
   rc/create({ targets })
 }
 
-resolve_build(&state, 0)
+resolve_build(mut state, 0)

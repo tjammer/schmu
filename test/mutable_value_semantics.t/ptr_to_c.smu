@@ -1,8 +1,8 @@
-external mutate_int : fun (int&) -> unit
+external mutate_int : fun (mut int) -> unit
 type foo = {a : int}
-external mutate_foo : fun (foo&) -> unit
+external mutate_foo : fun (mut foo) -> unit
 
-let i& = 0
-mutate_int(&i)
-let foo& = {a = 0}
-mutate_foo(&foo)
+let mut i = 0
+mutate_int(mut i)
+let mut foo = {a = 0}
+mutate_foo(mut foo)

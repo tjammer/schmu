@@ -3,8 +3,8 @@ use stbl
 
 fun string() {
   println("## string")
-  let tbl& = stbl/create(2)
-  stbl/insert(&tbl, copy("key"), !1.1)
+  let mut tbl = stbl/create(2)
+  stbl/insert(mut tbl, copy("key"), mov 1.1)
   fun find_println(tbl, key) {
     let v <- stbl/find(tbl, key)
     match v {
@@ -14,7 +14,7 @@ fun string() {
   }
   find_println(tbl, "key")
   find_println(tbl, "otherkey")
-  stbl/remove(&tbl, "key")
+  stbl/remove(mut tbl, "key")
   find_println(tbl, "key")
 }
 println("# hashtbl")
@@ -35,9 +35,9 @@ module keytbl = hashtbl/make(key)
 
 fun key() {
   println("## key")
-  let tbl& = keytbl/create(512)
-  keytbl/insert(&tbl, !A1, !10)
-  keytbl/insert(&tbl, !A2, !20)
+  let mut tbl = keytbl/create(512)
+  keytbl/insert(mut tbl, mov A1, mov 10)
+  keytbl/insert(mut tbl, mov A2, mov 20)
   let v <- keytbl/find(tbl, A1)
   match v {
     Some(v) -> fmt/(print1("some v: {}\n", int, v))
@@ -49,20 +49,20 @@ key()
 
 fun mut_array() {
   println("## mut array")
-  let tbl& = keytbl/create(512)
-  keytbl/insert(&tbl, !A1, ![])
+  let mut tbl = keytbl/create(512)
+  keytbl/insert(mut tbl, mov A1, mov [])
 
   {
-    let arr& <- keytbl/find_mut(&tbl, A2)
+    let mut arr <- keytbl/find_mut(mut tbl, A2)
     match arr {
       Some(_arr) -> assert(false)
       None -> ()
     }
   }
   {
-    let arr& <- keytbl/find_mut(&tbl, A1)
-    match &arr {
-      Some(arr&) -> array/push(&arr, 1)
+    let mut arr <- keytbl/find_mut(mut tbl, A1)
+    match mut arr {
+      Some(mut arr) -> array/push(mut arr, 1)
       None -> assert(false)
     }
   }
@@ -76,21 +76,21 @@ mut_array()
 
 fun project_mut() {
   println("## project mut")
-  let tbl& = keytbl/create(64)
+  let mut tbl = keytbl/create(64)
 
   -- add from empty
   {
-    let arr& <- keytbl/find_mut(&tbl, A1)
+    let mut arr <- keytbl/find_mut(mut tbl, A1)
     match arr {
-      None -> &arr = Some([1, 2, 3])
+      None -> mut arr = Some([1, 2, 3])
       Some(_) -> assert(false)
     }
   }
   {
-    let arr& <- keytbl/find_mut(&tbl, A1)
-    match &arr {
+    let mut arr <- keytbl/find_mut(mut tbl, A1)
+    match mut arr {
       None -> assert(false)
-      Some(arr&) -> &arr = [4, 5]
+      Some(mut arr) -> mut arr = [4, 5]
     }
   }
   {
@@ -106,10 +106,10 @@ fun project_mut() {
   }
   -- delete
   {
-    let arr& <- keytbl/find_mut(&tbl, A1)
+    let mut arr <- keytbl/find_mut(mut tbl, A1)
     match arr {
       None -> assert(false)
-      Some(_) -> &arr = None
+      Some(_) -> mut arr = None
     }
   }
   assert(keytbl/mem(tbl, A1) |> not)

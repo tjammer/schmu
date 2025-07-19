@@ -4,20 +4,20 @@ type building = { fut : string, deps : array[key] }
 type key_state = Resolv_deps | Building(building) | Built(built)
 
 
-fun testing (state&) {
+fun testing (mut state) {
   match state {
     Resolv_deps -> {
       -- Could be possible, see [set_building] below
-      &state = Built({ deps = array/create(1) })
+      mut state = Built({ deps = array/create(1) })
     }
     Built(_) -> failwith("Expected to resolve build")
     Building(b) -> {
       -- TODO double free without the tmp variable
-      -- let b = !b
-      &state = Built({ deps = (b.deps) })
+      -- let b = mov b
+      mut state = Built({ deps = (b.deps) })
     }
   }
 }
 
-let state& = Building({fut = copy(""), deps = []})
-testing(&state)
+let mut state = Building({fut = copy(""), deps = []})
+testing(mut state)

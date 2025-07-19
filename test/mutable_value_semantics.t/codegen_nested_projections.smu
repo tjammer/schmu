@@ -1,7 +1,7 @@
 fun t() {
-  let x& = 10
-  let y& = &x
-  let z& = &y
-  &y = 11
+  let mut x = 10
+  let mut y = mut x
+  let mut z = mut y
+  mut y = 11
   y
 }

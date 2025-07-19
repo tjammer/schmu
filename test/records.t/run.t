@@ -840,7 +840,7 @@ A return of a field should not be preallocated
   
   %test.int_wrap = type { %int_wrap }
   %int_wrap = type { i64, i64, i64 }
-  %mut.int_wrap = type { %int_wrap }
+  %mutate.int_wrap = type { %int_wrap }
   %closure = type { ptr, ptr }
   
   @schmu_test = internal constant %test.int_wrap { %int_wrap { i64 2, i64 0, i64 0 } }
@@ -853,16 +853,16 @@ A return of a field should not be preallocated
     ret void
   }
   
-  define void @schmu_test_thing_mut(ptr noalias %0) !dbg !7 {
+  define void @schmu_test_thing_mutate(ptr noalias %0) !dbg !7 {
   entry:
-    %1 = alloca %mut.int_wrap, align 8
+    %1 = alloca %mutate.int_wrap, align 8
     store %int_wrap { i64 2, i64 0, i64 0 }, ptr %1, align 8
     %schmu_vector_loop__2 = alloca %closure, align 8
     store ptr @schmu_vector_loop__2, ptr %schmu_vector_loop__2, align 8
     %clsr_schmu_vector_loop__2 = alloca { ptr, ptr, ptr }, align 8
     %test = getelementptr inbounds { ptr, ptr, ptr }, ptr %clsr_schmu_vector_loop__2, i32 0, i32 2
     store ptr %1, ptr %test, align 8
-    store ptr @__ctor_tp.mut.int_wrap, ptr %clsr_schmu_vector_loop__2, align 8
+    store ptr @__ctor_tp.mutate.int_wrap, ptr %clsr_schmu_vector_loop__2, align 8
     %dtor = getelementptr inbounds { ptr, ptr, ptr }, ptr %clsr_schmu_vector_loop__2, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %schmu_vector_loop__2, i32 0, i32 1
@@ -926,7 +926,7 @@ A return of a field should not be preallocated
     br label %rec
   }
   
-  define linkonce_odr ptr @__ctor_tp.mut.int_wrap(ptr %0) {
+  define linkonce_odr ptr @__ctor_tp.mutate.int_wrap(ptr %0) {
   entry:
     %1 = call ptr @malloc(i64 40)
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
@@ -945,7 +945,7 @@ A return of a field should not be preallocated
     %0 = load i64, ptr %ret, align 8
     call void @printi(i64 %0), !dbg !15
     %ret1 = alloca %int_wrap, align 8
-    call void @schmu_test_thing_mut(ptr %ret1), !dbg !16
+    call void @schmu_test_thing_mutate(ptr %ret1), !dbg !16
     %1 = load i64, ptr %ret1, align 8
     call void @printi(i64 %1), !dbg !17
     ret i64 0

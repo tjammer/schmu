@@ -1,16 +1,16 @@
 type wrap['a] = { a : 'a }
 
-fun remove(optarr&, index) {
-  let opt& = &optarr.[index.a]
+fun remove(mut optarr, index) {
+  let mut opt = mut optarr.[index.a]
   match opt {
     Some(thing) -> {
-      let value = !thing.a
-      &opt = None
+      let value = mov thing.a
+      mut opt = None
       Some(value)
     }
     None -> None
   }
 }
-let optarr& = [Some({a = copy("thing")})]
+let mut optarr = [Some({a = copy("thing")})]
 
-remove(&optarr, {a = 0}) |> ignore
+remove(mut optarr, {a = 0}) |> ignore

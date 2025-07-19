@@ -7,7 +7,7 @@ import async
   let >>= = async/bind
 
   let _ = future >>= fun v {
-    async/return(!fmt/(str/print1("resolved to {}", int, v)))
+    async/return(mov fmt/(str/print1("resolved to {}", int, v)))
   } >>= fun v {
     println(v)
     copy(f2)
@@ -16,11 +16,11 @@ import async
     async/return(())
   }
 
-  let pr& = !promise -- make mutable by moving
+  let mut pr = mov promise -- make mutateable by moving
   println("resolving first promise")
-  async/promise_resolve(&pr, 3)
+  async/promise_resolve(mut pr, 3)
 
-  let p2& = !p2
+  let mut p2 = mov p2
   println("resolving second promise")
-  async/promise_resolve(&p2, copy("a string"))
+  async/promise_resolve(mut p2, copy("a string"))
 }

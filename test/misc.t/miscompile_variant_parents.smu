@@ -21,8 +21,8 @@ fun _build(state, target) {
     }
   }
 
-let tbl& = keytbl/create(16)
-keytbl/insert(&tbl, 0, Building(
+let mut tbl = keytbl/create(16)
+keytbl/insert(mut tbl, 0, Building(
   { fut = rc/create(()), deps = [], info = { rule = Module } }
 ))
 

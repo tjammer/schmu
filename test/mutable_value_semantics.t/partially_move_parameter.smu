@@ -1,6 +1,6 @@
-type rr = {a& : array[int], b : array[int]}
-fun test(p&) {&p.a = [10]}
+type rr = {mut a : array[int], b : array[int]}
+fun test(mut p) {mut p.a = [10]}
 {
-  let a& = {a = [], b = []}
-  test(&a)
+  let mut a = {a = [], b = []}
+  test(mut a)
 }

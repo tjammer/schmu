@@ -7,7 +7,7 @@ module type sig {
 functor make(m : sig) {
   type other['a] = {this : m/t, other : 'a}
 
-  fun create(this!, other!, fmt) {
+  fun create(mov this, mov other, fmt) {
     fmt/print2("create: {} {}\n", fmt/str, m/to_string(this), fmt, other)
     {this, other}
   }

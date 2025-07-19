@@ -1,16 +1,16 @@
-let a& = [10, 20]
+let mut a = [10, 20]
 let b = copy(a)
 
-array/push(&a, !30)
+array/push(mut a, mov 30)
 
 fmt/(println(int, array/length(a)))
 fmt/(println(int, array/length(b)))
 
 fun in_fun() {
-  let a& = [10, 20]
+  let mut a = [10, 20]
   let b = copy(a)
 
-  array/push(&a, !30)
+  array/push(mut a, mov 30)
 
   fmt/(println(int, array/length(a)))
   fmt/(println(int, array/length(b)))
@@ -18,11 +18,11 @@ fun in_fun() {
 
 in_fun()
 
-let nested& = [[0, 1], [2, 3]]
+let mut nested = [[0, 1], [2, 3]]
 let a = [4, 5]
-array/push(&nested, !copy(a))
-&nested.[1] = copy(a)
-&nested.[1] = copy(a)
-array/push(&nested, ![4, 5])
-&nested.[1] = [4, 5]
-&nested.[1] = [4, 5]
+array/push(mut nested, mov copy(a))
+mut nested.[1] = copy(a)
+mut nested.[1] = copy(a)
+array/push(mut nested, mov [4, 5])
+mut nested.[1] = [4, 5]
+mut nested.[1] = [4, 5]

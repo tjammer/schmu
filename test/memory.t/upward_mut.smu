@@ -1,9 +1,9 @@
-type c = {c& : int}
+type c = {mut c : int}
 
 fun counter() {
-  let cnt& = 0
+  let mut cnt = 0
   fun () {
-    &cnt = cnt + 1
+    mut cnt = cnt + 1
     cnt
   }
 }
@@ -15,9 +15,9 @@ fmt/(println(int, c()))
 fmt/(println(int, c()))
 
 fun counter() {
-  let cnt& = {c = 0}
+  let mut cnt = {c = 0}
   fun () {
-    &cnt = {c = cnt.c + 1}
+    mut cnt = {c = cnt.c + 1}
     cnt
   }
 }

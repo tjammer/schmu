@@ -1,7 +1,7 @@
-fun pass(x!) {x}
+fun pass(mov x) {x}
 
 fun create() {
   let arr = [10]
-  pass(!arr)
+  pass(mov arr)
 }
 ignore(create())

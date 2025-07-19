@@ -1,6 +1,6 @@
 type ctor['a] = Ctor(array['a])
 
-fun any(fmt!) {
+fun any(mov fmt) {
   fun cb(v) {
     fmt/print1("{}\n", fmt, v)
   }
@@ -13,7 +13,7 @@ match any(copy(fmt/int)) {
 
 type ctor2['a] = Ctor('a)
 
-fun any(fmt!) {
+fun any(mov fmt) {
   fun cb(v) {
     fmt/print1("{}\n", fmt, v)
   }

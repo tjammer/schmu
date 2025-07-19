@@ -1,18 +1,18 @@
-type foo = {a& : int}
+type foo = {mut a : int}
 
 let f = {a = 0}
-let fst& = copy(f)
+let mut fst = copy(f)
 let snd = copy(fst)
-&fst.a = 1
+mut fst.a = 1
 fmt/(println(int, fst.a))
 fmt/(println(int, f.a))
 fmt/(println(int, snd.a))
 
 fun new_fun() {
   let f = {a = 0}
-  let fst& = copy(f)
+  let mut fst = copy(f)
   let snd = copy(fst)
-  &fst.a = 1
+  mut fst.a = 1
   fmt/(println(int, fst.a))
   fmt/(println(int, f.a))
   fmt/(println(int, snd.a))

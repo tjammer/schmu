@@ -110,14 +110,14 @@ let test_func_unused_rec () =
   test_exn "Unused rec flag" "fun rec add(a) {a + 1}"
 
 let test_func_missing_move_known () =
-  test "unit" "fun move(a!) { ignore(a) };move([0])"
+  test "unit" "fun move(mov a) { ignore(a) };move([0])"
 
 let test_func_missing_move_unknown () =
   test_exn
     "In application\n\
      expecting fun (fun (array[int]) -> _) -> _\n\
-     but found fun (fun (array[int]!) -> _) -> _"
-    {|fun move(a!) { ignore(a) }
+     but found fun (fun (mov array[int]) -> _) -> _"
+    {|fun move(mov a) { ignore(a) }
 fun apply_move(move) { move([0]) }
 apply_move(move)
 |}
@@ -125,7 +125,7 @@ apply_move(move)
 let test_func_orphan_poly () =
   test_exn
     "Expression cannot be monomorphized, it contains orphan polymorphic types"
-    {|fun id(x!) { x }
+    {|fun id(mov x) { x }
 fun add_final() { copy(id) }
 (id, 0)|}
 
@@ -231,28 +231,30 @@ let test_annot_concrete_fail () =
     "Var annotation expecting fun (bool) -> int but found fun (int) -> bool"
     "let foo : fun (bool) -> int = fun x {x < 3}; foo"
 
-let test_annot_mix () = test "fun ('a!) -> 'a" "fun pass(x! : 'b) {x}; pass"
+let test_annot_mix () =
+  test "fun (mov 'a) -> 'a" "fun pass(mov x : 'b) {x}; pass"
 
 let test_annot_mix_fail () =
   test_exn "Var annotation expecting fun (_) -> int but found fun (_) -> 'a"
     "let pass : fun ('b) -> int = fun x {copy(x)}; pass"
 
-let test_annot_generic () = test "fun ('a!) -> 'a" "fun pass(x! : 'b) {x}; pass"
+let test_annot_generic () =
+  test "fun (mov 'a) -> 'a" "fun pass(mov x : 'b) {x}; pass"
 
 let test_annot_generic_fail () =
   test_exn "Var annotation expecting fun (_) -> 'b but found fun (_) -> 'a"
     "let pass : fun ('a) -> 'b = fun x {copy(x)}; pass"
 
 let test_annot_generic_mut () =
-  test "fun ('a&) -> 'a" "fun pass(x& : 'b) {copy(x)}; pass"
+  test "fun (mut 'a) -> 'a" "fun pass(mut x : 'b) {copy(x)}; pass"
 
 let test_annot_fun_mut_param () =
-  test "fun (int&) -> unit"
-    "external f : fun (int&) -> unit; let a : fun (int&) -> unit = f; a"
+  test "fun (mut int) -> unit"
+    "external f : fun (mut int) -> unit; let a : fun (mut int) -> unit = f; a"
 
 let test_annot_generic_fun_mut_param () =
-  test "fun ('a&) -> unit"
-    "external f : fun ('a&) -> unit; let a : fun ('a&) -> unit = f; a"
+  test "fun (mut 'a) -> unit"
+    "external f : fun (mut 'a) -> unit; let a : fun (mut 'a) -> unit = f; a"
 
 let test_annot_record_simple () =
   test "a" "type a = {x : int}; type b = {x : int}; let a : a = {x = 12}; a"
@@ -269,22 +271,22 @@ let test_annot_tuple_simple () =
   test "(int, bool)" "let a : (int, bool) = (1, true); a"
 
 let test_annot_array_arg_generic () =
-  test "array[int]" "fun foo(a! : array['a]) {a}; foo(![10])"
+  test "array[int]" "fun foo(mov a : array['a]) {a}; foo(mov [10])"
 
 let test_annot_tuple_generic () =
-  test "(int, bool)" "fun hmm(a! : (int, 'a)) {a}; hmm(!(1, true))"
+  test "(int, bool)" "fun hmm(mov a : (int, 'a)) {a}; hmm(mov (1, true))"
 
 let test_annot_fixed_size_array () =
-  test "array#32[int]" "fun hmm(a! : array#32['a]) {a}; hmm(!#32[0])"
+  test "array#32[int]" "fun hmm(mov a : array#32['a]) {a}; hmm(mov #32[0])"
 
 let test_annot_fixed_unknown_size_array () =
-  test "array#32[int]" "fun hmm(a! : array#?['a]) {a}; hmm(!#32[0])"
+  test "array#32[int]" "fun hmm(mov a : array#?['a]) {a}; hmm(mov #32[0])"
 
 let test_annot_fixed_unknown_size_array_fn () =
   (* The function is instantiated so the size is not generalized. That's why
      there are two question marks. *)
-  test "fun (array#??['a]!) -> array#??['a]"
-    "fun hmm(a! : array#?['a]) {a}; hmm"
+  test "fun (mov array#??['a]) -> array#??['a]"
+    "fun hmm(mov a : array#?['a]) {a}; hmm"
 
 let test_sequence () =
   test "int" "external printi : fun (int) -> unit; printi(20); 1 + 1"
@@ -306,8 +308,8 @@ let test_para_gen_fun () =
      get"
 
 let test_para_gen_return () =
-  test "fun (foo['a]!) -> 'a"
-    "type foo['a] = {gen : 'a}; fun get(foo!) {foo.gen}; get"
+  test "fun (mov foo['a]) -> 'a"
+    "type foo['a] = {gen : 'a}; fun get(mov foo) {foo.gen}; get"
 
 let test_para_multiple () =
   test "bool"
@@ -423,43 +425,44 @@ let a = []
 setf(a, 2)
 setf(a, true)|}
 
-let test_mutable_declare () = test "int" "type foo = { x& : int }; 0"
+let test_mutable_declare () = test "int" "type foo = { mut x : int }; 0"
 
 let test_mutable_set () =
-  test "unit" "type foo = { x& : int }; let foo& = {x = 12}; &foo.x = 13"
+  test "unit"
+    "type foo = { mut x : int }; let mut foo = {x = 12}; mut foo.x = 13"
 
 let test_mutable_set_wrong_type () =
   test_exn "In mutation expecting int but found bool"
-    "type foo = {x& : int}; let foo& = {x = 12}; &foo.x = true"
+    "type foo = {mut x : int}; let mut foo = {x = 12}; mut foo.x = true"
 
 let test_mutable_set_non_mut () =
   test_exn "Cannot mutate non-mutable binding"
-    "type foo = {x : int}; let foo = {x = 12}; &foo.x = 13"
+    "type foo = {x : int}; let foo = {x = 12}; mut foo.x = 13"
 
-let test_mutable_value () = test "int" "let b& = 10; &b = 14; b"
+let test_mutable_value () = test "int" "let mut b = 10; mut b = 14; b"
 
 let test_mutable_nonmut_value () =
-  test_exn "Cannot mutate non-mutable binding" "let b = 10; &b = 14; b"
+  test_exn "Cannot mutate non-mutable binding" "let b = 10; mut b = 14; b"
 
 let test_mutable_nonmut_transitive () =
   test_exn "Cannot mutate non-mutable binding"
-    "type foo = { x& : int }; let foo = {x = 12}; &foo.x = 13"
+    "type foo = { mut x : int }; let foo = {x = 12}; mut foo.x = 13"
 
 let test_mutable_nonmut_transitive_inv () =
   test_exn "Cannot mutate non-mutable binding"
-    "type foo = {x : int}; let foo& = {x = 12}; &foo.x = 13"
+    "type foo = {x : int}; let mut foo = {x = 12}; mut foo.x = 13"
 
 let test_mutable_track_ptr_nonmut () =
   test_exn "Cannot project immutable binding"
     "type thing = { ptr : raw_ptr[u8] }; {  let thing = { ptr = \
-     __unsafe_nullptr() };   let proj& = &(__unsafe_ptr_get(thing.ptr, 0));   \
-     0}"
+     __unsafe_nullptr() };   let mut proj = mut (__unsafe_ptr_get(thing.ptr, \
+     0));   0}"
 
 let test_mutable_track_ptr_mut () =
   test "int"
-    "type thing = { ptr& : raw_ptr[u8] }; {let thing& = { ptr = \
-     __unsafe_nullptr() };   let proj& = &(__unsafe_ptr_get(thing.ptr, 0));   \
-     0}"
+    "type thing = { mut ptr : raw_ptr[u8] }; {let mut thing = { ptr = \
+     __unsafe_nullptr() };   let mut proj = mut (__unsafe_ptr_get(thing.ptr, \
+     0));   0}"
 
 let test_variants_option_none () =
   test_exn "Expression contains weak type variables: option['a]"
@@ -747,10 +750,10 @@ let test_pattern_decl_tuple_missing () =
      but found (int, float)" "let x, f = (12, 5.0, 20); f"
 
 let test_pattern_decl_wildcard_move () =
-  test "fun ('a, 'b!) -> unit" "fun func(_, _!) {()}; func"
+  test "fun ('a, mov 'b) -> unit" "fun func(_, mov _) {()}; func"
 
 let test_pattern_decl_tuple_move () =
-  test "fun ('a, ('b, 'c)!) -> unit" "fun func(_, (a, b)!) {()}; func"
+  test "fun ('a, mov ('b, 'c)) -> unit" "fun func(_, mov (a, b)) {()}; func"
 
 let test_signature_only () = test "unit" "signature { type t = int}"
 
@@ -767,12 +770,12 @@ let test_signature_generic () =
   test "unit"
     {|signature{
   type t['a]
-  val create : fun ('a!) -> t['a]
+  val create : fun (mov 'a) -> t['a]
   val create_int : fun (int) -> t[int]
 }
 type t['a] = {x : 'a}
 
-fun create(x!) {{x}}
+fun create(mov x) {{x}}
 fun create_int(x : int) {{x}}|}
 
 let test_signature_param_mismatch () =
@@ -875,18 +878,18 @@ let test_signature_deep_qvar_sg () =
 module nullvec {
   signature {
     type t['a]
-    val of_array : fun (array['a]!) -> t['a]
+    val of_array : fun (mov array['a]) -> t['a]
   }
 
   type t['a] = option[array['a]]
 
-  fun of_array(arr!) { Some(arr) }
+  fun of_array(mov arr) { Some(arr) }
 }
 
 fun find_missing_deps(_ : array[unit]) { () }
-fun enqueue(_! : nullvec/t[unit]) { 0 }
+fun enqueue(mov _ : nullvec/t[unit]) { 0 }
 
-fun deps! {
+fun mov deps {
   find_missing_deps(deps)
   enqueue(nullvec/of_array(deps))
 }
@@ -904,7 +907,7 @@ module async {
     type promise['a]
     type future['a]
 
-    val extract_maybe : fun (future['a]!) -> option['a]
+    val extract_maybe : fun (mov future['a]) -> option['a]
   }
 
   type prom_state['a] =
@@ -914,7 +917,7 @@ module async {
   type promise['a] = prom_state['a]
   type future['a] = promise['a]
 
-  fun extract_maybe(fut!) {
+  fun extract_maybe(mov fut) {
     match fut {
       Resolved(v) -> Some(v)
       Pending -> None
@@ -924,10 +927,10 @@ module async {
 
 module auv {
   signature {
-    val run : fun (async/future['a]!) -> option['a]
+    val run : fun (mov async/future['a]) -> option['a]
   }
 
-  fun run(fut!) {
+  fun run(mov fut) {
     match async/extract_maybe(fut) {
       Some(v) -> v
       None -> __any_abort()
@@ -990,7 +993,7 @@ module nosig {
 module mm = nosig/nested
 |}
 
-let own = "let x& = [10]"
+let own = "let mut x = [10]"
 let tl = Some "Cannot borrow mutable binding at top level"
 
 let test_excl_borrow () =
@@ -999,17 +1002,18 @@ let test_excl_borrow () =
 let test_excl_borrow_use_early () =
   wrap_fn ~tl test_exn
     (ln "x was borrowed in line %i, cannot mutate" 3)
-    [ own; "let y = x"; "ignore(x)"; "&x = [11]"; "ignore(y)" ]
+    [ own; "let y = x"; "ignore(x)"; "mut x = [11]"; "ignore(y)" ]
 
 let tl = Some "Cannot move top level binding"
 
 let test_excl_move_mut () =
-  wrap_fn ~tl test "unit" [ own; "let y& = !x"; "&y = [11]"; "ignore(y)" ]
+  wrap_fn ~tl test "unit"
+    [ own; "let mut y = mov x"; "mut y = [11]"; "ignore(y)" ]
 
 let test_excl_move_mut_use_after () =
   wrap_fn test_exn
     (ln "x was moved in line %i, cannot use" 2)
-    [ own; "let y& = !x"; "ignore(x)" ]
+    [ own; "let mut y = mov x"; "ignore(x)" ]
 
 let test_excl_move_record () =
   wrap_fn ~tl test "unit" [ own; "let y = (x, 0)"; "ignore(y)" ]
@@ -1017,7 +1021,7 @@ let test_excl_move_record () =
 let test_excl_move_record_use_after () =
   wrap_fn test_exn
     (ln "x was moved in line %i, cannot use" 2)
-    [ "let x& =[10]"; "let y = (x, 0)"; "ignore(x)" ]
+    [ "let mut x =[10]"; "let y = (x, 0)"; "ignore(x)" ]
 
 let test_excl_borrow_then_move () =
   wrap_fn test_exn
@@ -1026,7 +1030,7 @@ let test_excl_borrow_then_move () =
 
 let test_excl_if_move_lit () =
   wrap_fn ~tl test "unit"
-    [ "let x = [10]"; "let y& = !if true {x} else {[10]}"; "ignore(y)" ]
+    [ "let x = [10]"; "let mut y = mov if true {x} else {[10]}"; "ignore(y)" ]
 
 let test_excl_if_borrow_borrow () =
   wrap_fn test "unit"
@@ -1040,41 +1044,55 @@ let proj_msg = Some "Cannot project at top level"
 
 let test_excl_proj () =
   wrap_fn ~tl:proj_msg test "unit"
-    [ own; "let y& = &x"; "&y = [11]"; "ignore(x)" ]
+    [ own; "let mut y = mut x"; "mut y = [11]"; "ignore(x)" ]
 
 let test_excl_proj_immutable () =
   wrap_fn ~tl:proj_msg test_exn "Cannot project immutable binding"
-    [ "let x = 10"; "let y& = &x"; "x" ]
+    [ "let x = 10"; "let mut y = mut x"; "x" ]
 
 let test_excl_proj_use_orig () =
   wrap_fn ~tl:proj_msg test_exn
     (ln "x was borrowed in line %i, cannot mutate" 3)
-    [ own; "let y& = &x"; "ignore(__unsafe_addr(&x))"; "ignore(y)"; "x" ]
+    [
+      own; "let mut y = mut x"; "ignore(__unsafe_addr(mut x))"; "ignore(y)"; "x";
+    ]
 
 let test_excl_proj_move_after () =
   wrap_fn ~tl:proj_msg test_exn
     (ln "x was borrowed in line %i, cannot mutate" 3)
-    [ own; "let y& = &x"; "ignore(__unsafe_addr(&x))"; "(y, 0)" ]
+    [ own; "let mut y = mut x"; "ignore(__unsafe_addr(mut x))"; "(y, 0)" ]
 
 let test_excl_proj_nest () =
   wrap_fn ~tl:proj_msg test_exn
     (ln "y was borrowed in line %i, cannot mutate" 4)
-    [ own; "let y& = &x"; "let z& = &y"; "ignore(__unsafe_addr(&y))"; "z" ]
+    [
+      own;
+      "let mut y = mut x";
+      "let mut z = mut y";
+      "ignore(__unsafe_addr(mut y))";
+      "z";
+    ]
 
 let test_excl_proj_nest_orig () =
   wrap_fn ~tl:proj_msg test_exn
     (ln "x was borrowed in line %i, cannot mutate" 3)
-    [ own; "let y& = &x"; "let z& = &y"; "ignore(__unsafe_addr(&x))"; "z" ]
+    [
+      own;
+      "let mut y = mut x";
+      "let mut z = mut y";
+      "ignore(__unsafe_addr(mut x))";
+      "z";
+    ]
 
 let test_excl_proj_nest_closed () =
   wrap_fn ~tl:proj_msg test "unit"
-    [ own; "let y& = &x"; "let z& = &y"; "ignore(z)"; "y" ]
+    [ own; "let mut y = mut x"; "let mut z = mut y"; "ignore(z)"; "y" ]
 
 let test_excl_moved_param () =
   test_exn "Borrowed value x has been moved in line 5" "fun meh(x) {x}"
 
 let test_excl_set_moved () =
-  test "unit" "fun meh(a&) {ignore((a, 0));   &a = 10}"
+  test "unit" "fun meh(mut a) {ignore((a, 0));   mut a = 10}"
 
 let test_excl_binds () =
   test "unit"
@@ -1091,28 +1109,30 @@ let test_excl_shadowing () =
   test_exn "Borrowed value a has been moved in line 5"
     "fun thing(a){ let a = a; a}"
 
-let typ = "type string = array[u8]\n type t = {a& : string, b : string}\n"
+let typ = "type string = array[u8]\n type t = {mut a : string, b : string}\n"
 
 let test_excl_parts_success () =
-  test "unit" (typ ^ "fun meh(a!) {{a = a.a, b = a.b}}")
+  test "unit" (typ ^ "fun meh(mov a) {{a = a.a, b = a.b}}")
 
 let test_excl_parts_return_part () =
-  test "unit" (typ ^ "fun meh(a!){ let c& = !a.a;  a.b}")
+  test "unit" (typ ^ "fun meh(mov a){ let mut c = mov a.a;  a.b}")
 
 let test_excl_parts_dont_reset_part () =
   test_exn "a.a was moved in line 7, cannot use a"
-    (typ ^ "fun meh(a!) { let a& = !a; let c& = &a.a; __unsafe_leak(!c); a }")
+    (typ
+   ^ "fun meh(mov a) { let mut a = mov a; let mut c = mut a.a; \
+      __unsafe_leak(mov c); a }")
 
 let test_excl_parts_reset_part () =
   test "unit"
     (typ
-   ^ "fun meh(a!) { let a& = !a; let c& = &a.a; __unsafe_leak(!c); &c = [];  a \
-      }")
+   ^ "fun meh(mov a) { let mut a = mov a; let mut c = mut a.a; \
+      __unsafe_leak(mov c); mut c = [];  a }")
 
 let test_excl_parts_return_whole () =
   test_exn
     (ln "a.a was moved in line %i, cannot use a" 4)
-    (typ ^ "fun meh(a!){\n let c& = !a.a\n  a}")
+    (typ ^ "fun meh(mov a){\n let mut c = mov a.a\n  a}")
 
 let test_excl_lambda_copy_capture () =
   test "unit" "fun alt(alts) {fun () [alts] {ignore(alts.[0])}}"
@@ -1133,86 +1153,87 @@ let test_excl_fn_not_copy_capture () =
 
 let test_excl_partial_move_reset () =
   test_exn "Cannot move top level binding"
-    {|type tt = {a& : array[int], b & : array[int]}
-let a& = {a = [], b = []}
-let _ = !a.a
-let _ = !a.b
-&a.b = []|}
+    {|type tt = {mut a : array[int], mut b : array[int]}
+let mut a = {a = [], b = []}
+let _ = mov a.a
+let _ = mov a.b
+mut a.b = []|}
 
 let test_excl_projections_partial_moves () =
   test "array[int]"
-    {|type t = {a& : array[int], b& : array[int]}
-let a& = {a = [], b = []}
+    {|type t = {mut a : array[int], mut b : array[int]}
+let mut a = {a = [], b = []}
 
-{  let a& = &a
-  let tmp = !a.a
-  let tmp2 = !a.b
-  &a.a = tmp2
-  &a.b = tmp
+{  let mut a = mut a
+  let tmp = mov a.a
+  let tmp2 = mov a.b
+  mut a.a = tmp2
+  mut a.b = tmp
   ignore(a.a)
   a.a}|}
 
 let test_excl_array_move_const () =
-  test "unit" {|let a& = [0]
-let _ = !a.[1]
-&a.[1] = 1|}
+  test "unit" {|let mut a = [0]
+let _ = mov a.[1]
+mut a.[1] = 1|}
 
 let test_excl_array_move_var () =
-  test "unit" {|let a& = [0]
+  test "unit"
+    {|let mut a = [0]
 let index = 1
-let _ = !a.[index]
-&a.[index] = 1|}
+let _ = mov a.[index]
+mut a.[index] = 1|}
 
 let test_excl_array_move_mixed () =
   test_exn "Cannot move out of array without re-setting"
-    {|{let a& = [0]
+    {|{let mut a = [0]
 let index = 1
-let _ = !a.[1]
-&a.[index] = 1}|}
+let _ = mov a.[1]
+mut a.[index] = 1}|}
 
 let test_excl_array_move_wrong_index () =
   test_exn "Cannot move out of array without re-setting"
-    {|{let a& = [0]
+    {|{let mut a = [0]
 fun index() { 1 }
-let _ = !a.[index()]
-&a.[index()] = 1}|}
+let _ = mov a.[index()]
+mut a.[index()] = 1}|}
 
 let test_excl_array_move_dyn_index () =
   test_exn "Cannot move out of array without re-setting"
-    {|{let a& = [0]
+    {|{let mut a = [0]
 
-  let tmp = !a.[0]
-  &a.[0 + 0] = 0}|}
+  let tmp = mov a.[0]
+  mut a.[0 + 0] = 0}|}
 
 let test_excl_array_mutate_part () =
   (* 'a' is touched and by setting a 'part', the 'rest' should not be borrowed
      as foreign, i.e. should not end up is 'Disabled' state. *)
-  test "fun (unit) -> unit" {|let a& = [10]
+  test "fun (unit) -> unit" {|let mut a = [10]
 
 fun () {
-    &a.[0] = 12
+    mut a.[0] = 12
 }|}
 
 let test_excl_move_lambda () =
   test_exn "Borrowed value a has been moved in line 5"
-    "fun copy_param(a&) { fun () { &a = 12 } }"
+    "fun copy_param(mut a) { fun () { mut a = 12 } }"
 
 let test_excl_move_fun () =
   test_exn "Borrowed value a has been moved in line 5"
-    "fun copy_param(a&) {fun f () { &a = 12 }; f}"
+    "fun copy_param(mut a) {fun f () { mut a = 12 }; f}"
 
 let test_excl_move_outer_branch () =
   test_exn "Borrowed value str has been moved in line 13"
     {|type option['a] = None | Some('a)
-fun mut(thing&) { ignore(thing) }
-fun move(thing!) { ignore(thing) }
+fun mutt(mut thing) { ignore(thing) }
+fun move(mov thing) { ignore(thing) }
 
-let str& = !Some([])
+let mut str = mov Some([])
 
 fun capture() {
   match str {
-    Some(a) -> move(!a)
-    None -> mut(&str)
+    Some(a) -> move(mov a)
+    None -> mutt(mut str)
   }
 }
 |}
@@ -1220,15 +1241,15 @@ fun capture() {
 let test_excl_move_outer_branch_else () =
   test_exn "Borrowed value str has been moved in line 14"
     {|type option['a] = None | Some('a)
-fun mut(thing&) { ignore(thing) }
-fun move(thing!) { ignore(thing) }
+fun mutt(mut thing) { ignore(thing) }
+fun move(mov thing) { ignore(thing) }
 
-let str& = !Some([])
+let mut str = mov Some([])
 
 fun capture() {
   match str {
-    None -> mut(&str)
-    Some(a) -> move(!a)
+    None -> mutt(mut str)
+    Some(a) -> move(mov a)
   }
 }|}
 
@@ -1242,13 +1263,13 @@ fun (arr) {
 }|}
 
 let test_excl_variant_data () =
-  test "fun (array[option[value['a]]]&, int, fun ('a&) -> unit) -> unit"
+  test "fun (mut array[option[value['a]]], int, fun (mut 'a) -> unit) -> unit"
     {|type option['a] = None | Some('a)
-type data['a] = { data& : 'a }
-type value['a] = { value& : 'a }
-fun find (a&, i, f) {
-    match &a.[i] {
-      Some(item&) -> f(&item.value)
+type data['a] = { mut data : 'a }
+type value['a] = { mut value : 'a }
+fun find (mut a, i, f) {
+    match mut a.[i] {
+      Some(mut item) -> f(mut item.value)
       None -> ()
    }
 }
@@ -1257,7 +1278,7 @@ find|}
 let test_excl_raw_ptr () =
   test "unit"
     {|fun raw_ptr(ptr) {
-    let ptr& = !ptr
+    let mut ptr = mov ptr
     __unsafe_ptr_get(ptr, 0)
  }|}
 
@@ -1265,30 +1286,30 @@ let test_excl_partial_move_set () =
   test "unit"
     {|type rr = {a : array[int], b : array[int]}
 
-let a& = {a = [], b = []}
+let mut a = {a = [], b = []}
 ignore((a.a, 0))
-&a = {a = [], b = []}
+mut a = {a = [], b = []}
 
-fun hmm(a&) {
+fun hmm(mut a) {
   ignore((a.b, 0))
-  &a = {a = [], b = []}
+  mut a = {a = [], b = []}
 }
-hmm(&a)
+hmm(mut a)
 |}
 
 let test_excl_mutate_shadow () =
   test "unit"
     {|type option['a] = None | Some('a)
-let a& = 10
-match &a {
-  b& -> &b = 11
+let mut a = 10
+match mut a {
+  mut b -> mut b = 11
 }
 ignore(a)
 
-type record = {a& : int, b : float}
-let a& = Some(10)
-match &a {
-  Some(b&) -> &b = 12
+type record = {mut a : int, b : float}
+let mut a = Some(10)
+match mut a {
+  Some(mut b) -> mut b = 12
   None -> ()
 }|}
 
@@ -1299,7 +1320,7 @@ external println : fun ('a) -> unit
 type tok = A | B | C(int)
 
 fun infun(tok) {
-  let delim& = None
+  let mut delim = None
   (fun tok {
     match tok { C(_) -> println("c") | _ -> () }
     match (delim, tok) {
@@ -1308,7 +1329,7 @@ fun infun(tok) {
       (Some(_), _) -> println("some other")
       (None, tk) -> {
         println("none")
-        &delim = Some(tk)
+        mut delim = Some(tk)
       }
     }
   })(tok)
@@ -1318,8 +1339,9 @@ infun(C(0))
 |}
 
 let test_excl_pass_mutating_function () =
-  test "unit" {|let pr& = [0]
-fun aux() { &pr = [] }
+  test "unit"
+    {|let mut pr = [0]
+fun aux() { mut pr = [] }
 ignore(aux)
 ignore(aux)
 |}
@@ -1529,32 +1551,32 @@ let test_functor_poly_function () =
   test "unit"
     {|
 module type poly {
-  val id : fun ('a!) -> 'a}
+  val id : fun (mov 'a) -> 'a}
 
 functor makeid(m : poly) {
-  fun newid(p!) {m/id(!p)}}
+  fun newid(mov p) {m/id(mov p)}}
 
 module some {
-  fun id(p!) {p}}
+  fun id(mov p) {p}}
 
 module polyappl = makeid(some)
 
-ignore(polyappl/newid(!1))
-ignore(polyappl/newid(!1.2))|}
+ignore(polyappl/newid(mov 1))
+ignore(polyappl/newid(mov 1.2))|}
 
 let test_functor_poly_mismatch () =
   test_exn
     "Signatures don't match for value id:\n\
-     expecting fun ('a!) -> 'a\n\
-     but found fun (int!) -> int"
+     expecting fun (mov 'a) -> 'a\n\
+     but found fun (mov int) -> int"
     {|module type poly {
-  val id : fun ('a!) -> 'a}
+  val id : fun (mov 'a) -> 'a}
 
 functor makeid(m : poly) {
-  fun newid(p!) {m/id(!p)}}
+  fun newid(mov p) {m/id(mov p)}}
 
 module someint {
-  fun id(p! : int) {p}}
+  fun id(mov p : int) {p}}
 
 module intappl = makeid(someint)|}
 
@@ -1574,7 +1596,7 @@ functor make : sig (m : key) {
   type key = m/t
   type item['a] = {key : m/t, value : 'a}
   type slot['a] = Empty | Tombstone | Item(item['a])
-  type t['a] = {data& : array[slot['a]], nitems& : int}
+  type t['a] = {mut data : array[slot['a]], mut nitems : int}
 
   fun create(size : int) {
     ignore(size)
@@ -1651,7 +1673,7 @@ let test_syntax_elseif_no_else () =
   test "unit" "if false {()} else if false {()} else if true {()}"
 
 let test_syntax_let_block () = test "unit" "let a = {let b = 0;   ()}"
-let test_syntax_let_block_move () = test "unit" "let a = !{let b = 0;   ()}"
+let test_syntax_let_block_move () = test "unit" "let a = mov {let b = 0;   ()}"
 
 let test_syntax_let_block_other_equal () =
   test "unit" "type record = {a : int}; let {a = b} = {let b = 0;   {a = 10}}"
@@ -1713,8 +1735,8 @@ let test_rec_type_nobase () =
 let test_rec_type_record_param () =
   test "unit"
     {|type container['a] = { a : 'a }
-type state = { data : container[fun (state&) -> unit]}
-let _ = { data = {a = fun(state&) {ignore(state)}} }|}
+type state = { data : container[fun (mut state) -> unit]}
+let _ = { data = {a = fun(mut state) {ignore(state)}} }|}
 
 let test_rec_type_record_param_nobase () =
   test_exn "Recursive type has no base case"
@@ -1822,8 +1844,8 @@ let test_once_apply_func_annot_many () =
   test "fun (fun ('a) -> 'b, 'a) -> 'b" "fun (many func, arg) { func(arg) }"
 
 let test_once_move_function () =
-  test "fun (fun ('a) -> unit!) -> t['a]"
-    "type t['a] = { fn : fun ('a) -> unit }; fun (fn!) { { fn } }"
+  test "fun (mov fun ('a) -> unit) -> t['a]"
+    "type t['a] = { fn : fun ('a) -> unit }; fun (mov fn) { { fn } }"
 
 let test_once_if () =
   test "fun (t, fun (int) -> int) -> int"
@@ -1923,7 +1945,7 @@ let test_subs_no_unit_param () =
   (* We get a borrow check error, not a parameter type or fn type error *)
   test "unit"
     {|fun higher_order(once fn) { fn(); () }
-fun test(a!) {
+fun test(mov a) {
   let _ <- higher_order(); ()
 }|}
 
@@ -1931,14 +1953,14 @@ let test_subs_no_unit_param_lit () =
   (* We get a borrow check error, not a parameter type or fn type error *)
   test "unit"
     {|fun higher_order(once fn) { fn(()); () }
-fun test(a!) {
+fun test(mov a) {
   let () <- higher_order(); ()
 }|}
 
 let test_subs_move_once_fn () =
   test "unit"
     {|fun higher_order(once fn) { fn(); () }
-fun test(a!) {
+fun test(mov a) {
   higher_order (fun () { __unsafe_leak(a) })
 }
 |}
@@ -1946,7 +1968,7 @@ fun test(a!) {
 let test_subs_move_once_fn_use_after () =
   test_exn "a was moved in line 7, cannot use"
     {|fun higher_order(once fn) { fn(); () }
-fun test(a!) {
+fun test(mov a) {
   higher_order (fun () { __unsafe_leak(a) })
   ignore(a)
 }
@@ -1955,7 +1977,7 @@ fun test(a!) {
 let test_subs_move_once_borrowcall () =
   test "unit"
     {|fun higher_order(once fn) { fn(); () }
-fun test(a!) {
+fun test(mov a) {
   let () <- higher_order()
   __unsafe_leak(a)
 }
@@ -1964,7 +1986,7 @@ fun test(a!) {
 let test_subs_move_once_borrowcall_use_after () =
   test_exn "a was moved in line 8, cannot use"
     {|fun higher_order(once fn) { fn(); () }
-fun test(a!) {
+fun test(mov a) {
   let () <- higher_order()
   __unsafe_leak(a)
   ignore(a)
@@ -2263,16 +2285,16 @@ let () =
           case "parts return whole after part move" test_excl_parts_return_whole;
           tase_exn "func mut borrow"
             (ln "a was borrowed in line %i, cannot mutate" 5)
-            {|let a& = 10
+            {|let mut a = 10
 fun set_a(){
-  &a = 11}
+  mut a = 11}
 {
   let b = a
   set_a()
   ignore(b)}|};
           tase_exn "func move" "Borrowed value a has been moved in line 7"
             {|fun hmm(){
-  let a& = [10]
+  let mut a = [10]
   fun move_a(){ a }
   ignore(a)
   ignore(move_a)
@@ -2280,59 +2302,62 @@ fun set_a(){
           tase_exn "closure mut borrow"
             (ln "a was borrowed in line %i, cannot mutate" 3)
             {|fun hmm() {
-  let a& = 10
-  let set_a = fun (){ &a = 11}
-  &a = 11
+  let mut a = 10
+  let set_a = fun (){ mut a = 11}
+  mut a = 11
   set_a()
-  &a = 11}|};
+  mut a = 11}|};
           tase_exn "closure carry set"
             (ln "a was borrowed in line %i, cannot mutate" 3)
             (* If the 'set' attribute isn't carried, (set-a) cannot be called
                and a different error occurs *)
             {|fun hmm() {
-  let a& = [10]
-  let set_a = fun () {&a = [11]}
-  &a = [11]
-  let x& = !a
+  let mut a = [10]
+  let set_a = fun () {mut a = [11]}
+  mut a = [11]
+  let mut x = mov a
   set_a()}|};
           tase_exn "excl 1"
             (ln "a was borrowed in line %i, cannot mutate" 4)
-            "let a& = [10]\n fun f(a&, b) {\n&a = [11]}\n f(&a, a)";
+            "let mut a = [10]\n fun f(mut a, b) {mut \na = [11]}\n f(mut a, a)";
           tase "excl 1 nonalloc" "unit"
-            "let a& = 10\n fun f(a&, b) {\n&a = 11}\n f(&a, copy(a))";
+            "let mut a = 10\n\
+            \ fun f(mut a, b) {mut \n\
+             a = 11}\n\
+            \ f(mut a, copy(a))";
           tase_exn "excl 2"
             (ln "a was borrowed in line %i, cannot mutate" 4)
-            "let a& = [10]\n\
-            \ fun f(a&, b) {&a = [11]}\n\
+            "let mut a = [10]\n\
+            \ fun f(mut a, b) {mut a = [11]}\n\
             \ {\n\
             \  let b = a\n\
-            \  f(&a, b)}";
+            \  f(mut a, b)}";
           tase_exn "excl 3"
             (ln "a was borrowed in line %i, cannot mutate" 3)
-            "let a& = [10]\n fun f(a, b&) {&b = [11]}\n f(a, &a)";
+            "let mut a = [10]\n fun f(a, mut b) {mut b = [11]}\n f(a, mut a)";
           tase_exn "excl 4"
             (ln "a was borrowed in line %i, cannot mutate" 4)
-            "let a& = [10]\n\
-            \ fun f(a, b&) {&b = [11]}\n\
+            "let mut a = [10]\n\
+            \ fun f(a, mut b) {mut b = [11]}\n\
             \ {\n\
             \  let b = a\n\
-            \  f(b, &a)}";
-          tase "excl 5" "unit" "let a& = [10]\n fun f(a, b) {()}\n f(a, a)";
+            \  f(b, mut a)}";
+          tase "excl 5" "unit" "let mut a = [10]\n fun f(a, b) {()}\n f(a, a)";
           tase_exn "excl 6"
             (ln "a was borrowed in line %i, cannot mutate" 3)
-            "let a& = [10]\n fun f(a&, b&) {()}\n f(&a, &a)";
+            "let mut a = [10]\n fun f(mut a, mut b) {()}\n f(mut a, mut a)";
           tase_exn "excl env"
             (ln "a was borrowed in line %i, cannot mutate" 2)
-            {|let a& = [10]
-fun set_a(b&) {&a = [11]}
-set_a(&a)|};
+            {|let mut a = [10]
+fun set_a(mut b) {mut a = [11]}
+set_a(mut a)|};
           tase "excl two phase" "unit"
-            {|let a& = [10]
-fun push(a&, b!) {__unsafe_ptr_set(&__array_data(a), 0, b)}
-push(&a, __array_length(a))|};
+            {|let mut a = [10]
+fun push(mut a, mov b) {__unsafe_ptr_set(mut __array_data(a), 0, b)}
+push(mut a, __array_length(a))|};
           tase_exn "follow string literal"
             "Borrowed string literal has been moved in line 5"
-            "{let c = \"aoeu\"; let d = c; let e& = !d; ()}; ()";
+            "{let c = \"aoeu\"; let d = c; let mut e = mov d; ()}; ()";
           tase_exn "move local borrows"
             "Branches have different ownership: owned vs borrowed"
             {|let a = [10]
@@ -2353,15 +2378,15 @@ let c = {
         if true {ai} else {bi}}}
   c}|};
           tase_exn "specify mut passing"
-            "Specify how rhs expression is passed. Either by move '!' or \
-             mutably '&'"
-            "{let a& = [10]; let b& = a; ()}";
+            "Specify how rhs expression is passed. Either by move 'mov' or \
+             mutably 'mut'"
+            "{let mut a = [10]; let mut b = a; ()}";
           tase_exn "partially set moved"
             (ln "a was moved in line %i, cannot use a.[0]" 2)
-            "let a& = [10]\n let b = (a, 0); &a.[0] = 10";
+            "let mut a = [10]\n let b = (a, 0); mut a.[0] = 10";
           tase_exn "track moved multi-borrow param"
             "Borrowed value s has been moved in line 8"
-            {|fun test(s&) {
+            {|fun test(mut s) {
   let a = s
   let c = a
   ignore((c, 0))}|};
@@ -2369,7 +2394,7 @@ let c = {
             (ln "thing.value was moved in line %i, cannot use" 6)
             {|type data = {key : array[u8], value : array[u8]}
 type data_container = Empty | Item(data)
-fun hmm(thing&) { match thing {
+fun hmm(mut thing) { match thing {
   Item({key, value}) -> {
     ignore((key, 0))
     ignore((value, 0))
@@ -2379,7 +2404,7 @@ fun hmm(thing&) { match thing {
             "Borrowed value thing.key has been moved in line 9"
             {|type data = {key : array[u8], value : array[u8]}
 type data_container = Empty | Item(data)
-fun hmm(thing&) { match thing {
+fun hmm(mut thing) { match thing {
   Item({key, value}) -> {
     ignore((key, 0))
     ignore((value, 0))}
@@ -2388,7 +2413,7 @@ fun hmm(thing&) { match thing {
             (ln "kee was moved in line %i, cannot use" 4)
             {|type data = {key : array[u8], value : array[u8]}
 fun hmm() {
-  let {key = kee, value} = !{key = ['k', 'e', 'y'], value = ['v', 'a', 'l', 'u', 'e']}
+  let {key = kee, value} = mov {key = ['k', 'e', 'y'], value = ['v', 'a', 'l', 'u', 'e']}
   ignore((kee, 0))
   ignore((kee, 0))}|};
           tase_exn "track module outer toplevel"
@@ -2403,17 +2428,17 @@ fun hmm() {
           tase_exn "always borrow field"
             (ln "sm.free_hd was borrowed in line %i, cannot mutate" 7)
             {|type key = {idx : int, gen : int}
-type t = {slots& : array[key], data& : array[int], free_hd& : int, erase& : array[int]}
+type t = {mut slots : array[key], mut data : array[int], mut free_hd : int, mut erase : array[int]}
 
 {
-  let sm& = {slots = [], data = [], free_hd = -1, erase = []}
+  let mut sm = {slots = [], data = [], free_hd = -1, erase = []}
   let idx = 0
   let slot_idx = sm.free_hd
   let free_key = sm.slots.[slot_idx]
   let free_hd = copy(free_key.idx)
   let nextgen = free_key.gen + 1
-  &sm.slots.[slot_idx] = {idx, gen = nextgen}
-  &sm.free_hd = free_hd
+  mut sm.slots.[slot_idx] = {idx, gen = nextgen}
+  mut sm.free_hd = free_hd
   ignore({gen = nextgen, idx = slot_idx})}|};
           case "lambda copy capture" test_excl_lambda_copy_capture;
           case "lambda copy capture nonalloc"

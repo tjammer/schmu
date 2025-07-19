@@ -113,9 +113,9 @@ let string_of_type_raw get_name typ mname =
     | Tfun (ts, t, _) ->
         let pattr = function
           | Dnorm -> ""
-          | Dmut -> "&"
-          | Dmove -> "!"
-          | Dset -> "&"
+          | Dmut -> "mut "
+          | Dmove -> "mov "
+          | Dset -> "mut "
         in
         let ps =
           match ts with
@@ -125,7 +125,7 @@ let string_of_type_raw get_name typ mname =
                 (List.map
                    (fun p ->
                      let mode = string_of_mode !(p.pmode) in
-                     mode ^ string_of_type p.pt ^ pattr p.pattr)
+                     mode ^ pattr p.pattr ^ string_of_type p.pt)
                    ts)
         in
         Printf.sprintf "fun (%s) -> %s" ps (string_of_type t)

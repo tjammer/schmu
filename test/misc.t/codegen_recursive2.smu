@@ -3,7 +3,7 @@ module async {
     type promise['a]
     type future['a]
     val wait : fun () -> (future['a], promise['a])
-    val resolve : fun (promise['a]&, 'a!) -> unit
+    val resolve : fun (mut promise['a], mov 'a) -> unit
     val join : fun (array[future['a]]) -> future[unit]
   }
   type prom_state['a] =
@@ -18,46 +18,46 @@ module async {
     let pr = rc/create(Pending)
     copy(pr), pr
   }
-  fun rec resolve(p&, v!) {
-    let inner& <- rc/mut(&p)
-    match &inner {
+  fun rec resolve(mut p, mov v) {
+    let mut inner <- rc/write(mut p)
+    match mut inner {
       Resolved(_) -> ()
       Pending ->
-      &inner = Resolved(v)
+      mut inner = Resolved(v)
       Queued1(_b) ->
-      &inner = Resolved(v)
+      mut inner = Resolved(v)
       Queued_n(_cbs) ->
-      &inner = Resolved(v)
-      Other(pr&) -> resolve(&pr, v)
+      mut inner = Resolved(v)
+      Other(mut pr) -> resolve(mut pr, v)
     }
   }
-  fun add_cb(pr&, cnt&, _len) {
+  fun add_cb(mut pr, mut cnt, _len) {
     fun _ [pr, cnt] {
-      rc/mut(&cnt, fun _cnt& {
-        resolve(&pr, ())
+      rc/write(mut cnt, fun mut _cnt {
+        resolve(mut pr, ())
       })
     }
   }
   fun join(futs) {
     let len = 0
     let fut, pr = wait()
-    let cnt& = rc/create(0)
-    let pr& = !pr
-    fun rec aux(cp&) {
-      match &cp {
-        Pending -> &cp = Queued1(add_cb(&pr, &cnt, len))
-        Queued1(_b1) -> &cp = Queued_n([])
-        Queued_n(cbs&) -> array/push(&cbs, add_cb(&pr, &cnt, len))
-        Resolved(_) -> rc/mut(&cnt, fun cnt& {&cnt = 1})
-        Other(pr&) -> rc/mut(&pr, aux)
+    let mut cnt = rc/create(0)
+    let mut pr = mov pr
+    fun rec aux(mut cp) {
+      match mut cp {
+        Pending -> mut cp = Queued1(add_cb(mut pr, mut cnt, len))
+        Queued1(_b1) -> mut cp = Queued_n([])
+        Queued_n(mut cbs) -> array/push(mut cbs, add_cb(mut pr, mut cnt, len))
+        Resolved(_) -> rc/write(mut cnt, fun mut cnt {mut cnt = 1})
+        Other(mut pr) -> rc/write(mut pr, aux)
       }
     }
     -- the lambda passed it [iter/iter] closes over aux, but the type of aux
     -- will only be known in the body of the lambda. Additionally, we have to
     -- monomorphize the closure.
     array/iter(futs) |> iter/iter(fun fut {
-      let cp& = copy(fut)
-      rc/mut(&cp, aux)
+      let mut cp = copy(fut)
+      rc/write(mut cp, aux)
     })
     fut
   }
@@ -66,8 +66,8 @@ module async {
   let f1, _p1 = async/wait()
   let f2, _p2 = async/wait()
   let f3, p3 = async/wait()
-  let p3& = !p3
-  async/resolve(&p3, 0)
+  let mut p3 = mov p3
+  async/resolve(mut p3, 0)
   let _ = async/join([f1, f2, f3])
   0
 }

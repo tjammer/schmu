@@ -1,1 +1,1 @@
-fun id(a!) {a}
+fun id(mov a) {a}

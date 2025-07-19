@@ -1,13 +1,13 @@
 fun print_0th(a) {fmt/println(fmt/int, a.[0])}
 
-let a& = [10]
+let mut a = [10]
 let b = copy(a)
-let c& = copy(a)
+let mut c = copy(a)
 let d = b
 
-&a.[0] = 12
+mut a.[0] = 12
 print_0th(a)
-&c.[0] = 15
+mut c.[0] = 15
 print_0th(a)
 print_0th(b)
 print_0th(c)
@@ -15,14 +15,14 @@ print_0th(d)
 
 fun in_fun() {
   println("in fun")
-  let a& = [10]
+  let mut a = [10]
   let b = copy(a)
-  let c& = copy(a)
+  let mut c = copy(a)
   let d = b
 
-  &a.[0] = 12
+  mut a.[0] = 12
   print_0th(a)
-  &c.[0] = 15
+  mut c.[0] = 15
   print_0th(a)
   print_0th(b)
   print_0th(c)

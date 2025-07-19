@@ -1,17 +1,17 @@
 type state = {cnt : int, next : fun (int) -> int}
 
-fun advance(state!) {
+fun advance(mov state) {
   {cnt = (state.next)(state.cnt), next = state.next}
 }
-fun rec ten_times(state!) {
+fun rec ten_times(mov state) {
   if state.cnt < 10 {
     fmt/(println(int, state.cnt))
-    ten_times(!advance(!state))
+    ten_times(mov advance(mov state))
   } else {
     fmt/(println(int, 100))
   }
 }
 {
   let state = {cnt = 0, next = fun x {x + 1}}
-  ten_times(!state)
+  ten_times(mov state)
 }

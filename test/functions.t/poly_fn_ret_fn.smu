@@ -1,10 +1,10 @@
 type wrap['a] = { item : 'a }
 
-let once& = true
+let mut once = true
 
 fun black_box(f, g) {
   if once {
-    &once = false
+    mut once = false
     copy(f)
   } else {copy(g)}
 }

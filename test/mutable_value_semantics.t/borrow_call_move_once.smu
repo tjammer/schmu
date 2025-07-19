@@ -1,6 +1,6 @@
 fun higher_order(once fn) { fn(); () }
 
-fun test(a!) {
+fun test(mov a) {
   higher_order (fun () {
     -- free a at end of scope
     ignore((a, ()))
@@ -9,7 +9,7 @@ fun test(a!) {
 
 test(copy("10"))
 
-fun test(a!) {
+fun test(mov a) {
   let () <-higher_order ()
   -- free a at end of scope
   ignore((a, ()))

@@ -15,14 +15,14 @@ and odd(i) {
   }
 }
 
-fun rec pop(arr&) {
+fun rec pop(mut arr) {
   println("pop")
-  array/pop_back(&arr) |> ignore
-  pop_all(&arr)
+  array/pop_back(mut arr) |> ignore
+  pop_all(mut arr)
 }
-and pop_all(arr&) {
+and pop_all(mut arr) {
   if array/length(arr) == 0 { ()
-  } else {pop(&arr)}
+  } else {pop(mut arr)}
 }
 
 fun test(i) {

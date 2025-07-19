@@ -1,7 +1,7 @@
-let data& = array/create(16)
+let mut data = array/create(16)
 
 iter_range(0, 10, fun i {
-  array/push(&data, !fun () [i] { fmt/(print1("on iteration: {}\n", int, i)) })
+  array/push(mut data, mov fun () [i] { fmt/(print1("on iteration: {}\n", int, i)) })
 })
 
 array/iter(data) |> iter/iter(fun f {f()})

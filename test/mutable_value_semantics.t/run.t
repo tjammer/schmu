@@ -423,13 +423,13 @@ Warn on unneeded mutable bindings
   $ schmu unneeded_mut.smu
   unneeded_mut.smu:1.5-15: warning: Unused binding do_nothing.
   
-  1 | fun do_nothing(a&) { ignore(a) }
+  1 | fun do_nothing(mut a) { ignore(a) }
           ^^^^^^^^^^
   
-  unneeded_mut.smu:5.5-6: warning: Unmutated mutable binding b.
+  unneeded_mut.smu:5.9-10: warning: Unmutated mutable binding b.
   
-  5 | let b& = 0
-          ^
+  5 | let mut b = 0
+              ^
   
 Use mutable values as ptrs to C code
   $ schmu -c --dump-llvm ptr_to_c.smu 2>&1 | grep -v !DI
@@ -3356,10 +3356,10 @@ Convert Const_ptr values to Ptr in copy
 
 Fix codegen
   $ schmu --dump-llvm codegen_nested_projections.smu 2>&1 | grep -v !DI
-  codegen_nested_projections.smu:4.7-8: warning: Unused binding z.
+  codegen_nested_projections.smu:4.11-12: warning: Unused binding z.
   
-  4 |   let z& = &y
-            ^
+  4 |   let mut z = mut y
+                ^
   
   codegen_nested_projections.smu:1.5-6: warning: Unused binding t.
   
@@ -3397,24 +3397,24 @@ Partial move set
 
 Track unmutated binding warnings across projections
   $ schmu projection_warnings.smu
-  projection_warnings.smu:9.16-17: warning: Unused binding b.
+  projection_warnings.smu:9.23-24: warning: Unused binding b.
   
-  9 | fun testfn(a&, b& : int) {
-                     ^
+  9 | fun testfn(mut a, mut b : int) {
+                            ^
   
-  projection_warnings.smu:14.7-8: warning: Unmutated mutable binding a.
+  projection_warnings.smu:14.11-12: warning: Unmutated mutable binding a.
   
-  14 |   let a& = 0
-             ^
+  14 |   let mut a = 0
+                 ^
   
-  projection_warnings.smu:4.7-8: warning: Unused binding z.
+  projection_warnings.smu:4.11-12: warning: Unused binding z.
   
-  4 |   let z& = &y
-            ^
+  4 |   let mut z = mut y
+                ^
   
   projection_warnings.smu:9.5-11: warning: Unused binding testfn.
   
-  9 | fun testfn(a&, b& : int) {
+  9 | fun testfn(mut a, mut b : int) {
           ^^^^^^
   
   projection_warnings.smu:13.5-18: warning: Unused binding single_binder.
@@ -3422,10 +3422,10 @@ Track unmutated binding warnings across projections
   13 | fun single_binder() {
            ^^^^^^^^^^^^^
   
-  projection_warnings.smu:17.5-10: warning: Unmutated mutable binding outer.
+  projection_warnings.smu:17.9-14: warning: Unmutated mutable binding outer.
   
-  17 | let outer& = 10
-           ^^^^^
+  17 | let mut outer = 10
+               ^^^^^
   
   projection_warnings.smu:19.5-17: warning: Unused binding mutate_outer.
   

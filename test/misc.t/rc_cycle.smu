@@ -1,10 +1,10 @@
 -- make rc cycle
 type any_rc['a] = Strong(rc['a]) | Weak(weak_rc['a])
-type person = { name : string, partner& : option[any_rc[person]] }
+type person = { name : string, mut partner : option[any_rc[person]] }
 
-let person& = rc/create({ name = copy("schmu"), partner = None })
+let mut person = rc/create({ name = copy("schmu"), partner = None })
 {
   let weak = rc/to_weak(person)
-  let p& <- rc/mut(&person)
-  &p.partner = Some(Weak(weak))
+  let mut p <- rc/write(mut person)
+  mut p.partner = Some(Weak(weak))
 }

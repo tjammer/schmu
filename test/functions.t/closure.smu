@@ -1,4 +1,4 @@
-type capturable = {a& : int}
+type capturable = {mut a : int}
 
 let a = {a = 10}
 

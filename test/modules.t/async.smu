@@ -2,11 +2,11 @@ signature {
   type promise['a]
   type future['a]
 
-  val return : fun ('a!) -> future['a]
+  val return : fun (mov 'a) -> future['a]
   val wait : fun () -> (future['a], promise['a])
-  val promise_resolve : fun (promise['a]&, 'a!) -> unit
+  val promise_resolve : fun (mut promise['a], mov 'a) -> unit
 
-  val bind : fun (future['a], fun ('a) -> future['b]!) -> future['b]
+  val bind : fun (future['a], mov fun ('a) -> future['b]) -> future['b]
 
   -- val exec : (float, command) -> future[status]
 }
@@ -15,42 +15,42 @@ type prom_state['a] = Pending | Queued(array[fun ('a) -> unit]) | Resolved('a)
 type promise['a] = rc[prom_state['a]]
 type future['a] = promise['a]
 
-fun return(v!) { rc/create(!Resolved(v)) }
+fun return(mov v) { rc/create(mov Resolved(v)) }
 
 fun wait() {
-  let pr = rc/create(!Pending)
+  let pr = rc/create(mov Pending)
   (copy(pr), pr)
 }
 
-fun promise_resolve(p&, v!) {
-  let s& = &__unsafe_rc_get(p)
+fun promise_resolve(mut p, mov v) {
+  let mut s = mut __unsafe_rc_get(p)
   match s {
     Resolved(_) -> ()
     Pending -> {
-      &s = Resolved(v)
+      mut s = Resolved(v)
     }
     Queued(cbs) -> {
       array/iter(cbs) |> iter/iter(fun cb { cb(v) })
-      &s = Resolved(v)
+      mut s = Resolved(v)
     }
   }
 }
 
-fun add_cb(fn!) {
+fun add_cb(mov fn) {
   let fut, pr = wait()
-  let pr& = !pr
+  let mut pr = mov pr
   fun cb(v) {
-    let new& = fn(v)
+    let mut new = fn(v)
     -- this works because future and promise are really the name type
     match __unsafe_rc_get(new) {
-      Resolved(v) -> promise_resolve(&pr, !v)
+      Resolved(v) -> promise_resolve(mut pr, mov v)
       Pending -> {
         -- the (user-) returned future is pending. Swap our return future for
         -- the user one, so when the user promise is resolved, our registered
         -- callbacks are called
         match copy(__unsafe_rc_get(pr)) {
           Resolved(_) -> failwith("Can this even happen?")
-          Queued(arr) -> &__unsafe_rc_get(new) = Queued(arr)
+          Queued(arr) -> mut __unsafe_rc_get(new) = Queued(arr)
           Pending -> ()
         }
       }
@@ -60,19 +60,19 @@ fun add_cb(fn!) {
   (fut, cb)
 }
 
-fun bind(fut, fn!) {
-  -- we make a copy to mutate the future. [fut] is really an rc under the
+fun bind(fut, mov fn) {
+  -- we make a copy to mutateate the future. [fut] is really an rc under the
   -- hood, so we can do this.
-  let cp& = copy(fut)
-  match &__unsafe_rc_get(cp) {
+  let mut cp = copy(fut)
+  match mut __unsafe_rc_get(cp) {
     Pending -> {
-      let fut, cb = add_cb(!fn)
-      &__unsafe_rc_get(cp) = Queued([cb])
+      let fut, cb = add_cb(mov fn)
+      mut __unsafe_rc_get(cp) = Queued([cb])
       fut
     }
-    Queued(cbs&) -> {
-      let fut, cb = add_cb(!fn)
-      array/push(&cbs, !cb)
+    Queued(mut cbs) -> {
+      let fut, cb = add_cb(mov fn)
+      array/push(mut cbs, mov cb)
       fut
     }
     Resolved(v) -> fn(v)

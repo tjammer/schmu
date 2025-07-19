@@ -11,10 +11,10 @@ println(modd/lambda())
 println(modd/closure())
 
 -- use polymoorphic aliased function from another module
-fun swapped(a!, i, j) {
-  let a& = !a
-  swap(&a, i, j)
+fun swapped(mov a, i, j) {
+  let mut a = mov a
+  swap(mut a, i, j)
   a
 }
-array/iter(swapped(![copy("world"), copy("hello")], 0, 1))
+array/iter(swapped(mov [copy("world"), copy("hello")], 0, 1))
 |> iter/iter(fun s {println(s)})

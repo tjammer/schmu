@@ -1,12 +1,12 @@
 type rr = {a : array[int], b : array[int]}
 
-let a& = {a = [], b = []}
+let mut a = {a = [], b = []}
 ignore((a.a, 0))
-&a = {a = [], b = []}
+mut a = {a = [], b = []}
 
 
-fun hmm(a&) {
+fun hmm(mut a) {
   ignore((a.b, 0))
-  &a = {a = [], b = []}
+  mut a = {a = [], b = []}
 }
-hmm(&a)
+hmm(mut a)

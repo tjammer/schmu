@@ -1407,8 +1407,8 @@ and check_let st ~toplevel str loc pass lmut mode rhs =
             (let_mode_bind mode) trees )
     | _, Borrowed _, _trees when pass = Dnorm && lmut ->
         let msg =
-          "Specify how rhs expression is passed. Either by move '!' or mutably \
-           '&'"
+          "Specify how rhs expression is passed. Either by move 'mov' or \
+           mutably 'mut'"
         in
         raise (Error (rhs.loc, msg))
     | rhs, Borrowed ids, trees ->

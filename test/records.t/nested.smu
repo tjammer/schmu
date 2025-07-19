@@ -11,8 +11,8 @@ type foo = { a : int, b : inner }
 
 fun inner() {{ a = 3 }}
 
-let f = fun(x!) {x}
+let f = fun(mov x) {x}
 
 let a = { a = 0, b = inner() }
 printi(a.b.a)
-printi(f(!{ x = 17, inner = { a = { a = 124 } } }).inner.a.a)
+printi(f(mov { x = 17, inner = { a = { a = 124 } } }).inner.a.a)

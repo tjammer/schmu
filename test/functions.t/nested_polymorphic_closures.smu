@@ -30,11 +30,11 @@ fun array_iter(arr, f) {
   inner_cls_f(0, arr)
 }
 
-let arr& = []
-array/push(&arr, !1)
-array/push(&arr, !2)
-array/push(&arr, !3)
-array/push(&arr, !4)
-array/push(&arr, !5)
+let mut arr = []
+array/push(mut arr, mov 1)
+array/push(mut arr, mov 2)
+array/push(mut arr, mov 3)
+array/push(mut arr, mov 4)
+array/push(mut arr, mov 5)
 
 array_iter(arr, fun x {printi(x * 2)})

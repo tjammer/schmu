@@ -23,8 +23,8 @@ ignore(t.u)
 fmt/(println(str, "99.9")) -- (t.f)) -- TODO format float
 
 -- arrays
-let arr& = [(), ()]
-array/push(&arr, !())
+let mut arr = [(), ()]
+array/push(mut arr, mov ())
 fmt/(println(int, array/length(arr)))
 ignore({u = arr.[2]})
 

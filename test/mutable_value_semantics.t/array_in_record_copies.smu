@@ -1,8 +1,8 @@
-type arrec = {a& : array[int]}
+type arrec = {mut a : array[int]}
 
-let a& = {a = [10]}
+let mut a = {a = [10]}
 let b = copy(a)
-&a.a.[0] = 12
+mut a.a.[0] = 12
 
 fun print_thing(a) { fmt/println(fmt/int, a.a.[0]) }
 
@@ -13,9 +13,9 @@ println("in fun")
 
 
 fun in_fun() {
-  let a& = {a = [10]}
+  let mut a = {a = [10]}
   let b = copy(a)
-  &a.a.[0] = 12
+  mut a.a.[0] = 12
 
   print_thing(a)
   print_thing(b)

@@ -44,15 +44,15 @@ let format_type_err pre mname t1 t2 =
           (fun (i, accfound, l, r) lt rt ->
             let pattr = function
               | Ast.Dnorm -> ""
-              | Dmut -> "&"
-              | Dmove -> "!"
-              | Dset -> "&"
+              | Dmut -> "mut "
+              | Dmove -> "mov "
+              | Dset -> "mut "
             in
             let lmode = string_of_mode !(lt.pmode) in
             let rmode = string_of_mode !(rt.pmode) in
             let found, ls, rs = aux lt.pt rt.pt in
-            let ls = lmode ^ ls ^ pattr lt.pattr
-            and rs = rmode ^ rs ^ pattr rt.pattr in
+            let ls = lmode ^ pattr lt.pattr ^ ls
+            and rs = rmode ^ pattr rt.pattr ^ rs in
             let found, ls, rs =
               if String.equal ls rs then (found, "_", "_")
               else if found then (found, ls, rs)

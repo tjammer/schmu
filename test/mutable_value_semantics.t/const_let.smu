@@ -1,13 +1,13 @@
-let v& = [0]
+let mut v = [0]
 let const = copy(v.[0])
-&v.[0] = 1
+mut v.[0] = 1
 fmt/(println(int, v.[0]))
 fmt/(println(int, const))
 
 fun in_fun() {
-  let v& = [0]
+  let mut v = [0]
   let const = copy(v.[0])
-  &v.[0] = 1
+  mut v.[0] = 1
   fmt/(println(int, v.[0]))
   fmt/(println(int, const))
 }

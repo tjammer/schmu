@@ -1,13 +1,13 @@
-type f = {a& : int}
+type f = {mut a : int}
 
-fun modify(r&) {&r.a = 30}
+fun modify(mut r) {mut r.a = 30}
 
-fun mod2(a&) {array/push(&a, !20)}
+fun mod2(mut a) {array/push(mut a, mov 20)}
 
-let a& = {a = 20}
-modify(&a)
+let mut a = {a = 20}
+modify(mut a)
 fmt/(println(int, a.a))
 
-let b& = [10]
-mod2(&b)
+let mut b = [10]
+mod2(mut b)
 fmt/(println(int, array/length(b)))

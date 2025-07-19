@@ -2,9 +2,9 @@ fun prnt(a) {
   use fmt
   print2("{}, {}\n", int, a.[0].[0], int, a.[1].[0])
 }
-let a& = [[10], [20]]
+let mut a = [[10], [20]]
 let b = copy(a)
 
-&a.[0].[0] = 15
+mut a.[0].[0] = 15
 prnt(a)
 prnt(b)

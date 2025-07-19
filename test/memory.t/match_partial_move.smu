@@ -9,29 +9,29 @@ module async {
     rc/create(Pending)
   }
 
-  fun resolve(p&, v!) {
-    let inner& <- rc/mut(&p)
+  fun resolve(mut p, mov v) {
+    let mut inner <- rc/write(mut p)
     match inner {
       Queued1(_) -> ()
       Queued_n(cbs) -> {
-        let _cbs = !cbs
-        &inner = Resolved(v)
+        let _cbs = mov cbs
+        mut inner = Resolved(v)
       }
-      _b -> &inner = Pending
+      _b -> mut inner = Pending
     }
   }
 
-  fun bind(fut, fn!) {
-    let cp& = copy(fut)
-    let cp& <- rc/mut(&cp)
+  fun bind(fut, mov fn) {
+    let mut cp = copy(fut)
+    let mut cp <- rc/write(mut cp)
     match cp {
       Pending ->
-      &cp = Queued1(fun a { fn(a) })
+      mut cp = Queued1(fun a { fn(a) })
       _ -> ()
     }
   }
 }
 
-let future& = async/wait()
+let mut future = async/wait()
 async/bind(future, fun _v { () })
-async/resolve(&future, 3)
+async/resolve(mut future, 3)

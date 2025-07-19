@@ -15,12 +15,12 @@ fun char(c) {
 }
 
 fun string_of_view(view) {
-  let ret& = array/create(view.len + 1)
+  let mut ret = array/create(view.len + 1)
   iter_range(view.start, view.start + view.len, fun c {
-    array/push(&ret, !string/get(view.pbuf, c))
+    array/push(mut ret, mov string/get(view.pbuf, c))
   })
-  array/push(&ret, !'\000')
-  array/pop_back(&ret) |> ignore
+  array/push(mut ret, mov '\000')
+  array/pop_back(mut ret) |> ignore
   string/of_array(ret)
 }
 

@@ -1,6 +1,6 @@
 {
-  let tmp& = unsafe/nullptr()
-  let addr& = unsafe/(addr(&tmp) |> reinterpret)
-  let data& : int = &unsafe/get(addr, 0).[0]
-  &data = 10
+  let mut tmp = unsafe/nullptr()
+  let mut addr = unsafe/(addr(mut tmp) |> reinterpret)
+  let mut data : int = mut unsafe/get(addr, 0).[0]
+  mut data = 10
 }

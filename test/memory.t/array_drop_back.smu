@@ -1,8 +1,8 @@
-let nested& = [[0, 1], [2, 3]]
+let mut nested = [[0, 1], [2, 3]]
 fmt/(println(int, array/length(nested)))
-match array/pop_back(&nested) { Some(_) -> println("some"); None -> () }
+match array/pop_back(mut nested) { Some(_) -> println("some"); None -> () }
 fmt/(println(int, array/length(nested)))
-array/pop_back(&nested) |> ignore
+array/pop_back(mut nested) |> ignore
 fmt/(println(int, array/length(nested)))
-match array/pop_back(&nested){ Some(_) -> (); None -> println("none") }
+match array/pop_back(mut nested){ Some(_) -> (); None -> println("none") }
 fmt/(println(int, array/length(nested)))

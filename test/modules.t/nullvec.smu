@@ -3,9 +3,9 @@ signature
   type t['a]
 
   val create : fun () -> t['a]
-  val singleton : fun ('a!) -> t['a]
+  val singleton : fun (mov 'a) -> t['a]
   val length : fun (t['a]) -> int
-  val push : fun (t['a]&, 'a!) -> unit
+  val push : fun (mut t['a], mov 'a) -> unit
   val iter : fun (t['a], fun ('a) -> unit) -> unit
 }
 
@@ -15,16 +15,16 @@ fun create() {
   None
 }
 
-fun singleton(value!) {Some([value])}
+fun singleton(mov value) {Some([value])}
 
 fun length(arr) { match arr {
   None -> 0
   Some(arr) -> array/length(arr)
 }}
 
-fun push(arr&, value!){ match &arr {
-  None -> &arr = Some([value])
-  Some(arr&) -> array/push(&arr, !value)
+fun push(mut arr, mov value){ match mut arr {
+  None -> mut arr = Some([value])
+  Some(mut arr) -> array/push(mut arr, mov value)
 }}
 
 fun iter(arr, f) {

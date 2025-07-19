@@ -1,18 +1,18 @@
 type list0['a] = Nil | Cons('a, rc[list0])
 
-let list = Cons(0, rc/create(!Cons(1, rc/create(!Cons(1, rc/create(!Cons(1, rc/create(!Cons(1, rc/create(!Nil))))))))))
+let list = Cons(0, rc/create(mov Cons(1, rc/create(mov Cons(1, rc/create(mov Cons(1, rc/create(mov Cons(1, rc/create(mov Nil))))))))))
 
 let _ = copy(list)
 
 type list['a] = Nil | Cons('a, option[rc[list]])
 
-let _ = rc/create(!Cons(1, None))
-let fst = rc/create(!Cons(1, Some(rc/create(!Nil))))
+let _ = rc/create(mov Cons(1, None))
+let fst = rc/create(mov Cons(1, Some(rc/create(mov Nil))))
 let _ = Cons(0, Some(fst |> copy))
 
 -- recursive record
 type container['a] = { a : 'a }
-type state = { data : container[fun (state&) -> unit]}
+type state = { data : container[fun (mut state) -> unit]}
 
 -- this stack overflowed
-let _ = { data = {a = fun(state&) {ignore(state)}} }
+let _ = { data = {a = fun(mut state) {ignore(state)}} }

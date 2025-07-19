@@ -1,13 +1,13 @@
-let a& = 10
-match &a {
-  b& -> &b = 11
+let mut a = 10
+match mut a {
+  mut b -> mut b = 11
 }
 fmt/(println(int, a))
 
-type record = {a& : int, b : float}
-let a& = Some(10)
-match &a {
-  Some(b&) -> &b = 12
+type record = {mut a : int, b : float}
+let mut a = Some(10)
+match mut a {
+  Some(mut b) -> mut b = 12
   None -> ()
 }
 match a {

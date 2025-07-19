@@ -1,7 +1,7 @@
 let a = [copy("aoeu")]
-let b& = copy("aoeu")
-string/modify_buf(&b, fun(arr&) {
-  __unsafe_ptr_set(&array/data(arr), 1, !'i')
+let mut b = copy("aoeu")
+string/modify_buf(mut b, fun(mut arr) {
+  __unsafe_ptr_set(mut array/data(arr), 1, mov 'i')
 })
 println(b)
 println("aoeu")

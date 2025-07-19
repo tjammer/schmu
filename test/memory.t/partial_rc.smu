@@ -1,15 +1,15 @@
-fun drop_rc(str&, rc!) {
+fun drop_rc(mut str, mov rc) {
   match rc/extract(rc) {
-    Some(v) -> &str = v
+    Some(v) -> mut str = v
     None -> ()
   }
 }
 
-let str& = copy("")
-drop_rc(&str, !rc/create(!copy(",.p")))
+let mut str = copy("")
+drop_rc(mut str, mov rc/create(mov copy(",.p")))
 
 fun move_out() {
-  let rc = rc/create(!Some(copy("str")))
+  let rc = rc/create(mov Some(copy("str")))
   match __unsafe_rc_get(rc) {
     Some(v) -> (v, 0)
     None -> (copy(""), 0)

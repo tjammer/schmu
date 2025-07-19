@@ -2,7 +2,7 @@
 -- this caused stack smashing
 fun infunc() {
   let base_length = 2.0
-  let length& = !base_length
-  &length = length +. 3.0
+  let mut length = mov base_length
+  mut length = length +. 3.0
 }
 ignore(infunc)

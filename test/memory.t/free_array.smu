@@ -9,9 +9,9 @@ let arr = [copy(x), {x = 2}, {x = 3}]
 
 -- Arr is only alive inside the function and should be freed there
 fun arr_inside() {
-  let arr& = [copy(x), {x = 2}, {x = 3}]
+  let mut arr = [copy(x), {x = 2}, {x = 3}]
   -- Make sure we can call realloc
-  array/push(&arr, !{x = 12})
+  array/push(mut arr, mov {x = 12})
 }
 -- Arr is returned and should be freed in its parent scope
 fun make_arr() {
@@ -49,8 +49,8 @@ arr_inside()
 inner_parent_scope()
 let normal = nest_fns()
 
-let nested& = [[0, 1], [2, 3]]
-array/push(&nested, ![4, 5])
+let mut nested = [[0, 1], [2, 3]]
+array/push(mut nested, mov [4, 5])
 let nested = make_nested_arr()
 let nested = nest_allocs()
 nest_local()

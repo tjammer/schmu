@@ -1,4 +1,4 @@
 import nullvec
 
-let thing& = nullvec/create()
-nullvec/push(&thing, !1)
+let mut thing = nullvec/create()
+nullvec/push(mut thing, mov 1)

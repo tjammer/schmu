@@ -1,6 +1,6 @@
-fun hm(a!) {
+fun hm(mov a) {
   ignore(a)
   ()
 }
 
-hm(![copy("aoeu")])
+hm(mov [copy("aoeu")])

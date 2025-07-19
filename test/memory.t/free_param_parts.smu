@@ -35,13 +35,13 @@ fun rec simpler(arg, _) {
 simpler(Some(copy("thing"), 0), 0)
 
 -- moved version
-fun rec simpler(arg!, _!) {
-  match !arg {
-    Some(thing, idx!) -> {
+fun rec simpler(mov arg, mov _) {
+  match mov arg {
+    Some(thing, mov idx) -> {
       ignore(thing)
-      simpler(!None, !idx)}
+      simpler(mov None, mov idx)}
     None -> ()
   }
 }
 
-simpler(!Some(copy("thing"), 0), !0)
+simpler(mov Some(copy("thing"), 0), mov 0)

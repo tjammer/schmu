@@ -1,87 +1,87 @@
-type bref = {a& : bool}
+type bref = {mut a : bool}
 
-fun rec mut_bref(i, rf&) {
-  if i > 0 {&rf.a = true} else {mut_bref(i + 1, &rf)}
+fun rec mut_bref(i, mut rf) {
+  if i > 0 {mut rf.a = true} else {mut_bref(i + 1, mut rf)}
 }
 
-fun rec dontmut_bref(i, rf&) {
-  if i > 0 {&rf.a = false}
+fun rec dontmut_bref(i, mut rf) {
+  if i > 0 {mut rf.a = false}
   else {
     -- introduce a new object, so the old one won't get mutated
-    let rf2& = {a = true}
-    dontmut_bref(i + 1, &rf2)
+    let mut rf2 = {a = true}
+    dontmut_bref(i + 1, mut rf2)
   }
 }
 
-let rf& = {a = false}
+let mut rf = {a = false}
 
-mut_bref(0, &rf)
+mut_bref(0, mut rf)
 
 -- change from false to true
 fmt/(println(bool, rf.a))
 
-dontmut_bref(0, &rf)
+dontmut_bref(0, mut rf)
 
 -- don't change
 fmt/(println(bool, rf.a))
 
 -- some for int record type
-type r = {a& : int}
+type r = {mut a : int}
 
-fun rec mod_rec(r&, i) {
-  if i == 2 {&r.a = i}
-  else {mod_rec(&r, i + 1)}
+fun rec mod_rec(mut r, i) {
+  if i == 2 {mut r.a = i}
+  else {mod_rec(mut r, i + 1)}
 }
 
 {
-  let ar& = {a = 20}
-  mod_rec(&ar, 0)
+  let mut ar = {a = 20}
+  mod_rec(mut ar, 0)
   fmt/(println(int, ar.a))
 }
 
 -- array
-fun rec push_twice(a&, i) {
+fun rec push_twice(mut a, i) {
   if i == 2 {()}
   else {
-    array/push(&a, !20)
-    push_twice(&a, i + 1)
+    array/push(mut a, mov 20)
+    push_twice(mut a, i + 1)
   }
 }
 
 {
-  let a& = [10, 20]
-  push_twice(&a, 0)
+  let mut a = [10, 20]
+  push_twice(mut a, 0)
   fmt/(println(int, array/length(a)))
 }
 
 -- int
-fun rec change_int(i&, j) {
-  if j == 100 {&i = j} else {change_int(&i, j + 1)}
+fun rec change_int(mut i, j) {
+  if j == 100 {mut i = j} else {change_int(mut i, j + 1)}
 }
 
 {
-  let i& = 0
-  change_int (&i, 0)
+  let mut i = 0
+  change_int (mut i, 0)
   fmt/println(fmt/int, i)
 }
 
 -- create bogus objects to tidy up
-fun rec test(a&, i) {
+fun rec test(mut a, i) {
   if i == 2 {
-    let b& = [10]
-    test(&b, i + 1)
+    let mut b = [10]
+    test(mut b, i + 1)
   } else if i == 10 {
-    let b& = [10]
-    test(&b, i + 1)
+    let mut b = [10]
+    test(mut b, i + 1)
   } else if i == 12 {()
   } else {
-    array/push(&a, !20)
-    test(&a, i + 1)
+    array/push(mut a, mov 20)
+    test(mut a, i + 1)
   }
 }
 
 {
-  let a& = []
-  test(&a, 0)
+  let mut a = []
+  test(mut a, 0)
   fmt/println(fmt/int, array/length(a))
 }

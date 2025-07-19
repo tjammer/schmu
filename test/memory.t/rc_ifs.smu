@@ -17,10 +17,10 @@ ignore(a)
 
 -- For these to pass, the moved bindings from other branches need to
 -- be freed correctly
-fun test(a!) {
+fun test(mov a) {
   let ai = [10]
   let bi = [11]
-  let _ = !(
+  let _ = mov (
     if false {[12]}
     else {
       if true {bi}
@@ -33,11 +33,11 @@ fun test(a!) {
   })
   ()
 }
-ignore(test(![10]))
+ignore(test(mov [10]))
 
-fun test(a!) {
+fun test(mov a) {
   if true {ignore((a, 0))}
   else {()}
 }
 
-test(![10])
+test(mov [10])

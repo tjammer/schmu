@@ -7,7 +7,7 @@ import async
 
   let _ = {
     let v <- async/bind(future)
-    let v <- async/bind(async/return(!fmt/(str/print1("resolved to {}", int, v)))) [f2]
+    let v <- async/bind(async/return(mov fmt/(str/print1("resolved to {}", int, v)))) [f2]
     let v <- async/bind({
       println(v)
       copy(f2)
@@ -16,11 +16,11 @@ import async
     async/return(())
   }
 
-  let pr& = !promise -- make mutable by moving
+  let mut pr = mov promise -- make mutateable by moving
   println("resolving first promise")
-  async/resolve(&pr, 3)
+  async/resolve(mut pr, 3)
 
-  let p2& = !p2
+  let mut p2 = mov p2
   println("resolving second promise")
-  async/resolve(&p2, copy("a string"))
+  async/resolve(mut p2, copy("a string"))
 }
