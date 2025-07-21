@@ -86,13 +86,15 @@ let loc_equal (af, asnd) (bf, bsnd) =
   && Int.equal af.pos_cnum bf.pos_cnum
   && Int.equal asnd.pos_cnum bsnd.pos_cnum
 
-let check_unused env unused unmutated =
+let check_unused unused unmutated =
   let err (name, kind, loc) =
     let warn_kind =
       match kind with
       | Env.Unused -> "Unused binding "
       | Unmutated -> "Unmutated mutable binding "
       | Unused_mod -> "Unused module 'use' declaration "
+      | Unconstructed -> "Constructor is never used to build values: "
+      | Unused_ctor -> "Unused constructor: "
     in
 
     (* We need to use the location to match the errors because the two systems
@@ -100,12 +102,10 @@ let check_unused env unused unmutated =
     let print =
       match kind with
       | Env.Unmutated -> List.exists (fun l -> loc_equal l loc) unmutated
-      | Unused | Unused_mod -> true
+      | Unused | Unused_mod | Unconstructed | Unused_ctor -> true
     in
     if print then
-      (Option.get !fmt_msg_fn) "warning" loc
-        (warn_kind ^ Path.(rm_name (Env.modpath env) name |> show))
-      |> print_endline
+      (Option.get !fmt_msg_fn) "warning" loc (warn_kind ^ name) |> print_endline
   in
   List.iter err unused
 
@@ -316,7 +316,7 @@ let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
   in
 
   let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
-  check_unused env unused unmutated;
+  check_unused unused unmutated;
 
   let typ = Tfun (params_t, body.typ, kind) in
   match typ with
@@ -428,7 +428,7 @@ let make_type_param () =
   leave_level ();
   generalize typ
 
-let add_type_param env ts =
+let add_type_param env loc ts =
   List.fold_left_map
     (fun env name ->
       (* Create general type *)
@@ -438,13 +438,13 @@ let add_type_param env ts =
         { params = []; kind = Dalias t; in_sgn = false; contains_alloc }
       in
 
-      (Env.add_type name decl env, t))
+      (Env.add_type (Some loc) name decl env, t))
     env ts
 
-let add_self_recursion env name =
+let add_self_recursion env loc name =
   let kind = Dabstract None and contains_alloc = true in
   let decl = { params = []; kind; in_sgn = false; contains_alloc } in
-  Env.add_type name decl env
+  Env.add_type (Some loc) name decl env
 
 let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
   let recurs = ref false in
@@ -453,8 +453,8 @@ let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
   let labels, params =
     (* Temporarily add polymorphic type name to env *)
     let temp_env, params =
-      let tmp = add_self_recursion env name in
-      add_type_param tmp poly_param
+      let tmp = add_self_recursion env loc name in
+      add_type_param tmp loc poly_param
     in
     let absolute_path = Path.append name (Env.modpath env) in
     let labels =
@@ -503,18 +503,18 @@ let type_record env loc ~in_sgn Ast.{ name = { poly_param; name }; labels } =
   in
   (* Make sure that each type name only appears once per module *)
   check_type_unique ~in_sgn env loc name;
-  (Env.add_type name decl env, decl)
+  (Env.add_type (Some loc) name decl env, decl)
 
 let type_alias env loc ~in_sgn { Ast.poly_param; name } type_spec =
   (* Temporarily add polymorphic type name to env *)
-  let temp_env, params = add_type_param env poly_param in
+  let temp_env, params = add_type_param env loc poly_param in
   let typ = typeof_annot ~typedef:true temp_env loc type_spec in
 
   let contains_alloc = contains_allocation ~poly:false typ in
   let decl = { params; kind = Dalias typ; in_sgn; contains_alloc } in
   (* Make sure that each type name only appears once per module *)
   check_type_unique ~in_sgn env loc name;
-  (Env.add_type name decl env, decl)
+  (Env.add_type (Some loc) name decl env, decl)
 
 let type_abstract env loc { Ast.poly_param; name } =
   (* Make sure that each type name only appears once per module *)
@@ -526,13 +526,13 @@ let type_abstract env loc { Ast.poly_param; name } =
   and contains_alloc = true in
 
   let decl = { params; kind = Dabstract None; in_sgn = true; contains_alloc } in
-  (Env.add_type name decl env, decl)
+  (Env.add_type (Some loc) name decl env, decl)
 
 let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
   (* Temporarily add polymorphic type name to env *)
   let temp_env, params =
-    let tmp = add_self_recursion env name in
-    add_type_param tmp poly_param
+    let tmp = add_self_recursion env loc name in
+    add_type_param tmp loc poly_param
   in
 
   (* We follow the C way for C-style enums. At the same time, we forbid
@@ -564,7 +564,7 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
   let has_base = ref false in
   let behind_ptr = ref None in
   let absolute_path = Path.append name (Env.modpath env) in
-  let ctors =
+  let ty_ctors =
     List.map
       (fun { Ast.name = loc, cname; typ_annot; index } ->
         if Hashtbl.mem names cname then
@@ -626,14 +626,22 @@ let type_variant env loc ~in_sgn { Ast.name = { poly_param; name }; ctors } =
         match c.ctyp with
         | Some t -> contains_allocation ~poly:false t
         | None -> false)
-      false ctors
+      false ty_ctors
   in
   let decl =
-    { params; kind = Dvariant (meta, ctors); in_sgn; contains_alloc }
+    { params; kind = Dvariant (meta, ty_ctors); in_sgn; contains_alloc }
   in
   (* Make sure that each type name only appears once per module *)
   check_type_unique ~in_sgn env loc name;
-  (Env.add_type name decl env, decl)
+  let env = Env.add_type (Some loc) name decl env in
+  let env =
+    List.fold_left
+      (fun env (ctor : Ast.ctor) ->
+        let loc, name = ctor.name in
+        Env.add_ctor_loc name loc env)
+      env ctors
+  in
+  (env, decl)
 
 let convert_simple_lit loc typ expr =
   { typ; expr = Const expr; attr = { no_attr with const = true }; loc }
@@ -983,7 +991,7 @@ end = struct
     in
 
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
-    check_unused env unused unmutated;
+    check_unused unused unmutated;
 
     let typ = Tfun (params_t, body.typ, kind) in
 
@@ -1807,7 +1815,7 @@ let rec convert_module env loc mname prog check_ret =
 
   let has_sign = match prog.sgn with [] -> false | _ -> true in
   if (not (is_module (Env.modpath prog.env))) || has_sign then
-    check_unused prog.env unused unmutated;
+    check_unused unused unmutated;
 
   (* Program must evaluate to either int or unit *)
   (if check_ret then
@@ -2214,7 +2222,8 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~start_loc:loc ~std prog =
     fold_builtins
       (fun env name decl ->
         let params = List.map regeneralize decl.params in
-        Env.add_type ~append_module:false name { decl with params } env)
+        Env.add_type (Some loc) ~append_module:false name { decl with params }
+          env)
       (Env.empty ~find_module ~scope_of_located mname)
   in
 

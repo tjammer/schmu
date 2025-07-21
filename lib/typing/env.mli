@@ -13,9 +13,9 @@ type value = {
   mname : Path.t option;
 }
 
-type warn_kind = Unused | Unmutated | Unused_mod
+type warn_kind = Unused | Unmutated | Unused_mod | Unconstructed | Unused_ctor
 
-type unused = (Path.t * warn_kind * Ast.loc) list
+type unused = (key * warn_kind * Ast.loc) list
 
 and touched = {
   tname : string;
@@ -66,7 +66,9 @@ val get_used : key -> t -> bool
 val set_used : key -> t -> bool -> bool
 (** Returns if the usage value was changed. To not mark internal recursive calls as used *)
 
-val add_type : ?append_module:bool -> string -> type_decl -> t -> t
+val add_type :
+  Ast.loc option -> ?append_module:bool -> string -> type_decl -> t -> t
+
 val add_module : key:string -> cached_module -> t -> t
 val add_module_alias : Ast.loc -> key:string -> mname:Path.t -> t -> t
 val add_module_type : string -> Module_type.t -> t -> t
@@ -104,9 +106,15 @@ val find_label_opt : key -> t -> label option
 val find_labelset_opt : Ast.loc -> string list -> t -> typ option
 (** [find_labelset_opt labelnames env] returns the first record type with a matching labelset *)
 
-val find_ctor_opt : key -> t -> label option
+val find_ctor_opt : key -> [< `Construct | `Match ] -> t -> label option
 (** [find_ctor_opt cname env] returns the variant of which the ctor is part of
     as well as the type of the ctor if it has data *)
+
+val add_ctor_loc : key -> Ast.loc -> t -> t
+(** [add_ctor_loc cname loc env] returns the env with the added location to the ctor *)
+
+val construct_ctor_of_variant :
+  key -> Path.t -> [< `Construct | `Match ] -> t -> unit
 
 val externals : t -> ext list
 (** [externals env] returns a list of all external function declarations *)

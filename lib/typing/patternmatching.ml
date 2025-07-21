@@ -94,8 +94,8 @@ let ctors_of_variant loc path params env =
       Ok ctors
   | _ -> Error ()
 
-let get_ctor env loc name =
-  match Env.find_ctor_opt name env with
+let get_ctor env loc mode name =
+  match Env.find_ctor_opt name mode env with
   | Some { index; typename } ->
       (* We get the ctor type from the variant *)
       let clike, ctor =
@@ -115,7 +115,7 @@ let lor_clike_hack env loc name annot =
   | Some variant -> (
       match repr variant with
       | Tconstr (Path.Pid "int", _, _) -> (
-          match get_ctor env loc name with
+          match get_ctor env loc `Construct name with
           | Some (_, clike, ctor) ->
               if clike then
                 let attr = { no_attr with const = true } in
@@ -131,7 +131,7 @@ let lor_clike_hack env loc name annot =
       | _ -> None)
   | None -> None
 
-let get_variant env loc (_, name) annot =
+let get_variant env loc mode (_, name) annot =
   (* Don't use clean directly, to keep integrity of link *)
   let raise_ t =
     let msg =
@@ -153,7 +153,9 @@ let get_variant env loc (_, name) annot =
           in
           let ctor =
             match array_assoc_opt name ctors with
-            | Some ctor -> ctor
+            | Some ctor ->
+                Env.construct_ctor_of_variant name path mode env;
+                ctor
             | None ->
                 let msg =
                   Printf.sprintf "Unbound constructor %s on variant %s"
@@ -166,7 +168,7 @@ let get_variant env loc (_, name) annot =
       | t -> raise_ t)
   | None -> (
       (* There is some overlap with [get_ctor] *)
-      match Env.find_ctor_opt name env with
+      match Env.find_ctor_opt name mode env with
       | Some { index; typename } ->
           let decl, path = Env.find_type loc typename env in
           let ctors =
@@ -697,7 +699,9 @@ module Make (C : Core) (R : Recs) = struct
     match lor_clike_hack env loc (snd name) annot with
     | Some expr -> expr
     | None -> (
-        let typename, ctor, variant = get_variant env loc name annot in
+        let typename, ctor, variant =
+          get_variant env loc `Construct name annot
+        in
         match (ctor.ctyp, arg) with
         | Some typ, Some expr ->
             let texpr = convert env expr in
@@ -829,7 +833,7 @@ module Make (C : Core) (R : Recs) = struct
        be visited more efficiently *)
     | Ast.Pctor ((loc, name), payload) -> (
         let annot = make_annot (path_typ loc env path) in
-        let _, ctor, variant = get_variant env loc (loc, name) annot in
+        let _, ctor, variant = get_variant env loc `Match (loc, name) annot in
         unify
           (loc, "Variant pattern has unexpected type:")
           (path_typ loc env path) variant env;

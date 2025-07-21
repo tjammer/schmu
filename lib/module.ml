@@ -392,7 +392,7 @@ let rec add_to_env env foreign (mname, m) =
         List.fold_left
           (fun env item ->
             match item with
-            | Mtype (_, name, decl) -> Env.add_type name decl env
+            | Mtype (_, name, decl) -> Env.add_type None name decl env
             | Mfun (l, typ, n) ->
                 Env.(
                   add_value n.user { def_val with typ; global = true } l env
@@ -453,7 +453,7 @@ let rec add_to_env env foreign (mname, m) =
             (fun env (name, loc, kind) ->
               match kind with
               (* Not in the signature of the module we add it to *)
-              | Mtypedef decl -> Env.add_type name decl env
+              | Mtypedef decl -> Env.add_type None name decl env
               | Mvalue (typ, cn) -> (
                   Env.(add_value name { def_val with typ } loc env)
                   |> fun env ->
@@ -684,7 +684,7 @@ let scope_of_functor_param env loc ~param mt =
       (fun env (name, loc, kind) ->
         match kind with
         (* Not in the signature of the module we add it to *)
-        | Mtypedef decl -> Env.add_type name decl env
+        | Mtypedef decl -> Env.add_type (Some loc) name decl env
         | Mvalue (typ, _) ->
             Env.(add_value name { (def_mname param) with typ } loc env))
       env (List.rev mt)

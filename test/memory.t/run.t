@@ -5085,8 +5085,23 @@ Fix parent reentering
 
 Fix partial parent setting
   $ schmu set_partial_parent.smu
+  set_partial_parent.smu:4.18-29: warning: Constructor is never used to build values: Resolv_deps.
+  
+  4 | type key_state = Resolv_deps | Building(building) | Built(built)
+                       ^^^^^^^^^^^
+  
   $ valgrind -q --leak-check=yes --show-reachable=yes ./set_partial_parent
 
 Correctly track partial moves in record expressions
   $ schmu partial_move_in_record.smu
+  partial_move_in_record.smu:4.26-32: warning: Unused constructor: Module.
+  
+  4 | type rule = Executable | Module
+                               ^^^^^^
+  
+  partial_move_in_record.smu:8.45-53: warning: Constructor is never used to build values: Building.
+  
+  8 | type key_state = Resolv_deps(resolv_deps) | Building(building) | Built(built)
+                                                  ^^^^^^^^
+  
   $ valgrind -q --leak-check=yes --show-reachable=yes ./partial_move_in_record

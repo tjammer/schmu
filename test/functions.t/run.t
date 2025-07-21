@@ -3364,4 +3364,9 @@ Unit parameters in folds
 
 Monomorphize types where the correct subst doesn't show up immediately
   $ schmu monomorph_later.smu
+  monomorph_later.smu:14.5-10: warning: Constructor is never used to build values: Other.
+  
+  14 |   | Other(rc[prom_state])
+           ^^^^^
+  
   $ valgrind -q --leak-check=yes --show-reachable=yes ./monomorph_later

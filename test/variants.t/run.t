@@ -1,5 +1,15 @@
 Basic variant ctors
   $ schmu basic.smu --dump-llvm
+  basic.smu:4.15-18: warning: Unused constructor: One.
+  
+  4 | type larger = One | Two(foo) | Three(int)
+                    ^^^
+  
+  basic.smu:8.14-15: warning: Unused constructor: A.
+  
+  8 | type clike = A | B | C | D | E
+                   ^
+  
   basic.smu:12.5-15: warning: Unused binding wrap_clike.
   
   12 | fun wrap_clike() { C }
@@ -1209,6 +1219,11 @@ Record literals in pattern matches
 
 Const ctors
   $ schmu const_ctor_issue.smu --dump-llvm
+  const_ctor_issue.smu:2.27-32: warning: Constructor is never used to build values: Thing.
+  
+  2 | type var = Float(float) | Thing(thing)
+                                ^^^^^
+  
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
@@ -1285,9 +1300,19 @@ Support path prefixes in match patterns
 
 Regression test for this if structure
   $ schmu failwith_ifs.smu
+  failwith_ifs.smu:2.33-39: warning: Constructor is never used to build values: Rcurly.
+  
+  2 | type token = With | Semicolon | Rcurly
+                                      ^^^^^^
+  
 
 Regression test for tuple match
   $ schmu tuple_match_regression.smu
+  tuple_match_regression.smu:1.12-13: warning: Constructor is never used to build values: A.
+  
+  1 | type tok = A | B | C(int)
+                 ^
+  
   $ ./tuple_match_regression
   c
   none

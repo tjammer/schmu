@@ -24,8 +24,16 @@ module Map = Map.Make (String)
 type key = string
 
 type label = {
-  index : int; (* index of laber in record labels array *)
+  index : int; (* index of label in record labels array *)
   typename : Path.t;
+}
+
+type ctor_usage = {
+  index : int;
+  typename : Path.t;
+  constructed : bool ref;
+  matched : bool ref;
+  loc : Ast.loc;
 }
 
 type value = {
@@ -86,7 +94,7 @@ and touched = {
   tmname : Path.t option;
 }
 
-type usage_list = (Path.t * usage) list ref
+type usage_list = (key * usage) list ref
 
 type scope_kind =
   | Stoplevel of usage_list
@@ -100,7 +108,7 @@ type scope = {
   closed : Closed_set.t ref;
   labels : label Map.t; (* For single labels (field access) *)
   labelsets : Path.t Lmap.t; (* For finding the type of a record expression *)
-  ctors : label Map.t; (* Variant constructors *)
+  ctors : ctor_usage list Map.t; (* Variant constructors *)
   types : (type_decl * Path.t) Map.t;
   kind : scope_kind; (* Another list for local scopes (like in if) *)
   modules : cached_module Map.t; (* Locally declared modules *)
@@ -125,8 +133,8 @@ type t = {
   decl_tbl : (Path.t, type_decl) Hashtbl.t;
 }
 
-type warn_kind = Unused | Unmutated | Unused_mod
-type unused = (Path.t * warn_kind * Ast.loc) list
+type warn_kind = Unused | Unmutated | Unused_mod | Unconstructed | Unused_ctor
+type unused = (key * warn_kind * Ast.loc) list
 
 let def_value env =
   {
@@ -203,7 +211,7 @@ let add_value key (value : value) loc env =
               else ref false
             and imported = is_imported env.modpath value.mname in
             let usage = { loc; used; imported; mutated } in
-            usages := (Path.Pid key, usage) :: !usages;
+            usages := (key, usage) :: !usages;
             usage
         | Smodule _ ->
             assert (Option.is_some value.mname);
@@ -248,7 +256,7 @@ let add_external ext_name ~cname typ loc env =
         in
         (match scope.kind with
         | Stoplevel usages | Sfunc usages | Scont usages ->
-            usages := (Path.Pid ext_name, usage) :: !usages
+            usages := (ext_name, usage) :: !usages
         | Smodule _ -> failwith "Internal Error: add_external on Smodule");
 
         let valmap = Map.add ext_name value scope.valmap in
@@ -312,11 +320,23 @@ let add_labels typename labelset labels scope =
 
   (labelsets, labels)
 
-let add_ctors typename ctors scope =
+let add_ctors typename ctors loc scope =
   let _, ctors =
     Array.fold_left
       (fun (index, ctors) (ctor : ctor) ->
-        (index + 1, Map.add ctor.cname { index; typename } ctors))
+        let loc, constructed, matched =
+          match loc with
+          | None -> (Lexing.(dummy_pos, dummy_pos), ref true, ref true)
+          | Some loc -> (loc, ref false, ref false)
+        in
+        let usage = { index; typename; loc; constructed; matched } in
+
+        let ctors =
+          match Map.find_opt ctor.cname ctors with
+          | Some cts -> Map.add ctor.cname (usage :: cts) ctors
+          | None -> Map.add ctor.cname [ usage ] ctors
+        in
+        (index + 1, ctors))
       (0, scope.ctors) ctors
   in
   ctors
@@ -336,12 +356,12 @@ let add_record record (decl : type_decl) ~recurs ~labels env =
   Hashtbl.add env.decl_tbl abs_name decl;
   { env with values = { scope with labels; types; labelsets } :: tl }
 
-let add_variant variant (decl : type_decl) ~recurs ~ctors env =
+let add_variant variant (decl : type_decl) loc ~recurs ~ctors env =
   let scope, tl = decap_exn env in
   let decl = { decl with kind = Dvariant (recurs, ctors) } in
 
   let abs_name = Path.append variant env.modpath in
-  let ctors = add_ctors abs_name ctors scope in
+  let ctors = add_ctors abs_name ctors loc scope in
   let types = Map.add variant (decl, abs_name) scope.types in
   Hashtbl.add env.decl_tbl abs_name decl;
   { env with values = { scope with ctors; types } :: tl }
@@ -405,6 +425,24 @@ let find_unused ret usages =
       else if not !(used.mutated) then (name, Unmutated, used.loc) :: acc
       else acc)
     ret usages
+
+let find_unused_ctors unused ctors =
+  (* Only warn once per type *)
+  let set = ref Set.empty in
+  Map.fold
+    (fun name cs unused ->
+      let name = String.capitalize_ascii name in
+      List.fold_left
+        (fun unused c ->
+          if (not !(c.constructed)) && not (Set.mem (Path.show c.typename) !set)
+          then (
+            set := Set.add (Path.show c.typename) !set;
+            (if not !(c.matched) then (name, Unused_ctor, c.loc)
+             else (name, Unconstructed, c.loc))
+            :: unused)
+          else unused)
+        unused cs)
+    ctors unused
 
 let rec is_module_used modules =
   Map.fold
@@ -487,6 +525,7 @@ let close_thing is_same modpath env =
         match scope.kind with
         | (Stoplevel usage | Sfunc usage) when is_same scope.kind ->
             let unused = find_unused unused !usage in
+            let unused = find_unused_ctors unused scope.ctors in
             ( { env with values = tl; modpath },
               closed @ old_closed,
               touched @ old_touched,
@@ -499,7 +538,7 @@ let close_thing is_same modpath env =
         | Smodule { name; loc; used } ->
             let unused =
               if !used || is_module_used scope.modules then unused
-              else (name, Unused_mod, loc) :: unused
+              else (Path.show name, Unused_mod, loc) :: unused
             in
             aux (closed @ old_closed) (touched @ old_touched) unused tl)
   in
@@ -749,17 +788,54 @@ let find_labelset_opt loc labels env =
   in
   aux env.values
 
-let find_ctor_opt name env =
+let find_ctor_opt name mode env =
   let rec aux = function
     | [] -> None
     | scope :: tl -> (
         match Map.find_opt name scope.ctors with
         | Some c ->
             mark_module_used scope.kind;
-            Some c
+            (* This list should never be empty *)
+            let c = List.hd c in
+            (match mode with
+            | `Construct -> c.constructed := true
+            | `Match -> c.matched := true);
+            Some { index = c.index; typename = c.typename }
         | None -> aux tl)
   in
   aux env.values
+
+let construct_ctor_of_variant name typename mode env =
+  let rec aux = function
+    | [] -> ()
+    | scope :: tl -> (
+        match Map.find_opt name scope.ctors with
+        | Some ctors -> (
+            match
+              List.find_opt (fun c -> Path.equal c.typename typename) ctors
+            with
+            | Some c -> (
+                match mode with
+                | `Construct -> c.constructed := true
+                | `Match -> c.matched := true)
+            | None -> aux tl)
+        | None -> aux tl)
+  in
+  aux env.values
+
+let add_ctor_loc name loc env =
+  let rec aux = function
+    | [] -> []
+    | scope :: stl -> (
+        match Map.find_opt name scope.ctors with
+        | Some (hd :: tl) ->
+            (* This list should never be empty *)
+            let ctors = Map.add name ({ hd with loc } :: tl) scope.ctors in
+            { scope with ctors } :: stl
+        | Some [] -> failwith "Internal Error: Ctor list empty"
+        | _ -> scope :: aux stl)
+  in
+  { env with values = aux env.values }
 
 let rec make_alias_usable scope env = function
   | Tconstr (path, _, _) -> (
@@ -774,7 +850,7 @@ let rec make_alias_usable scope env = function
           { scope with labelsets; labels }
       | Dvariant (_, ctors) ->
           (* TODO unfold? *)
-          let ctors = add_ctors path ctors scope in
+          let ctors = add_ctors path ctors None scope in
           { scope with ctors }
       | Dalias typ -> make_alias_usable scope env typ
       | _ -> scope)
@@ -789,10 +865,11 @@ let add_alias alias decl typ env =
   Hashtbl.add env.decl_tbl abs_name decl;
   { env with values = { scope with types } :: tl }
 
-let add_type ?(append_module = true) name decl env =
+let add_type loc ?(append_module = true) name decl env =
+  ignore loc;
   match Types.(decl.kind) with
   | Drecord (recurs, labels) -> add_record name decl ~recurs ~labels env
-  | Dvariant (recurs, ctors) -> add_variant name decl ~recurs ~ctors env
+  | Dvariant (recurs, ctors) -> add_variant name decl loc ~recurs ~ctors env
   | Dalias typ -> add_alias name decl typ env
   | Dabstract _ ->
       let scope, tl = decap_exn env in

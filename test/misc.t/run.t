@@ -2074,6 +2074,11 @@ Weak rcs
 
 Cyclic ref counts
   $ schmu rc_cycle.smu
+  rc_cycle.smu:2.19-25: warning: Unused constructor: Strong.
+  
+  2 | type any_rc['a] = Strong(rc['a]) | Weak(weak_rc['a])
+                        ^^^^^^
+  
   $ valgrind -q --leak-check=yes --show-reachable=yes ./rc_cycle
 
 Currying in pipes
@@ -2084,8 +2089,18 @@ Currying in pipes
 
 Codgen fixes for recursive types
   $ schmu codegen_recursive.smu
+  codegen_recursive.smu:5.5-10: warning: Constructor is never used to build values: Other.
+  
+  5 |   | Other(rc[prom_state])
+          ^^^^^
+  
 
   $ schmu codegen_recursive2.smu
+  codegen_recursive2.smu:14.5-10: warning: Constructor is never used to build values: Other.
+  
+  14 |   | Other(rc[prom_state])
+           ^^^^^
+  
   $ valgrind -q --leak-check=yes --show-reachable=yes ./codegen_recursive2
 
 No unmutated warning on addr
@@ -2093,4 +2108,9 @@ No unmutated warning on addr
 
 Regression test for miscompile
   $ schmu miscompile_variant_parents.smu
+  miscompile_variant_parents.smu:12.66-71: warning: Constructor is never used to build values: Built.
+  
+  12 | type key_state = Resolv_deps(resolv_deps) | Building(building) | Built(built)
+                                                                        ^^^^^
+  
   $ valgrind -q --leak-check=yes --show-reachable=yes ./miscompile_variant_parents
