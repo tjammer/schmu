@@ -14,14 +14,17 @@ let default next state =
   saved_state := { state with last = next };
   next
 
+let continues_expr = function
+  | Parser.Dot | Else | Or | And | Hbar | Pipe | Pipe_last | Mult_op _
+  | Cmp_op _ | Eq_op _ | Plus_op _ ->
+      true
+  | _ -> false
+
 let rec newline ~lnum lexbuf next state =
   match (state.last, next) with
-  | ( _,
-      ( Parser.Dot | Eof | Rcurly | Else | Or | And | Hbar | Rbrack | Rpar
-      | Pipe | Pipe_last | Mult_op _ | Cmp_op _ | Eq_op _ | Plus_op _ ) ) ->
-      (* These tokens continue expressions on the new line. Rcurly closes
-         the block; in that case we do not want to insert a semicolon. Some
-         with Eof *)
+  | _, (Parser.Eof | Rcurly | Rbrack | Rpar) ->
+      (* These tokens end a block or expression or the file. Don't insert a
+         semicolon in these cases *)
       default next { state with lnum }
   | Parser.Semicolon, Semicolon ->
       (* Ignore following semicolons *)
@@ -30,9 +33,12 @@ let rec newline ~lnum lexbuf next state =
   | ( ( Parser.Rpar | Ident _ | Builtin_id _ | Rbrack | Rcurly | Int _ | Float _
       | U8 _ | U16 _ | I32 _ | F32 _ | True | False | String_lit _ | Ctor _ ),
       _ ) ->
-      (* These tokens end an expression, insert Semicolon *)
-      saved_state := { lnum; buffered = Some next; last = Semicolon };
-      Semicolon
+      (* These tokens end an expression, insert Semicolon unless an
+         expressions continues on next line. *)
+      if continues_expr next then default next { state with lnum }
+      else (
+        saved_state := { lnum; buffered = Some next; last = Semicolon };
+        Semicolon)
   | _ -> default next { state with lnum }
 
 and read lexbuf =
