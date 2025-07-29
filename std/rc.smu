@@ -5,6 +5,8 @@ signature {
   val create : fun (mov 'a) -> rc['a]
   val count : fun (rc['a]) -> int
 
+  val equal : fun (rc['a], rc['a]) -> bool
+
   val extract : fun (mov rc['a]) -> option/t['a]
   val read : fun (rc['a], once fun ('a) -> 'b) -> 'b
   val write: fun (mut rc['a], once fun (mut 'a) -> 'b) -> 'b
@@ -16,6 +18,8 @@ signature {
 let create = __rc_create
 let to_weak = __rc_to_weak
 let count = __rc_cnt
+
+let equal = __rc_equal
 
 use option
 use prelude

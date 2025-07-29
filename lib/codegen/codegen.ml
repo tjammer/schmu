@@ -1020,6 +1020,10 @@ end = struct
         List.hd args |> bring_default_var |> fun llvar -> R.unsafe_of_weak llvar
     | Rc_cnt | Rc_wcnt ->
         List.hd args |> bring_default_var |> fun llvar -> R.cnt llvar
+    | Rc_equal ->
+        let a, b = binary () in
+        let value = Llvm.(build_icmp Icmp.Eq a b "rceq") builder in
+        { value; lltyp = bool_t; typ = Tbool; kind = Imm }
     | Any_abort -> (
         let ft, abort =
           Llvm.(

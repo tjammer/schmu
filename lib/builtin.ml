@@ -64,6 +64,7 @@ type t =
   | Unsafe_rc_of_weak
   | Rc_cnt
   | Rc_wcnt
+  | Rc_equal
   | Any_abort
   | Any_exit
 [@@deriving show]
@@ -300,6 +301,12 @@ let tbl =
     (Rc_cnt, Tfun ([ { pm with pt = trc (Qvar "0") } ], tint, Simple));
   Hashtbl.add tbl "__rc_cntw"
     (Rc_wcnt, Tfun ([ { pm with pt = tweak_rc (Qvar "0") } ], tint, Simple));
+  Hashtbl.add tbl "__rc_equal"
+    ( Rc_equal,
+      Tfun
+        ( [ { pm with pt = trc (Qvar "0") }; { pm with pt = trc (Qvar "0") } ],
+          tbool,
+          Simple ) );
   Hashtbl.add tbl "__any_abort" (Any_abort, Tfun ([], Qvar "0", Simple));
   Hashtbl.add tbl "__any_exit"
     (Any_exit, Tfun ([ { pm with pt = ti32 } ], Qvar "0", Simple));
