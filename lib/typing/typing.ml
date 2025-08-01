@@ -933,7 +933,9 @@ end = struct
             params
           |> List.split
         in
-        let typ = Tfun (ps, newvar (), Simple) in
+        (* Create an empty closure. This causes inner functions to close over
+           recursive calls correctly *)
+        let typ = Tfun (ps, newvar (), Closure []) in
         ( Env.(
             add_value name { (def_value env) with typ } nameloc env
             |> add_callname ~key:name (name, Some (modpath env), unique)),
@@ -955,6 +957,15 @@ end = struct
     leave_level ();
 
     let env, closed_vars, touched, unused = Env.close_function env in
+
+    (* Remove self from closed vars *)
+    let closed_vars =
+      if is_rec then
+        List.filter
+          (fun c -> if String.equal c.clname name then false else true)
+          closed_vars
+      else closed_vars
+    in
 
     let unmutated, body, touched =
       let params =

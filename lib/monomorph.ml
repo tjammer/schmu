@@ -59,6 +59,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     alloc_lvl : int;
     recursion_stack : (string * recurs) list;
     gen_poly_bodies : bool;
+    remove_from_closure : Sset.t;
   }
 
   let apptbl = Apptbl.create 64

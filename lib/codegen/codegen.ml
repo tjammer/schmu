@@ -499,8 +499,8 @@ end = struct
           match kind with
           | Simple -> (func.value, func.lltyp, Seq.empty)
           | Closure _ ->
-              (* In this case we are in a recursive closure function.
-                 We get the closure env and add it to the arguments we pass *)
+              (* We are in a recursive closure function. Get the closure env
+                 and add it to the arguments we pass *)
               let closure_index =
                 (Llvm.params func.value |> Array.length) - 1
               in
@@ -1584,9 +1584,10 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
     in
 
     (* Generate functions *)
-    List.fold_left
-      (fun acc func -> Core.gen_function acc func)
-      { no_param with vars } funcs
+    List.iter
+      (fun func -> Core.gen_function { no_param with vars } func |> ignore)
+      funcs;
+    { no_param with vars }
   in
 
   let free_mallocs tree frees =

@@ -1,0 +1,27 @@
+module type ordered {
+  type t
+}
+functor make(ord : ordered) {
+  type key = ord/t
+  type t = { l : option[rc[t]], v : key, r : option[rc[t]], h : int }
+  fun iter(t, cont) {
+    let whatever = 25
+    fun rec aux(t) {
+      match t {
+        None -> {
+          ignore(whatever)
+          false
+        }
+        Some(rc) -> {
+          -- let {l, v, r, h } <- rc/read(rc)
+          rc/read(rc, fun i {
+            cont and aux(i.r)
+          })
+          -- cont and aux(r)
+        }
+      }
+    }
+    aux(t)
+  }
+}
+module set = make(int)

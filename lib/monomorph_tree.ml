@@ -364,9 +364,9 @@ let rec cln ss p t =
 
 and cln_kind ss p touched = function
   | Simple -> Simple
-  | Closure vals ->
+  | Closure vals -> (
       let vals =
-        List.map
+        List.filter_map
           (fun (cl : Types.closed) ->
             let typ = cln ss p cl.cltyp in
             let modded_name =
@@ -376,24 +376,30 @@ and cln_kind ss p touched = function
                     cl.clname
               | None -> cl.clname
             in
-            let clname =
-              if not cl.clparam then
-                extract_callname modded_name p.vars
-                  (Mvar (modded_name, Vnorm, None))
-              else modded_name
-            in
-            let clmoved = find_moved p cl.clname touched in
-            {
-              clname;
-              cltyp = typ;
-              clmut = cl.clmut;
-              clparam = cl.clparam;
-              clcopy = cl.clcopy;
-              clmoved;
-            })
+            if Sset.mem modded_name p.remove_from_closure then None
+            else
+              let clname =
+                if not cl.clparam then
+                  extract_callname modded_name p.vars
+                    (Mvar (modded_name, Vnorm, None))
+                else modded_name
+              in
+              let clmoved = find_moved p cl.clname touched in
+              Some
+                {
+                  clname;
+                  cltyp = typ;
+                  clmut = cl.clmut;
+                  clparam = cl.clparam;
+                  clcopy = cl.clcopy;
+                  clmoved;
+                })
           vals
       in
-      Closure vals
+      (* By removing a closure (from a recursive function which didn't close)
+         it can happen that the closure in now empty. Return [Simple] aka
+         no closure *)
+      match vals with [] -> Simple | vals -> Closure vals)
 
 and find_moved p clname touched =
   match
@@ -1009,6 +1015,11 @@ and prep_func p func_loc (usrname, uniq, abs) =
     reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule usrname
   in
 
+  let remove_from_closure =
+    abs.is_rec
+    && match abs.func.kind with Types.Simple -> true | Closure _ -> false
+  in
+
   (* In this case, the function is not really monomorphized, but might be
      defined already in another module. Setting it 'monomorphized' will cause it
      to be linked as [Once_odr] in codegen. *)
@@ -1082,6 +1093,11 @@ and prep_func p func_loc (usrname, uniq, abs) =
          malloc set for the body. We have to re-add them here. *)
       let vars, mallocs = add_moved_touched vars mallocs kind in
 
+      let remove_from_closure =
+        if remove_from_closure then Sset.add username p.remove_from_closure
+        else p.remove_from_closure
+      in
+
       {
         p with
         vars;
@@ -1089,6 +1105,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
         mallocs;
         toplvl = false;
         recursion_stack;
+        remove_from_closure;
       }
     in
 
@@ -1557,6 +1574,7 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
       alloc_lvl = 1;
       recursion_stack = [];
       gen_poly_bodies = false;
+      remove_from_closure = Sset.empty;
     }
   in
   let p, tree, _ = morph_toplvl param items in

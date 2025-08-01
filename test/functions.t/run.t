@@ -3370,3 +3370,171 @@ Monomorphize types where the correct subst doesn't show up immediately
            ^^^^^
   
   $ valgrind -q --leak-check=yes --show-reachable=yes ./monomorph_later
+
+Inner functions which call a recursive outer closure must close correctly over
+the closure's environment
+  $ schmu --dump-llvm inner_recursive_closure_call.smu 2>&1 | grep -v !DI
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %closure = type { ptr, ptr }
+  %set.t = type { %option.t.R.set.t, i64, %option.t.R.set.t, i64 }
+  %option.t.R.set.t = type { i32, ptr }
+  
+  @schmu_set_whatever = internal constant i64 25
+  
+  define i1 @__fun_schmu_set0(ptr %i, ptr %0) !dbg !2 {
+  entry:
+    %cont = getelementptr inbounds { ptr, ptr, %closure, i1 }, ptr %0, i32 0, i32 3
+    %cont1 = load i1, ptr %cont, align 1
+    br i1 %cont1, label %true1, label %cont2
+  
+  true1:                                            ; preds = %entry
+    %1 = getelementptr inbounds %set.t, ptr %i, i32 0, i32 2
+    %fst3 = load i32, ptr %1, align 4
+    %snd = getelementptr inbounds { i32, i64 }, ptr %1, i32 0, i32 1
+    %snd4 = load i64, ptr %snd, align 8
+    %sunkaddr = getelementptr inbounds i8, ptr %0, i64 16
+    %loadtmp = load ptr, ptr %sunkaddr, align 8
+    %sunkaddr6 = getelementptr inbounds i8, ptr %0, i64 24
+    %loadtmp5 = load ptr, ptr %sunkaddr6, align 8
+    %2 = tail call i1 %loadtmp(i32 %fst3, i64 %snd4, ptr %loadtmp5), !dbg !6
+    br i1 %2, label %true2, label %cont2
+  
+  true2:                                            ; preds = %true1
+    br label %cont2
+  
+  cont2:                                            ; preds = %true2, %true1, %entry
+    %andtmp = phi i1 [ false, %entry ], [ false, %true1 ], [ true, %true2 ]
+    ret i1 %andtmp
+  }
+  
+  define linkonce_odr i1 @__rc_read_R.set.trc_read_set.trbrb(ptr %rc, ptr %fn) !dbg !7 {
+  entry:
+    %data = getelementptr i64, ptr %rc, i64 2
+    %loadtmp = load ptr, ptr %fn, align 8
+    %envptr = getelementptr inbounds %closure, ptr %fn, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    %0 = tail call i1 %loadtmp(ptr %data, ptr %loadtmp1), !dbg !9
+    ret i1 %0
+  }
+  
+  define i1 @schmu_set_aux(i32 %0, i64 %1, ptr %2) !dbg !10 {
+  entry:
+    %cont = getelementptr inbounds { ptr, ptr, i1 }, ptr %2, i32 0, i32 2
+    %cont1 = load i1, ptr %cont, align 1
+    %reccls = alloca %closure, align 8
+    store ptr @schmu_set_aux, ptr %reccls, align 8
+    %envptr = getelementptr inbounds %closure, ptr %reccls, i32 0, i32 1
+    store ptr %2, ptr %envptr, align 8
+    %t = alloca { i32, i64 }, align 8
+    store i32 %0, ptr %t, align 4
+    %snd = getelementptr inbounds { i32, i64 }, ptr %t, i32 0, i32 1
+    store i64 %1, ptr %snd, align 8
+    %eq = icmp eq i32 %0, 0
+    br i1 %eq, label %ifcont, label %else, !dbg !11
+  
+  else:                                             ; preds = %entry
+    %3 = inttoptr i64 %1 to ptr, !dbg !11
+    %__fun_schmu_set0 = alloca %closure, align 8
+    store ptr @__fun_schmu_set0, ptr %__fun_schmu_set0, align 8
+    %clsr___fun_schmu_set0 = alloca { ptr, ptr, %closure, i1 }, align 8
+    %monoclstmp = alloca %closure, align 8
+    store ptr %reccls, ptr %monoclstmp, align 8
+    %clsr_monoclstmp = alloca { ptr, ptr, i1 }, align 8
+    %cont4 = getelementptr inbounds { ptr, ptr, i1 }, ptr %clsr_monoclstmp, i32 0, i32 2
+    store i1 %cont1, ptr %cont4, align 1
+    store ptr @__ctor_tp.b, ptr %clsr_monoclstmp, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, i1 }, ptr %clsr_monoclstmp, i32 0, i32 1
+    store ptr null, ptr %dtor, align 8
+    %envptr5 = getelementptr inbounds %closure, ptr %monoclstmp, i32 0, i32 1
+    store ptr %clsr_monoclstmp, ptr %envptr5, align 8
+    %schmu_set_aux = getelementptr inbounds { ptr, ptr, %closure, i1 }, ptr %clsr___fun_schmu_set0, i32 0, i32 2
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %schmu_set_aux, ptr align 8 %monoclstmp, i64 16, i1 false)
+    %cont6 = getelementptr inbounds { ptr, ptr, %closure, i1 }, ptr %clsr___fun_schmu_set0, i32 0, i32 3
+    store i1 %cont1, ptr %cont6, align 1
+    store ptr @__ctor_tp._option.t.R.set.trbb, ptr %clsr___fun_schmu_set0, align 8
+    %dtor8 = getelementptr inbounds { ptr, ptr, %closure, i1 }, ptr %clsr___fun_schmu_set0, i32 0, i32 1
+    store ptr null, ptr %dtor8, align 8
+    %envptr9 = getelementptr inbounds %closure, ptr %__fun_schmu_set0, i32 0, i32 1
+    store ptr %clsr___fun_schmu_set0, ptr %envptr9, align 8
+    %4 = call i1 @__rc_read_R.set.trc_read_set.trbrb(ptr %3, ptr %__fun_schmu_set0), !dbg !12
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %entry, %else
+    %iftmp = phi i1 [ %4, %else ], [ false, %entry ]
+    ret i1 %iftmp
+  }
+  
+  define i1 @schmu_set_iter(i32 %0, i64 %1, i1 %cont) !dbg !13 {
+  entry:
+    %t = alloca { i32, i64 }, align 8
+    store i32 %0, ptr %t, align 4
+    %snd = getelementptr inbounds { i32, i64 }, ptr %t, i32 0, i32 1
+    store i64 %1, ptr %snd, align 8
+    %schmu_set_aux = alloca %closure, align 8
+    store ptr @schmu_set_aux, ptr %schmu_set_aux, align 8
+    %clsr_schmu_set_aux = alloca { ptr, ptr, i1 }, align 8
+    %cont1 = getelementptr inbounds { ptr, ptr, i1 }, ptr %clsr_schmu_set_aux, i32 0, i32 2
+    store i1 %cont, ptr %cont1, align 1
+    store ptr @__ctor_tp.b, ptr %clsr_schmu_set_aux, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, i1 }, ptr %clsr_schmu_set_aux, i32 0, i32 1
+    store ptr null, ptr %dtor, align 8
+    %envptr = getelementptr inbounds %closure, ptr %schmu_set_aux, i32 0, i32 1
+    store ptr %clsr_schmu_set_aux, ptr %envptr, align 8
+    %2 = call i1 @schmu_set_aux(i32 %0, i64 %1, ptr %clsr_schmu_set_aux), !dbg !14
+    ret i1 %2
+  }
+  
+  define linkonce_odr ptr @__ctor_tp.b(ptr %0) {
+  entry:
+    %1 = call ptr @malloc(i64 24)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 24, i1 false)
+    ret ptr %1
+  }
+  
+  declare ptr @malloc(i64 %0)
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define linkonce_odr ptr @__ctor_tp._option.t.R.set.trbb(ptr %0) {
+  entry:
+    %1 = call ptr @malloc(i64 40)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
+    %schmu_set_aux = getelementptr inbounds { ptr, ptr, %closure, i1 }, ptr %1, i32 0, i32 2
+    call void @__copy__option.t.R.set.trb(ptr %schmu_set_aux)
+    ret ptr %1
+  }
+  
+  define linkonce_odr void @__copy__option.t.R.set.trb(ptr %0) {
+  entry:
+    %1 = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
+    %2 = load ptr, ptr %1, align 8
+    %3 = icmp eq ptr %2, null
+    br i1 %3, label %ret, label %notnull
+  
+  notnull:                                          ; preds = %entry
+    %ctor2 = bitcast ptr %2 to ptr
+    %ctor1 = load ptr, ptr %ctor2, align 8
+    %4 = call ptr %ctor1(ptr %2)
+    %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
+    store ptr %4, ptr %sunkaddr, align 8
+    br label %ret
+  
+  ret:                                              ; preds = %notnull, %entry
+    ret void
+  }
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !15 {
+  entry:
+    ret i64 0
+  }
+  
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !5 = !{}
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./inner_recursive_closure_call
