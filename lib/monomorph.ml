@@ -215,6 +215,15 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     in
     aux ~poly concrete
 
+  let is_actually_recursive p typ name =
+    match (p.recursion_stack, typ) with
+    | (call, _) :: _, _ when String.equal call name -> true
+    | _, Tfun (_, _, Closure _) ->
+        (* We are not actually recursive but in an inner function. Generate a
+           non-mono call *)
+        false
+    | _ -> true
+
   let get_mono_name name ~closure ~poly concrete =
     let name = nominal_name name ~closure ~poly concrete in
     if String.starts_with ~prefix:"__" name then name else "__" ^ name
@@ -649,21 +658,27 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
            Closures are tricky, as the arguments are generally not closures, but
            the typ might. We try to subst the (potential) closure by using the
            parent_sub if its available *)
-        if is_type_polymorphic typ then
-          (* Instead of directly generating the mono name from concrete type and
-             expr, we substitute the poly type and use the substituted one. This
-             helps with some closures *)
-          let call =
-            match parent_sub with
-            | Some sub ->
-                let concrete = sub typ in
-                get_mono_name name ~closure:true ~poly:typ concrete
-            | None -> get_mono_name name ~closure:true ~poly:typ expr.typ
-          in
-          (* We still need to use the un-monomorphized callname for marking recursion *)
-          (p, Recursive { nonmono = name; call })
-          (* Make the name concrete so the correct call name is used *)
-        else (p, Recursive { nonmono = name; call = name })
+        let actually_recursive = is_actually_recursive p typ name in
+
+        if actually_recursive then
+          if is_type_polymorphic typ then
+            (* Instead of directly generating the mono name from concrete type and
+               expr, we substitute the poly type and use the substituted one. This
+               helps with some closures *)
+            let call =
+              match parent_sub with
+              | Some sub ->
+                  let concrete = sub typ in
+                  get_mono_name name ~closure:true ~poly:typ concrete
+              | None -> get_mono_name name ~closure:true ~poly:typ expr.typ
+            in
+            (* We still need to use the un-monomorphized callname for marking recursion *)
+            (p, Recursive { nonmono = name; call })
+            (* Make the name concrete so the correct call name is used *)
+          else (p, Recursive { nonmono = name; call = name })
+            (* The inner function which is indirectly recursive closes over this
+               one. Just get it from the env *)
+        else (p, Default)
     | Mutual_rec (name, typ, upward) ->
         if is_type_polymorphic typ then (
           let call = get_mono_name name ~closure:true ~poly:typ expr.typ in

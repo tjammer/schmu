@@ -22,7 +22,12 @@ let apply_pathsub ~base ~with_ typ =
           | Simple -> kind
           | Closure cls ->
               let cls =
-                List.map (fun c -> { c with cltyp = aux c.cltyp }) cls
+                List.map
+                  (fun c ->
+                    (* The module name might als be part of the functor *)
+                    let clmname = Option.map subst c.clmname in
+                    { c with cltyp = aux c.cltyp; clmname })
+                  cls
               in
               Closure cls
         in

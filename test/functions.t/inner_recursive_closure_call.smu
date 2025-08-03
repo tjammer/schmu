@@ -3,21 +3,17 @@ module type ordered {
 }
 functor make(ord : ordered) {
   type key = ord/t
-  type t = { l : option[rc[t]], v : key, r : option[rc[t]], h : int }
+  type t = { v : key, r : option[rc[t]] }
   fun iter(t, cont) {
-    let whatever = 25
     fun rec aux(t) {
       match t {
-        None -> {
-          ignore(whatever)
-          false
-        }
+        None -> false 
         Some(rc) -> {
-          -- let {l, v, r, h } <- rc/read(rc)
-          rc/read(rc, fun i {
-            cont and aux(i.r)
-          })
-          -- cont and aux(r)
+          let i <- rc/read(rc)
+          -- ignoring the result makes this closure polymorphic, which adds
+          -- another error case we check
+          ignore(cont(i.v)) 
+          aux(i.r) 
         }
       }
     }
@@ -25,3 +21,9 @@ functor make(ord : ordered) {
   }
 }
 module set = make(int)
+
+let hmm = Some( rc/create(set/{ v = 12, r = None }))
+
+set/iter(hmm) |> iter/iter(fun i { fmt/(println(int, i))})
+
+-- iter/iter(fun a { set/iter(hmm, a) }, fun i { fmt/(println(int, i)) })

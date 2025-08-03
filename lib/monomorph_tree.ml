@@ -139,12 +139,15 @@ let nominal_name = nominal_name "" ~closure:false ~poly:(Tpoly "-")
 let no_var =
   { fn = No_function; alloc = No_value; malloc = No_malloc; tailrec = false }
 
-let extract_callname default vars expr =
-  match find_function_expr vars expr with
+let extract_callname default p expr =
+  match find_function_expr p.vars expr with
   | Builtin _ | Inline _ ->
       failwith "Internal error: Builtin or inline function captured in closure"
   | Mutual_rec _ -> failwith "TODO mutual rec"
-  | Forward_decl (call, _, _) | Polymorphic (call, _) -> call
+  | Forward_decl (name, typ, _) ->
+      (* Indirectly recursive functions live in the closure env *)
+      if is_actually_recursive p typ name then name else default
+  | Polymorphic (call, _) -> call
   | Concrete (func, _, _) -> func.name.call
   | No_function -> default
 
@@ -380,7 +383,7 @@ and cln_kind ss p touched = function
             else
               let clname =
                 if not cl.clparam then
-                  extract_callname modded_name p.vars
+                  extract_callname modded_name p
                     (Mvar (modded_name, Vnorm, None))
                 else modded_name
               in
@@ -1006,13 +1009,19 @@ and prep_func p func_loc (usrname, uniq, abs) =
      the usercode name to the bound variables. In the polymorphic case, we add
      the function to the bound variables, but not to the function list. Instead,
      the monomorphized instance will be added later *)
-  let ftyp =
-    Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln p
-  in
-
   let call = Module.unique_name ~mname:p.mname usrname uniq in
   let username =
     reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule usrname
+  in
+
+  let recursive = if abs.is_rec then Rnormal else Rnone in
+  let recp =
+    let recursion_stack = (call, recursive) :: p.recursion_stack in
+    { p with recursion_stack }
+  in
+
+  let ftyp =
+    Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln recp
   in
 
   let remove_from_closure =
@@ -1040,7 +1049,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
   in
 
   (* Add moved closed variables *)
-  let kind = cln_kind p abs.func.touched abs.func.kind in
+  let kind = cln_kind recp abs.func.touched abs.func.kind in
 
   if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
     let fn = Polymorphic (call, upward) in
@@ -1053,13 +1062,12 @@ and prep_func p func_loc (usrname, uniq, abs) =
     Hashtbl.add deferredfunc_tbl call fn;
     ({ p with vars }, (call, kind, ftyp, alloca, upward)))
   else
-    let recursive = if abs.is_rec then Rnormal else Rnone in
     let inline = abs.inline in
 
     let func =
       {
-        params = List.map (cln_param p) abs.func.tparams;
-        ret = cln p abs.func.ret;
+        params = List.map (cln_param recp) abs.func.tparams;
+        ret = cln recp abs.func.ret;
         kind;
       }
     in
@@ -1162,10 +1170,15 @@ and prep_func p func_loc (usrname, uniq, abs) =
     (p, (call, func.kind, ftyp, alloca, upward))
 
 and morph_lambda mk typ p func_loc id abs =
-  let ftyp = cln p typ in
-
   (* TODO fix lambdas for nested modules *)
   let name = Module.lambda_name ~mname:p.mname id in
+
+  let recp =
+    let recursion_stack = (name, Rnone) :: p.recursion_stack in
+    { p with recursion_stack }
+  in
+
+  let ftyp = cln recp typ in
 
   (* In this case, the function is not really monomorphized, but might be
      defined already in another module. Setting it 'monomorphized' will cause it
@@ -1185,7 +1198,9 @@ and morph_lambda mk typ p func_loc id abs =
   let ret = p.ret in
 
   (* Add moved closed variables *)
-  let kind = cln_kind p abs.func.touched abs.func.kind in
+  (* Create temp env with correct recursion stack. We need this to for inner
+     recursive closure calls. *)
+  let kind = cln_kind recp abs.func.touched abs.func.kind in
 
   if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
     let fn = Polymorphic (name, upward) in
@@ -1203,8 +1218,8 @@ and morph_lambda mk typ p func_loc id abs =
     let recursive = Rnone in
     let func =
       {
-        params = List.map (cln_param p) abs.func.tparams;
-        ret = cln p abs.func.ret;
+        params = List.map (cln_param recp) abs.func.tparams;
+        ret = cln recp abs.func.ret;
         kind;
       }
     in

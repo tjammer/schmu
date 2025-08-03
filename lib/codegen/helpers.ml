@@ -622,7 +622,8 @@ struct
               in
               ignore (Llvm.build_store clsr_param env_ptr builder);
 
-              { f with value = clsr_struct }
+              (* The closure was just alloca'd so it's a pointer *)
+              { f with value = clsr_struct; kind = Ptr }
           | _ -> f
         in
         ( Vars.add Monomorph_tree.(fname.call) f vars
