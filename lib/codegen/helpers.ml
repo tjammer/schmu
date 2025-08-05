@@ -69,7 +69,6 @@ module type S = sig
   val alloca : Llvm_types.param -> Llvm.lltype -> string -> Llvm.llvalue
   val get_const_string : string -> Llvm.llvalue
   val free_var : Llvm.llvalue -> Llvm.llvalue
-  val fmt_str : llvar -> string * Llvm.llvalue
   val set_in_init : bool -> unit
   val is_in_init : unit -> bool
 
@@ -223,51 +222,6 @@ struct
 
         Strtbl.add string_tbl s ptr;
         ptr
-
-  let fmt_str value =
-    let v = bring_default_var value in
-    match value.typ with
-    | Tfloat -> ("%.9g", v.value)
-    | Tf32 -> ("%.9gf", Llvm.build_fpcast v.value float_t "" builder)
-    | Tarray Tu8 ->
-        let ptr = Arr.array_data [ v ] in
-        ("%s", ptr.value)
-    | Tbool ->
-        let start_bb = Llvm.insertion_block builder in
-        let parent = Llvm.block_parent start_bb in
-
-        let false_bb = Llvm.append_block context "free" parent in
-        let cont_bb = Llvm.append_block context "cont" parent in
-
-        ignore (Llvm.build_cond_br v.value cont_bb false_bb builder);
-
-        Llvm.position_at_end false_bb builder;
-        ignore (Llvm.build_br cont_bb builder);
-        Llvm.position_at_end cont_bb builder;
-        let value =
-          Llvm.build_phi
-            [
-              (get_const_string "true", start_bb);
-              (get_const_string "false", false_bb);
-            ]
-            "" builder
-        in
-        let typ = Tarray Tu8 in
-        let lltyp = get_lltype_def typ in
-        let v = { value; typ; lltyp; kind = Imm } in
-        let ptr = Arr.array_data [ v ] in
-        ("%s", ptr.value)
-    | Ti8 -> ("%hhd", v.value)
-    | Tu8 -> ("%c", v.value)
-    | Ti16 -> ("%hd", v.value)
-    | Tu16 -> ("%hu", v.value)
-    | Ti32 -> ("%i", v.value)
-    | Tint -> ("%li", v.value)
-    | Tu32 -> ("%u", v.value)
-    | Traw_ptr Tu8 -> ("%s", v.value)
-    | _ ->
-        print_endline (show_typ value.typ);
-        failwith "Internal Error: Impossible string format"
 
   (* use [__assert_fail] from libc *)
   let assert_fail ~text ~file ~line ~func md =
