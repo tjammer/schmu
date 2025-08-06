@@ -144,8 +144,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
           (Error
              ( loc,
                "Unbound type " ^ tick
-               ^ Path.(rm_name (Env.modpath env) t |> show)
-               ^ "." ))
+               ^ Path.(rm_name (Env.modpath env) t |> show) ))
   in
 
   let rec is_quantified = function

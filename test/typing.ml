@@ -954,7 +954,7 @@ let test_local_modules_miss_nested () =
     (local_module ^ "let test : nosig/nested/t = {a = 10}")
 
 let test_local_modules_miss_local_dont_find_global () =
-  test_exn "Unbound type nosig/global."
+  test_exn "Unbound type nosig/global"
     (local_module ^ "let test : nosig/global = { a = 10 }")
 
 let test_local_module_unique_names () =
@@ -1001,7 +1001,7 @@ let test_excl_borrow () =
 
 let test_excl_borrow_use_early () =
   wrap_fn ~tl test_exn
-    (ln "x was borrowed in line %i, cannot mutate" 3)
+    (ln "x has been borrowed in line %i, cannot mutate" 3)
     [ own; "let y = x"; "ignore(x)"; "mut x = [11]"; "ignore(y)" ]
 
 let tl = Some "Cannot move top level binding"
@@ -1012,7 +1012,7 @@ let test_excl_move_mut () =
 
 let test_excl_move_mut_use_after () =
   wrap_fn test_exn
-    (ln "x was moved in line %i, cannot use" 2)
+    (ln "x has been moved in line %i, cannot use" 2)
     [ own; "let mut y = mov x"; "ignore(x)" ]
 
 let test_excl_move_record () =
@@ -1020,12 +1020,12 @@ let test_excl_move_record () =
 
 let test_excl_move_record_use_after () =
   wrap_fn test_exn
-    (ln "x was moved in line %i, cannot use" 2)
+    (ln "x has been moved in line %i, cannot use" 2)
     [ "let mut x =[10]"; "let y = (x, 0)"; "ignore(x)" ]
 
 let test_excl_borrow_then_move () =
   wrap_fn test_exn
-    (ln "x was moved in line %i, cannot use" 3)
+    (ln "x has been moved in line %i, cannot use" 3)
     [ "let x = [10]"; "let y = x"; "ignore((y, 0))"; "x" ]
 
 let test_excl_if_move_lit () =
@@ -1052,19 +1052,19 @@ let test_excl_proj_immutable () =
 
 let test_excl_proj_use_orig () =
   wrap_fn ~tl:proj_msg test_exn
-    (ln "x was borrowed in line %i, cannot mutate" 3)
+    (ln "x has been borrowed in line %i, cannot mutate" 3)
     [
       own; "let mut y = mut x"; "ignore(__unsafe_addr(mut x))"; "ignore(y)"; "x";
     ]
 
 let test_excl_proj_move_after () =
   wrap_fn ~tl:proj_msg test_exn
-    (ln "x was borrowed in line %i, cannot mutate" 3)
+    (ln "x has been borrowed in line %i, cannot mutate" 3)
     [ own; "let mut y = mut x"; "ignore(__unsafe_addr(mut x))"; "(y, 0)" ]
 
 let test_excl_proj_nest () =
   wrap_fn ~tl:proj_msg test_exn
-    (ln "y was borrowed in line %i, cannot mutate" 4)
+    (ln "y has been borrowed in line %i, cannot mutate" 4)
     [
       own;
       "let mut y = mut x";
@@ -1075,7 +1075,7 @@ let test_excl_proj_nest () =
 
 let test_excl_proj_nest_orig () =
   wrap_fn ~tl:proj_msg test_exn
-    (ln "x was borrowed in line %i, cannot mutate" 3)
+    (ln "x has been borrowed in line %i, cannot mutate" 3)
     [
       own;
       "let mut y = mut x";
@@ -1118,7 +1118,7 @@ let test_excl_parts_return_part () =
   test "unit" (typ ^ "fun meh(mov a){ let mut c = mov a.a;  a.b}")
 
 let test_excl_parts_dont_reset_part () =
-  test_exn "a.a was moved in line 7, cannot use a"
+  test_exn "a.a has been moved in line 7, cannot use a"
     (typ
    ^ "fun meh(mov a) { let mut a = mov a; let mut c = mut a.a; \
       __unsafe_leak(mov c); a }")
@@ -1131,7 +1131,7 @@ let test_excl_parts_reset_part () =
 
 let test_excl_parts_return_whole () =
   test_exn
-    (ln "a.a was moved in line %i, cannot use a" 4)
+    (ln "a.a has been moved in line %i, cannot use a" 4)
     (typ ^ "fun meh(mov a){\n let mut c = mov a.a\n  a}")
 
 let test_excl_lambda_copy_capture () =
@@ -1966,7 +1966,7 @@ fun test(mov a) {
 |}
 
 let test_subs_move_once_fn_use_after () =
-  test_exn "a was moved in line 7, cannot use"
+  test_exn "a has been moved in line 7, cannot use"
     {|fun higher_order(once fn) { fn(); () }
 fun test(mov a) {
   higher_order (fun () { __unsafe_leak(a) })
@@ -1984,7 +1984,7 @@ fun test(mov a) {
 |}
 
 let test_subs_move_once_borrowcall_use_after () =
-  test_exn "a was moved in line 8, cannot use"
+  test_exn "a has been moved in line 8, cannot use"
     {|fun higher_order(once fn) { fn(); () }
 fun test(mov a) {
   let () <- higher_order()
@@ -2284,7 +2284,7 @@ let () =
           case "parts reset part" test_excl_parts_reset_part;
           case "parts return whole after part move" test_excl_parts_return_whole;
           tase_exn "func mut borrow"
-            (ln "a was borrowed in line %i, cannot mutate" 5)
+            (ln "a has been borrowed in line %i, cannot mutate" 5)
             {|let mut a = 10
 fun set_a(){
   mut a = 11}
@@ -2300,7 +2300,7 @@ fun set_a(){
   ignore(move_a)
   ignore(a)}|};
           tase_exn "closure mut borrow"
-            (ln "a was borrowed in line %i, cannot mutate" 3)
+            (ln "a has been borrowed in line %i, cannot mutate" 3)
             {|fun hmm() {
   let mut a = 10
   let set_a = fun (){ mut a = 11}
@@ -2308,7 +2308,7 @@ fun set_a(){
   set_a()
   mut a = 11}|};
           tase_exn "closure carry set"
-            (ln "a was borrowed in line %i, cannot mutate" 3)
+            (ln "a has been borrowed in line %i, cannot mutate" 3)
             (* If the 'set' attribute isn't carried, (set-a) cannot be called
                and a different error occurs *)
             {|fun hmm() {
@@ -2318,7 +2318,7 @@ fun set_a(){
   let mut x = mov a
   set_a()}|};
           tase_exn "excl 1"
-            (ln "a was borrowed in line %i, cannot mutate" 4)
+            (ln "a has been borrowed in line %i, cannot mutate" 4)
             "let mut a = [10]\n fun f(mut a, b) {mut \na = [11]}\n f(mut a, a)";
           tase "excl 1 nonalloc" "unit"
             "let mut a = 10\n\
@@ -2326,17 +2326,17 @@ fun set_a(){
              a = 11}\n\
             \ f(mut a, copy(a))";
           tase_exn "excl 2"
-            (ln "a was borrowed in line %i, cannot mutate" 4)
+            (ln "a has been borrowed in line %i, cannot mutate" 4)
             "let mut a = [10]\n\
             \ fun f(mut a, b) {mut a = [11]}\n\
             \ {\n\
             \  let b = a\n\
             \  f(mut a, b)}";
           tase_exn "excl 3"
-            (ln "a was borrowed in line %i, cannot mutate" 3)
+            (ln "a has been borrowed in line %i, cannot mutate" 3)
             "let mut a = [10]\n fun f(a, mut b) {mut b = [11]}\n f(a, mut a)";
           tase_exn "excl 4"
-            (ln "a was borrowed in line %i, cannot mutate" 4)
+            (ln "a has been borrowed in line %i, cannot mutate" 4)
             "let mut a = [10]\n\
             \ fun f(a, mut b) {mut b = [11]}\n\
             \ {\n\
@@ -2344,10 +2344,10 @@ fun set_a(){
             \  f(b, mut a)}";
           tase "excl 5" "unit" "let mut a = [10]\n fun f(a, b) {()}\n f(a, a)";
           tase_exn "excl 6"
-            (ln "a was borrowed in line %i, cannot mutate" 3)
+            (ln "a has been borrowed in line %i, cannot mutate" 3)
             "let mut a = [10]\n fun f(mut a, mut b) {()}\n f(mut a, mut a)";
           tase_exn "excl env"
-            (ln "a was borrowed in line %i, cannot mutate" 2)
+            (ln "a has been borrowed in line %i, cannot mutate" 2)
             {|let mut a = [10]
 fun set_a(mut b) {mut a = [11]}
 set_a(mut a)|};
@@ -2382,7 +2382,7 @@ let c = {
              mutably 'mut'"
             "{let mut a = [10]; let mut b = a; ()}";
           tase_exn "partially set moved"
-            (ln "a was moved in line %i, cannot use a.[0]" 2)
+            (ln "a has been moved in line %i, cannot use a.[0]" 2)
             "let mut a = [10]\n let b = (a, 0); mut a.[0] = 10";
           tase_exn "track moved multi-borrow param"
             "Borrowed value s has been moved in line 8"
@@ -2391,7 +2391,7 @@ let c = {
   let c = a
   ignore((c, 0))}|};
           tase_exn "move binds individual"
-            (ln "thing.value was moved in line %i, cannot use" 6)
+            (ln "thing.value has been moved in line %i, cannot use" 6)
             {|type data = {key : array[u8], value : array[u8]}
 type data_container = Empty | Item(data)
 fun hmm(mut thing) { match thing {
@@ -2410,7 +2410,7 @@ fun hmm(mut thing) { match thing {
     ignore((value, 0))}
   Empty -> ()}}|};
           tase_exn "let pattern name"
-            (ln "kee was moved in line %i, cannot use" 4)
+            (ln "kee has been moved in line %i, cannot use" 4)
             {|type data = {key : array[u8], value : array[u8]}
 fun hmm() {
   let {key = kee, value} = mov {key = ['k', 'e', 'y'], value = ['v', 'a', 'l', 'u', 'e']}
@@ -2423,10 +2423,10 @@ fun hmm() {
             "Borrowed value fst/a has been moved in line 5"
             "module fst {let a = [20]}; ignore([fst/a])";
           (* tase_exn "track vars from inner module use after move" *)
-          (*   (ln "fst/a was moved in line %i, cannot use fst/a.[0]." 3) *)
+          (*   (ln "fst/a has been moved in line %i, cannot use fst/a.[0]." 3) *)
           (*   "module fst {let a = [20]\n}\nignore([fst/a])\nignore(fst/a.[0])"; *)
           tase_exn "always borrow field"
-            (ln "sm.free_hd was borrowed in line %i, cannot mutate" 7)
+            (ln "sm.free_hd has been borrowed in line %i, cannot mutate" 7)
             {|type key = {idx : int, gen : int}
 type t = {mut slots : array[key], mut data : array[int], mut free_hd : int, mut erase : array[int]}
 

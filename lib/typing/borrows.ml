@@ -117,14 +117,14 @@ module Make_tree (Id : Id_t) = struct
     | Ok state -> state
     | Error `Disabled ->
         let msg =
-          Format.sprintf "%s was borrowed in line %i, cannot mutate" id
+          Format.sprintf "%s has been borrowed in line %i, cannot mutate" id
             (fst bind_loc.loc).pos_lnum
         in
         raise (Error.Error ((snd bor).loc, msg))
     | Error `Frozen ->
         let msg =
-          Format.sprintf "%s was borrowed in line %i, cannot mutate frozen" id
-            (fst bind_loc.loc).pos_lnum
+          Format.sprintf "%s has been borrowed in line %i, cannot mutate frozen"
+            id (fst bind_loc.loc).pos_lnum
         in
         raise (Error.Error ((snd bor).loc, msg))
 
@@ -238,7 +238,7 @@ module Make_tree (Id : Id_t) = struct
             let rs lc =
               let access = { id = item.id.id; part } in
               let msg =
-                Format.sprintf "%s was moved in line %i, cannot use %s"
+                Format.sprintf "%s has been moved in line %i, cannot use %s"
                   (str_backup item.id mname lc.lid)
                   (fst lc.loc).pos_lnum
                   (str_backup access mname lc.lid)
@@ -284,7 +284,7 @@ module Make_tree (Id : Id_t) = struct
         | Moved lc, (Ast.Dmove | Dmut | Dnorm) ->
             (* Our item has been moved *)
             let msg =
-              Format.sprintf "%s was moved in line %i, cannot use"
+              Format.sprintf "%s has been moved in line %i, cannot use"
                 (str_backup item.id mname lc.lid)
                 (fst lc.loc).pos_lnum
             in

@@ -1742,7 +1742,7 @@ Test signature
   
   [1]
   $ schmu use-sign-hidden-type.smu
-  use-sign-hidden-type.smu:5.9-20: error: Unbound type hidden_type..
+  use-sign-hidden-type.smu:5.9-20: error: Unbound type hidden_type.
   
   5 | let i : hidden_type = 10
               ^^^^^^^^^^^
