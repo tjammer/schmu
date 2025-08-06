@@ -27,7 +27,7 @@ module type sig {
   val to_array : fun (t['value]) -> array[(key, 'value)]
 }
 
-functor make : sig(m : key) {
+functor make : sig (m : key) {
   use option
   use prelude
 

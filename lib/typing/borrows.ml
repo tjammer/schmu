@@ -1007,9 +1007,14 @@ let rec move_closure ex = function
          ones. I don't think it was correct *)
       if c.clcopy then ex else move_closure (move_closed c ex) tl
 
-let borrow_lambda_expr loc mname ac arg bs trees =
-  match (Typed_tree.follow_expr arg.expr, bs) with
-  | Some (Lambda _), Borrowed bs ->
+let lambda_borrows expr bs =
+  match (Typed_tree.follow_expr expr, bs) with
+  | Some (Lambda _), Borrowed bs -> Some bs
+  | _ -> None
+
+let borrow_lambda_expr loc mname outer_ac arg bs trees =
+  match lambda_borrows arg.expr bs with
+  | Some bs ->
       List.fold_left
         (fun (trees, arg) { id; oncall; _ } ->
           let ac, arg =
@@ -1018,9 +1023,14 @@ let borrow_lambda_expr loc mname ac arg bs trees =
                 match (oncall.attr, oncall.on_move) with
                 | Dmove, Some c -> (Dmove, move_closed c arg)
                 | ac, _ -> (ac, arg))
-            | None -> (ac, arg)
+            | None -> (fst outer_ac, arg)
           in
-          let found, _, trees = Trst.borrow id loc mname (ac, Many) [] trees in
+          let found, _, trees =
+            (* We pass the mode from outside. If the lambda is used
+               once, so are the borrowed values *)
+            Trst.borrow id loc mname (ac, snd outer_ac) [] trees
+          in
+
           assert found;
           (trees, arg))
         (trees, arg) bs
@@ -1041,6 +1051,17 @@ let fail_pending_borrow_call mname loc args = function
       in
       raise (Error.Error (loc, msg))
 
+let borrow_for_mode trees loc mname ac borrowed =
+  List.fold_left
+    (fun trees borrowed ->
+      let _, _, trees = Trst.borrow borrowed.id loc mname ac [] trees in
+      trees)
+    trees borrowed
+
+let move_mode =
+  (* A moved once-value could be used multiple times after move. We don't allow this *)
+  Many
+
 let rec check_expr st ac part tyex =
   (* Pass trees back up the typed tree, because we need to maintain its state.
      Ids on the other hand follow lexical scope *)
@@ -1057,7 +1078,7 @@ let rec check_expr st ac part tyex =
         List.fold_left_map
           (fun trees e ->
             let e, _, trees =
-              check_expr { st with trees } (cond_move e.typ, snd ac) [] e
+              check_expr { st with trees } (cond_move e.typ, move_mode) [] e
             in
             (trees, { e with expr = Move e }))
           st.trees items
@@ -1069,7 +1090,7 @@ let rec check_expr st ac part tyex =
         List.fold_left_map
           (fun trees e ->
             let e, _, trees =
-              check_expr { st with trees } (cond_move e.typ, snd ac) [] e
+              check_expr { st with trees } (cond_move e.typ, move_mode) [] e
             in
 
             (trees, { e with expr = Move e }))
@@ -1081,7 +1102,7 @@ let rec check_expr st ac part tyex =
   | Var (str, mname) ->
       let id = Idst.get str mname st.ids in
       let ac =
-        match ac with Dmove, _ -> (cond_move tyex.typ, snd ac) | _ -> ac
+        match ac with Dmove, _ -> (cond_move tyex.typ, move_mode) | _ -> ac
       in
       let found, moved, trees =
         Trst.borrow id tyex.loc st.mname ac part st.trees
@@ -1179,7 +1200,7 @@ let rec check_expr st ac part tyex =
                 ({ arg with expr = Move arg }, Owned, trees)
             in
             let trees, narg =
-              borrow_lambda_expr tyex.loc st.mname (fst ac) narg bs trees
+              borrow_lambda_expr tyex.loc st.mname ac narg bs trees
             in
 
             let narg =
@@ -1241,7 +1262,7 @@ let rec check_expr st ac part tyex =
         List.fold_left_map
           (fun trees (s, e) ->
             let e, _, trees =
-              check_expr { st with trees } (cond_move e.typ, snd ac) [] e
+              check_expr { st with trees } (cond_move e.typ, move_mode) [] e
             in
             (trees, (s, { e with expr = Move e })))
           st.trees es
@@ -1290,7 +1311,7 @@ let rec check_expr st ac part tyex =
       let e, bs, trees = check_expr st ac (Pfield name :: part) e in
       ({ tyex with expr = Field (e, i, name) }, bs, trees)
   | Function (name, i, abs, cont) ->
-      let st = check_abs tyex.loc name abs false st in
+      let st = check_abs tyex.loc name (fst ac) abs false st in
       let cont, bs, trees = check_expr st ac part cont in
       let expr = Function (name, i, abs, cont) in
       ({ tyex with expr }, bs, trees)
@@ -1310,7 +1331,8 @@ let rec check_expr st ac part tyex =
                   | None -> (Dmove, moved)
                 in
                 let found, _, trees =
-                  Trst.borrow id tyex.loc st.mname (ac, Once) [] trees
+                  (* [Many] because we move *)
+                  Trst.borrow id tyex.loc st.mname (ac, Many) [] trees
                 in
                 assert found;
                 (trees, moved))
@@ -1319,11 +1341,13 @@ let rec check_expr st ac part tyex =
           let ex = move_closure tyex moved in
           let trees = Trst.update ~old:st.trees trees in
           (ex, Owned, trees)
-      | _ -> (tyex, Borrowed touched, st.trees))
+      | _ ->
+          borrow_for_mode st.trees tyex.loc st.mname ac touched |> ignore;
+          (tyex, Borrowed touched, st.trees))
   | Ctor (s, i, e) -> (
       match e with
       | Some e ->
-          let e, _, trees = check_expr st (cond_move e.typ, snd ac) [] e in
+          let e, _, trees = check_expr st (cond_move e.typ, move_mode) [] e in
           let e = { e with expr = Move e } in
           ({ tyex with expr = Ctor (s, i, Some e) }, Owned, trees)
       | None -> (tyex, Owned, st.trees))
@@ -1377,7 +1401,14 @@ and check_let st ~toplevel str loc pass lmut mode rhs =
   | _ -> ());
   let bid, ids = Idst.insert str (Some st.mname) st.ids in
   let rhs, pass, trees =
-    match check_expr st (pass, let_mode_borrow mode) [] rhs with
+    let rhs, bs, trees = check_expr st (pass, let_mode_borrow mode) [] rhs in
+    let trees =
+    match lambda_borrows rhs.expr bs with
+    | Some bs ->
+    borrow_for_mode trees loc st.mname (pass, let_mode_borrow mode) bs
+    | _ -> trees
+    in
+    match (rhs, bs, trees) with
     | rhs, Owned, trees ->
         (* Nothing is borrowed, we own this *)
         let pass =
@@ -1437,7 +1468,7 @@ and bids_of_touched touched kind st =
       { id; part; oncall; cond_borrow })
     touched
 
-and check_abs loc name abs tl st =
+and check_abs loc name ac abs tl st =
   let touched = bids_of_touched abs.func.touched abs.func.kind st in
   let bid, ids = Idst.insert name (Some st.mname) st.ids in
 
@@ -1445,6 +1476,9 @@ and check_abs loc name abs tl st =
     match touched with
     | [] -> Trst.insert bid loc (Owned { tl; mutated = true }) `Many st.trees
     | touched ->
+        (* Borrow each touched value as [Many] to check if it's allowed *)
+        borrow_for_mode st.trees loc st.mname (ac, Many) touched |> ignore;
+
         let _, trees = Trst.bind bid loc false `Many touched st.trees in
         trees
   in
@@ -1469,7 +1503,7 @@ let check_item st = function
       let e, _, trees = check_expr st (Dnorm, Once) [] e in
       let trees = Trst.update ~old:st.trees trees in
       ({ st with trees }, Tl_expr e)
-  | Tl_function (loc, id, _, abs) as e -> (check_abs loc id abs true st, e)
+  | Tl_function (loc, id, _, abs) as e -> (check_abs loc id Dnorm abs true st, e)
   | Tl_bind (str, e) ->
       let bid, ids = Idst.insert str (Some st.mname) st.ids in
       let e, trees =
@@ -1506,7 +1540,7 @@ let check_expr ~mname ~params ~touched ~once expr =
 
   let state = add_touched (state_empty mname expr.loc) expr.loc once touched in
 
-  let state, rfs =
+  let state, mode_refs =
     List.fold_left_map
       (fun st (p, id, loc) ->
         let bid, ids = Idst.insert id None st.ids in
@@ -1566,7 +1600,7 @@ let check_expr ~mname ~params ~touched ~once expr =
           (* Not setting to [Once] makes it a weak type in practice. Can be used
              as either Many or Once *)
           ())
-    rfs;
+    mode_refs;
 
   (* Update attribute of touched *)
   let touched =

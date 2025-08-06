@@ -1921,6 +1921,99 @@ let subs = {|fun subs(borrow, once f) {
 }
 |}
 
+let test_once_lambda_become_once () =
+  test_exn ""
+    {|
+fun use_once(once fn) { fn() }
+fun matchonce(a, once fn) {
+  if a { fn() }
+  else {
+    let _ <- use_once()
+    fn()
+    fn() -- fn used a second time. Not allowed
+  }
+}|}
+
+let test_once_function_borrow_touched () =
+  test_exn "Cannot pass once value fn as many"
+    {|
+fun use_once(once fn) { fn() }
+fun matchonce(a, once fn) {
+  if a { fn() }
+  else {
+    fun usetwice() {
+      fn()
+      -- fn()
+    }
+    fn()
+    use_once(usetwice)
+  }
+}|}
+
+let test_once_function_became_once () =
+  test_exn "Cannot pass once value fn as many"
+    {|
+fun use_once(once fn) { fn() }
+fun matchonce(a, once fn) {
+  if a { fn() }
+  else {
+    fun usetwice() {
+      fn()
+      fn()
+    }
+    use_once(usetwice)
+  }
+}|}
+
+let test_once_function_borrow_once () =
+  test_exn "Cannot pass once value fn as many"
+    {|
+fun use_once(once fn) { fn() }
+fun matchonce(a, once fn) {
+  if a { fn() }
+  else {
+    fun usetwice() {
+      fn()
+    }
+    use_once(usetwice)
+  }
+}|}
+
+let test_once_borrow_lambda_let_decl_many () =
+  test_exn "Cannot pass once value fn as many" {|
+fun testonce(once fn) {
+  let a = fun () { fn() }
+  ()
+}
+()
+|}
+
+let test_once_borrow_lambda_on_let () =
+  test "unit"
+    {|
+fun testonce(once fn) {
+  let once a = fun () { fn() }
+  __ignore_once(a)
+}
+|}
+
+let test_once_move_once_borrow_lambda () =
+  test_exn "Cannot pass once value a as many"
+    {|
+{
+let once a = [0]
+(fun () { ignore(a) }, ())
+}|}
+
+let test_once_move_once_borrow_lambda_indirect () =
+  test_exn "Cannot pass once value b as many"
+    {|
+{
+let once a = [0]
+let once b = fun () { ignore(a) }
+(b, ())
+}|}
+
 let test_subs_parse () =
   test_exn
     "Cannot borrow from function call in let binding. Use let borrow form (let \
@@ -2009,6 +2102,28 @@ let test_subs_use_in_expr () =
      but found fun () -> _"
     {|fun higher_order(once fn) { fn(); () }
 ignore(higher_order())|}
+
+let test_once_lambda_borrow_once () =
+  test "unit"
+    {|fun use_once(once fn) { fn() }
+fun matchonce(a, once fn) {
+  if a { fn() }
+  else {
+    let _ <- use_once()
+    fn()
+  }
+}|}
+
+let test_once_lambda_borrow_many () =
+  test_exn "Cannot pass once value fn as many"
+    {|fun use_many(many fn) { fn() }
+fun matchmany(a, once fn) {
+  if a { fn() }
+  else {
+    let _ <- use_many()
+    fn()
+  }
+}|}
 
 let case str test = test_case str `Quick test
 
@@ -2569,6 +2684,17 @@ type t = {mut slots : array[key], mut data : array[int], mut free_hd : int, mut 
           case "use weak once" test_once_use_weak_once;
           case "use weak many" test_once_use_weak_many;
           case "lambda decl" test_once_lambda_decl;
+          case "lambda become once" test_once_lambda_become_once;
+          case "lambda borrow once" test_once_lambda_borrow_once;
+          case "lambda borrow many" test_once_lambda_borrow_many;
+          case "function borrow touched" test_once_function_borrow_touched;
+          case "function become once" test_once_function_became_once;
+          case "function borrow once" test_once_function_borrow_once;
+          case "borrow lambda let decl" test_once_borrow_lambda_let_decl_many;
+          case "borrow lambda let" test_once_borrow_lambda_on_let;
+          case "move once-borrow lambda" test_once_move_once_borrow_lambda;
+          case "move once-borrow lambda indirect"
+            test_once_move_once_borrow_lambda_indirect;
         ] );
       ( "subscripts",
         [

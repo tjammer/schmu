@@ -927,8 +927,11 @@ end = struct
           List.mapi
             (fun i p ->
               let id, _, _, pattr = pattern_id i Ast.(p.pattern) in
-              (* Recursive function are always many *)
-              ({ pattr; pt = newvar (); pmode = ref (Iknown Many) }, id))
+              (* It's ok to allow 'once' params in recursive functions.
+                 The only way they can be used in the recursive case is by
+                 passing it as argument. In the non-recursive case they
+                 have to be used once. *)
+              ({ pattr; pt = newvar (); pmode = check_mode p.mode }, id))
             params
           |> List.split
         in
