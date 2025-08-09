@@ -23,6 +23,7 @@ and touched = {
   tattr : Ast.decl_attr;
   tattr_loc : Ast.loc option;
   tmname : Path.t option;
+  tusage : mode; (* Set by borrowing pass. [Many] before *)
 }
 
 type callname = string * Path.t option * int option

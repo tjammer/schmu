@@ -92,6 +92,7 @@ and touched = {
   tattr : Ast.decl_attr;
   tattr_loc : Ast.loc option;
   tmname : Path.t option;
+  tusage : mode;
 }
 
 type usage_list = (key * usage) list ref
@@ -508,6 +509,7 @@ let close_thing is_same modpath env =
                        tattr = Dnorm;
                        tattr_loc = None;
                        tmname = mname;
+                       tusage = Many;
                      }
                    in
                    match cleantyp with

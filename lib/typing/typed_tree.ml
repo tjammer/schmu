@@ -89,6 +89,7 @@ and touched = Env.touched = {
   tattr : dattr;
   tattr_loc : loc option;
   tmname : Path.t option;
+  tusage : mode;
 }
 
 and func = {

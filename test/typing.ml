@@ -1922,7 +1922,7 @@ let subs = {|fun subs(borrow, once f) {
 |}
 
 let test_once_lambda_become_once () =
-  test_exn ""
+  test_exn "Cannot pass once value fn as many"
     {|
 fun use_once(once fn) { fn() }
 fun matchonce(a, once fn) {
@@ -1933,6 +1933,36 @@ fun matchonce(a, once fn) {
     fn() -- fn used a second time. Not allowed
   }
 }|}
+
+let test_once_lambda_become_once_twice () =
+  test_exn "Cannot pass once value fn as many"
+    {|
+fun use_once(once fn) { fn() }
+fun matchonce(a, once fn) {
+  if a { fn() }
+  else {
+    let _ <- use_once()
+    let _ <- use_once()
+    fn()
+    fn() -- fn used a second time. Not allowed
+  }
+}|}
+
+let test_once_lambda_make_closed_once () =
+  test_exn "Cannot pass once value a as many"
+    {|
+fun use_once(once fn) { fn() }
+fun unknown(fn) {
+  let _ <- use_once()
+  fn()
+  fn()
+}
+
+{
+  let once a = fun () { () }
+  unknown(a)
+}
+|}
 
 let test_once_function_borrow_touched () =
   test_exn "Cannot pass once value fn as many"
@@ -1980,7 +2010,8 @@ fun matchonce(a, once fn) {
 }|}
 
 let test_once_borrow_lambda_let_decl_many () =
-  test_exn "Cannot pass once value fn as many" {|
+  test_exn "Cannot pass once value fn as many"
+    {|
 fun testonce(once fn) {
   let a = fun () { fn() }
   ()
@@ -1993,7 +2024,8 @@ let test_once_borrow_lambda_on_let () =
     {|
 fun testonce(once fn) {
   let once a = fun () { fn() }
-  __ignore_once(a)
+  let once b = a
+  __ignore_once(b)
 }
 |}
 
@@ -2010,7 +2042,7 @@ let test_once_move_once_borrow_lambda_indirect () =
     {|
 {
 let once a = [0]
-let once b = fun () { ignore(a) }
+let once b = fun () { __ignore_once(a) }
 (b, ())
 }|}
 
@@ -2685,6 +2717,8 @@ type t = {mut slots : array[key], mut data : array[int], mut free_hd : int, mut 
           case "use weak many" test_once_use_weak_many;
           case "lambda decl" test_once_lambda_decl;
           case "lambda become once" test_once_lambda_become_once;
+          case "lambda become once twice" test_once_lambda_become_once_twice;
+          case "lambda make once" test_once_lambda_make_closed_once;
           case "lambda borrow once" test_once_lambda_borrow_once;
           case "lambda borrow many" test_once_lambda_borrow_many;
           case "function borrow touched" test_once_function_borrow_touched;
