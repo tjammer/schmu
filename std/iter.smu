@@ -2,8 +2,8 @@ import prelude
 
 signature {
   type continue = bool
-  type t['a] = fun (fun ('a) -> continue) -> continue
   type consumer['a] = fun ('a) -> continue
+  type t['a] = fun (consumer['a]) -> continue
 
   -- creators
   val range : fun (int, int, consumer[int]) -> continue

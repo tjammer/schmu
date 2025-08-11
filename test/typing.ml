@@ -1964,6 +1964,21 @@ fun unknown(fn) {
 }
 |}
 
+let test_once_mult_use_touched () =
+  test_exn "Cannot pass once value fn as many"
+    {|
+fun test(once fn) {
+  fun rec inner(i) {
+    if i < 0 { fn() }
+    else {
+      fn()
+      inner(i -1)
+    }
+  }
+  inner(2)
+}
+|}
+
 let test_once_function_borrow_touched () =
   test_exn "Cannot pass once value fn as many"
     {|
@@ -2729,6 +2744,7 @@ type t = {mut slots : array[key], mut data : array[int], mut free_hd : int, mut 
           case "move once-borrow lambda" test_once_move_once_borrow_lambda;
           case "move once-borrow lambda indirect"
             test_once_move_once_borrow_lambda_indirect;
+          case "mult use touched" test_once_mult_use_touched;
         ] );
       ( "subscripts",
         [
