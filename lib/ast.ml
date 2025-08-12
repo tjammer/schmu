@@ -25,6 +25,7 @@ and decl = {
 }
 
 and decl_attr = Dmut | Dmove | Dnorm | Dset
+and borrow_pass = bool
 and func_attr = Fa_single of ident | Fa_param of ident * ident list
 
 and func = {
@@ -48,9 +49,9 @@ and expr =
   | Lambda of
       loc * decl list * func_attr list * (type_spec * loc) option * block
   | App of loc * expr * argument list
-  | Record of loc * (ident * expr) list
-  | Tuple of loc * expr list
-  | Record_update of loc * expr * (ident * expr) list
+  | Record of loc * (borrow_pass * ident * expr) list
+  | Tuple of loc * (borrow_pass * expr) list
+  | Record_update of loc * expr * (borrow_pass * ident * expr) list
   | Field of loc * expr * string
   | Set of loc * (loc * expr) * expr
   | Do_block of block

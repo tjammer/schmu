@@ -1283,7 +1283,7 @@ end = struct
   and convert_tuple env loc exprs =
     let (_, const), exprs =
       List.fold_left_map
-        (fun (i, const) expr ->
+        (fun (i, const) (bor, expr) ->
           let expr = convert env expr in
           let expr_const =
             (* There's a special case for string literals. They will get copied
@@ -1293,10 +1293,10 @@ end = struct
             | _ -> expr.attr.const
           in
           let const = const && expr_const in
-          ((i + 1, const), (string_of_int i, expr)))
+          ((i + 1, const), (bor, string_of_int i, expr)))
         (0, true) exprs
     in
-    let ts = List.map (fun (_, e) -> e.typ) exprs in
+    let ts = List.map (fun (_, _, e) -> e.typ) exprs in
     let typ = Ttuple ts in
     let attr = { const; global = false; mut = false } in
     { typ; expr = Record exprs; attr; loc }
@@ -1588,7 +1588,7 @@ and catch_weak_expr env sub e =
       | _ -> ());
       catch_weak_expr env sub callee;
       List.iter (fun a -> catch_weak_expr env sub (fst a)) args
-  | Record fs -> List.iter (fun f -> catch_weak_expr env sub (snd f)) fs
+  | Record fs -> List.iter (fun (_, _, f) -> catch_weak_expr env sub f) fs
   | Ctor _ -> ()
 
 let check_module_annot env loc ~mname m annot =

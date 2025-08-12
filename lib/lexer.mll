@@ -150,6 +150,7 @@ rule read =
   | "rec"    { Rec }
   | "mut"    { Mut }
   | "mov"    { Mov }
+  | "bor"    { Bor }
   | '|'      { Hbar }
   | ';'      { Semicolon }
   | ident    { Ident (Lexing.lexeme lexbuf) }

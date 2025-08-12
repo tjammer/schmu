@@ -1280,11 +1280,11 @@ let rec check_expr st ac part tyex =
   | Record es ->
       let trees, es =
         List.fold_left_map
-          (fun trees (s, e) ->
+          (fun trees (bor, s, e) ->
             let e, _, trees =
               check_expr { st with trees } (cond_move e.typ, move_mode) [] e
             in
-            (trees, (s, { e with expr = Move e })))
+            (trees, (bor, s, { e with expr = Move e })))
           st.trees es
       in
       ({ tyex with expr = Record es }, Owned, trees)

@@ -19,7 +19,7 @@ module type S = sig
     Env.t ->
     Ast.loc ->
     Types.typ option * Types.mode option ->
-    (Ast.ident * Ast.expr) list ->
+    (bool * Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_record_update :
@@ -27,7 +27,7 @@ module type S = sig
     Ast.loc ->
     Types.typ option * Types.mode option ->
     Ast.expr ->
-    (Ast.ident * Ast.expr) list ->
+    (bool * Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_field :
@@ -114,7 +114,7 @@ module Make (C : Core) = struct
       raise (Error (loc, msg))
     in
 
-    let labelset = List.map (fun (id, _) -> snd id) labels in
+    let labelset = List.map (fun (_, id, _) -> snd id) labels in
     let t = get_record_type env loc labelset annot in
 
     let (params, name, labels, ca), labels_expr =
@@ -132,7 +132,7 @@ module Make (C : Core) = struct
             |> Array.map (fun f -> { f with ftyp = instantiate f.ftyp })
           in
           let labels_expr =
-            let f ((loc, label), expr) =
+            let f (bor, (loc, label), expr) =
               let typ =
                 match array_assoc_opt label ls with
                 | None ->
@@ -148,7 +148,7 @@ module Make (C : Core) = struct
               in
               let expr = convert_annot env annot false expr in
               unify (loc, "In record expression") typ expr.typ env;
-              (label, expr)
+              (label, (bor, expr))
             in
             List.map f labels
           in
@@ -164,7 +164,7 @@ module Make (C : Core) = struct
     let const, sorted_labels =
       List.fold_left_map
         (fun is_const field ->
-          let expr =
+          let bor, expr =
             match List.assoc_opt field.fname labels_expr with
             | Some thing -> thing
             | None ->
@@ -180,20 +180,20 @@ module Make (C : Core) = struct
             | _ -> expr.attr.const
           in
           (* Records with mutable fields cannot be const *)
-          (is_const && (not field.mut) && const, (field.fname, expr)))
+          (is_const && (not field.mut) && const, (bor, field.fname, expr)))
         true (labels |> Array.to_list)
     in
     let typ = Tconstr (name, params, ca) |> generalize in
     { typ; expr = Record sorted_labels; attr = { no_attr with const }; loc }
 
   and convert_record_update env loc annot record_arg
-      (items : (Ast.ident * Ast.expr) list) =
+      (items : (bool * Ast.ident * Ast.expr) list) =
     (* Implemented in terms of [convert_record] *)
     let record = convert env record_arg in
 
     let updated =
       List.to_seq items
-      |> Seq.map (fun ((loc, key), value) -> (key, (loc, value)))
+      |> Seq.map (fun (bor, (loc, key), value) -> (key, (bor, loc, value)))
       |> Hashtbl.of_seq
     in
 
@@ -211,14 +211,15 @@ module Make (C : Core) = struct
       Array.map
         (fun field ->
           match Hashtbl.find_opt updated field.fname with
-          | Some (loc, expr) ->
+          | Some (bor, loc, expr) ->
               Hashtbl.remove updated field.fname;
-              ((loc, field.fname), expr)
+              (bor, (loc, field.fname), expr)
           | None ->
               (* There are some old fields. *)
               all_new := false;
-              let expr = Ast.Field (loc, record_arg, field.fname) in
-              ((loc, field.fname), expr))
+              let expr = Ast.Field (loc, record_arg, field.fname)
+              and bor = false (* No field updates for borrowed fields *) in
+              (bor, (loc, field.fname), expr))
         fields
     in
 
@@ -227,7 +228,7 @@ module Make (C : Core) = struct
       | Tconstr (path, ps, _) -> get_fields loc path (Some ps) env
       | Qvar _ | Tvar { contents = Unbound _ } -> (
           (* Take first updated field to figure out the correct record type *)
-          let loc, label = List.hd items |> fst in
+          let _bor, (loc, label), _ = List.hd items in
           match Env.find_label_opt label env with
           | Some t -> get_fields loc t.typename None env
           | None ->

@@ -490,7 +490,7 @@ prog: Hash Lbrack With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: If Fun With
+prog: Bor Fun With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -770,6 +770,14 @@ prog: False Lpar False Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Bor With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Bor False Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Ctor Lpar False Comma False Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -778,11 +786,15 @@ prog: Ctor Lpar False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Bor False Semicolon
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: False Comma With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Comma False Wildcard
+prog: False With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -803,10 +815,6 @@ prog: Ident With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Rpar
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -890,11 +898,19 @@ prog: Let Ident Ident Colon Ident Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Lcurly Bor With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Lcurly False Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lcurly False Semicolon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lcurly Bor Ident With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -907,6 +923,10 @@ prog: Lcurly Ident With Ident With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Lcurly Ident Equal With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Lcurly Ident Equal Bor With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

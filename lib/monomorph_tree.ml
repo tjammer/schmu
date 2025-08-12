@@ -931,7 +931,7 @@ and morph_record mk p labels typ =
   let p = enter_level p in
 
   (* Collect mallocs in initializer *)
-  let f param (id, e) =
+  let f param (_bor, id, e) =
     let p, e, var = morph_expr param e in
     if is_struct e.typ then set_alloca p var.alloc;
     (p, (id, e))

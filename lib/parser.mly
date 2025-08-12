@@ -24,6 +24,7 @@
 %token Else
 %token Mut
 %token Mov
+%token Bor
 %token Wildcard
 %token <int64> Int
 %token <char> U8
@@ -370,12 +371,13 @@ upcases:
   | id = ctor_ident; Lpar; tup = tuple; Rpar {Ctor ($loc, id, Some (Tuple ($loc(tup), tup)))}
 
 tuple:
-  | head = expr; Comma; tail = separated_nonempty_list(Comma, expr)
+  | head = borrowed(expr); Comma; tail = separated_nonempty_list(Comma, borrowed(expr))
     { head :: tail }
 
 record_item:
-  | ident = ident; Equal; expr = expr { ident, expr }
-  | ident = ident { ident, Var ($loc, snd ident) }
+  | ident = ident; Equal; bor = boption(Bor); expr = expr { bor, ident, expr }
+  | ident = ident { false, ident, Var ($loc, snd ident) }
+  | Bor; ident = ident { true, ident, Var ($loc, snd ident) }
 
 lit:
   | lit = Int { Int lit }
@@ -426,6 +428,10 @@ ifcont:
 passed(x):
   | pexpr = x { Dnorm, pexpr }
   | attr = decl_attr; pexpr = x { attr, pexpr }
+
+borrowed(x):
+  | expr = expr { false, expr }
+  | Bor; expr = expr { true, expr }
 
 use_path:
   | id = Ident { Path.Pid (id) }

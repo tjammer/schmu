@@ -135,9 +135,9 @@ module Make (C : Map_tree) = struct
     | Record fs ->
         let sub, fs =
           List.fold_left_map
-            (fun sub (n, e) ->
+            (fun sub (bor, n, e) ->
               let sub, e = (map_body mname nsub) sub e in
-              (sub, (n, e)))
+              (sub, (bor, n, e)))
             sub fs
         in
         (sub, Record fs)

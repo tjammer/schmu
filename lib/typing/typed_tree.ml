@@ -29,7 +29,7 @@ type expr =
       args : arg list;
       borrow_call : borrow_call_opt;
     }
-  | Record of (string * typed_expr) list
+  | Record of (borrow_pass * string * typed_expr) list
   | Field of (typed_expr * int * string)
   | Set of (typed_expr * typed_expr * set_move_kind)
   | Sequence of (typed_expr * typed_expr)
@@ -102,6 +102,7 @@ and func = {
 
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
 and arg = typed_expr * dattr
+and borrow_pass = bool
 
 and abstraction = {
   nparams : string list;

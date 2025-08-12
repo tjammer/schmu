@@ -14,7 +14,7 @@ module type S = sig
     Env.t ->
     Ast.loc ->
     Types.typ option * Types.mode option ->
-    (Ast.ident * Ast.expr) list ->
+    (Ast.borrow_pass * Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_record_update :
@@ -22,7 +22,7 @@ module type S = sig
     Ast.loc ->
     Types.typ option * Types.mode option ->
     Ast.expr ->
-    (Ast.ident * Ast.expr) list ->
+    (Ast.borrow_pass * Ast.ident * Ast.expr) list ->
     Typed_tree.typed_expr
 
   val convert_field :
