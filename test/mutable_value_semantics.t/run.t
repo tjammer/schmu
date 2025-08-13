@@ -3454,5 +3454,59 @@ Move variables directly in 'once' context
   $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_call_move_once
 
 Explicit borrow moves
-  $ schmu borrow_moves.smu
+  $ schmu borrow_moves.smu --dump-llvm 2>&1 | grep -v !DI 
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  %rr.tp.a.ll = type { %tp.a.ll }
+  %tp.a.ll = type { ptr, i64 }
+  %rr.a.l = type { ptr }
+  
+  define linkonce_odr i64 @__schmu_mm_rr.a.l(i64 %0) !dbg !2 {
+  entry:
+    %thing = alloca i64, align 8
+    store i64 %0, ptr %thing, align 8
+    %1 = inttoptr i64 %0 to ptr
+    %2 = load i64, ptr %1, align 8
+    ret i64 %2
+  }
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
+  entry:
+    %0 = tail call ptr @malloc(i64 24)
+    %arr = alloca ptr, align 8
+    store ptr %0, ptr %arr, align 8
+    store i64 1, ptr %0, align 8
+    %cap = getelementptr i64, ptr %0, i64 1
+    store i64 1, ptr %cap, align 8
+    %1 = getelementptr i8, ptr %0, i64 16
+    store i64 0, ptr %1, align 8
+    %2 = alloca %rr.tp.a.ll, align 8
+    %3 = load ptr, ptr %arr, align 8
+    store ptr %3, ptr %2, align 8
+    %"1" = getelementptr inbounds %tp.a.ll, ptr %2, i32 0, i32 1
+    store i64 0, ptr %"1", align 8
+    %4 = alloca %rr.a.l, align 8
+    store ptr %3, ptr %4, align 8
+    %5 = ptrtoint ptr %3 to i64
+    %6 = tail call i64 @__schmu_mm_rr.a.l(i64 %5), !dbg !7
+    call void @__free_a.l(ptr %arr)
+    ret i64 0
+  }
+  
+  declare ptr @malloc(i64 %0)
+  
+  define linkonce_odr void @__free_a.l(ptr %0) {
+  entry:
+    %1 = load ptr, ptr %0, align 8
+    call void @free(ptr %1)
+    ret void
+  }
+  
+  declare void @free(ptr %0)
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !5 = !{}
   $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_moves

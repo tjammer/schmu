@@ -1535,6 +1535,8 @@ let add_args body ~loc =
   let expr = Mlet ("", var, Lowned, Some "__schmu_argc", [], cont) in
   { body with expr }
 
+module Mallocs = Mallocs.Make (Monomorph_tree)
+
 let generate ~target ~outname ~release ~modul ~args ~start_loc
     { Monomorph_tree.constants; globals; externals; tree; funcs; frees } =
   set_di_comp_unit ~filename:(outname ^ ".smu") ~directory:(Sys.getcwd ())
@@ -1597,7 +1599,7 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
 
   if not modul then
     (* Add main *)
-    let tree = free_mallocs tree frees in
+    let tree = Mallocs.mk_free_after tree (List.of_seq frees) in
     let upward = ref false in
     let body =
       if args then { (add_args tree ~loc:start_loc) with typ = Tint }
