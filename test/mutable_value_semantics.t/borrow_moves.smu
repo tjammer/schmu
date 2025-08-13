@@ -1,0 +1,20 @@
+-- functor nested(m : hashtbl/key) {
+--   module tbl = hashtbl/make(m)
+-- }
+
+type rr['a] = { hmm : 'a }
+
+fun mm(thing) {
+  thing.hmm |> array/length
+}
+
+{
+  let a = [0]
+  ignore({ hmm = bor (bor a, 0) })
+  ignore(a)
+  
+  mm({ hmm = bor a}) |> ignore
+
+  ignore(a)
+  
+}

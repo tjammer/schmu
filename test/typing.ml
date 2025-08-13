@@ -2172,6 +2172,82 @@ fun matchmany(a, once fn) {
   }
 }|}
 
+let test_bm_borrow_use_after () =
+  test "unit" {|{
+  let a = [0]
+  let b = (bor a, 0)
+  ignore(a)
+}
+|}
+
+let test_bm_borrow_move_after () =
+  test "unit" {|{
+  let a = [0]
+  let b = (bor a, 0)
+  __unsafe_leak(a)
+}
+|}
+
+let test_bm_borrow_move_use_after () =
+  test_exn "a has been moved in line 8, cannot use"
+    {|{
+  let a = [0]
+  let b = (bor a, 0)
+  __unsafe_leak(a)
+  ignore(b)
+}
+|}
+
+let test_bm_borrow_mut_after () =
+  test "unit"
+    {|{
+  let mut a = [0]
+  let b = (bor a, 0)
+  __unsafe_addr(mut a) |> ignore
+}
+|}
+
+let test_bm_borrow_mut_use_after () =
+  test_exn "a has been borrowed in line 7, cannot mutate"
+    {|{
+  let mut a = [0]
+  let b = (bor a, 0)
+  __unsafe_addr(mut a) |> ignore
+  ignore(b)
+}
+|}
+
+let test_bm_move_borrowed () =
+  test_exn "Explicitly borrowed value has been moved in line 8"
+    {|
+{
+  let a = [0]
+  let b = mov (bor a, 0)
+  ()
+}|}
+
+let test_bm_move_borrowed_let () =
+  test_exn "Explicitly borrowed value has been moved in line 9"
+    {|
+{
+  let a = [0]
+  let tmp = (bor a, 0)
+  let b = mov tmp
+  ()
+}|}
+
+let test_bm_nested () =
+  test "unit"
+    {|
+type rr['a] = { hmm : 'a }
+
+{
+  let a = [0]
+  ignore({ hmm = bor (bor a, 0) })
+  ignore(a)
+}
+|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2762,5 +2838,16 @@ type t = {mut slots : array[key], mut data : array[int], mut free_hd : int, mut 
             test_subs_move_once_borrowcall_use_after;
           case "return from call" test_subs_return_from_call;
           case "use in expr" test_subs_use_in_expr;
+        ] );
+      ( "borrow move",
+        [
+          case "use after" test_bm_borrow_use_after;
+          case "move after" test_bm_borrow_move_after;
+          case "move use after" test_bm_borrow_move_use_after;
+          case "mut after" test_bm_borrow_mut_after;
+          case "mut use after" test_bm_borrow_mut_use_after;
+          case "move borrowed" test_bm_move_borrowed;
+          case "move borrowed let" test_bm_move_borrowed_let;
+          case "nested" test_bm_nested;
         ] );
     ]

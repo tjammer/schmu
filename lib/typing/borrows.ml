@@ -577,7 +577,7 @@ module Make_storage (Id : Id_t) = struct
                   mode mname
                   (Index_map.find index trees)
               in
-              (found && nfound, moved, Index_map.add index tree st.trees))
+              (found && nfound, moved, Index_map.add index tree trees))
             (true, [], st.trees) inds.is
         in
         (found, moved, { st with trees })
@@ -707,9 +707,17 @@ module Make_storage (Id : Id_t) = struct
             | "string literal" as s ->
                 r (Format.sprintf "Borrowed %s has been moved in line %i" s pos)
             | s ->
-                r
-                  (Format.sprintf "Borrowed value %s has been moved in line %i"
-                     s pos))
+                if String.starts_with ~prefix:"borrow move" s then
+                  raise
+                    (Error.Error
+                       ( l.loc,
+                         Format.sprintf
+                           "Explicitly borrowed value has been moved in line %i"
+                           pos ))
+                else
+                  r
+                    (Format.sprintf
+                       "Borrowed value %s has been moved in line %i" s pos))
       | Not_moved | Reset ->
           List.iter (check_move ~tl ~owned id loc) tree.children
     in
@@ -1278,16 +1286,35 @@ let rec check_expr st ac part tyex =
       let snd, bs, trees = check_expr { st with trees } ac part snd in
       ({ tyex with expr = Sequence (fst, snd) }, bs, trees)
   | Record es ->
-      let trees, es =
+      let (trees, borrowed), es =
         List.fold_left_map
-          (fun trees (bor, s, e) ->
-            let e, _, trees =
-              check_expr { st with trees } (cond_move e.typ, move_mode) [] e
-            in
-            (trees, (bor, s, { e with expr = Move e })))
-          st.trees es
+          (fun (trees, borrowed) (bor, s, e) ->
+            if bor then
+              (* Construct a Frozen binding for and borrow from it. Also borrow
+                 from the original expression *)
+              let id = Idst.get "borrow move" (Some st.mname) Idst.empty in
+              (* let trees = Trst.insert id e.loc Frozen `Many trees in *)
+              let part = [ Trst.Tree.Pfield s ] in
+              (* Use [ac] to track moves of immediate records *)
+              let _, _, trees = Trst.borrow id e.loc st.mname ac part trees in
+              let borrow = { id; part; oncall = None; cond_borrow = false } in
+              let _, b, trees =
+                check_expr { st with trees } (Dnorm, Many) [] e
+              in
+
+              let borrowed =
+                match b with Owned -> borrowed | Borrowed bs -> bs @ borrowed
+              in
+              ((trees, borrow :: borrowed), (bor, s, e))
+            else
+              let e, _, trees =
+                check_expr { st with trees } (cond_move e.typ, move_mode) [] e
+              in
+              ((trees, borrowed), (bor, s, { e with expr = Move e })))
+          (st.trees, []) es
       in
-      ({ tyex with expr = Record es }, Owned, trees)
+      let ret = match borrowed with [] -> Owned | bs -> Borrowed bs in
+      ({ tyex with expr = Record es }, ret, trees)
   | If (cond, _, t, f) ->
       let cond, _, trees = check_expr st (Dnorm, Once) [] cond in
       let t, tb, ttrees = check_expr { st with trees } ac part t in

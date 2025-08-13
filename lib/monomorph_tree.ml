@@ -923,7 +923,7 @@ and prep_let p id uniq e lmut pass toplvl =
   let p = match pass with Dmove -> leave_level p | Dset | Dmut | Dnorm -> p in
   (un, p, { e1 with const }, gn, ms)
 
-and morph_record mk p labels typ =
+and morph_record mk p tlabels typ =
   let ret = p.ret in
   let p = { p with ret = false } in
 
@@ -936,10 +936,24 @@ and morph_record mk p labels typ =
     if is_struct e.typ then set_alloca p var.alloc;
     (p, (id, e))
   in
-  let p, labels = List.fold_left_map f p labels in
+  let p, labels = List.fold_left_map f p tlabels in
   let p = leave_level p in
 
   let _, malloc, mallocs = mb_malloc None p.mname p.mallocs typ in
+
+  (* Remove explicitly borrowed fields from mallocs. It follows the logic of
+     parents from [morph_field] below. *)
+  let mallocs =
+    List.fold_left
+      (fun (i, mallocs) (bor, _, _) ->
+        if bor then
+          let m = malloc_add_index i malloc in
+          (i + 1, Mallocs.remove m mallocs)
+        else (i + 1, mallocs))
+      (0, mallocs) tlabels
+    |> snd
+  in
+
   let ms = m_to_list malloc in
 
   let alloca = ref (request p) in
