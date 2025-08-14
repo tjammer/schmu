@@ -759,7 +759,6 @@ end = struct
     | Unsafe_addr ->
         let value = List.hd args in
         { value with kind = Imm; typ = Traw_ptr value.typ; lltyp = ptr_t }
-    | Unsafe_unchecked -> (* Do nothing at all *) List.hd args
     | Mod -> (
         match args with
         | [ value; md ] ->

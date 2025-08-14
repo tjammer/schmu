@@ -1361,23 +1361,6 @@ fun borrow(arr, i, fn) {
   }
 }|}
 
-let test_excl_unchecked () =
-  test "unit"
-    {|type option['a] = None | Some('a)
-type inrecord = { str : array[int], other : int }
-let arr = [None, Some({ str = [], other = 0})]
-
-fun borrow(arr, i, fn) {
-  match arr.[i] {
-    None -> fn(None)
-    Some(r) -> {
-      let tmp = __unsafe_unchecked(Some(r.str))
-      fn(tmp)
-      __unsafe_leak(tmp)
-    }
-  }
-}|}
-
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "type t = int; type t = float"
@@ -2722,7 +2705,6 @@ type t = {mut slots : array[key], mut data : array[int], mut free_hd : int, mut 
           case "nameclash" test_excl_regression_assert_on_insert;
           case "pass mutating function" test_excl_pass_mutating_function;
           case "not unchecked" test_excl_not_unchecked;
-          case "unchecked" test_excl_unchecked;
         ] );
       ( "type decl",
         [

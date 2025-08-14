@@ -10,7 +10,6 @@ signature {
   val funptr : fun ('a) -> raw_ptr[unit]
   val clsptr : fun ('a) -> raw_ptr[unit]
   val leak : fun (mov 'a) -> unit
-  val unchecked : fun (once 'a) -> 'a
 }
 
 let nullptr = __unsafe_nullptr
@@ -22,4 +21,3 @@ let addr = __unsafe_addr
 let funptr = __unsafe_funptr
 let clsptr = __unsafe_clsptr
 let leak = __unsafe_leak
-let unchecked = __unsafe_unchecked

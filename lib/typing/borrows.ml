@@ -1190,7 +1190,6 @@ let rec check_expr st ac part tyex =
   | App { callee; args; borrow_call } ->
       fail_pending_borrow_call st.mname tyex.loc args borrow_call;
       let ncallee, _, callee_trees = check_expr st (Dnorm, Once) [] callee in
-      let unchecked = is_unchecked callee in
       let args =
         (* Add modes to args *)
         match repr callee.typ with
@@ -1220,13 +1219,7 @@ let rec check_expr st ac part tyex =
               | Dmove -> (cond_move arg.typ, mode)
               | _ -> (attr, mode)
             in
-            let narg, bs, trees =
-              if not unchecked then check_expr { st with trees } ac [] arg
-              else
-                (* Move arg so we don't try to free in later pass. For the
-                   checker (here) we are not moving *)
-                ({ arg with expr = Move arg }, Owned, trees)
-            in
+            let narg, bs, trees = check_expr { st with trees } ac [] arg in
             let trees, narg =
               borrow_lambda_expr tyex.loc st.mname ac narg bs trees
             in
@@ -1254,10 +1247,7 @@ let rec check_expr st ac part tyex =
           (fun (i, trees) (arg, attr, mode) ->
             let mode = use_mode attr !mode in
             let st = { tmpstate with trees } in
-            let _, _, trees =
-              if not unchecked then check_expr st (attr, mode) [] (var st arg i)
-              else (arg, Owned, st.trees)
-            in
+            let _, _, trees = check_expr st (attr, mode) [] (var st arg i) in
             (i + 1, trees))
           (0, tmptrees) args
       in
@@ -1547,14 +1537,6 @@ and check_abs loc name ac abs tl st =
   in
 
   { st with trees; ids }
-
-and is_unchecked callee =
-  match follow_expr callee.expr with
-  | Some
-      ( Var ("__unsafe_unchecked", _)
-      | Var ("unchecked", Some (Path.Pid "unsafe")) ) ->
-      true
-  | None | Some _ -> false
 
 let check_item st = function
   | Tl_let ({ id; pass; rhs; lmut; loc; _ } as tl) ->
