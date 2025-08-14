@@ -1,4 +1,5 @@
 import array
+import iter
 import option
 import prelude
 import unsafe
@@ -25,6 +26,7 @@ module type sig {
   val fold : fun (t['value], mov 'b, fun (mov 'b, key, 'value) -> 'c) -> 'c
   val clear : fun (mut t['value]) -> unit
   val to_array : fun (t['value]) -> array[(key, 'value)]
+  val iter : fun (t['value], iter/consumer[(key, 'value)]) -> iter/continue
 }
 
 functor make : sig (m : key) {
@@ -203,13 +205,7 @@ functor make : sig (m : key) {
     let hash = idx(tbl, key)
     match find_index(hash, tbl, key, 0) {
       Some(i) -> match tbl.data.[i] {
-        Some(item) -> {
-          -- let tmp = unsafe/unchecked(Some(item.value))
-          -- let ret = fn(tmp)
-          -- unsafe/leak(tmp)
-          -- ret
-          fn(Some(bor item.value))
-        }
+        Some(item) -> fn(Some(bor item.value))
         None -> fn(None)
       }
       None -> fn(None)
@@ -308,6 +304,24 @@ functor make : sig (m : key) {
       array/push(mut arr, mov (copy(key), copy(value)))
     })
     arr
+  }
+
+  fun iter(tbl, cont) {
+    fun rec aux(i, seen) {
+      if tbl.nitems == seen or array/length(tbl.data) == i { false }
+      else {
+        match tbl.data.[i] {
+          None -> aux(i + 1, seen)
+          Some({key, value, pathlen = _}) -> {
+            if cont((bor key, bor value)) {
+              aux(i + 1, seen + 1)
+            }
+            else { false }
+          }
+        }
+      }
+    }
+    aux(0, 0)
   }
 
 }
