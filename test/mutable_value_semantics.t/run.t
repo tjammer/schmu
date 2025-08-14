@@ -3462,6 +3462,7 @@ Explicit borrow moves
   %rr.tp.a.ll = type { %tp.a.ll }
   %tp.a.ll = type { ptr, i64 }
   %rr.a.l = type { ptr }
+  %option.t.a.l = type { i32, ptr }
   
   define linkonce_odr i64 @__schmu_mm_rr.a.l(i64 %0) !dbg !2 {
   entry:
@@ -3491,6 +3492,10 @@ Explicit borrow moves
     store ptr %3, ptr %4, align 8
     %5 = ptrtoint ptr %3 to i64
     %6 = tail call i64 @__schmu_mm_rr.a.l(i64 %5), !dbg !7
+    %t = alloca %option.t.a.l, align 8
+    store i32 1, ptr %t, align 4
+    %data = getelementptr inbounds %option.t.a.l, ptr %t, i32 0, i32 1
+    store ptr %3, ptr %data, align 8
     call void @__free_a.l(ptr %arr)
     ret i64 0
   }

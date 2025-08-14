@@ -204,10 +204,11 @@ functor make : sig (m : key) {
     match find_index(hash, tbl, key, 0) {
       Some(i) -> match tbl.data.[i] {
         Some(item) -> {
-          let tmp = unsafe/unchecked(Some(item.value))
-          let ret = fn(tmp)
-          unsafe/leak(tmp)
-          ret
+          -- let tmp = unsafe/unchecked(Some(item.value))
+          -- let ret = fn(tmp)
+          -- unsafe/leak(tmp)
+          -- ret
+          fn(Some(bor item.value))
         }
         None -> fn(None)
       }

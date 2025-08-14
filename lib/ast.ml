@@ -56,7 +56,7 @@ and expr =
   | Set of loc * (loc * expr) * expr
   | Do_block of block
   | Pipe of loc * argument * expr * bool (* pipe last *)
-  | Ctor of loc * ident * expr option
+  | Ctor of loc * ident * (borrow_pass * expr) option
   | Match of loc * decl_attr * expr * (clause * expr) list
   | Local_use of loc * string * expr
 

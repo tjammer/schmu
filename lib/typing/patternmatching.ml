@@ -37,7 +37,7 @@ module type S = sig
     Env.t ->
     Ast.loc ->
     Ast.loc * string ->
-    Ast.expr option ->
+    (bool * Ast.expr) option ->
     Types.typ option * Types.mode option ->
     Typed_tree.typed_expr
 
@@ -703,12 +703,12 @@ module Make (C : Core) (R : Recs) = struct
           get_variant env loc `Construct name annot
         in
         match (ctor.ctyp, arg) with
-        | Some typ, Some expr ->
+        | Some typ, Some (bor, expr) ->
             let texpr = convert env expr in
             unify
               (loc, "In constructor " ^ ctor_name (snd name) ^ ":")
               typ texpr.typ env;
-            let expr = Ctor (Path.get_hd typename, ctor.index, Some texpr)
+            let expr = Ctor (Path.get_hd typename, ctor.index, Some (bor, texpr))
             and const =
               (* There's a special case for string literals.
                  They will get copied here which makes them not const.

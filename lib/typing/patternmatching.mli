@@ -34,7 +34,7 @@ module type S = sig
     Env.t ->
     Ast.loc ->
     Ast.loc * string ->
-    Ast.expr option ->
+    (bool * Ast.expr) option ->
     Types.typ option * Types.mode option ->
     Typed_tree.typed_expr
 

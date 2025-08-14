@@ -15,6 +15,7 @@ fun mm(thing) {
   
   mm({ hmm = bor a}) |> ignore
 
+  ignore(Some(bor a))
   ignore(a)
   
 }

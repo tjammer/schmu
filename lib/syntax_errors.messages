@@ -782,19 +782,15 @@ prog: Ctor Lpar False Comma False Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Ctor Lpar False Wildcard
+prog: False With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Bor False Semicolon
+prog: Ctor Lpar False Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Comma With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -815,6 +811,10 @@ prog: Ident With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Rpar
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Bor False Semicolon
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

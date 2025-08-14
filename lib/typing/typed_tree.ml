@@ -33,7 +33,7 @@ type expr =
   | Field of (typed_expr * int * string)
   | Set of (typed_expr * typed_expr * set_move_kind)
   | Sequence of (typed_expr * typed_expr)
-  | Ctor of (string * int * typed_expr option)
+  | Ctor of (string * int * (borrow_pass * typed_expr) option)
   | Variant_index of typed_expr
   | Variant_data of typed_expr
   | Move of typed_expr

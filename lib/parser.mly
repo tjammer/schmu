@@ -367,8 +367,9 @@ special_builtins:
 
 upcases:
   | id = ctor_ident { Ctor ($loc, id, None) }
-  | id = ctor_ident; Lpar; expr = expr; Rpar { Ctor ($loc, id, Some expr) }
-  | id = ctor_ident; Lpar; tup = tuple; Rpar {Ctor ($loc, id, Some (Tuple ($loc(tup), tup)))}
+  | id = ctor_ident; Lpar; expr = borrowed(expr); Rpar { Ctor ($loc, id, Some expr) }
+  | id = ctor_ident; Lpar; tup = tuple; Rpar
+   {Ctor ($loc, id, Some (false, Tuple ($loc(tup), tup)))}
 
 tuple:
   | head = borrowed(expr); Comma; tail = separated_nonempty_list(Comma, borrowed(expr))

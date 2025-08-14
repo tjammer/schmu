@@ -2248,6 +2248,24 @@ type rr['a] = { hmm : 'a }
 }
 |}
 
+let test_bm_ctor () =
+  test "unit"
+    {|
+type opt['a] = None | Some('a)
+let a = [0]
+ignore(Some(bor a))
+ignore(a)
+|}
+
+let test_bm_ctor_move () =
+  test_exn "Explicitly borrowed value has been moved in line 9"
+    {|
+type opt['a] = None | Some('a)
+{let a = [0]
+let b = Some(bor a)
+__unsafe_leak(b)
+}|}
+
 let case str test = test_case str `Quick test
 
 (* Run it *)
@@ -2849,5 +2867,7 @@ type t = {mut slots : array[key], mut data : array[int], mut free_hd : int, mut 
           case "move borrowed" test_bm_move_borrowed;
           case "move borrowed let" test_bm_move_borrowed_let;
           case "nested" test_bm_nested;
+          case "ctor" test_bm_ctor;
+          case "ctor move" test_bm_ctor_move;
         ] );
     ]

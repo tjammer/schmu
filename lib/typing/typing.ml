@@ -1275,7 +1275,7 @@ end = struct
           (if not inverse then e1 :: args else args @ [ e1 ])
     | Ctor (_, name, expr) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
-        convert_ctor env loc name (Some e1.aexpr) no_annot
+        convert_ctor env loc name (Some (false, e1.aexpr)) no_annot
     | e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
         convert_app ~pipe env loc e2 [ e1 ]
@@ -1555,7 +1555,7 @@ and catch_weak_expr env sub e =
       catch_weak_expr env sub e2
   | Unop (_, e)
   | Field (e, _, _)
-  | Ctor (_, _, Some e)
+  | Ctor (_, _, Some (_, e))
   | Variant_index e
   | Variant_data e
   | Move e

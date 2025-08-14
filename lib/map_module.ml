@@ -155,9 +155,9 @@ module Make (C : Map_tree) = struct
     | Ctor (n, i, e) ->
         let sub, e =
           match e with
-          | Some e ->
+          | Some (bor, e) ->
               let sub, e = (map_body mname nsub) sub e in
-              (sub, Some e)
+              (sub, Some (bor, e))
           | None -> (sub, None)
         in
         (sub, Ctor (n, i, e))

@@ -1290,10 +1290,9 @@ let rec check_expr st ac part tyex =
         List.fold_left_map
           (fun (trees, borrowed) (bor, s, e) ->
             if bor then
-              (* Construct a Frozen binding for and borrow from it. Also borrow
+              (* Construct a Frozen binding and borrow from it. Also borrow
                  from the original expression *)
               let id = Idst.get "borrow move" (Some st.mname) Idst.empty in
-              (* let trees = Trst.insert id e.loc Frozen `Many trees in *)
               let part = [ Trst.Tree.Pfield s ] in
               (* Use [ac] to track moves of immediate records *)
               let _, _, trees = Trst.borrow id e.loc st.mname ac part trees in
@@ -1394,10 +1393,26 @@ let rec check_expr st ac part tyex =
           (tyex, Borrowed borrowed, st.trees))
   | Ctor (s, i, e) -> (
       match e with
-      | Some e ->
-          let e, _, trees = check_expr st (cond_move e.typ, move_mode) [] e in
-          let e = { e with expr = Move e } in
-          ({ tyex with expr = Ctor (s, i, Some e) }, Owned, trees)
+      | Some (bor, e) ->
+          if bor then
+            (* Construct a Frozen binding and borrow from it. Also borrow
+               from the original expression *)
+            let id = Idst.get "borrow move" (Some st.mname) Idst.empty in
+            (* Use [ac] to track moves of immediate records *)
+            let _, _, trees = Trst.borrow id e.loc st.mname ac part st.trees in
+            let borrow = { id; part; oncall = None; cond_borrow = false } in
+
+            let _, b, trees = check_expr { st with trees } (Dnorm, Many) [] e in
+
+            let bs = match b with Owned -> [] | Borrowed bs -> bs in
+
+            ( { tyex with expr = Ctor (s, i, Some (bor, e)) },
+              Borrowed (borrow :: bs),
+              trees )
+          else
+            let e, _, trees = check_expr st (cond_move e.typ, move_mode) [] e in
+            let e = { e with expr = Move e } in
+            ({ tyex with expr = Ctor (s, i, Some (bor, e)) }, Owned, trees)
       | None -> (tyex, Owned, st.trees))
   | Variant_index e ->
       let e, _, trees = check_expr st ac part e in

@@ -1425,19 +1425,24 @@ and morph_ctor mk p variant index expr typ =
 
   let p = enter_level p in
 
-  let p, ctor =
+  let p, ctor, bor =
     match expr with
-    | Some expr ->
+    | Some (bor, expr) ->
         (* Similar to [morph_record], collect mallocs in data *)
         let p, e, var = morph_expr p expr in
         if is_struct e.typ then set_alloca p var.alloc;
-        (p, (variant, index, Some e))
-    | None -> (p, (variant, index, None))
+        (p, (variant, index, Some e), bor)
+    | None -> (p, (variant, index, None), false)
   in
 
   let p = leave_level p in
 
-  let _, malloc, mallocs = mb_malloc None p.mname p.mallocs typ in
+  let _, malloc, mallocs =
+    (* Don't even add malloc if it's borrowed *)
+    if bor then (None, Malloc.No_malloc, p.mallocs)
+    else mb_malloc None p.mname p.mallocs typ
+  in
+
   let ms = m_to_list malloc in
 
   let alloca = ref (request p) in
