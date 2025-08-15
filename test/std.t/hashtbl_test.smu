@@ -14,8 +14,18 @@ fun string() {
   }
   find_println(tbl, "key")
   find_println(tbl, "otherkey")
+
+  -- iter and enumerate
+  use iter
+  stbl/iter(tbl)
+  |> enumerate
+  |> iter(fun ((i, (key, value))) {
+    fmt/(print3("it: {}, key: {}, value: {}\n", int, i, str, key, float, value))
+  })
+
   stbl/remove(mut tbl, "key")
   find_println(tbl, "key")
+
 }
 println("# hashtbl")
 string()

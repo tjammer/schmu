@@ -2521,7 +2521,7 @@ The lamba passed as array-iter argument is polymorphic
     ret void
   }
   
-  define linkonce_odr i1 @__fun_iter6_lC__fun_iter6_llrul(i64 %x, ptr %0) !dbg !35 {
+  define linkonce_odr i1 @__fun_iter7_lC__fun_iter7_llrul(i64 %x, ptr %0) !dbg !35 {
   entry:
     %f = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %0, i32 0, i32 2
     %_iter_i = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %0, i32 0, i32 3
@@ -2584,22 +2584,22 @@ The lamba passed as array-iter argument is polymorphic
   entry:
     %0 = alloca i64, align 8
     store i64 0, ptr %0, align 8
-    %__fun_iter6_lC__fun_iter6_llrul = alloca %closure, align 8
-    store ptr @__fun_iter6_lC__fun_iter6_llrul, ptr %__fun_iter6_lC__fun_iter6_llrul, align 8
-    %clsr___fun_iter6_lC__fun_iter6_llrul = alloca { ptr, ptr, %closure, ptr }, align 8
-    %f1 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_iter6_lC__fun_iter6_llrul, i32 0, i32 2
+    %__fun_iter7_lC__fun_iter7_llrul = alloca %closure, align 8
+    store ptr @__fun_iter7_lC__fun_iter7_llrul, ptr %__fun_iter7_lC__fun_iter7_llrul, align 8
+    %clsr___fun_iter7_lC__fun_iter7_llrul = alloca { ptr, ptr, %closure, ptr }, align 8
+    %f1 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_iter7_lC__fun_iter7_llrul, i32 0, i32 2
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f1, ptr align 1 %f, i64 16, i1 false)
-    %_iter_i = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_iter6_lC__fun_iter6_llrul, i32 0, i32 3
+    %_iter_i = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_iter7_lC__fun_iter7_llrul, i32 0, i32 3
     store ptr %0, ptr %_iter_i, align 8
-    store ptr @__ctor_tp._llrul, ptr %clsr___fun_iter6_lC__fun_iter6_llrul, align 8
-    %dtor = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_iter6_lC__fun_iter6_llrul, i32 0, i32 1
+    store ptr @__ctor_tp._llrul, ptr %clsr___fun_iter7_lC__fun_iter7_llrul, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_iter7_lC__fun_iter7_llrul, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
-    %envptr = getelementptr inbounds %closure, ptr %__fun_iter6_lC__fun_iter6_llrul, i32 0, i32 1
-    store ptr %clsr___fun_iter6_lC__fun_iter6_llrul, ptr %envptr, align 8
+    %envptr = getelementptr inbounds %closure, ptr %__fun_iter7_lC__fun_iter7_llrul, i32 0, i32 1
+    store ptr %clsr___fun_iter7_lC__fun_iter7_llrul, ptr %envptr, align 8
     %loadtmp = load ptr, ptr %it, align 8
     %envptr2 = getelementptr inbounds %closure, ptr %it, i32 0, i32 1
     %loadtmp3 = load ptr, ptr %envptr2, align 8
-    %1 = call i1 %loadtmp(ptr %__fun_iter6_lC__fun_iter6_llrul, ptr %loadtmp3), !dbg !50
+    %1 = call i1 %loadtmp(ptr %__fun_iter7_lC__fun_iter7_llrul, ptr %loadtmp3), !dbg !50
     ret void
   }
   
@@ -3529,7 +3529,7 @@ the closure's environment
     ret void
   }
   
-  define linkonce_odr i1 @__fun_iter5_lC__fun_iter5_lru(i64 %x, ptr %0) !dbg !28 {
+  define linkonce_odr i1 @__fun_iter6_lC__fun_iter6_lru(i64 %x, ptr %0) !dbg !28 {
   entry:
     %f = getelementptr inbounds { ptr, ptr, %closure }, ptr %0, i32 0, i32 2
     %loadtmp = load ptr, ptr %f, align 8
@@ -3579,20 +3579,20 @@ the closure's environment
   
   define linkonce_odr void @__iter_iter_iter_iter_iter_iter_liter_iter_l(ptr %it, ptr %f) !dbg !39 {
   entry:
-    %__fun_iter5_lC__fun_iter5_lru = alloca %closure, align 8
-    store ptr @__fun_iter5_lC__fun_iter5_lru, ptr %__fun_iter5_lC__fun_iter5_lru, align 8
-    %clsr___fun_iter5_lC__fun_iter5_lru = alloca { ptr, ptr, %closure }, align 8
-    %f1 = getelementptr inbounds { ptr, ptr, %closure }, ptr %clsr___fun_iter5_lC__fun_iter5_lru, i32 0, i32 2
+    %__fun_iter6_lC__fun_iter6_lru = alloca %closure, align 8
+    store ptr @__fun_iter6_lC__fun_iter6_lru, ptr %__fun_iter6_lC__fun_iter6_lru, align 8
+    %clsr___fun_iter6_lC__fun_iter6_lru = alloca { ptr, ptr, %closure }, align 8
+    %f1 = getelementptr inbounds { ptr, ptr, %closure }, ptr %clsr___fun_iter6_lC__fun_iter6_lru, i32 0, i32 2
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f1, ptr align 1 %f, i64 16, i1 false)
-    store ptr @__ctor_tp._lru, ptr %clsr___fun_iter5_lC__fun_iter5_lru, align 8
-    %dtor = getelementptr inbounds { ptr, ptr, %closure }, ptr %clsr___fun_iter5_lC__fun_iter5_lru, i32 0, i32 1
+    store ptr @__ctor_tp._lru, ptr %clsr___fun_iter6_lC__fun_iter6_lru, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, %closure }, ptr %clsr___fun_iter6_lC__fun_iter6_lru, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
-    %envptr = getelementptr inbounds %closure, ptr %__fun_iter5_lC__fun_iter5_lru, i32 0, i32 1
-    store ptr %clsr___fun_iter5_lC__fun_iter5_lru, ptr %envptr, align 8
+    %envptr = getelementptr inbounds %closure, ptr %__fun_iter6_lC__fun_iter6_lru, i32 0, i32 1
+    store ptr %clsr___fun_iter6_lC__fun_iter6_lru, ptr %envptr, align 8
     %loadtmp = load ptr, ptr %it, align 8
     %envptr2 = getelementptr inbounds %closure, ptr %it, i32 0, i32 1
     %loadtmp3 = load ptr, ptr %envptr2, align 8
-    %0 = call i1 %loadtmp(ptr %__fun_iter5_lC__fun_iter5_lru, ptr %loadtmp3), !dbg !40
+    %0 = call i1 %loadtmp(ptr %__fun_iter6_lC__fun_iter6_lru, ptr %loadtmp3), !dbg !40
     ret void
   }
   

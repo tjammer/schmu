@@ -1536,7 +1536,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i1 %0
   }
   
-  define linkonce_odr i1 @__fun_iter5_lC__fun_iter5_lru(i64 %x, ptr %0) !dbg !10 {
+  define linkonce_odr i1 @__fun_iter6_lC__fun_iter6_lru(i64 %x, ptr %0) !dbg !10 {
   entry:
     %f = getelementptr inbounds { ptr, ptr, %closure }, ptr %0, i32 0, i32 2
     %loadtmp = load ptr, ptr %f, align 8
@@ -1555,20 +1555,20 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   define linkonce_odr void @__iter_iter_iter_iter_iter_iter_liter_iter_l(ptr %it, ptr %f) !dbg !16 {
   entry:
-    %__fun_iter5_lC__fun_iter5_lru = alloca %closure, align 8
-    store ptr @__fun_iter5_lC__fun_iter5_lru, ptr %__fun_iter5_lC__fun_iter5_lru, align 8
-    %clsr___fun_iter5_lC__fun_iter5_lru = alloca { ptr, ptr, %closure }, align 8
-    %f1 = getelementptr inbounds { ptr, ptr, %closure }, ptr %clsr___fun_iter5_lC__fun_iter5_lru, i32 0, i32 2
+    %__fun_iter6_lC__fun_iter6_lru = alloca %closure, align 8
+    store ptr @__fun_iter6_lC__fun_iter6_lru, ptr %__fun_iter6_lC__fun_iter6_lru, align 8
+    %clsr___fun_iter6_lC__fun_iter6_lru = alloca { ptr, ptr, %closure }, align 8
+    %f1 = getelementptr inbounds { ptr, ptr, %closure }, ptr %clsr___fun_iter6_lC__fun_iter6_lru, i32 0, i32 2
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f1, ptr align 1 %f, i64 16, i1 false)
-    store ptr @__ctor_tp._lru, ptr %clsr___fun_iter5_lC__fun_iter5_lru, align 8
-    %dtor = getelementptr inbounds { ptr, ptr, %closure }, ptr %clsr___fun_iter5_lC__fun_iter5_lru, i32 0, i32 1
+    store ptr @__ctor_tp._lru, ptr %clsr___fun_iter6_lC__fun_iter6_lru, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, %closure }, ptr %clsr___fun_iter6_lC__fun_iter6_lru, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
-    %envptr = getelementptr inbounds %closure, ptr %__fun_iter5_lC__fun_iter5_lru, i32 0, i32 1
-    store ptr %clsr___fun_iter5_lC__fun_iter5_lru, ptr %envptr, align 8
+    %envptr = getelementptr inbounds %closure, ptr %__fun_iter6_lC__fun_iter6_lru, i32 0, i32 1
+    store ptr %clsr___fun_iter6_lC__fun_iter6_lru, ptr %envptr, align 8
     %loadtmp = load ptr, ptr %it, align 8
     %envptr2 = getelementptr inbounds %closure, ptr %it, i32 0, i32 1
     %loadtmp3 = load ptr, ptr %envptr2, align 8
-    %0 = call i1 %loadtmp(ptr %__fun_iter5_lC__fun_iter5_lru, ptr %loadtmp3), !dbg !17
+    %0 = call i1 %loadtmp(ptr %__fun_iter6_lC__fun_iter6_lru, ptr %loadtmp3), !dbg !17
     ret void
   }
   

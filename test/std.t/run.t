@@ -6,6 +6,7 @@ Test hashtbl
   ## string
   1.1
   none
+  it: 0, key: key, value: 1.1
   none
   ## key
   some v: 10

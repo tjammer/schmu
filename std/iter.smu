@@ -12,6 +12,7 @@ signature {
   val map : fun (t['a], fun ('a) -> 'b, consumer['b]) -> continue
   val filter : fun (t['a], fun ('a) -> bool, consumer['a]) -> continue
   val take : fun (t['a], int, consumer['b]) -> continue
+  val enumerate : fun (t['a], consumer[(int, 'a)]) -> continue
 
   -- consumers
   val iter : fun (t['a], fun ('a) -> unit) -> unit
@@ -57,6 +58,15 @@ fun take(it : t['a], stop, cont) {
       }
       else { false }
     }
+  })
+}
+
+fun enumerate(it : t['a], cont) {
+  let mut i = 0
+  it(fun x {
+    let c = cont((i, bor x))
+    mut i = i + 1
+    c
   })
 }
 
