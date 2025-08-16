@@ -96,7 +96,7 @@ top_item:
   | modul = modul { modul }
   | functor_ = functor_ { functor_ }
   | modtype = modtype { modtype }
-  | sgn = signature { Signature ($loc(sgn), sgn) }
+  | Signature; sgn = signature_expr { Signature ($loc, sgn) }
   | Import; id = Ident { Import ($loc(id), id) }
 
 stmt_no_ident:
@@ -184,8 +184,14 @@ module_decl:
   | name = ident { let loc, name = name in loc, name, None }
   | name = ident; Colon; path = use_path { let loc, name = name in loc, name, Some path }
 
-signature:
-  | Signature; Lcurly; items = sig_items ; Rcurly { items }
+signature_expr:
+  | Lcurly; items = sig_items; Rcurly { Sdefinition items }
+  | path = path_with_loc { Salias (path, []) }  
+  | Lcurly; path = path_with_loc; With; subst = separated_nonempty_list(Comma, sgn_subst); Rcurly
+    { Salias (path, subst) }
+
+sgn_subst:
+  | id = ident; Equal; path = path_with_loc { id, path }
 
 sig_items:
   | items = separated_nonempty_list(Semicolon, sig_item) { items }

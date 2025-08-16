@@ -6,7 +6,7 @@ prog: Use With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Use Path_id With
+prog: Signature Path_id With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -311,6 +311,30 @@ prog: Signature Lcurly Type Ident Equal Ctor Eof
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Signature Lcurly Type Ident Semicolon With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Ident Wildcard
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Ident With With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Ident With Ident Equal Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Ident With Ident Equal Ident Comma With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Ident With Ident With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Signature Lcurly Ident With Ident Equal With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

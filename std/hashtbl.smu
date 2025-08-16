@@ -29,8 +29,9 @@ module type sig {
   val iter : fun (t['value], iter/consumer[(key, 'value)]) -> iter/continue
 }
 
-functor make : sig (m : key) {
-  use option
+functor make (m : key) {
+  signature { sig with key = m/t }
+  
   use prelude
 
   type key = m/t

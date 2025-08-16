@@ -10,8 +10,6 @@ type converted_prog = {
   env : Env.t;
   items : toplevel_item list;
   m : Module_common.t;
-  sgn_env : Env.t;
-  sgn : Ast.signature list;
 }
 
 module Strset = Set.Make (String)
@@ -1511,6 +1509,67 @@ let add_signature_vals env m = function
       m
   | Stypedef _ -> m
 
+let subst_module_type env mt subst =
+  let find_item mt id =
+    List.find_opt
+      (fun (name, _, kind) ->
+        match kind with
+        | Module_type.Mtypedef decl -> (
+            match decl.kind with
+            | Dabstract None when String.equal name id -> true
+            | _ -> false)
+        | Mvalue _ -> false)
+      mt
+  in
+
+  let replace_item mt ((newname, _, _) as newitem) (base, with_) =
+    List.map
+      (fun ((name, loc, kind) as olditem) ->
+        match kind with
+        | Module_type.Mtypedef _ when String.equal name newname -> newitem
+        | Mtypedef _ -> olditem
+        | Mvalue (typ, cn) ->
+            let kind =
+              Module_type.Mvalue (Module_type.apply_pathsub ~base ~with_ typ, cn)
+            in
+            (name, loc, kind))
+      mt
+  in
+
+  List.fold_left
+    (fun mt ((idloc, id), (ploc, path)) ->
+      let item, sub =
+        match find_item mt id with
+        | None ->
+            raise (Error (idloc, "Cannot find abstract type with name " ^ id))
+        | Some (name, itemloc, kind) -> (
+            match Env.find_type_opt ploc path env with
+            | None -> raise (Error (ploc, "Unbound type " ^ Path.show path))
+            | Some (decl, dpath) ->
+                let kind =
+                  match kind with
+                  | Mtypedef d ->
+                      let typ = typ_of_decl decl dpath in
+                      Module_type.Mtypedef { d with kind = Dalias typ }
+                  | Mvalue _ -> failwith "unreachable"
+                in
+                let sub = (Path.append name (Env.modpath env), dpath) in
+                ((name, itemloc, kind), sub))
+      in
+      replace_item mt item sub)
+    mt subst
+
+let add_module_type (name, loc, kind) (env, m) =
+  (* Only add typedefs to env. Vals only to the signature *)
+  match kind with
+  | Module_type.Mtypedef decl ->
+      let env = Env.add_type None name decl env in
+      let m = Module.add_type_sig loc name decl m in
+      (env, m)
+  | Mvalue (typ, _) ->
+      let m = Module.add_value_sig loc name typ m in
+      (env, m)
+
 let rec catch_weak_vars env = function
   | Tl_let { rhs = e; _ } | Tl_bind (_, e) | Tl_expr e ->
       catch_weak_expr env Sset.empty e
@@ -1814,11 +1873,8 @@ let rec convert_module env loc mname prog check_ret =
      val decls essentially are), we have to make sure the complete
      implementation is available before. *)
   let prog = convert_prog env prog Module.empty in
+  let m = Module.validate_signature prog.env prog.m in
   let externals = Module.append_externals (Env.externals prog.env) in
-  (* Make sure to chose the signature env, not the impl one. Abstract types are
-     magically made complete by references. *)
-  let m = List.fold_left (add_signature_vals prog.sgn_env) prog.m prog.sgn in
-  let m = Module.validate_signature prog.env m in
 
   (* Catch weak type variables *)
   List.iter (catch_weak_vars prog.env) prog.items;
@@ -1826,7 +1882,7 @@ let rec convert_module env loc mname prog check_ret =
   let _, _, touched, unused = Env.close_toplevel prog.env in
   let unmutated, items = Borrows.check_items ~mname loc ~touched prog.items in
 
-  let has_sign = match prog.sgn with [] -> false | _ -> true in
+  let has_sign = match m.s with [] -> false | _ -> true in
   if (not (is_module (Env.modpath prog.env))) || has_sign then
     check_unused unused unmutated;
 
@@ -1845,7 +1901,6 @@ let rec convert_module env loc mname prog check_ret =
 and convert_prog env items modul =
   let old = ref (Lexing.(dummy_pos, dummy_pos), tunit) in
   let before_stmt = ref true in
-  let sgnrf = ref ([], env) in
 
   let rec aux (env, items, m) = function
     | Ast.Stmt stmt ->
@@ -2092,12 +2147,33 @@ and convert_prog env items modul =
     | Signature (loc, sgn) ->
         if not !before_stmt then
           raise (Error (loc, "Module signature must be declared at the top"));
-        (match !sgnrf |> fst with
+        (match m.s with
         | [] -> ()
         | _ -> raise (Error (loc, "Module signature must be unique")));
 
-        let env, m = List.fold_left add_signature_types (env, m) sgn in
-        sgnrf := (sgn, env);
+        let env, m =
+          match sgn with
+          | Sdefinition sgn ->
+              let env, m = List.fold_left add_signature_types (env, m) sgn in
+              (* Make sure to chose the signature env, not the impl one. Abstract types are
+                 magically made complete by references. *)
+              let m = List.fold_left (add_signature_vals env) m sgn in
+              (env, m)
+          | Salias ((_, path), subst) -> (
+              match Env.find_module_type_opt loc path env with
+              | Some (base, mt) ->
+                  let mt =
+                    Module_type.adjust_for_checking ~base
+                      ~with_:(Env.modpath env) mt
+                  in
+
+                  let mt = subst_module_type env mt subst in
+                  let env, m = List.fold_right add_module_type mt (env, m) in
+                  (env, m)
+              | None ->
+                  raise
+                    (Error (loc, "Cannot find module type " ^ Path.show path)))
+        in
         (env, items, m)
     | Import (loc, name) ->
         let env = Module.import_module env loc ~regeneralize name in
@@ -2219,8 +2295,7 @@ and convert_prog env items modul =
   in
 
   let env, items, m = List.fold_left aux (env, [], modul) items in
-  let sgn, sgn_env = !sgnrf in
-  { last_type = snd !old; env; items = List.rev items; m; sgn; sgn_env }
+  { last_type = snd !old; env; items = List.rev items; m }
 
 (* Conversion to Typing.exr below *)
 let to_typed ?(check_ret = true) ~mname msg_fn ~start_loc:loc ~std prog =

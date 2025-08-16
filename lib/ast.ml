@@ -121,7 +121,7 @@ type top_item =
   | Functor of module_decl * functor_param list * top_item list
   | Module_alias of module_decl * alias_kind
   | Module_type of ident * signature list
-  | Signature of loc * signature list
+  | Signature of loc * signature_expr
   | Import of ident
 
 and module_decl = loc * string * Path.t option
@@ -132,5 +132,9 @@ and path = loc * Path.t
 and signature =
   | Stypedef of loc * typedef
   | Svalue of loc * (ident * type_spec)
+
+and signature_expr =
+  | Sdefinition of signature list
+  | Salias of path * (ident * path) list
 
 and prog = top_item list
