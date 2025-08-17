@@ -23,7 +23,6 @@ module type sig {
   val find_mut : fun (mut t['value], key, once fun (mut option/t['value]) -> 'a) -> 'a
   val mem : fun (t['value], key) -> bool
 
-  val fold : fun (t['value], mov 'b, fun (mov 'b, key, 'value) -> 'c) -> 'c
   val clear : fun (mut t['value]) -> unit
   val to_array : fun (t['value]) -> array[(key, 'value)]
   val iter : fun (t['value], iter/consumer[(key, 'value)]) -> iter/continue
@@ -260,22 +259,6 @@ functor make (m : key) {
       Some(_) -> true
       None -> false
     }
-  }
-
-  fun fold(tbl, mov init, f) {
-    fun rec inner(i, mov acc) {
-      if array/length(tbl.data) == i {
-        acc
-      }
-      else {
-        match tbl.data.[i] {
-          None -> inner(i + 1, mov acc)
-          Some({key, value, pathlen = _}) ->
-          inner(i + 1, mov f(mov acc, key, value))
-        }
-      }
-    }
-    inner(0, mov init)
   }
 
   fun clear(mut tbl) {

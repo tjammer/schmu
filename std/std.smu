@@ -8,6 +8,7 @@ import iter
 import option
 import prelude
 import rc
+import set
 import string
 import sys
 import unsafe
@@ -34,6 +35,7 @@ module int = int
 module iter = iter
 module option = option
 module rc = rc
+module set = set
 module string = string
 module sys = sys
 module unsafe = unsafe

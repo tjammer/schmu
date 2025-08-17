@@ -39,3 +39,4 @@ fun rec power_2_above(x, n) {
 fun assert_fail(func, file, line, expr) {
   libc/assert_fail(func, file, line, expr)
 }
+

@@ -261,3 +261,22 @@ Formatting
   -12345.6789
   0.000001234
   123456000.0
+
+Test set
+  $ schmu set_test.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./set_test
+  0
+  1
+  2
+  3
+  
+  0
+  
+  0
+  1
+  2
+  
+  1
+  
+  some 1
+  none

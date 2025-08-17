@@ -20,6 +20,20 @@
    (run schmu --release -m --no-std array.smu))))
 
 (rule
+ (targets set.o set.smi)
+ (deps
+  %{bin:schmu}
+  set.smu
+  prelude.smi
+  option.smi
+  iter.smi
+  rc.smi
+  string.smi)
+ (action
+  (progn
+   (run schmu --release -m --no-std set.smu))))
+
+(rule
  (targets int.o int.smi)
  (deps %{bin:schmu} int.smu)
  (action
@@ -229,6 +243,9 @@
   schubfach.smu
   (schubfach.smi as std/schubfach.smi)
   (schubfach.o as std/schubfach.o)
+  set.smu
+  (set.smi as std/set.smi)
+  (set.o as std/set.o)
   libc.smu
   (libc.smi as std/libc.smi)
   (libc.o as std/libc.o)))

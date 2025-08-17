@@ -1,0 +1,224 @@
+import option
+import iter
+import rc
+import prelude
+import string
+
+module type ordered {
+  type t
+  val compare : fun (t, t) -> int
+}
+
+module type sig {
+  type key
+  type t
+
+  val empty : t
+  val singleton : fun (mov key) -> t 
+  val add : fun (t, mov key) -> t
+  val remove : fun (t, key) -> t
+  val find : fun (t, key, once fun (option/t[key]) -> 'a) -> 'a
+
+  val merge : fun (t, t) -> t
+
+  val iter : fun (t, iter/consumer[key]) -> iter/continue  
+}
+
+functor make (ord : ordered) {
+  signature { sig with key = ord/t }
+
+  type key = ord/t
+
+  type node = { l : option/t[rc[node]], v : rc[key], r : option/t[rc[node]], h : int }
+  type t = option/t[rc[node]]
+
+  -- balanced binary tree, heights of children differ by at most 2
+
+  use prelude
+
+  let empty : t = None
+
+  fun height(s) {
+    match s {
+      None -> 0
+      Some(rc) -> rc/read(rc, fun s { s.h })
+    }
+  }
+
+  fun create(mov l, mov v, mov r) {
+    let hl = height(l)
+    let hr = height(r)
+    let h = if hl >= hr { hl + 1 } else { hr + 1 }
+    Some(rc/create({ l, v, r, h }))
+  }
+
+  fun extract(m, err, f) {
+    match m {
+      None -> {
+        -- inline failwith
+        string/prerr("failwith: ")
+        string/prerrln(err)
+        __any_abort()
+      }
+      Some(s) -> f(s)
+    }
+  }
+  
+  fun balance(l, v, r) {
+    let hl = height(l)
+    let hr = height(r)
+    if hl > hr + 2 {
+      let s <- extract(l, "set balance")
+      let { l = ll, v = lv, r = lr, h = _ } <- rc/read(s)
+
+      if height(ll) >= height(lr) {
+        let newr = create(copy(lr), copy(v), copy(r))
+        create(copy(ll), copy(lv), newr)
+      }
+      else {
+        let s <- extract(lr, "set balance")
+        let { l = lrl, v = lrv, r = lrr, h = _ } <- rc/read(s)
+        let newl = create(copy(ll), copy(lv), copy(lrl))
+        let newr = create(copy(lrr), copy(v), copy(r))
+        create(newl, copy(lrv), newr)
+      }
+    }
+    else if hr > hl + 2 {
+      let s <- extract(r, "set balance")
+      let { l = rl, v = rv, r = rr, h = _ } <- rc/read(s)
+
+      if height(rr) >= height(rl) {
+        let newl = create(copy(l), copy(v), copy(rl))
+        create(newl, copy(rv), copy(rr))
+      }
+      else {
+        let s <- extract(rl, "set balance")
+        let { l = rll, v = rlv, r = rlr, h = _ } <- rc/read(s)
+        let newl = create(copy(l), copy(v), copy(rll))
+        let newr = create(copy(rlr), copy(rv), copy(rr))
+        create(newl, copy(rlv), newr)
+      }
+    }
+    else {
+      let h = if hl >= hr { hl + 1 } else { hr + 1 }
+      Some(rc/create({ l = copy(l), v = copy(v), r = copy(r), h }))
+    }
+  }
+
+  fun singleton(mov x) {
+    Some(rc/create({ l = None, v = rc/create(x), r = None, h = 1 }))
+  }
+
+  fun equal(l, r) {
+    match (bor l, bor r) {
+      (None, None) -> true
+      (Some(_), None) | (None, Some(_)) -> false
+      (Some(l), Some(r)) -> rc/equal(l, r)
+    }
+  }
+
+  fun rec add(s, mov x) {
+    match s {
+      None -> singleton(x)
+      Some(rc) -> {
+        let {l, v, r, h =_ } <- rc/read(rc)
+        let vval <- rc/read(v)
+        let c = ord/compare(x, vval)
+        if c == 0 { copy(s) }
+        else if c < 0 {
+          let ll = add(l, x)
+          if equal(l, ll) { copy(s) } else { balance(ll, v, r) }
+        }
+        else {
+          let rr = add(r, x)
+          if equal(r, rr) { copy(s) } else { balance(l, v, rr) }
+        }
+      }
+    }
+  }
+
+  fun rec min_elt(t) {
+    let s <- extract(t, "min_elt")
+    let { l, v, r = _, h = _ } <- rc/read(s)
+    match l {
+      None -> copy(v)
+      Some(_) -> min_elt(l)
+    }
+  }
+
+  fun rec remove_min_elt(t) {
+    let s <- extract(t, "remove_min_elt")
+    let { l, v, r, h = _ } <- rc/read(s)
+    match l {
+      None -> copy(r)
+      Some(_) -> balance(remove_min_elt(l), v, r)
+    }
+  }
+
+  fun merge(t1, t2) {
+    match (bor t1, bor t2) {
+      (None, _) -> copy(t2)
+      (_, None) -> copy(t1)
+      (_, _) -> balance(t1, min_elt(t2), remove_min_elt(t2))
+    }
+  }
+
+  fun rec remove(t, x) {
+    match t {
+      None -> copy(t)
+      Some(rc) -> {
+        let { l, v, r, h = _ } <- rc/read(rc)
+        let vval <- rc/read(v)
+        let c = ord/compare(x, vval)
+        if c == 0 { merge(l, r) }
+        else if c < 0 {
+          let ll = remove(l, x)
+          if equal(l, ll) { copy(t) }
+          else { balance(ll, v, r) }
+        }
+        else {
+          let rr = remove(r, x)
+          if equal(r, rr) { copy(t) }
+          else { balance(l, v, rr) }
+        }
+      }
+    }
+  }
+
+  fun iter(t, cont) {
+    fun rec aux(t) {
+      match t {
+        None -> false
+        Some(rc) -> {
+          let {l, v, r, h = _} <- rc/read(rc)
+          let vval <- rc/read(v)
+          aux(l) |> ignore
+          let _ : bool = cont(vval)
+          aux(r) |> ignore
+          true
+        }
+      }
+    }
+    aux(t)
+  }
+
+  fun rec find(t, key, once fn) {
+    match t {
+      None -> fn(None)
+      Some(rc) -> {
+        let { l, v, r, h = _ } <- rc/read(rc)
+        let vval <- rc/read(v)
+        let c = ord/compare(key, vval)
+        if c == 0 {
+          fn(Some(bor vval))
+        }
+        else {
+          let next = if c < 0 { l } else { r }
+          find(next, key, fn)
+        }
+      }
+    }
+  }
+}
+
+
