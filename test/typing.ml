@@ -1361,6 +1361,25 @@ fun borrow(arr, i, fn) {
   }
 }|}
 
+let test_excl_mut_tuple_pattern () =
+  test "unit"
+    {|
+{
+  let mut (mut a, (b, mov c)) = (0, (0, [1]))
+  mut a = 2
+  ignore(a)
+}|}
+
+let test_excl_mut_tuple_pattern_no_outer () =
+  test_exn
+    "Cannot mutate immutable binding. In patterns, the pattern itself must \
+     also be mutable"
+    {|{
+      let a = (0, [1])
+  let c, mut b = a
+  ()
+}|}
+
 let test_type_decl_not_unique () =
   test_exn "Type names in a module must be unique. t exists already"
     "type t = int; type t = float"
@@ -2044,27 +2063,27 @@ let once b = fun () { __ignore_once(a) }
 (b, ())
 }|}
 
-let test_subs_parse () =
+let test_bc_parse () =
   test_exn
     "Cannot borrow from function call in let binding. Use let borrow form (let \
      _ <- expr())"
     ("{" ^ subs ^ "let a = subs(2); ()}; ()")
 
-let test_subs_wrong_expr () =
+let test_bc_wrong_expr () =
   test_exn "Cannot use expression as borrow call"
     ("{ " ^ subs ^ "let a <- 12; () }; ()")
 
-let test_subs_parse_tl () =
+let test_bc_parse_tl () =
   (* This will fail in the future *)
   test_exn "Cannot return borrow at top level" (subs ^ "let a <- subs(2); ()")
 
-let test_subs_borrow_bind () = test "unit" (subs ^ "{ let a <- subs(2); () }")
+let test_bc_borrow_bind () = test "unit" (subs ^ "{ let a <- subs(2); () }")
 
-let test_subs_borrow_return_param () =
+let test_bc_borrow_return_param () =
   test_exn "In borrow call expecting fun (_) -> int but found fun (_) -> unit"
     (subs ^ "{ let a <- subs(2); a }")
 
-let test_subs_no_unit_param () =
+let test_bc_no_unit_param () =
   (* We get a borrow check error, not a parameter type or fn type error *)
   test "unit"
     {|fun higher_order(once fn) { fn(); () }
@@ -2072,7 +2091,7 @@ fun test(mov a) {
   let _ <- higher_order(); ()
 }|}
 
-let test_subs_no_unit_param_lit () =
+let test_bc_no_unit_param_lit () =
   (* We get a borrow check error, not a parameter type or fn type error *)
   test "unit"
     {|fun higher_order(once fn) { fn(()); () }
@@ -2080,7 +2099,7 @@ fun test(mov a) {
   let () <- higher_order(); ()
 }|}
 
-let test_subs_move_once_fn () =
+let test_bc_move_once_fn () =
   test "unit"
     {|fun higher_order(once fn) { fn(); () }
 fun test(mov a) {
@@ -2088,7 +2107,7 @@ fun test(mov a) {
 }
 |}
 
-let test_subs_move_once_fn_use_after () =
+let test_bc_move_once_fn_use_after () =
   test_exn "a has been moved in line 7, cannot use"
     {|fun higher_order(once fn) { fn(); () }
 fun test(mov a) {
@@ -2097,7 +2116,7 @@ fun test(mov a) {
 }
 |}
 
-let test_subs_move_once_borrowcall () =
+let test_bc_move_once_borrowcall () =
   test "unit"
     {|fun higher_order(once fn) { fn(); () }
 fun test(mov a) {
@@ -2106,7 +2125,7 @@ fun test(mov a) {
 }
 |}
 
-let test_subs_move_once_borrowcall_use_after () =
+let test_bc_move_once_borrowcall_use_after () =
   test_exn "a has been moved in line 8, cannot use"
     {|fun higher_order(once fn) { fn(); () }
 fun test(mov a) {
@@ -2116,7 +2135,7 @@ fun test(mov a) {
 }
 |}
 
-let test_subs_return_from_call () =
+let test_bc_return_from_call () =
   test "unit"
     {|fun higher_order(once fn) { fn() }
 let returned = {
@@ -2125,7 +2144,7 @@ let returned = {
 }
 |}
 
-let test_subs_use_in_expr () =
+let test_bc_use_in_expr () =
   test_exn
     "In application\n\
      expecting fun (once fun (unit) -> unit) -> _\n\
@@ -2705,6 +2724,8 @@ type t = {mut slots : array[key], mut data : array[int], mut free_hd : int, mut 
           case "nameclash" test_excl_regression_assert_on_insert;
           case "pass mutating function" test_excl_pass_mutating_function;
           case "not unchecked" test_excl_not_unchecked;
+          case "mut tuple pattern" test_excl_mut_tuple_pattern;
+          case "mut tuple pattern no outer" test_excl_mut_tuple_pattern_no_outer;
         ] );
       ( "type decl",
         [
@@ -2822,22 +2843,22 @@ type t = {mut slots : array[key], mut data : array[int], mut free_hd : int, mut 
             test_once_move_once_borrow_lambda_indirect;
           case "mult use touched" test_once_mult_use_touched;
         ] );
-      ( "subscripts",
+      ( "borrow call",
         [
-          case "parse" test_subs_parse;
-          case "parse toplevel" test_subs_parse_tl;
-          case "wrong expr" test_subs_wrong_expr;
-          case "borrow bind" test_subs_borrow_bind;
-          case "borrow return param" test_subs_borrow_return_param;
-          case "no/unit param" test_subs_no_unit_param;
-          case "no/unit param lit" test_subs_no_unit_param_lit;
-          case "move once fn" test_subs_move_once_fn;
-          case "move once fn use after" test_subs_move_once_fn_use_after;
-          case "move once borrowcall" test_subs_move_once_borrowcall;
+          case "parse" test_bc_parse;
+          case "parse toplevel" test_bc_parse_tl;
+          case "wrong expr" test_bc_wrong_expr;
+          case "borrow bind" test_bc_borrow_bind;
+          case "borrow return param" test_bc_borrow_return_param;
+          case "no/unit param" test_bc_no_unit_param;
+          case "no/unit param lit" test_bc_no_unit_param_lit;
+          case "move once fn" test_bc_move_once_fn;
+          case "move once fn use after" test_bc_move_once_fn_use_after;
+          case "move once borrowcall" test_bc_move_once_borrowcall;
           case "move once borrowcall use after"
-            test_subs_move_once_borrowcall_use_after;
-          case "return from call" test_subs_return_from_call;
-          case "use in expr" test_subs_use_in_expr;
+            test_bc_move_once_borrowcall_use_after;
+          case "return from call" test_bc_return_from_call;
+          case "use in expr" test_bc_use_in_expr;
         ] );
       ( "borrow move",
         [

@@ -101,10 +101,10 @@ module Make (C : Map_tree) = struct
         (* Change binding name as well *)
         let sub, cont = (map_body mname nsub) sub d.cont in
         (sub, Let { d with rhs; cont })
-    | Bind (id, lhs, cont) ->
+    | Bind (id, pass, lhs, cont) ->
         let sub, lhs = (map_body mname nsub) sub lhs in
         let sub, cont = (map_body mname nsub) sub cont in
-        (sub, Bind (id, lhs, cont))
+        (sub, Bind (id, pass, lhs, cont))
     | Lambda (i, abs) ->
         let sub, abs = map_abs mname sub nsub abs in
         (sub, Lambda (i, abs))

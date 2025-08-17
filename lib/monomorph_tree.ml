@@ -561,7 +561,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       let un, p, e1, gn, ms = prep_let param id uniq rhs lmut pass false in
       let p, e2, func = morph_expr { p with ret = param.ret } cont in
       (p, { e2 with expr = Mlet (un, e1, kind, gn, ms, e2) }, func)
-  | Bind (id, lhs, ocont) ->
+  | Bind (id, _, lhs, ocont) ->
       let id =
         reconstr_module_username ~mname:param.mname ~mainmod:param.mainmodule id
       in

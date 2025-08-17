@@ -20,7 +20,7 @@ type expr =
   | Unop of Ast.unop * typed_expr
   | If of typed_expr * bool option (* owning *) * typed_expr * typed_expr
   | Let of let_data
-  | Bind of string * typed_expr * typed_expr
+  | Bind of string * dattr * typed_expr * typed_expr
   | Lambda of int * abstraction
   | Function of string * int option * abstraction * typed_expr
   | Mutual_rec_decls of (string * int option * typ) list * typed_expr
@@ -139,7 +139,7 @@ let rec follow_expr = function
       Some e
   | If _ -> None
   | Let l -> follow_expr l.cont.expr
-  | Bind (_, _, cont)
+  | Bind (_, _, _, cont)
   | Function (_, _, _, cont)
   | Mutual_rec_decls (_, cont)
   | Sequence (_, cont) ->

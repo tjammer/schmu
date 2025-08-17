@@ -55,7 +55,7 @@ module type S = sig
     string * Ast.loc * bool (* Is wildcard *) * Ast.decl_attr
 
   val convert_decl :
-    Env.t -> Ast.decl list -> Env.t * (string * typed_expr) list
+    Env.t -> Ast.decl list -> Env.t * (string * Ast.decl_attr * typed_expr) list
 end
 
 let ctor_name name = String.capitalize_ascii name
@@ -1022,7 +1022,7 @@ module Make (C : Core) (R : Recs) = struct
     | Some { loc; cnt = _ } ->
         raise (Error (loc, "Pattern match case is redundant")));
 
-    let expr = Bind (expr_name path, expr, cont) in
+    let expr = Bind (expr_name path, pass, expr, cont) in
     { cont with expr }
 
   and compile_matches env all_loc used_rows cases ret_typ rmut pass =
@@ -1125,7 +1125,7 @@ module Make (C : Core) (R : Recs) = struct
             (* Make expr available in codegen *)
             let ifexpr =
               let id = expr_name path in
-              Bind (id, data, cont)
+              Bind (id, Dnorm, data, cont)
             in
 
             (* This is either an if-then-else or just an one ctor,
@@ -1226,7 +1226,7 @@ module Make (C : Core) (R : Recs) = struct
 
                   let expr =
                     let id = expr_name newcol in
-                    Bind (id, expr, cont)
+                    Bind (id, Dnorm, expr, cont)
                   in
                   { cont with expr })
                 ret fields
@@ -1361,10 +1361,6 @@ module Make (C : Core) (R : Recs) = struct
           match pat.pat with
           | Tp_record (loc, fields, dattr) ->
               let env, nbinds =
-                (match dattr with
-                | Dnorm | Dmove -> ()
-                | Dset | Dmut ->
-                    raise (Error (loc, "Mutation not supported here yet")));
                 let mut = mut_of_pattr dattr in
                 List.fold_left_map
                   (fun env f ->
@@ -1378,23 +1374,22 @@ module Make (C : Core) (R : Recs) = struct
                     ( add_ignore (expr_name col)
                         { (exprval env) with typ = f.iftyp; mut }
                         loc env,
-                      (id, expr) ))
+                      (id, Dnorm, expr) ))
                   env fields
               in
               let pats = expand_record path fields tl in
               loop (env, nbinds @ binds) pats
           | Tp_var (loc, id, dattr) ->
-              (match dattr with
-              | Dnorm -> ()
-              | Dset | Dmut | Dmove ->
-                  raise (Error (loc, "Mutation not supported here yet")));
+              let mut = mut_of_pattr dattr in
+              let attr = { no_attr with mut } in
               let env =
                 Env.(
                   add_value id
-                    { (def_value env) with typ = pat.ptyp; param = true }
+                    { (def_value env) with typ = pat.ptyp; param = true; mut }
                     loc env)
               in
-              loop (env, (id, expr env path loc) :: binds) tl
+              let expr = expr env path loc in
+              loop (env, (id, dattr, { expr with attr }) :: binds) tl
           | Tp_wildcard _ | Tp_unit _ -> loop (env, binds) tl
           | Tp_ctor _ | Tp_int _ | Tp_char _ ->
               failwith

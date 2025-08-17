@@ -267,7 +267,7 @@ let add_param env id idloc typ pattr =
     }
     idloc env
 
-let fold_decl cont (id, e) = { cont with expr = Bind (id, e, cont) }
+let fold_decl cont (id, pass, e) = { cont with expr = Bind (id, pass, e, cont) }
 
 let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
     qparams mode_annot =
@@ -691,7 +691,13 @@ module rec Core : sig
     Ast.loc ->
     Ast.decl ->
     Ast.passed_expr ->
-    Env.t * string * loc * typed_expr * bool * (string * typed_expr) list * mode
+    Env.t
+    * string
+    * loc
+    * typed_expr
+    * bool
+    * (string * Ast.decl_attr * typed_expr) list
+    * mode
 
   val convert_function :
     Env.t ->
@@ -1627,7 +1633,7 @@ and catch_weak_expr env sub e =
       catch_weak_expr env sub cond;
       catch_weak_expr env sub e1;
       catch_weak_expr env sub e2
-  | Let { rhs; cont; _ } | Bind (_, rhs, cont) ->
+  | Let { rhs; cont; _ } | Bind (_, _, rhs, cont) ->
       catch_weak_expr env sub rhs;
       catch_weak_expr env sub cont
   | App { callee; args; _ } ->
@@ -2232,7 +2238,7 @@ and convert_prog env items modul =
           match pats with
           (* Maybe add pattern expressions *)
           | [] -> [ expr ]
-          | ps -> List.map (fun (id, e) -> Tl_bind (id, e)) ps @ [ expr ]
+          | ps -> List.map (fun (id, _pass, e) -> Tl_bind (id, e)) ps @ [ expr ]
         in
         (old, env, expr @ items, m)
     | Function (loc, func) ->

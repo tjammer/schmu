@@ -42,6 +42,7 @@ module type Pathid = sig
   include Map.OrderedType
 
   val create : string -> Path.t option -> t
+  val startswith : prefix:string -> string * 'a -> bool
 end
 
 module type Id_t = sig
@@ -122,11 +123,11 @@ module Make_tree (Id : Id_t) = struct
         in
         raise (Error.Error ((snd bor).loc, msg))
     | Error `Frozen ->
-        let msg =
-          Format.sprintf "%s has been borrowed in line %i, cannot mutate frozen"
-            id (fst bind_loc.loc).pos_lnum
-        in
-        raise (Error.Error ((snd bor).loc, msg))
+        raise
+          (Error.Error
+             ( (snd bor).loc,
+               "Cannot mutate immutable binding. In patterns, the pattern \
+                itself must also be mutable" ))
 
   type contains = Other | Super of part | Sub of part
 
@@ -671,17 +672,24 @@ module Make_storage (Id : Id_t) = struct
     | Tree.(Pfield _ | Prc) :: tl -> part_contains_array tl
     | Parr _ :: _ -> true
 
+  let add_unmutated unm bind_info =
+    let open Tree in
+    if
+      not
+        (Id.Pathid.startswith ~prefix:"__expr"
+           (Id.only_id bind_info.lid.id, ()))
+    then unm := bind_info.loc :: !unm
+
   let check_moves st mname =
     let unmutated = ref [] in
     let rec check_move ~owned ~tl id loc tree =
       (* Catch unmutated bindings *)
       (match Tree.(tree.bor) |> fst with
-      | Owned { mutated = false; _ } ->
-          unmutated := tree.bind_loc.loc :: !unmutated
+      | Owned { mutated = false; _ } -> add_unmutated unmutated tree.bind_loc
       | Reserved -> (
           match tree.mov with
           | Reset -> ()
-          | Moved _ | Not_moved -> unmutated := tree.bind_loc.loc :: !unmutated)
+          | Moved _ | Not_moved -> add_unmutated unmutated tree.bind_loc)
       | _ -> ());
 
       (match tree.mode with
@@ -1411,13 +1419,13 @@ let rec check_expr st ac part tyex =
   | Variant_data e ->
       let e, bs, trees = check_expr st ac part e in
       ({ tyex with expr = Variant_data e }, bs, trees)
-  | Bind (name, expr, cont) ->
+  | Bind (name, pass, expr, cont) ->
       (* In Let expressions, the mut attribute indicates whether the binding is
          mutable. In all other uses (including this one) it refers to the expression.
          Change it to mut = false to be consistent with read only Binds *)
       let bid, ids = Idst.insert name (Some st.mname) st.ids in
       let expr, trees =
-        match check_expr st (Dnorm, Once) [] expr with
+        match check_expr st (pass, Once) [] expr with
         | expr, Owned, trees ->
             ( expr,
               Trst.insert bid expr.loc
@@ -1432,7 +1440,7 @@ let rec check_expr st ac part tyex =
             (expr, trees)
       in
       let cont, bs, trees = check_expr { st with trees; ids } ac part cont in
-      ({ tyex with expr = Bind (name, expr, cont) }, bs, trees)
+      ({ tyex with expr = Bind (name, pass, expr, cont) }, bs, trees)
   | Bop (op, fst, snd) ->
       let fst, _, trees = check_expr st (Dnorm, Once) [] fst in
       let snd, _, trees = check_expr { st with trees } (Dnorm, Once) [] snd in
