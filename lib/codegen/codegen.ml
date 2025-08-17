@@ -1477,6 +1477,7 @@ let has_init_code tree =
     | Mbind (_, _, cont) ->
         (* Bind itself does not need init *)
         aux cont.expr
+    | Mseq (a, b) -> aux a.expr || aux b.expr
     | _ -> true
   in
   aux Monomorph_tree.(tree.expr)
