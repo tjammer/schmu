@@ -18,7 +18,7 @@
   (rx symbol-start
       (or "fun" "type" "if" "then" "else" "and" "or" "external" "let"
           "match" "with" "module" "signature" "val" "functor"
-          "use" "import")
+          "use" "import" "mov" "mut" "bor")
       symbol-end)
   "Schmu language keywords.")
 
@@ -50,35 +50,39 @@
       (group (seq (any word ?_) (* (any word ?_))))))
 
 (defconst schmu-path-pattern
-  (rx symbol-start (group (seq (any word ?_) (* (any word ?_)))) ?/))
-
-(defconst schmu-ctor-pattern
-  (rx symbol-start (group (seq upper (* (any word ?_))))))
+  (rx symbol-start (group (seq (any word ?_) (* (any word ?_))) ?/)))
 
 (defconst schmu-fixed-array-pattern
   (rx symbol-start (group (seq ?# (any word ?_) (* (any word ?_)))) ?\[))
 
 (defconst schmu-upcase-pattern
-  (rx symbol-start (group (seq (any upper ?_) (* (any word ?_))))))
+  (rx symbol-start (group (seq (any upper) (* (any word ?_))))))
 
 (defconst schmu-variable-pattern
   (rx symbol-start "let" (1+ space)
       (group (seq (any lower ?_) (* (any word ?_)) (opt (or ?& ?!))))
       (1+ space)))
 
+;; (defgroup schmu-faces nil
+;;   "Special faces for the Schmu mode."
+;;   :group 'schmu)
+
+(defface schmu-font-lock-module-face
+  '((t (:inherit font-lock-type-face))); backward compatibility
+  "Face description for modules and module paths.")
+
 (defvar schmu-font-lock-keywords
   `((,schmu-keywords-regexp . font-lock-keyword-face)
     (,schmu-constants-regexp . font-lock-constant-face)
     (,schmu-module-pattern 1 font-lock-type-face)
     (,schmu-fixed-array-pattern 1 font-lock-constant-face)
-    (,schmu-ctor-pattern 1 font-lock-type-face)
     (,schmu-function-pattern 1 font-lock-function-name-face)
     (,schmu-types-regexp . font-lock-type-face)
     (,schmu-variable-pattern 1 font-lock-variable-name-face)
-    (, schmu-call-pattern 1 font-lock-function-name-face)
-    (, schmu-type-param-pattern 1 font-lock-type-face)
-    (,schmu-upcase-pattern 1 font-lock-type-face)
-    (,schmu-path-pattern 1 font-lock-type-face))
+    (,schmu-call-pattern 1 font-lock-function-name-face)
+    (,schmu-type-param-pattern 1 font-lock-type-face)
+    (,schmu-upcase-pattern 1 font-lock-constant-face)
+    (,schmu-path-pattern 1 'schmu-font-lock-module-face))
   "Schmu keywords highlighting.")
 
 ;; Indentation function. Adapted from zig-mode
@@ -183,7 +187,7 @@
 
   (modify-syntax-entry ?# "_" schmu-mode-syntax-table)
 
-  (setq font-lock-defaults '((schmu-font-lock-keywords)))
+  (setq font-lock-defaults '(schmu-font-lock-keywords))
 
   (set (make-local-variable 'comment-start) "--")
 
