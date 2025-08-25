@@ -337,16 +337,6 @@ let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
       { typ; expr; attr = no_attr; loc }
   | _ -> failwith "Internal Error: generalize produces a new type?"
 
-let check_no_borrow_call loc expr =
-  match follow_expr expr with
-  | Some (App { borrow_call = Bc_pending _; _ }) ->
-      raise
-        (Error
-           ( loc,
-             "Cannot borrow from function call in let binding. Use let borrow \
-              form (let _ <- expr())" ))
-  | _ -> ()
-
 let rec param_annots t =
   let annot t =
     match repr t with
@@ -670,17 +660,21 @@ let builtins_hack callee args =
 module rec Core : sig
   val convert : Env.t -> Ast.expr -> typed_expr
 
+  type context
+
+  val no_ctx : context
+
   val convert_annot :
     Env.t ->
     Types.typ option * Types.mode option ->
-    bool ->
+    context ->
     Ast.expr ->
     Typed_tree.typed_expr
 
   val convert_var : Env.t -> Ast.loc -> Path.t -> typed_expr
 
   val convert_block :
-    ?ret:bool -> pipe:bool -> Env.t -> Ast.block -> typed_expr * Env.t
+    ?ret:bool -> ctx:context -> Env.t -> Ast.block -> typed_expr * Env.t
 
   val pass_mut_helper :
     Env.t -> Ast.loc -> dattr -> (unit -> typed_expr) -> typed_expr
@@ -726,9 +720,13 @@ end = struct
 
     aux 0 [] args params
 
-  let rec convert env expr = convert_annot env no_annot false expr
+  type context = { pipe : bool; borrow_call : bool }
 
-  and convert_annot env annot pipe = function
+  let no_ctx = { pipe = false; borrow_call = false }
+
+  let rec convert env expr = convert_annot env no_annot no_ctx expr
+
+  and convert_annot env annot (ctx : context) = function
     | Ast.Var (loc, id) -> convert_var env loc (Path.Pid id)
     | Lit (loc, Int i) -> convert_simple_lit loc tint (Int i)
     | Lit (loc, Bool b) -> convert_simple_lit loc tbool (Bool b)
@@ -750,8 +748,8 @@ end = struct
         let attr = { no_attr with const = true } in
         { typ = tunit; expr = Const Unit; attr; loc }
     | Lambda (loc, id, attr, ret, e) ->
-        convert_lambda env loc annot pipe id attr ret e
-    | App (loc, e1, e2) -> convert_app ~pipe env loc e1 e2
+        convert_lambda env loc annot ctx id attr ret e
+    | App (loc, e1, e2) -> convert_app ~ctx env loc e1 e2
     | Bop (loc, bop, e1, e2) -> convert_bop env loc bop e1 e2
     | Unop (loc, unop, expr) -> convert_unop env loc unop expr
     | If (loc, cond, e1, e2) -> convert_if env loc cond e1 e2
@@ -761,9 +759,8 @@ end = struct
         convert_record_update env loc annot record items
     | Field (loc, expr, id) -> convert_field env loc expr id
     | Set (loc, expr, value) -> convert_set env loc expr value
-    | Do_block stmts ->
-        convert_block_annot ~ret:true env annot pipe stmts |> fst
-    | Pipe (loc, arg, ex, inverse) -> convert_pipe env loc arg ex inverse
+    | Do_block stmts -> convert_block_annot ~ret:true env annot ctx stmts |> fst
+    | Pipe (loc, arg, ex, inverse) -> convert_pipe env loc ctx arg ex inverse
     | Ctor (loc, name, args) -> convert_ctor env loc name args annot
     | Match (loc, pass, expr, cases) -> convert_match env loc pass expr cases
     | Local_use (loc, name, expr) ->
@@ -843,7 +840,7 @@ end = struct
         { t with typ }
     | Some annot ->
         let t_annot = typeof_annot env loc annot in
-        let t = convert_annot env (Some t_annot, None) false block in
+        let t = convert_annot env (Some t_annot, None) no_ctx block in
         leave_level ();
 
         let typ =
@@ -887,7 +884,7 @@ end = struct
     let expr = { e1 with attr = { e1.attr with global; const } } in
     (env, id, idloc, expr, lmut, pat_exprs, mode)
 
-  and convert_lambda env loc (_, mannot) pipe params attr ret_annot body =
+  and convert_lambda env loc (_, mannot) ctx params attr ret_annot body =
     let env = Env.open_function env in
     enter_level ();
     let env, params_t, qparams, ret_annot =
@@ -903,7 +900,7 @@ end = struct
 
     let env, param_exprs = convert_decl env params in
 
-    let body = convert_block ~pipe env body |> fst in
+    let body = convert_block ~ctx env body |> fst in
 
     post_lambda env loc body param_exprs params_t nparams params attr ret_annot
       qparams mannot
@@ -957,7 +954,7 @@ end = struct
 
     let body_env, param_exprs = convert_decl body_env params in
 
-    let body = convert_block ~pipe:false body_env body |> fst in
+    let body = convert_block ~ctx:no_ctx body_env body |> fst in
     (* Add bindings from patterns *)
     let body = List.fold_left fold_decl body param_exprs in
     leave_level ();
@@ -1068,7 +1065,7 @@ end = struct
     | Dmove | Dnorm -> ());
     e
 
-  and convert_app_impl ~pipe env loc callee args borrow_call =
+  and convert_app_impl ~ctx env loc callee args borrow_call =
     let annots = param_annots callee.typ in
     let typed_exprs =
       mapi_with_callee_params
@@ -1079,10 +1076,11 @@ end = struct
                    argument was piped into this call. If it is a call itself, we
                    automatically curry it. *)
                 let env, expr = follow_uses env a.aloc None a.aexpr in
+                let ctx = { ctx with borrow_call = false } in
                 match expr with
-                | Ast.App (loc, callee, args) when pipe && Int.equal 0 i ->
-                    convert_app ~pipe env loc callee args
-                | _ -> convert_annot env (param_annot annots i) pipe a.aexpr)
+                | Ast.App (loc, callee, args) when ctx.pipe && Int.equal 0 i ->
+                    convert_app ~ctx env loc callee args
+                | _ -> convert_annot env (param_annot annots i) ctx a.aexpr)
           in
           (* We also care about whether the argument _can_ be mutable, for array-get *)
           let attr =
@@ -1109,7 +1107,7 @@ end = struct
     let targs = List.map2 apply args typed_exprs in
 
     let res_t = newvar () in
-    let flip = pipe in
+    let flip = ctx.pipe in
     unify (loc, "In application") ~flip callee.typ
       (Tfun (args, res_t, Simple))
       env;
@@ -1144,28 +1142,39 @@ end = struct
     in
     let block = Expr (loc, App (loc, callee, args @ curry_args)) :: [] in
     let expr = Lambda (loc, decls, [], None, block) in
-    convert_annot env no_annot true expr
+    convert_annot env no_annot { no_ctx with pipe = true } expr
 
-  and convert_app ~pipe env loc e1 args =
+  and convert_app ~ctx env loc e1 args =
     let callee = convert env e1 in
 
     (* Automatically curry calls in pipes *)
     match callee.typ with
     | Tfun (ps, _, _) ->
         let missing_args = List.length ps - List.length args in
-        if pipe && missing_args > 0 then
+        if ctx.pipe && (not ctx.borrow_call) && missing_args > 0 then
           (* We convert e1 twice. Hopefully not a problem *)
           curry_app env loc e1 args missing_args
-        else if missing_args = 1 then
+        else if ctx.borrow_call then
           match Borrow_call.is_borrow_callable callee with
           | Some (types, shortfn) ->
-              convert_app_impl ~pipe:false env loc shortfn args
-                (Bc_pending types)
+              convert_app_impl ~ctx env loc shortfn args (Bc_pending types)
           | None ->
               (* Let it fail *)
-              convert_app_impl ~pipe:false env loc callee args No_bc
-        else convert_app_impl ~pipe env loc callee args No_bc
-    | _ -> convert_app_impl ~pipe env loc callee args No_bc
+              convert_app_impl ~ctx env loc callee args No_bc
+        else (
+          (if missing_args = 1 then
+             (* could be a borrow call. We must not allow a borrow
+                call without the let borrow form. *)
+             match Borrow_call.is_borrow_callable callee with
+             | Some _ ->
+                 raise
+                   (Error
+                      ( loc,
+                        "Function call is missing last function type argument. \
+                         Use let borrow form (let _ <- expr()) borrowing" ))
+             | None -> ());
+          convert_app_impl ~ctx env loc callee args No_bc)
+    | _ -> convert_app_impl ~ctx env loc callee args No_bc
 
   and convert_bop env loc bop e1 e2 =
     let check typ =
@@ -1269,20 +1278,20 @@ end = struct
     let moved = Snot_moved (* will be set in excl pass *) in
     { typ = tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
 
-  and convert_pipe env loc e1 e2 inverse =
-    let pipe = true in
+  and convert_pipe env loc ctx e1 e2 inverse =
+    let ctx = { ctx with pipe = true } in
     let env, e2 = follow_uses env loc None e2 in
     match e2 with
     | Ast.App (_, callee, args) ->
         (* Add e1 to beginnig of args *)
-        convert_app ~pipe env loc callee
+        convert_app ~ctx env loc callee
           (if not inverse then e1 :: args else args @ [ e1 ])
     | Ctor (_, name, expr) ->
         if Option.is_some expr then raise (Error (loc, pipe_ctor_msg));
         convert_ctor env loc name (Some (false, e1.aexpr)) no_annot
     | e2 ->
         (* Should be a lone id, if not we let it fail in _app *)
-        convert_app ~pipe env loc e2 [ e1 ]
+        convert_app ~ctx env loc e2 [ e1 ]
 
   and convert_tuple env loc exprs =
     let (_, const), exprs =
@@ -1326,17 +1335,21 @@ end = struct
       | [] when ret -> raise (Error (loc, "Block cannot be empty"))
       | [] -> ({ typ = tunit; expr = Const Unit; attr = no_attr; loc }, env)
       | Let (loc, decl, pexpr, Some copies) :: tl -> (
+          (* Borrow call case *)
           (* Annotations need to go to the lambda *)
-          let rhs = convert env pexpr.pexpr in
+          let ctx = { pipe = false; borrow_call = true } in
+          let rhs = convert_annot env no_annot ctx pexpr.pexpr in
           let callee, args, bc =
             match follow_expr rhs.expr with
             | Some (App { callee; args; borrow_call = Bc_pending bc }) ->
                 (callee, args, bc)
             | None ->
+                print_endline (show_expr rhs.expr);
                 raise
                   (Error
                      (rhs.loc, "Cannot use complex expression as borrow call"))
             | _ ->
+                print_endline (show_expr rhs.expr);
                 raise (Error (rhs.loc, "Cannot use expression as borrow call"))
           in
           let lambda =
@@ -1377,10 +1390,6 @@ end = struct
           let env, id, id_loc, rhs, lmut, pats, mode =
             convert_let ~global:false env loc decl pexpr
           in
-
-          (* rhs expression could be a borrow call. We must not allow a borrow
-             call without the let borrow form. *)
-          check_no_borrow_call loc rhs.expr;
 
           let cont, env = to_expr env old_type tl in
           let cont = List.fold_left fold_decl cont pats in
@@ -1442,8 +1451,8 @@ end = struct
     in
     to_expr env (loc, tunit) stmts
 
-  and convert_block ?(ret = true) ~pipe env stmts =
-    convert_block_annot ~ret env no_annot pipe stmts
+  and convert_block ?(ret = true) ~ctx env stmts =
+    convert_block_annot ~ret env no_annot ctx stmts
 
   and disambiguate_uses env loc annot path = function
     | Ast.Local_use (_, id, tl) ->
@@ -1451,7 +1460,7 @@ end = struct
     | Var (_, id) -> convert_var env loc (Path.append id path)
     | expr ->
         let env = Env.use_module env loc path in
-        convert_annot env annot false expr
+        convert_annot env annot no_ctx expr
 
   and follow_uses env loc ?(use = false) path = function
     | Ast.Local_use (loc, id, tl) when use ->
@@ -2192,9 +2201,6 @@ and convert_prog env items modul =
           Core.convert_let ~global:true env loc decl pexpr
         in
 
-        (* rhs expression could be a borrow call. We must not allow a borrow
-           call without the let borrow form. Especially at top level *)
-        check_no_borrow_call loc rhs.expr;
         (match mode with
         | Once ->
             raise (Error (id_loc, "Cannot declare once value at toplevel"))

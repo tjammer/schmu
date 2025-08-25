@@ -2065,8 +2065,8 @@ let once b = fun () { __ignore_once(a) }
 
 let test_bc_parse () =
   test_exn
-    "Cannot borrow from function call in let binding. Use let borrow form (let \
-     _ <- expr())"
+    "Function call is missing last function type argument. Use let borrow form \
+     (let _ <- expr()) borrowing"
     ("{" ^ subs ^ "let a = subs(2); ()}; ()")
 
 let test_bc_wrong_expr () =
@@ -2146,11 +2146,64 @@ let returned = {
 
 let test_bc_use_in_expr () =
   test_exn
-    "In application\n\
-     expecting fun (once fun (unit) -> unit) -> _\n\
-     but found fun () -> _"
+    "Function call is missing last function type argument. Use let borrow form \
+     (let _ <- expr()) borrowing"
     {|fun higher_order(once fn) { fn(); () }
 ignore(higher_order())|}
+
+let pre =
+  {|
+type thing = rc[int]
+
+fun bind(thing : thing, fn) -> thing {
+  let ret : thing = fn(thing)
+  ret
+}
+|}
+
+let test_bc_pipe_simple () =
+  test "unit"
+    (pre
+   ^ {|
+{
+  let hm : rc[int] <- __rc_create(1) |> bind
+  copy(hm)
+}
+|> ignore
+|}
+    )
+
+let test_bc_pipe_call () =
+  test "unit"
+    (pre
+   ^ {|
+fun cpy(thing : thing) {
+  copy(thing)
+}
+
+{
+  let hm <- bind(__rc_create(1), cpy) |> bind
+  copy(hm)
+}
+|> ignore
+|}
+    )
+
+let test_bc_pipe_twice () =
+  test "unit"
+    (pre
+   ^ {|
+fun cpy(thing : thing) {
+  copy(thing)
+}
+
+{
+  let hm : rc[int] <- __rc_create(1) |> bind(cpy) |> bind
+  copy(hm)
+}
+|> ignore
+|}
+    )
 
 let test_once_lambda_borrow_once () =
   test "unit"
@@ -2859,6 +2912,9 @@ type t = {mut slots : array[key], mut data : array[int], mut free_hd : int, mut 
             test_bc_move_once_borrowcall_use_after;
           case "return from call" test_bc_return_from_call;
           case "use in expr" test_bc_use_in_expr;
+          case "pipe simple" test_bc_pipe_simple;
+          case "pipe call" test_bc_pipe_call;
+          case "pipe twice" test_bc_pipe_twice;
         ] );
       ( "borrow move",
         [

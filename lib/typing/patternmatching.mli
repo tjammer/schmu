@@ -2,9 +2,11 @@ module type Core = sig
   val convert : Env.t -> Ast.expr -> Typed_tree.typed_expr
   val convert_var : Env.t -> Ast.loc -> Path.t -> Typed_tree.typed_expr
 
+  type context
+
   val convert_block :
     ?ret:bool ->
-    pipe:bool ->
+    ctx:context ->
     Env.t ->
     Ast.block ->
     Typed_tree.typed_expr * Env.t

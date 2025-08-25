@@ -6,10 +6,14 @@ open Error
 module type Core = sig
   val convert : Env.t -> Ast.expr -> Typed_tree.typed_expr
 
+  type context
+
+  val no_ctx : context
+
   val convert_annot :
     Env.t ->
     Types.typ option * Types.mode option ->
-    bool ->
+    context ->
     Ast.expr ->
     Typed_tree.typed_expr
 end
@@ -146,7 +150,7 @@ module Make (C : Core) = struct
                 | Qvar _ -> failwith "unreachable"
                 | _ -> (Some typ, None)
               in
-              let expr = convert_annot env annot false expr in
+              let expr = convert_annot env annot no_ctx expr in
               unify (loc, "In record expression") typ expr.typ env;
               (label, (bor, expr))
             in

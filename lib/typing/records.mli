@@ -1,10 +1,14 @@
 module type Core = sig
   val convert : Env.t -> Ast.expr -> Typed_tree.typed_expr
 
+  type context
+
+  val no_ctx : context
+
   val convert_annot :
     Env.t ->
     Types.typ option * Types.mode option ->
-    bool ->
+    context ->
     Ast.expr ->
     Typed_tree.typed_expr
 end
