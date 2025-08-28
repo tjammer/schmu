@@ -3930,3 +3930,49 @@ the closure's environment
   !5 = !{}
   $ valgrind -q --leak-check=yes --show-reachable=yes ./inner_recursive_closure_call
   12
+
+Shadowing with external functions
+  $ schmu -c shadow_external1.smu --dump-llvm 2>&1 | grep -v !DI 
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  declare i64 @addint(i64 %0, i64 %1)
+  
+  define i1 @schmu_addint(i64 %a, i64 %b) !dbg !2 {
+  entry:
+    %0 = tail call i64 @addint(i64 %a, i64 %b), !dbg !6
+    %eq = icmp eq i64 %0, 0
+    ret i1 %eq
+  }
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !7 {
+  entry:
+    ret i64 0
+  }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !5 = !{}
+  $ schmu -c shadow_external2.smu --dump-llvm 2>&1 | grep -v !DI 
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  
+  declare i64 @schmu_addint(i64 %0, i64 %1)
+  
+  define i1 @schmu_addint__2(i64 %a, i64 %b) !dbg !2 {
+  entry:
+    %0 = tail call i64 @schmu_addint(i64 %a, i64 %b), !dbg !6
+    %eq = icmp eq i64 %0, 0
+    ret i1 %eq
+  }
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !7 {
+  entry:
+    ret i64 0
+  }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !5 = !{}

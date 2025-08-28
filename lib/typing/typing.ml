@@ -34,7 +34,8 @@ module Pm = Patternmatching
 let fmt_msg_fn : msg_fn option ref = ref None
 let uniq_tbl = ref (Strtbl.create 64)
 
-let uniq_name name =
+let uniq_name ~mname name =
+  let name = Module_common.unique_name ~mname name None in
   match Strtbl.find_opt !uniq_tbl name with
   | None ->
       Strtbl.add !uniq_tbl name 1;
@@ -910,7 +911,7 @@ end = struct
       inrec =
     (* Create a fresh type var for the function name
        and use it in the function body *)
-    let unique = uniq_name name in
+    let unique = uniq_name ~mname:(Env.modpath env) name in
 
     enter_level ();
     let env, nparams =
@@ -1393,7 +1394,9 @@ end = struct
 
           let cont, env = to_expr env old_type tl in
           let cont = List.fold_left fold_decl cont pats in
-          let uniq = if rhs.attr.const then uniq_name id else None
+          let uniq =
+            if rhs.attr.const then uniq_name ~mname:(Env.modpath env) id
+            else None
           and pass = pexpr.pattr
           and borrow_app = false in
           let expr =
@@ -2209,7 +2212,7 @@ and convert_prog env items modul =
         if is_module (Env.modpath env) && lmut then
           raise
             (Error (loc, "Mutable top level bindings are not allowed in modules"));
-        let uniq = uniq_name id in
+        let uniq = uniq_name ~mname:(Env.modpath env) id in
         let env, expr, m =
           match let_fn_alias env loc rhs with
           | Callname (callname, closure) ->

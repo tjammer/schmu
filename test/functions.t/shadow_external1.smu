@@ -1,0 +1,10 @@
+-- functor nested(m : hashtbl/key) {
+--   module tbl = hashtbl/make(m)
+-- }
+
+external addint : fun (int, int) -> int
+
+fun addint(a, b) {
+  addint(a, b) == 0
+}
+ignore(addint)

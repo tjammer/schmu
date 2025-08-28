@@ -1102,7 +1102,8 @@ and prep_func p func_loc (usrname, uniq, abs) =
       let value =
         { no_var with fn = Forward_decl (call, ftyp, upward); alloc }
       in
-      let vars = Vars.add username (Normal value) p.vars in
+      let vars = if abs.is_rec then
+      Vars.add username (Normal value) p.vars else p.vars in
 
       (* Add parameters to env as normal values.
          The existing values might not be 'normal' *)
