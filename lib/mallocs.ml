@@ -206,7 +206,6 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
             if Option.is_some mem then mem else aux a tl path
         | No_malloc, _ -> None
         | Path (a, l), _ ->
-            print_endline ("it's a path: " ^ Mpath.show l);
             (* Order of appending paths is important *)
             aux a ms (l @ path)
       in
