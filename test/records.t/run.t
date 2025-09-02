@@ -167,7 +167,7 @@ Pass generic record
   
   declare void @printi(i64 %0)
   
-  define linkonce_odr { i64, i16 } @__schmu_apply_schmu_apply_t.brt.bt.brt.b(ptr %f, i64 %0, i16 %1) !dbg !2 {
+  define linkonce_odr { i64, i16 } @__schmu_apply__t.brt.bt.brt.b(ptr %f, i64 %0, i16 %1) !dbg !2 {
   entry:
     %x = alloca { i64, i16 }, align 8
     store i64 %0, ptr %x, align 8
@@ -182,7 +182,7 @@ Pass generic record
     ret { i64, i16 } %2
   }
   
-  define linkonce_odr void @__schmu_apply_schmu_apply_t.lrt.lt.lrt.l(ptr noalias %0, ptr %f, ptr %x) !dbg !7 {
+  define linkonce_odr void @__schmu_apply__t.lrt.lt.lrt.l(ptr noalias %0, ptr %f, ptr %x) !dbg !7 {
   entry:
     %loadtmp = load ptr, ptr %f, align 8
     %envptr = getelementptr inbounds %closure, ptr %f, i32 0, i32 1
@@ -241,7 +241,7 @@ Pass generic record
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
     %ret = alloca %t.l, align 8
-    call void @__schmu_apply_schmu_apply_t.lrt.lt.lrt.l(ptr %ret, ptr %clstmp, ptr @schmu_int_t), !dbg !12
+    call void @__schmu_apply__t.lrt.lt.lrt.l(ptr %ret, ptr %clstmp, ptr @schmu_int_t), !dbg !12
     %0 = load i64, ptr %ret, align 8
     call void @printi(i64 %0), !dbg !13
     %clstmp1 = alloca %closure, align 8
@@ -254,7 +254,7 @@ Pass generic record
     %snd = getelementptr inbounds { i64, i16 }, ptr %boxconst, i32 0, i32 1
     %snd5 = load i16, ptr %snd, align 2
     %ret6 = alloca %t.b, align 8
-    %1 = call { i64, i16 } @__schmu_apply_schmu_apply_t.brt.bt.brt.b(ptr %clstmp1, i64 %fst4, i16 %snd5), !dbg !14
+    %1 = call { i64, i16 } @__schmu_apply__t.brt.bt.brt.b(ptr %clstmp1, i64 %fst4, i16 %snd5), !dbg !14
     store { i64, i16 } %1, ptr %ret6, align 8
     %2 = load i64, ptr %ret6, align 8
     call void @printi(i64 %2), !dbg !15
@@ -537,7 +537,7 @@ Support function/closure fields
     ret void
   }
   
-  define linkonce_odr void @__fmt_stdout_println_fmt_stdout_println_ll(ptr %fmt, i64 %value) !dbg !22 {
+  define linkonce_odr void @__fmt_stdout_println__ll(ptr %fmt, i64 %value) !dbg !22 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
     call void @fmt_fmt_stdout_create(ptr %ret), !dbg !23
@@ -651,7 +651,7 @@ Support function/closure fields
     store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @__fmt_stdout_println_fmt_stdout_println_ll(ptr %clstmp, i64 %2), !dbg !38
+    call void @__fmt_stdout_println__ll(ptr %clstmp, i64 %2), !dbg !38
     call void @schmu_advance(ptr %ret, ptr %0), !dbg !39
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %0, ptr align 8 %ret, i64 24, i1 false)
     br label %rec
@@ -660,7 +660,7 @@ Support function/closure fields
     store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp1, align 8
     %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
     store ptr null, ptr %envptr3, align 8
-    call void @__fmt_stdout_println_fmt_stdout_println_ll(ptr %clstmp1, i64 100), !dbg !40
+    call void @__fmt_stdout_println__ll(ptr %clstmp1, i64 100), !dbg !40
     ret void
   }
   

@@ -162,22 +162,22 @@ Copy string literal
     ret void
   }
   
-  define linkonce_odr void @__fmt_stdout_print1_fmt_stdout_print1_ll(ptr %fmtstr, ptr %f0, i64 %v0) !dbg !30 {
+  define linkonce_odr void @__fmt_stdout_print1__ll(ptr %fmtstr, ptr %f0, i64 %v0) !dbg !30 {
   entry:
-    %__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul = alloca %closure, align 8
-    store ptr @__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, ptr %__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, align 8
-    %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul = alloca { ptr, ptr, %closure, i64 }, align 8
-    %f01 = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 2
+    %__fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul = alloca %closure, align 8
+    store ptr @__fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul, ptr %__fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul, align 8
+    %clsr___fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul = alloca { ptr, ptr, %closure, i64 }, align 8
+    %f01 = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 2
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f01, ptr align 1 %f0, i64 16, i1 false)
-    %v02 = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 3
+    %v02 = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 3
     store i64 %v0, ptr %v02, align 8
-    store ptr @__ctor_tp._fmt.formatter.t.ulrfmt.formatter.t.ul, ptr %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, align 8
-    %dtor = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 1
+    store ptr @__ctor_tp._fmt.formatter.t.ulrfmt.formatter.t.ul, ptr %clsr___fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %clsr___fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
-    %envptr = getelementptr inbounds %closure, ptr %__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 1
-    store ptr %clsr___fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul, ptr %envptr, align 8
+    %envptr = getelementptr inbounds %closure, ptr %__fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul, i32 0, i32 1
+    store ptr %clsr___fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul, ptr %envptr, align 8
     %ret = alloca %tp.lfmt.formatter.t.u, align 8
-    call void @fmt_stdout_helper_printn(ptr %ret, ptr %fmtstr, ptr %__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul), !dbg !31
+    call void @fmt_stdout_helper_printn(ptr %ret, ptr %fmtstr, ptr %__fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul), !dbg !31
     %0 = getelementptr inbounds %tp.lfmt.formatter.t.u, ptr %ret, i32 0, i32 1
     %1 = load i64, ptr %ret, align 8
     %ne = icmp ne i64 %1, 1
@@ -216,7 +216,7 @@ Copy string literal
     ret void
   }
   
-  define linkonce_odr void @__fun_fmt_stdout2_C__fun_fmt_stdout2_fmt.formatter.t.ulrfmt.formatter.t.ul(ptr noalias %0, ptr %fmter, i64 %i, ptr %1) !dbg !41 {
+  define linkonce_odr void @__fun_fmt_stdout2_C_fmt.formatter.t.ulrfmt.formatter.t.ul(ptr noalias %0, ptr %fmter, i64 %i, ptr %1) !dbg !41 {
   entry:
     %v0 = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %1, i32 0, i32 3
     %v01 = load i64, ptr %v0, align 8
@@ -373,7 +373,7 @@ Copy string literal
     store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @__fmt_stdout_print1_fmt_stdout_print1_ll(ptr @0, ptr %clstmp, i64 1), !dbg !51
+    call void @__fmt_stdout_print1__ll(ptr @0, ptr %clstmp, i64 1), !dbg !51
     ret i64 0
   }
   

@@ -112,7 +112,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
 
   let nominal_name name ~closure ~poly concrete =
     let open Printf in
-    let rec aux ~poly = function
+    let rec aux ?(inner = true) ~poly = function
       | Tint -> "l"
       | Tbool -> "b"
       | Tunit -> "u"
@@ -123,6 +123,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       | Tf32 -> "f"
       | Tpoly _ -> "g"
       | Tfun (ps, r, k) -> (
+          let name = if inner then "" else name in
           match poly with
           | Tfun (pps, pr, _) -> (
               let k =
@@ -213,7 +214,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
             | Tfixed_array (_, poly) -> aux ~poly t
             | _ -> (aux ~poly:Tbool) t)
     in
-    aux ~poly concrete
+    aux ~inner:false ~poly concrete
 
   let is_actually_recursive p typ name =
     match (p.recursion_stack, typ) with
