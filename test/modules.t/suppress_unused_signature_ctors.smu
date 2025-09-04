@@ -1,0 +1,7 @@
+-- functor nested(m : hashtbl/key) {
+--   module tbl = hashtbl/make(m)
+-- }
+
+signature {
+  type t = One | Two
+}

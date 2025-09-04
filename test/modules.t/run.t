@@ -2984,3 +2984,6 @@ Support functor with inner modules
 Ensure no dups when linking
   $ schmu -m redefine_symbol_functor.smu
   $ schmu use_redefine_symbol_functor.smu
+
+Suppress unused signature ctors
+  $ schmu suppress_unused_signature_ctors.smu

@@ -321,14 +321,17 @@ let add_labels typename labelset labels scope =
 
   (labelsets, labels)
 
-let add_ctors typename ctors loc scope =
+let add_ctors typename ~in_sgn ctors loc scope =
   let _, ctors =
     Array.fold_left
       (fun (index, ctors) (ctor : ctor) ->
         let loc, constructed, matched =
           match loc with
           | None -> (Lexing.(dummy_pos, dummy_pos), ref true, ref true)
-          | Some loc -> (loc, ref false, ref false)
+          | Some loc ->
+              (* Variants in signatures are exported. Do not track usage *)
+              if in_sgn then (loc, ref true, ref true)
+              else (loc, ref false, ref false)
         in
         let usage = { index; typename; loc; constructed; matched } in
 
@@ -362,7 +365,7 @@ let add_variant variant (decl : type_decl) loc ~recurs ~ctors env =
   let decl = { decl with kind = Dvariant (recurs, ctors) } in
 
   let abs_name = Path.append variant env.modpath in
-  let ctors = add_ctors abs_name ctors loc scope in
+  let ctors = add_ctors ~in_sgn:decl.in_sgn abs_name ctors loc scope in
   let types = Map.add variant (decl, abs_name) scope.types in
   Hashtbl.add env.decl_tbl abs_name decl;
   { env with values = { scope with ctors; types } :: tl }
@@ -852,7 +855,7 @@ let rec make_alias_usable scope env = function
           { scope with labelsets; labels }
       | Dvariant (_, ctors) ->
           (* TODO unfold? *)
-          let ctors = add_ctors path ctors None scope in
+          let ctors = add_ctors ~in_sgn:false path ctors None scope in
           { scope with ctors }
       | Dalias typ -> make_alias_usable scope env typ
       | _ -> scope)
@@ -868,7 +871,6 @@ let add_alias alias decl typ env =
   { env with values = { scope with types } :: tl }
 
 let add_type loc ?(append_module = true) name decl env =
-  ignore loc;
   match Types.(decl.kind) with
   | Drecord (recurs, labels) -> add_record name decl ~recurs ~labels env
   | Dvariant (recurs, ctors) -> add_variant name decl loc ~recurs ~ctors env
