@@ -4,12 +4,12 @@ import string
 import unsafe
 
 external argc : int = "__schmu_argc"
-external argv_ : raw_ptr[raw_ptr[u8]] = "__schmu_argv"
+external argv : raw_ptr[raw_ptr[u8]] = "__schmu_argv"
 
-fun argv() {
+fun make_argv() {
   let mut arr = array/create(argc)
   prelude/iter_range(0, argc, fun i {
-    array/push(mut arr, mov string/of_cstr(unsafe/get(argv_, i)))
+    array/push(mut arr, mov string/of_cstr(unsafe/get(argv, i)))
   })
   arr
 }

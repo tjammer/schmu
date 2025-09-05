@@ -1986,7 +1986,7 @@ Arguments
   
   declare void @string_println(ptr %0)
   
-  declare ptr @sys_argv()
+  declare ptr @sys_make_argv()
   
   define void @schmu_nothing() !dbg !2 {
   entry:
@@ -1998,7 +1998,7 @@ Arguments
     store i64 %__argc, ptr @__schmu_argc, align 8
     store ptr %__argv, ptr @__schmu_argv, align 8
     tail call void @schmu_nothing(), !dbg !7
-    %0 = tail call ptr @sys_argv(), !dbg !8
+    %0 = tail call ptr @sys_make_argv(), !dbg !8
     %1 = tail call ptr @string_concat(ptr @0, ptr %0), !dbg !9
     tail call void @string_println(ptr %1), !dbg !10
     %2 = alloca ptr, align 8

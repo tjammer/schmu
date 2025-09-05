@@ -1433,10 +1433,9 @@ let rec check_expr st ac part tyex =
                 `Many trees )
         | expr, Borrowed rhs_ids, trees ->
             let lmut = expr.attr.mut in
-            let found, trees =
+            let _, trees =
               Trst.bind bid expr.loc lmut `Many rhs_ids trees
             in
-            assert found;
             (expr, trees)
       in
       let cont, bs, trees = check_expr { st with trees; ids } ac part cont in

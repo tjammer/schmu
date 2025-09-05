@@ -3,4 +3,4 @@ fun nothing() {
   ignore(sys/argc)
 }
 nothing()
-println(string/concat(" ", sys/argv()))
+println(string/concat(" ", sys/make_argv()))
