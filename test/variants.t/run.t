@@ -1319,3 +1319,9 @@ Regression test for tuple match
 
 Regression for borrowed ifs (phi nodes). Just make sure it doesn't segfault
  $ schmu -c borrow_phi_variant.smu
+
+Regression for guard. This used to say "none" because it used the content of the
+match instead of the ctor after the pattern guard clause
+  $ schmu regression_guard.smu
+  $ ./regression_guard
+  some

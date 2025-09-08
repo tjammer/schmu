@@ -4,11 +4,14 @@ open Inference
 open Error
 
 module Col_path = struct
-  type t = int list
+  type t = { spec : int; path : int list }
 
   let compare a b =
     let a = Hashtbl.hash a and b = Hashtbl.hash b in
     Int.compare a b
+
+  let field p i = { p with path = i :: p.path }
+  let spec p = { p with spec = p.spec + 1 }
 end
 
 module Cmap = Map.Make (Col_path)
@@ -205,8 +208,10 @@ type pattern_data = {
   guard : guard;
 }
 
+type path = Col_path.t = { spec : int; path : int list }
+
 type typed_pattern = { ptyp : typ; pat : tpat }
-and pathed_pattern = int list * typed_pattern
+and pathed_pattern = path * typed_pattern
 
 and tpat =
   | Tp_ctor of Ast.loc * ctor_param
@@ -246,7 +251,7 @@ module Tup = struct
      https://julesjacobs.com/notes/patternmatching/patternmatching.pdf *)
 
   type payload = {
-    path : int list;
+    path : path;
         (* Records need a path instead of just a column. {:a} in 1st column might be [0;0] *)
     loc : Ast.loc;
     d : pattern_data;
@@ -289,10 +294,10 @@ module Tup = struct
         (fun ((acol, apat), acnt) (col, pat) ->
           let cnt = match Cmap.find_opt col m with Some c -> c | None -> 0 in
           if cnt < acnt then ((col, pat), cnt) else ((acol, apat), acnt))
-        (([ -1 ], dummy_pattern), Int.max_int)
+        (({ spec = 0; path = [ -1 ] }, dummy_pattern), Int.max_int)
         ctors
     in
-    assert (match col with [] -> false | hd :: _ -> hd >= 0);
+    assert (match col.path with [] -> false | hd :: _ -> hd >= 0);
     (col, pat)
 
   let choose_next (patterns, d) tl =
@@ -668,7 +673,8 @@ module Make (C : Core) (R : Recs) = struct
         if x = x' then f x (Some y') (List.rev_append acc l')
         else search_set ((x', y') :: acc) l' x ~f
 
-  let assoc_set x y l = search_set [] l x ~f:(fun x _ l -> (x, y) :: l)
+  let assoc_replace_key ~old ~nu value l =
+    search_set [] l old ~f:(fun _ _ l -> (nu, value) :: l)
 
   let assoc_remove x l =
     search_set [] l x ~f:(fun _ opt_y rest ->
@@ -729,7 +735,9 @@ module Make (C : Core) (R : Recs) = struct
 
   (* We want to be able to reference the exprs in the pattern match without
      regenerating it, so we use a magic identifier *)
-  let expr_name is = "__expr" ^ String.concat "_" (List.map string_of_int is)
+  let expr_name is =
+    "__expr_" ^ string_of_int is.spec
+    ^ String.concat "_" (List.map string_of_int is.path)
 
   let arg_opt ptyp loc = function
     | None -> { pat = Tp_wildcard loc; ptyp }
@@ -826,7 +834,7 @@ module Make (C : Core) (R : Recs) = struct
 
   let path_typ loc env p = Env.(find_val loc (Path.Pid (expr_name p)) env).typ
 
-  let rec type_pattern env (path, pat) =
+  let rec type_pattern env ((path : path), pat) =
     (* This function got a little more complicated since we expand or-patterns
        inplace. Because of this, a list must be returned instead of a single pattern *)
     match pat with
@@ -841,11 +849,12 @@ module Make (C : Core) (R : Recs) = struct
           (path_typ loc env path) variant env;
         match (ctor.ctyp, payload) with
         | Some typ, Some p ->
+            let npath = Col_path.spec path in
             let env =
-              add_ignore (expr_name path) { (exprval env) with typ } loc env
+              add_ignore (expr_name npath) { (exprval env) with typ } loc env
             in
             (* Inherit ctor path, and specialize *)
-            let lst = type_pattern env (path, p) in
+            let lst = type_pattern env (npath, p) in
             let f cpat =
               let pat =
                 Tp_ctor
@@ -873,7 +882,7 @@ module Make (C : Core) (R : Recs) = struct
         let pats =
           List.mapi
             (fun i (floc, pat) ->
-              let path = i :: path in
+              let path = Col_path.field path i in
               let typ = newvar () in
               let env =
                 add_ignore (expr_name path) { (exprval env) with typ } loc env
@@ -915,7 +924,7 @@ module Make (C : Core) (R : Recs) = struct
         let fields =
           List.map
             (fun (field, index, floc, name, pat) ->
-              let path = index :: path in
+              let path = Col_path.field path index in
               let env =
                 add_ignore (expr_name path)
                   { (exprval env) with typ = field.ftyp }
@@ -965,7 +974,7 @@ module Make (C : Core) (R : Recs) = struct
   let make_var_expr_fn env loc i = convert_var env loc (Path.Pid (expr_name i))
 
   let rec convert_match env loc pass expr cases =
-    let path = [ 0 ] in
+    let path = { spec = 0; path = [ 0 ] } in
     let env, expr =
       let e = pass_mut_helper env loc pass (fun () -> convert env expr) in
       ( add_ignore (expr_name path)
@@ -987,7 +996,7 @@ module Make (C : Core) (R : Recs) = struct
             | Some path -> Env.use_module env loc path
             | None -> env
           in
-          type_pattern env ([ 0 ], p)
+          type_pattern env (path, p)
           |> List.map (fun pat ->
                  incr exp_rows;
                  let loc = loc_of_pat (snd pat).pat in
@@ -1037,19 +1046,21 @@ module Make (C : Core) (R : Recs) = struct
     (* Magic value, see above *)
     let expr i loc = make_var_expr_fn env loc i in
 
-    let ctorenv env ctor i loc =
+    let ctorenv env ctor path loc =
       match ctor with
       | Some p ->
-          let oexpr = expr i loc in
+          let oexpr = expr path loc in
           let typ = (snd p).ptyp and expr = Variant_data oexpr in
           let data = { typ; expr; attr = oexpr.attr; loc } in
+          let npath = Col_path.spec path in
           let env =
-            add_ignore (expr_name i)
+            (* Specialize with new name *)
+            add_ignore (expr_name npath)
               { (exprval env) with typ = data.typ }
               loc env
           in
           (data, env)
-      | None -> (expr i loc, env)
+      | None -> (expr path loc, env)
     in
 
     match cases with
@@ -1071,6 +1082,12 @@ module Make (C : Core) (R : Recs) = struct
                   ret_typ then_.typ env;
 
                 let else_ =
+                  (* [env] is the specialized env which leads to the pattern
+                     guard. Hence it contains variables which must not be
+                     readable in the else-case. They way our bind-expr naming
+                     works, this env cannot query the original expression to
+                     match on, because this definition is shadowed by a matched
+                     one. Thus, names are specialized in [Col_path.spec] *)
                   compile_matches env d.loc used_rows tl ret_typ rmut pass
                 in
                 let cond = convert d.ret_env guard in
@@ -1105,8 +1122,9 @@ module Make (C : Core) (R : Recs) = struct
 
             let rhs = expr path loc in
             let rhs = { rhs with attr = { rhs.attr with mut = rmut } } in
-            (* If the value we pattern match on is mutable, we have to mentio this
-               here in order to increase rc correctly. Otherwise, we had reference semantics*)
+            (* If the value we pattern match on is mutable, we have to mention
+               this here in order to increase rc correctly. Otherwise, we had
+               reference semantics*)
             let id_loc = loc
             and uniq = None
             and mode = Many
@@ -1126,7 +1144,7 @@ module Make (C : Core) (R : Recs) = struct
             in
             (* Make expr available in codegen *)
             let ifexpr =
-              let id = expr_name path in
+              let id = expr_name (Col_path.spec path) in
               Bind (id, Dnorm, data, cont)
             in
 
@@ -1203,7 +1221,7 @@ module Make (C : Core) (R : Recs) = struct
             let env =
               List.fold_left
                 (fun env field ->
-                  let col = field.index :: path in
+                  let col = Col_path.field path field.index in
                   add_ignore (expr_name col)
                     { (exprval env) with typ = field.iftyp; mut }
                     loc env)
@@ -1222,7 +1240,7 @@ module Make (C : Core) (R : Recs) = struct
             let expr =
               List.fold_left
                 (fun cont { index; iftyp; name; _ } ->
-                  let newcol = index :: path in
+                  let newcol = Col_path.field path index in
                   let expr = Field (expr path loc, index, name) in
                   let expr = { typ = iftyp; expr; attr = no_attr; loc } in
 
@@ -1240,7 +1258,7 @@ module Make (C : Core) (R : Recs) = struct
            redundancy check. *)
         { typ = ret_typ; expr = Const Unit; attr = no_attr; loc = all_loc }
 
-  and match_cases (i, case) cases if_ else_ =
+  and match_cases (path, case) cases if_ else_ =
     (* The result of match cases are two pattern lists. The first one will
        contain remaining clauses if the pattern was matched. The remaining
        clauses will have specialized the current check so that we don't have to
@@ -1250,25 +1268,27 @@ module Make (C : Core) (R : Recs) = struct
        where we haven't matched Some (in this example). *)
     match cases with
     | (clauses, d) :: tl -> (
-        match List.assoc_opt i clauses with
+        match List.assoc_opt path clauses with
         | Some { pat = Tp_ctor (loc, param); ptyp }
           when String.equal case param.ctname ->
             (* We found the [case] ctor, thus we extract the argument and insert
-               it at the ctor's place to the [if_] list. Since we are one level
-               deeper, we replace [i]'s [lvl] with [lvl + 1] *)
+               it at the ctor's place to the [if_] list. *)
             let arg = arg_opt ptyp loc param.cpat in
-            let clauses = assoc_set i arg clauses in
-            match_cases (i, case) tl ((clauses, d) :: if_) else_
+            let npath = Col_path.spec path in
+            (* Replace the [path] key with the argument, but give it the
+               specialized name *)
+            let clauses = assoc_replace_key ~old:path ~nu:npath arg clauses in
+            match_cases (path, case) tl ((clauses, d) :: if_) else_
         | Some { pat = Tp_ctor _ | Tp_record _ | Tp_int _ | Tp_char _; _ } ->
             (* We found a ctor, but it does not match. Add to [else_].
                This works for record patterns as well. We are searching for a ctor,
                a record is surely not the ctor we are searching for *)
-            match_cases (i, case) tl if_ ((clauses, d) :: else_)
+            match_cases (path, case) tl if_ ((clauses, d) :: else_)
         | Some { pat = Tp_var _ | Tp_wildcard _ | Tp_unit _; _ } | None ->
             (* These match all, so we add them to both [if_] and [else_] *)
             (* We can also end up here if a record was not expanded.
                Treat like wildcard or var *)
-            match_cases (i, case) tl ((clauses, d) :: if_)
+            match_cases (path, case) tl ((clauses, d) :: if_)
               ((clauses, d) :: else_))
     | [] -> (List.rev if_, List.rev else_)
 
@@ -1303,7 +1323,7 @@ module Make (C : Core) (R : Recs) = struct
   and expand_record path fields patterns =
     List.fold_left
       (fun pats { floc; name; index; iftyp; fpat } ->
-        let col = index :: path in
+        let col = Col_path.field path index in
         (* If there is no extra pattern provided, the field name
            functions as a variable pattern *)
         let pat =
@@ -1333,12 +1353,14 @@ module Make (C : Core) (R : Recs) = struct
             failwith "Internal Error: Maybe? Nested record?")
     | [] -> List.rev expanded
 
+  let pid i = { spec = 0; path = [ i ] }
+
   let pattern_id i = function
     | Ast.Pvar ((loc, id), dattr) -> (id, loc, false, dattr)
-    | Plit_unit loc -> (expr_name [ i ], loc, true, Ast.Dnorm)
+    | Plit_unit loc -> (expr_name (pid i), loc, true, Ast.Dnorm)
     | Ptup (loc, _, dattr) | Precord (loc, _, dattr) ->
-        (expr_name [ i ], loc, true, dattr)
-    | Pwildcard (loc, dattr) -> (expr_name [ i ], loc, true, dattr)
+        (expr_name (pid i), loc, true, dattr)
+    | Pwildcard (loc, dattr) -> (expr_name (pid i), loc, true, dattr)
     | Pctor ((loc, _), _) | Plit_int (loc, _) | Plit_char (loc, _) | Por (loc, _)
       ->
         raise (Error (loc, "Unexpected pattern in declaration"))
@@ -1347,7 +1369,7 @@ module Make (C : Core) (R : Recs) = struct
   let expr env i loc = make_var_expr_fn env loc i
 
   let bind_pattern env loc i p =
-    let typed = type_pattern env ([ i ], p) in
+    let typed = type_pattern env (pid i, p) in
     let pts = List.map snd typed in
     (match Exhaustiveness.is_exhaustive env true [ (pts, None) ] with
     | Ok () -> ()
@@ -1366,7 +1388,7 @@ module Make (C : Core) (R : Recs) = struct
                 let mut = mut_of_pattr dattr in
                 List.fold_left_map
                   (fun env f ->
-                    let col = f.index :: path in
+                    let col = Col_path.field path f.index in
 
                     let expr = Field (expr env path f.floc, f.index, f.name)
                     and attr = { no_attr with mut } in
@@ -1409,7 +1431,7 @@ module Make (C : Core) (R : Recs) = struct
              Make sure it's marked as used *)
           ignore
             (Env.query_val_opt ~instantiate:Fun.id loc
-               (Path.Pid (expr_name [ i ]))
+               (Path.Pid (expr_name (pid i)))
                env);
           (env, i + 1, ret)
       | (Ptup (loc, _, _) | Precord (loc, _, _)) as p ->

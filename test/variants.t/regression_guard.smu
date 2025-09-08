@@ -1,0 +1,13 @@
+fun isone(i) { i == 1 }
+
+fun matches(opt) {
+  match opt {
+    Some(i) and isone(i) -> None
+    ret -> ret
+  }
+}
+
+match matches(Some(0)) {
+  None -> println("none")
+  Some(_) -> println("some")
+}
