@@ -869,12 +869,14 @@ end = struct
     in
     let global = if has_exprname then false else global in
     let mname = Some (Env.modpath env) in
+    (* The binder can be mutable (=nonconst) even if the bound value is const *)
+    let bind_const = const && not lmut in
     let env =
       Env.add_value id
         {
           (Env.def_value env) with
           typ = e1.typ;
-          const;
+          const = bind_const;
           global;
           mut = lmut;
           mname;

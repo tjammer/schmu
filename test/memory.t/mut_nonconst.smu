@@ -1,0 +1,9 @@
+fun a(mut b) {
+  mut b = Some(0)
+}
+let mut c = None
+{
+  let mut d = None
+  a(mut d)
+  mut c = Some(d)
+}

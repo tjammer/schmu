@@ -717,14 +717,7 @@ module Make (C : Core) (R : Recs) = struct
               (loc, "In constructor " ^ ctor_name (snd name) ^ ":")
               typ texpr.typ env;
             let expr = Ctor (Path.get_hd typename, ctor.index, Some (bor, texpr))
-            and const =
-              (* There's a special case for string literals.
-                 They will get copied here which makes them not const.
-                 NOTE copy in convert_tuple *)
-              match texpr.expr with
-              | Const (String _) -> false
-              | _ -> texpr.attr.const
-            in
+            and const = texpr.attr.const in
             let attr = { no_attr with const } in
             { typ = variant; expr; attr; loc }
         | None, None ->

@@ -5105,3 +5105,7 @@ Correctly track partial moves in record expressions
                                                   ^^^^^^^^
   
   $ valgrind -q --leak-check=yes --show-reachable=yes ./partial_move_in_record
+
+Mutable bindings cannot be const
+  $ schmu mut_nonconst.smu
+  $ valgrind -q --leak-check=yes --show-reachable=yes ./mut_nonconst
