@@ -121,7 +121,6 @@ end = struct
           Llvm.dump_module the_module;
           (* To generate the report *)
           Llvm_analysis.assert_valid_function func.value);
-        let _ = Llvm.PassManager.run_function func.value fpm in
 
         { vars with vars = Vars.add name.call func vars.vars }
     | _ ->
@@ -1652,24 +1651,25 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
   | Some output -> print_endline output
   | None -> ());
 
+  (* Do these optimizations always, the rest only in release builds *)
+  let opts = Llvm_passbuilder.create_passbuilder_options () in
+  Llvm_passbuilder.run_passes the_module "gvn,tailcallelim" machine opts
+  |> ignore;
+
   (* Emit code to file *)
   if release then (
-    let pm = Llvm.PassManager.create () in
+    let opts = Llvm_passbuilder.create_passbuilder_options () in
 
-    Llvm_ipo.add_function_inlining pm;
-    Llvm_ipo.add_dead_arg_elimination pm;
-    Llvm_ipo.add_constant_merge pm;
-    Llvm_ipo.add_global_optimizer pm;
-    Llvm_ipo.add_function_attrs pm;
+    Llvm_passbuilder.passbuilder_options_set_loop_vectorization opts true;
+    Llvm_passbuilder.passbuilder_options_set_merge_functions opts true;
 
-    let bldr = Llvm_passmgr_builder.create () in
-    Llvm_passmgr_builder.set_opt_level 2 bldr;
-    Llvm_passmgr_builder.populate_module_pass_manager pm bldr;
-
-    (* if not modul then Llvm_ipo.add_internalize pm ~all_but_main:true; *)
-    for _ = 0 to 4 do
-      Llvm.PassManager.run_module the_module pm |> ignore
-    done);
+    match
+      Llvm_passbuilder.run_passes the_module
+        "default<O2>,gvn,tailcallelim,strip-dead-prototypes,strip-nonlinetable-debuginfo"
+        machine opts
+    with
+    | Ok () -> ()
+    | Error str -> failwith ("Error in passes: " ^ str));
 
   TargetMachine.emit_to_file the_module CodeGenFileType.ObjectFile
     (outname ^ ".o") machine

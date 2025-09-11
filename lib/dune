@@ -3,14 +3,12 @@
  (preprocess
   (pps ppx_deriving.show ppx_sexp_conv))
  (libraries
-  llvm.static
-  llvm.all_backends.static
-  llvm.analysis.static
-  llvm.debuginfo.static
-  llvm.ipo.static
-  llvm.passmgr_builder.static
-  llvm.scalar_opts.static
-  llvm.target.static
+  llvm
+  llvm.all_backends
+  llvm.analysis
+  llvm.debuginfo
+  llvm.passbuilder
+  llvm.target
   menhirLib
   sexplib0
   csexp

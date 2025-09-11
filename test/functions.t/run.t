@@ -9,7 +9,7 @@ Simple fibonacci
   $ schmu --dump-llvm -o a.out stub.o fib.smu 2>&1 | grep -v !DI && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
@@ -176,14 +176,14 @@ Simple fibonacci
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !30
   
@@ -199,8 +199,8 @@ Simple fibonacci
     br i1 %lt, label %then4, label %ifcont, !dbg !31
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -210,24 +210,24 @@ Simple fibonacci
   
   define i64 @schmu_fib(i64 %n) !dbg !32 {
   entry:
-    br label %tailrecurse, !dbg !34
+    br label %tailrecurse
   
   tailrecurse:                                      ; preds = %else, %entry
     %accumulator.tr = phi i64 [ 0, %entry ], [ %add, %else ]
     %n.tr = phi i64 [ %n, %entry ], [ %2, %else ]
     %lt = icmp slt i64 %n.tr, 2
-    br i1 %lt, label %then, label %else, !dbg !35
+    br i1 %lt, label %then, label %else, !dbg !34
   
   then:                                             ; preds = %tailrecurse
     %accumulator.ret.tr = add i64 %n.tr, %accumulator.tr
     ret i64 %accumulator.ret.tr
   
   else:                                             ; preds = %tailrecurse
-    %0 = add i64 %n.tr, -1, !dbg !36
-    %1 = tail call i64 @schmu_fib(i64 %0), !dbg !36
+    %0 = add i64 %n.tr, -1, !dbg !35
+    %1 = tail call i64 @schmu_fib(i64 %0), !dbg !35
     %add = add i64 %1, %accumulator.tr
-    %2 = add i64 %0, -1, !dbg !34
-    br label %tailrecurse, !dbg !34
+    %2 = add i64 %0, -1, !dbg !36
+    br label %tailrecurse, !dbg !36
   }
   
   define linkonce_odr void @__free__up.clru(ptr %0) {
@@ -243,22 +243,21 @@ Simple fibonacci
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -267,8 +266,8 @@ Simple fibonacci
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -298,7 +297,7 @@ Fibonacci, but we shadow a bunch
   $ schmu --dump-llvm stub.o shadowing.smu 2>&1 | grep -v !DI && ./shadowing
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   declare void @printi(i64 %0)
   
@@ -348,7 +347,7 @@ Multiple parameters
   $ schmu --dump-llvm stub.o multi_params.smu 2>&1 | grep -v !DI && ./multi_params
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   define i64 @schmu_add(i64 %a, i64 %b) !dbg !2 {
   entry:
@@ -391,7 +390,7 @@ We have downwards closures
   $ schmu --dump-llvm stub.o closure.smu 2>&1 | grep -v !DI && ./closure
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %capturable = type { i64 }
   
@@ -440,7 +439,7 @@ First class functions
   $ schmu --dump-llvm stub.o first_class.smu 2>&1 | grep -v !DI && ./first_class
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %closure = type { ptr, ptr }
   
@@ -564,7 +563,7 @@ Don't try to create 'void' value in if
   $ schmu --dump-llvm stub.o if_return_void.smu 2>&1 | grep -v !DI && ./if_return_void
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   declare void @printi(i64 %0)
   
@@ -622,7 +621,7 @@ Captured values should not overwrite function params
   $ schmu --dump-llvm stub.o -o a.out overwrite_params.smu 2>&1 | grep -v !DI && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %closure = type { ptr, ptr }
   
@@ -679,7 +678,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   $ schmu --dump-llvm stub.o generic_fun_arg.smu 2>&1 | grep -v !DI && ./generic_fun_arg
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %t.l = type { i64 }
   %closure = type { ptr, ptr }
@@ -785,7 +784,6 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   
   ifcont:                                           ; preds = %entry, %then
     %unbox = phi i8 [ %unbox.pre, %then ], [ %0, %entry ]
-    %iftmp = phi ptr [ %2, %then ], [ %r, %entry ]
     ret i8 %unbox
   }
   
@@ -837,7 +835,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %envptr9 = getelementptr inbounds %closure, ptr %clstmp7, i32 0, i32 1
     store ptr null, ptr %envptr9, align 8
     %ret10 = alloca %t.b, align 8
-    %3 = call i8 @__schmu_apply_t.b_t.brt.brt.b(i8 1, ptr %clstmp7), !dbg !32
+    %3 = call i8 @__schmu_apply_t.b_t.brt.brt.b(i8 bitcast (i1 true to i8), ptr %clstmp7), !dbg !32
     store i8 %3, ptr %ret10, align 1
     %4 = trunc i8 %3 to i1
     call void @schmu_print_bool(i1 %4), !dbg !33
@@ -873,7 +871,7 @@ A generic pass function. This example is not 100% correct, but works due to call
   $ schmu --dump-llvm stub.o generic_pass.smu 2>&1 | grep -v !DI && ./generic_pass
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %closure = type { ptr, ptr }
   %t = type { i64, i1 }
@@ -963,7 +961,7 @@ a second function. Instead, the closure struct was being created again and the c
   $ schmu --dump-llvm stub.o indirect_closure.smu 2>&1 | grep -v !DI && ./indirect_closure
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %closure = type { ptr, ptr }
   %t.l = type { i64 }
@@ -1059,7 +1057,7 @@ Closures can recurse too
   $ schmu --dump-llvm stub.o -o a.out recursive_closure.smu 2>&1 | grep -v !DI && ./a.out
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   @schmu_outer = constant i64 10
   
@@ -1119,7 +1117,7 @@ Allow mixing of typedefs and external decls in the preface
   $ schmu --dump-llvm stub.o mix_preface.smu 2>&1 | grep -v !DI && ./mix_preface
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   declare i64 @dummy_call()
   
@@ -1138,7 +1136,7 @@ Support monomorphization of nested functions
   $ schmu --dump-llvm stub.o monomorph_nested.smu 2>&1 | grep -v !DI && ./monomorph_nested
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %rc = type { i64 }
   
@@ -1213,7 +1211,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   $ schmu --dump-llvm stub.o nested_polymorphic_closures.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./nested_polymorphic_closures
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %closure = type { ptr, ptr }
   
@@ -1335,9 +1333,9 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   else:                                             ; preds = %rec
     %7 = shl i64 %lsr.iv, 3
-    %uglygep = getelementptr i8, ptr %arr1, i64 %7
-    %uglygep3 = getelementptr i8, ptr %uglygep, i64 8
-    %8 = load i64, ptr %uglygep3, align 8
+    %scevgep = getelementptr i8, ptr %arr1, i64 %7
+    %scevgep3 = getelementptr i8, ptr %scevgep, i64 8
+    %8 = load i64, ptr %scevgep3, align 8
     %loadtmp = load ptr, ptr %2, align 8
     %envptr = getelementptr inbounds %closure, ptr %2, i32 0, i32 1
     %loadtmp2 = load ptr, ptr %envptr, align 8
@@ -1368,9 +1366,9 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   else:                                             ; preds = %rec
     %5 = shl i64 %lsr.iv, 3
-    %uglygep = getelementptr i8, ptr %arr1, i64 %5
-    %uglygep3 = getelementptr i8, ptr %uglygep, i64 8
-    %6 = load i64, ptr %uglygep3, align 8
+    %scevgep = getelementptr i8, ptr %arr1, i64 %5
+    %scevgep3 = getelementptr i8, ptr %scevgep, i64 8
+    %6 = load i64, ptr %scevgep3, align 8
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 24
     %loadtmp = load ptr, ptr %sunkaddr, align 8
     %sunkaddr4 = getelementptr inbounds i8, ptr %0, i64 32
@@ -1405,9 +1403,9 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   else:                                             ; preds = %rec
     %7 = shl i64 %lsr.iv, 3
-    %uglygep = getelementptr i8, ptr %arr, i64 %7
-    %uglygep2 = getelementptr i8, ptr %uglygep, i64 8
-    %8 = load i64, ptr %uglygep2, align 8
+    %scevgep = getelementptr i8, ptr %arr, i64 %7
+    %scevgep2 = getelementptr i8, ptr %scevgep, i64 8
+    %8 = load i64, ptr %scevgep2, align 8
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 16
     %loadtmp = load ptr, ptr %sunkaddr, align 8
     %sunkaddr3 = getelementptr inbounds i8, ptr %0, i64 24
@@ -1425,12 +1423,12 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   define linkonce_odr ptr @__ctor_tp.a.l_lru(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 40)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
+    %1 = tail call ptr @malloc(i64 40)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
     %arr = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %1, i32 0, i32 2
-    call void @__copy_a.l(ptr %arr)
+    tail call void @__copy_a.l(ptr %arr)
     %f = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %1, i32 0, i32 3
-    call void @__copy__lru(ptr %f)
+    tail call void @__copy__lru(ptr %f)
     ret ptr %1
   }
   
@@ -1439,12 +1437,11 @@ Nested polymorphic closures. Does not quite work for another nesting level
   define linkonce_odr void @__copy_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call ptr @malloc(i64 %3)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %4 = tail call ptr @malloc(i64 %3)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
     %newcap = getelementptr i64, ptr %4, i64 1
     store i64 %size, ptr %newcap, align 8
     store ptr %4, ptr %0, align 8
@@ -1459,9 +1456,8 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br i1 %3, label %ret, label %notnull
   
   notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
+    %ctor1 = load ptr, ptr %2, align 8
+    %4 = tail call ptr %ctor1(ptr %2)
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
     store ptr %4, ptr %sunkaddr, align 8
     br label %ret
@@ -1472,26 +1468,26 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   define linkonce_odr ptr @__ctor_tp.a.l(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 24)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 24, i1 false)
+    %1 = tail call ptr @malloc(i64 24)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 24, i1 false)
     %arr = getelementptr inbounds { ptr, ptr, ptr }, ptr %1, i32 0, i32 2
-    call void @__copy_a.l(ptr %arr)
+    tail call void @__copy_a.l(ptr %arr)
     ret ptr %1
   }
   
   define linkonce_odr ptr @__ctor_tp._lru(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 32)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 32, i1 false)
+    %1 = tail call ptr @malloc(i64 32)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 32, i1 false)
     %f = getelementptr inbounds { ptr, ptr, %closure }, ptr %1, i32 0, i32 2
-    call void @__copy__lru(ptr %f)
+    tail call void @__copy__lru(ptr %f)
     ret ptr %1
   }
   
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -1545,7 +1541,7 @@ Closures have to be added to the env of other closures, so they can be called co
   $ schmu --dump-llvm stub.o closures_to_env.smu 2>&1 | grep -v !DI && ./closures_to_env
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   @schmu_a = constant i64 20
   @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"%i\0A\00" }
@@ -1582,7 +1578,7 @@ Don't copy mutable types in setup of tailrecursive functions
   $ schmu --dump-llvm tailrec_mutable.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./tailrec_mutable
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %bref = type { i1 }
   %fmt.formatter.t.u = type { %closure }
@@ -1833,14 +1829,14 @@ Don't copy mutable types in setup of tailrecursive functions
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !44
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !45
   
@@ -1856,8 +1852,8 @@ Don't copy mutable types in setup of tailrecursive functions
     br i1 %lt, label %then4, label %ifcont, !dbg !46
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -2112,22 +2108,21 @@ Don't copy mutable types in setup of tailrecursive functions
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -2136,8 +2131,8 @@ Don't copy mutable types in setup of tailrecursive functions
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -2146,7 +2141,7 @@ Don't copy mutable types in setup of tailrecursive functions
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -2241,7 +2236,7 @@ The lamba passed as array-iter argument is polymorphic
   $ schmu polymorphic_lambda_argument.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./polymorphic_lambda_argument
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %closure = type { ptr, ptr }
   %option.t.c = type { i32, i8 }
@@ -2303,9 +2298,9 @@ The lamba passed as array-iter argument is polymorphic
   
   else:                                             ; preds = %rec
     %5 = shl i64 %lsr.iv, 3
-    %uglygep = getelementptr i8, ptr %arr1, i64 %5
-    %uglygep6 = getelementptr i8, ptr %uglygep, i64 8
-    %6 = load i64, ptr %uglygep6, align 8
+    %scevgep = getelementptr i8, ptr %arr1, i64 %5
+    %scevgep6 = getelementptr i8, ptr %scevgep, i64 8
+    %6 = load i64, ptr %scevgep6, align 8
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 24
     %loadtmp = load ptr, ptr %sunkaddr, align 8
     %sunkaddr7 = getelementptr inbounds i8, ptr %0, i64 32
@@ -2620,14 +2615,14 @@ The lamba passed as array-iter argument is polymorphic
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !52
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !53
   
@@ -2643,8 +2638,8 @@ The lamba passed as array-iter argument is polymorphic
     br i1 %lt, label %then4, label %ifcont, !dbg !54
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -2702,12 +2697,12 @@ The lamba passed as array-iter argument is polymorphic
   
   define linkonce_odr ptr @__ctor_tp.a.l_lrb(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 40)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
+    %1 = tail call ptr @malloc(i64 40)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
     %arr = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %1, i32 0, i32 2
-    call void @__copy_a.l(ptr %arr)
+    tail call void @__copy_a.l(ptr %arr)
     %cont = getelementptr inbounds { ptr, ptr, ptr, %closure }, ptr %1, i32 0, i32 3
-    call void @__copy__lrb(ptr %cont)
+    tail call void @__copy__lrb(ptr %cont)
     ret ptr %1
   }
   
@@ -2716,12 +2711,11 @@ The lamba passed as array-iter argument is polymorphic
   define linkonce_odr void @__copy_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call ptr @malloc(i64 %3)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %4 = tail call ptr @malloc(i64 %3)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
     %newcap = getelementptr i64, ptr %4, i64 1
     store i64 %size, ptr %newcap, align 8
     store ptr %4, ptr %0, align 8
@@ -2736,9 +2730,8 @@ The lamba passed as array-iter argument is polymorphic
     br i1 %3, label %ret, label %notnull
   
   notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
+    %ctor1 = load ptr, ptr %2, align 8
+    %4 = tail call ptr %ctor1(ptr %2)
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
     store ptr %4, ptr %sunkaddr, align 8
     br label %ret
@@ -2762,45 +2755,44 @@ The lamba passed as array-iter argument is polymorphic
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.a.c(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__a.cp.clru(ptr %1)
+    tail call void @__free__a.cp.clru(ptr %0)
     ret void
   }
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
   define linkonce_odr void @__free_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
   define linkonce_odr ptr @__ctor_tp._llrul(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 40)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
+    %1 = tail call ptr @malloc(i64 40)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
     %f = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 2
-    call void @__copy__llru(ptr %f)
+    tail call void @__copy__llru(ptr %f)
     ret ptr %1
   }
   
@@ -2812,9 +2804,8 @@ The lamba passed as array-iter argument is polymorphic
     br i1 %3, label %ret, label %notnull
   
   notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
+    %ctor1 = load ptr, ptr %2, align 8
+    %4 = tail call ptr %ctor1(ptr %2)
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
     store ptr %4, ptr %sunkaddr, align 8
     br label %ret
@@ -2826,12 +2817,11 @@ The lamba passed as array-iter argument is polymorphic
   define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = add i64 %size, 17
-    %3 = call ptr @malloc(i64 %2)
+    %3 = tail call ptr @malloc(i64 %2)
     %4 = sub i64 %2, 1
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
     %newcap = getelementptr i64, ptr %3, i64 1
     store i64 %size, ptr %newcap, align 8
     %5 = getelementptr i8, ptr %3, i64 %4
@@ -2842,21 +2832,21 @@ The lamba passed as array-iter argument is polymorphic
   
   define linkonce_odr ptr @__ctor_tp.a.l(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 24)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 24, i1 false)
+    %1 = tail call ptr @malloc(i64 24)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 24, i1 false)
     %arr = getelementptr inbounds { ptr, ptr, ptr }, ptr %1, i32 0, i32 2
-    call void @__copy_a.l(ptr %arr)
+    tail call void @__copy_a.l(ptr %arr)
     ret ptr %1
   }
   
   define linkonce_odr ptr @__ctor_tp.a.ca.c(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 32)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 32, i1 false)
+    %1 = tail call ptr @malloc(i64 32)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 32, i1 false)
     %acc = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %1, i32 0, i32 2
-    call void @__copy_a.c(ptr %acc)
+    tail call void @__copy_a.c(ptr %acc)
     %delim = getelementptr inbounds { ptr, ptr, ptr, ptr }, ptr %1, i32 0, i32 3
-    call void @__copy_a.c(ptr %delim)
+    tail call void @__copy_a.c(ptr %delim)
     ret ptr %1
   }
   
@@ -2900,7 +2890,7 @@ The lamba passed as array-iter argument is polymorphic
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -2927,7 +2917,7 @@ Function call returning a polymorphic function
   $ schmu poly_fn_ret_fn.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./poly_fn_ret_fn
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %wrap.__fmt.formatter.t.ua.crfmt.formatter.t.ua.cru = type { %closure }
   %closure = type { ptr, ptr }
@@ -3107,22 +3097,21 @@ Function call returning a polymorphic function
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -3133,12 +3122,12 @@ Function call returning a polymorphic function
   
   define linkonce_odr ptr @__ctor_tp._fmt.formatter.t.ua.crfmt.formatter.t.ua.c(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 40)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
+    %1 = tail call ptr @malloc(i64 40)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
     %f0 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 2
-    call void @__copy__fmt.formatter.t.ua.crfmt.formatter.t.u(ptr %f0)
+    tail call void @__copy__fmt.formatter.t.ua.crfmt.formatter.t.u(ptr %f0)
     %v0 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 3
-    call void @__copy_a.c(ptr %v0)
+    tail call void @__copy_a.c(ptr %v0)
     ret ptr %1
   }
   
@@ -3152,9 +3141,8 @@ Function call returning a polymorphic function
     br i1 %3, label %ret, label %notnull
   
   notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
+    %ctor1 = load ptr, ptr %2, align 8
+    %4 = tail call ptr %ctor1(ptr %2)
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
     store ptr %4, ptr %sunkaddr, align 8
     br label %ret
@@ -3166,12 +3154,11 @@ Function call returning a polymorphic function
   define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = add i64 %size, 17
-    %3 = call ptr @malloc(i64 %2)
+    %3 = tail call ptr @malloc(i64 %2)
     %4 = sub i64 %2, 1
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
     %newcap = getelementptr i64, ptr %3, i64 1
     store i64 %size, ptr %newcap, align 8
     %5 = getelementptr i8, ptr %3, i64 %4
@@ -3182,8 +3169,7 @@ Function call returning a polymorphic function
   
   define linkonce_odr void @__free_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -3195,9 +3181,8 @@ Function call returning a polymorphic function
     br i1 %3, label %ret, label %notnull
   
   notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
+    %ctor1 = load ptr, ptr %2, align 8
+    %4 = tail call ptr %ctor1(ptr %2)
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
     store ptr %4, ptr %sunkaddr, align 8
     br label %ret
@@ -3245,16 +3230,16 @@ Function call returning a polymorphic function
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free___fmt.formatter.t.ua.crfmt.formatter.t.ua.cru(ptr %0) {
@@ -3270,22 +3255,21 @@ Function call returning a polymorphic function
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_wrap.__fmt.formatter.t.ua.crfmt.formatter.t.ua.cru(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free___fmt.formatter.t.ua.crfmt.formatter.t.ua.cru(ptr %1)
+    tail call void @__free___fmt.formatter.t.ua.crfmt.formatter.t.ua.cru(ptr %0)
     ret void
   }
   
@@ -3376,7 +3360,7 @@ the closure's environment
   $ schmu --dump-llvm inner_recursive_closure_call.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %option.t.R.set.t = type { i32, ptr }
   %fmt.formatter.t.u = type { %closure }
@@ -3679,14 +3663,14 @@ the closure's environment
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !50
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !51
   
@@ -3702,8 +3686,8 @@ the closure's environment
     br i1 %lt, label %then4, label %ifcont, !dbg !52
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -3724,22 +3708,21 @@ the closure's environment
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -3748,8 +3731,8 @@ the closure's environment
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -3757,10 +3740,10 @@ the closure's environment
   
   define linkonce_odr ptr @__ctor_tp._lru(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 32)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 32, i1 false)
+    %1 = tail call ptr @malloc(i64 32)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 32, i1 false)
     %f = getelementptr inbounds { ptr, ptr, %closure }, ptr %1, i32 0, i32 2
-    call void @__copy__lru(ptr %f)
+    tail call void @__copy__lru(ptr %f)
     ret ptr %1
   }
   
@@ -3772,9 +3755,8 @@ the closure's environment
     br i1 %3, label %ret, label %notnull
   
   notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
+    %ctor1 = load ptr, ptr %2, align 8
+    %4 = tail call ptr %ctor1(ptr %2)
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
     store ptr %4, ptr %sunkaddr, align 8
     br label %ret
@@ -3785,12 +3767,12 @@ the closure's environment
   
   define linkonce_odr ptr @__ctor_tp._option.t.R.set.trb_lrb(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 48)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 48, i1 false)
+    %1 = tail call ptr @malloc(i64 48)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 48, i1 false)
     %_schmu_set_aux = getelementptr inbounds { ptr, ptr, %closure, %closure }, ptr %1, i32 0, i32 2
-    call void @__copy__option.t.R.set.trb(ptr %_schmu_set_aux)
+    tail call void @__copy__option.t.R.set.trb(ptr %_schmu_set_aux)
     %cont = getelementptr inbounds { ptr, ptr, %closure, %closure }, ptr %1, i32 0, i32 3
-    call void @__copy__lrb(ptr %cont)
+    tail call void @__copy__lrb(ptr %cont)
     ret ptr %1
   }
   
@@ -3802,9 +3784,8 @@ the closure's environment
     br i1 %3, label %ret, label %notnull
   
   notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
+    %ctor1 = load ptr, ptr %2, align 8
+    %4 = tail call ptr %ctor1(ptr %2)
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
     store ptr %4, ptr %sunkaddr, align 8
     br label %ret
@@ -3821,9 +3802,8 @@ the closure's environment
     br i1 %3, label %ret, label %notnull
   
   notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
+    %ctor1 = load ptr, ptr %2, align 8
+    %4 = tail call ptr %ctor1(ptr %2)
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
     store ptr %4, ptr %sunkaddr, align 8
     br label %ret
@@ -3834,10 +3814,10 @@ the closure's environment
   
   define linkonce_odr ptr @__ctor_tp._lrb(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 32)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 32, i1 false)
+    %1 = tail call ptr @malloc(i64 32)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 32, i1 false)
     %cont = getelementptr inbounds { ptr, ptr, %closure }, ptr %1, i32 0, i32 2
-    call void @__copy__lrb(ptr %cont)
+    tail call void @__copy__lrb(ptr %cont)
     ret ptr %1
   }
   
@@ -3869,24 +3849,23 @@ the closure's environment
   define linkonce_odr void @__free_R.set.t(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %ref1 = bitcast ptr %1 to ptr
-    %refc = load i64, ptr %ref1, align 8
+    %refc = load i64, ptr %1, align 8
     %2 = icmp eq i64 %refc, 1
     %3 = sub i64 %refc, 1
-    store i64 %3, ptr %ref1, align 8
+    store i64 %3, ptr %1, align 8
     br i1 %2, label %free_payload, label %merge
   
   free_payload:                                     ; preds = %entry
     %vl = getelementptr i64, ptr %1, i64 2
-    call void @__free_set.t(ptr %vl)
+    tail call void @__free_set.t(ptr %vl)
     %weakref = getelementptr i64, ptr %1, i64 1
     %weakrefc = load i64, ptr %weakref, align 8
     %4 = icmp eq i64 %weakrefc, 1
     br i1 %4, label %free_rc, label %decr_weak
   
   free_rc:                                          ; preds = %free_payload
-    call void @free(ptr %1)
-    br label %merge
+    tail call void @free(ptr %1)
+    ret void
   
   decr_weak:                                        ; preds = %free_payload
     %5 = sub i64 %weakrefc, 1
@@ -3894,30 +3873,29 @@ the closure's environment
     store i64 %5, ptr %sunkaddr, align 8
     br label %merge
   
-  merge:                                            ; preds = %entry, %free_rc, %decr_weak
+  merge:                                            ; preds = %entry, %decr_weak
     ret void
   }
   
   define linkonce_odr void @__free_set.t(ptr %0) {
   entry:
     %1 = getelementptr inbounds %set.t, ptr %0, i32 0, i32 1
-    call void @__free_option.t.R.set.t(ptr %1)
+    tail call void @__free_option.t.R.set.t(ptr %1)
     ret void
   }
   
   define linkonce_odr void @__free_option.t.R.set.t(ptr %0) {
   entry:
-    %tag1 = bitcast ptr %0 to ptr
-    %index = load i32, ptr %tag1, align 4
+    %index = load i32, ptr %0, align 4
     %1 = icmp eq i32 %index, 1
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
     %data = getelementptr inbounds %option.t.R.set.t, ptr %0, i32 0, i32 1
-    call void @__free_R.set.t(ptr %data)
-    br label %cont
+    tail call void @__free_R.set.t(ptr %data)
+    ret void
   
-  cont:                                             ; preds = %match, %entry
+  cont:                                             ; preds = %entry
     ret void
   }
   
@@ -3935,7 +3913,7 @@ Shadowing with external functions
   $ schmu -c shadow_external1.smu --dump-llvm 2>&1 | grep -v !DI 
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   declare i64 @addint(i64 %0, i64 %1)
   
@@ -3957,7 +3935,7 @@ Shadowing with external functions
   $ schmu -c shadow_external2.smu --dump-llvm 2>&1 | grep -v !DI 
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   declare i64 @schmu_addint(i64 %0, i64 %1)
   

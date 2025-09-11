@@ -164,25 +164,16 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
         failwith "Internal Error: Cannot deal with const two types yet"
     | One_param (Ints _) ->
         let pieces = Llvm.struct_element_types value.lltyp |> Array.length in
-        if pieces > 1 then
-          Llvm.const_intcast value.value target_type ~is_signed:false
+        if pieces > 1 then Llvm.const_bitcast value.value target_type
         else
-          let is_signed =
-            match value.typ with
-            | Trecord (_, Rec_folded, _) -> failwith "unreachable"
-            | Trecord (_, (Rec_not fields | Rec_top fields), _) -> (
-                match fields.(0).ftyp with Tbool -> false | _ -> true)
-            | Tvariant _ -> true
-            | _ -> failwith "Internal Error: Not a record to unbox"
-          in
           let value = Llvm.build_extractvalue value.value 0 "" builder in
-          Llvm.const_intcast ~is_signed value target_type
+          Llvm.const_bitcast value target_type
     | One_param (F32 | Float) ->
         let pieces = Llvm.struct_element_types value.lltyp |> Array.length in
         if pieces > 1 then failwith "Float of pieces TODO"
         else
           let value = Llvm.build_extractvalue value.value 0 "" builder in
-          Llvm.const_fpcast value target_type
+          Llvm.const_bitcast value target_type
     | One_param F32_vec ->
         let pieces = Llvm.struct_element_types value.lltyp |> Array.length in
         if pieces <> 2 then failwith "F32_vec of pieces TODO"

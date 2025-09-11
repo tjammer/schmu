@@ -22,7 +22,7 @@ Basic variant ctors
   
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %clike = type { i32 }
   %option.t.a.c = type { i32, ptr }
@@ -56,12 +56,11 @@ Basic variant ctors
   define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = add i64 %size, 17
-    %3 = call ptr @malloc(i64 %2)
+    %3 = tail call ptr @malloc(i64 %2)
     %4 = sub i64 %2, 1
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
     %newcap = getelementptr i64, ptr %3, i64 1
     store i64 %size, ptr %newcap, align 8
     %5 = getelementptr i8, ptr %3, i64 %4
@@ -86,18 +85,18 @@ Basic variant ctors
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "basic.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "wrap_clike", linkageName: "schmu_wrap_clike", scope: !3, file: !3, line: 12, type: !4, scopeLine: 12, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "wrap_clike", linkageName: "schmu_wrap_clike", scope: !3, file: !3, line: 12, type: !4, scopeLine: 12, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0)
   !3 = !DIFile(filename: "basic.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = distinct !DISubprogram(name: "wrap_option", linkageName: "schmu_wrap_option", scope: !3, file: !3, line: 14, type: !4, scopeLine: 14, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
-  !7 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !6 = distinct !DISubprogram(name: "wrap_option", linkageName: "schmu_wrap_option", scope: !3, file: !3, line: 14, type: !4, scopeLine: 14, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0)
+  !7 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0)
 
 Match option
   $ schmu match_option.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./match_option
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %option.t.l = type { i32, i64 }
   %fmt.formatter.t.u = type { %closure }
@@ -283,14 +282,14 @@ Match option
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !32
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !33
   
@@ -306,8 +305,8 @@ Match option
     br i1 %lt, label %then4, label %ifcont, !dbg !34
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -379,22 +378,21 @@ Match option
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -403,8 +401,8 @@ Match option
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -518,7 +516,7 @@ Nested pattern matching
   $ schmu match_nested.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./match_nested
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
@@ -687,14 +685,14 @@ Nested pattern matching
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !30
   
@@ -710,8 +708,8 @@ Nested pattern matching
     br i1 %lt, label %then4, label %ifcont, !dbg !31
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -764,22 +762,21 @@ Nested pattern matching
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -788,8 +785,8 @@ Nested pattern matching
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -848,7 +845,7 @@ Match multiple columns
   $ schmu tuple_match.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./tuple_match
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %option.t.l = type { i32, i64 }
   %fmt.formatter.t.u = type { %closure }
@@ -1018,14 +1015,14 @@ Match multiple columns
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !30
   
@@ -1041,8 +1038,8 @@ Match multiple columns
     br i1 %lt, label %then4, label %ifcont, !dbg !31
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -1119,22 +1116,21 @@ Match multiple columns
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -1143,8 +1139,8 @@ Match multiple columns
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -1226,7 +1222,7 @@ Const ctors
   
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %var = type { i32, %thing }
   %thing = type { i64, %tp.lllll }
@@ -1266,14 +1262,14 @@ Const ctors
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "const_ctor_issue.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "dynamic", linkageName: "schmu_dynamic", scope: !3, file: !3, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "dynamic", linkageName: "schmu_dynamic", scope: !3, file: !3, line: 9, type: !4, scopeLine: 9, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0)
   !3 = !DIFile(filename: "const_ctor_issue.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
   !6 = !DILocation(line: 11, column: 4, scope: !2)
   !7 = !DILocation(line: 11, column: 16, scope: !2)
   !8 = !DILocation(line: 12, column: 16, scope: !2)
-  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0)
   !10 = !DILocation(line: 6, column: 14, scope: !9)
   !11 = !DILocation(line: 15, scope: !9)
   $ valgrind -q --leak-check=yes --show-reachable=yes ./const_ctor_issue

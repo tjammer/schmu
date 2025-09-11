@@ -5,7 +5,7 @@ Simple record creation (out of order)
   $ schmu --dump-llvm stub.o simple.smu 2>&1 | grep -v !DI && ./simple
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %foo = type { i1, i64 }
   
@@ -28,7 +28,7 @@ Pass record to function
   $ schmu --dump-llvm stub.o pass.smu 2>&1 | grep -v !DI && ./pass
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %foo = type { i64, i64 }
   
@@ -62,7 +62,7 @@ Create record
   $ schmu --dump-llvm stub.o create.smu 2>&1 | grep -v !DI && ./create
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %foo = type { i64, i64 }
   
@@ -97,7 +97,7 @@ Nested records
   $ schmu --dump-llvm stub.o nested.smu 2>&1 | grep -v !DI && ./nested
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %foo = type { i64, %inner }
   %inner = type { i64 }
@@ -157,7 +157,7 @@ Pass generic record
   $ schmu --dump-llvm stub.o parametrized_pass.smu 2>&1 | grep -v !DI && ./parametrized_pass
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %t.l = type { i64, i64, i1 }
   %closure = type { ptr, ptr }
@@ -273,7 +273,7 @@ Access parametrized record fields
   $ schmu --dump-llvm stub.o parametrized_get.smu 2>&1 | grep -v !DI && ./parametrized_get
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %t.l = type { i64, i64, i64, i1 }
   %gen_first.l = type { i64, i1 }
@@ -369,7 +369,7 @@ Make sure alignment of generic param works
   $ schmu --dump-llvm stub.o misaligned_get.smu 2>&1 | grep -v !DI && ./misaligned_get
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %misaligned.l = type { %inner, i64 }
   %inner = type { i64, i64 }
@@ -411,7 +411,7 @@ Support function/closure fields
   $ schmu --dump-llvm stub.o function_fields.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./function_fields
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
@@ -585,14 +585,14 @@ Support function/closure fields
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !31
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !32
   
@@ -608,8 +608,8 @@ Support function/closure fields
     br i1 %lt, label %then4, label %ifcont, !dbg !33
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -677,22 +677,21 @@ Support function/closure fields
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -701,8 +700,8 @@ Support function/closure fields
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -743,7 +742,7 @@ Regression test: Closures for records used to use store/load like for register v
   $ schmu --dump-llvm stub.o closure.smu 2>&1 | grep -v !DI && ./closure
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %foo = type { i64, i64 }
   
@@ -780,7 +779,7 @@ This caused stores to a wrong pointer type in LLVM
   
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %foo = type { i64 }
   %ys = type { %foo, i64 }
@@ -836,7 +835,7 @@ A return of a field should not be preallocated
   $ schmu --dump-llvm stub.o nested_prealloc.smu 2>&1 | grep -v !DI && ./nested_prealloc
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %test.int_wrap = type { %int_wrap }
   %int_wrap = type { i64, i64, i64 }
@@ -928,8 +927,8 @@ A return of a field should not be preallocated
   
   define linkonce_odr ptr @__ctor_tp.mutate.int_wrap(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 40)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
+    %1 = tail call ptr @malloc(i64 40)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
     ret ptr %1
   }
   

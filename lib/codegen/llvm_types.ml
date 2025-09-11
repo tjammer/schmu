@@ -75,20 +75,6 @@ let di_loc param loc =
   let column = Lexing.((fst loc).pos_cnum - (fst loc).pos_bol) in
   Debug.dibuild_create_debug_location ~scope:param.scope ~line ~column context
 
-let fpm = Llvm.PassManager.create_function the_module
-let _ = Llvm.PassManager.initialize fpm
-
-(* Segfaults on my fedora box!? *)
-(* let () = Llvm_scalar_opts.add_instruction_combination fpm *)
-
-(* let () = Llvm_scalar_opts.add_reassociation fpm *)
-
-(* Is somehow needed to make tail call optimization work *)
-let () = Llvm_scalar_opts.add_gvn fpm
-
-(* let () = Llvm_scalar_opts.add_cfg_simplification fpm *)
-
-let () = Llvm_scalar_opts.add_tail_call_elimination fpm
 let builder = Llvm.builder context
 let int_t = Llvm.i64_type context
 let bool_t = Llvm.i1_type context

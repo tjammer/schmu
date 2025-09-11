@@ -21,7 +21,7 @@
   (menhir (>= 20211230))
   (menhirLib (>= 20211230))
   (ppx_deriving (>= 5.2.1))
-  (llvm (and (>= 16.0.0) (< 17.0.0)))
+  (llvm (= "19-static"))
   (sexplib0 (>= v0.15.0))
   (ppx_sexp_conv (>= v0.15.0)))
  (sites (lib std)))

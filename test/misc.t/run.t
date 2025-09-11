@@ -7,7 +7,7 @@ Test elif
   $ schmu --dump-llvm stub.o elseif.smu 2>&1 | grep -v !DI && ./elseif
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   declare void @assert(i1 %0)
   
@@ -62,7 +62,7 @@ Test simple typedef
   
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
@@ -77,7 +77,7 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   $ schmu --dump-llvm -c abi.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %v3 = type { double, double, double }
   %i3 = type { i64, i64, i64 }
@@ -201,7 +201,7 @@ Test 'and', 'or' and 'not'
   $ schmu --dump-llvm stub.o boolean_logic.smu 2>&1 | grep -v !DI && ./boolean_logic
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"false\00" }
   @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"true\00" }
@@ -498,7 +498,7 @@ Test 'and', 'or' and 'not'
   
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   @schmu_a = constant double -1.000000e+00
   @schmu_a__2 = constant double -1.000000e+00
@@ -574,7 +574,7 @@ Piping for ctors and field accessors
   $ schmu stub.o --dump-llvm piping.smu 2>&1 | grep -v !DI && ./piping
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
@@ -807,14 +807,14 @@ Piping for ctors and field accessors
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !44
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !45
   
@@ -830,8 +830,8 @@ Piping for ctors and field accessors
     br i1 %lt, label %then4, label %ifcont, !dbg !46
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -852,22 +852,21 @@ Piping for ctors and field accessors
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -876,8 +875,8 @@ Piping for ctors and field accessors
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -929,7 +928,7 @@ Piping for ctors and field accessors
   define linkonce_odr void @__free_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -987,7 +986,7 @@ Increase refcount for returned params in ifs
   $ schmu --dump-llvm if_ret_param.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./if_ret_param
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
@@ -1229,22 +1228,21 @@ Increase refcount for returned params in ifs
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.a.c(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__a.cp.clru(ptr %1)
+    tail call void @__free__a.cp.clru(ptr %0)
     ret void
   }
   
@@ -1261,22 +1259,21 @@ Increase refcount for returned params in ifs
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -1287,12 +1284,12 @@ Increase refcount for returned params in ifs
   
   define linkonce_odr ptr @__ctor_tp._fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 40)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
+    %1 = tail call ptr @malloc(i64 40)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
     %f0 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 2
-    call void @__copy__fmt.formatter.t.a.ca.crfmt.formatter.t.a.c(ptr %f0)
+    tail call void @__copy__fmt.formatter.t.a.ca.crfmt.formatter.t.a.c(ptr %f0)
     %v0 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 3
-    call void @__copy_a.c(ptr %v0)
+    tail call void @__copy_a.c(ptr %v0)
     ret ptr %1
   }
   
@@ -1306,9 +1303,8 @@ Increase refcount for returned params in ifs
     br i1 %3, label %ret, label %notnull
   
   notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
+    %ctor1 = load ptr, ptr %2, align 8
+    %4 = tail call ptr %ctor1(ptr %2)
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
     store ptr %4, ptr %sunkaddr, align 8
     br label %ret
@@ -1320,12 +1316,11 @@ Increase refcount for returned params in ifs
   define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = add i64 %size, 17
-    %3 = call ptr @malloc(i64 %2)
+    %3 = tail call ptr @malloc(i64 %2)
     %4 = sub i64 %2, 1
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
     %newcap = getelementptr i64, ptr %3, i64 1
     store i64 %size, ptr %newcap, align 8
     %5 = getelementptr i8, ptr %3, i64 %4
@@ -1337,25 +1332,24 @@ Increase refcount for returned params in ifs
   define linkonce_odr void @__free_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
   define linkonce_odr void @__free_fmt.formatter.t.a.c(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__a.cp.clru(ptr %1)
-    %2 = getelementptr inbounds %fmt.formatter.t.a.c, ptr %0, i32 0, i32 1
-    call void @__free_a.c(ptr %2)
+    tail call void @__free__a.cp.clru(ptr %0)
+    %1 = getelementptr inbounds %fmt.formatter.t.a.c, ptr %0, i32 0, i32 1
+    tail call void @__free_a.c(ptr %1)
     ret void
   }
   
   define linkonce_odr ptr @__ctor_tp._a.crul(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 40)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
+    %1 = tail call ptr @malloc(i64 40)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
     %f = getelementptr inbounds { ptr, ptr, %closure, i64 }, ptr %1, i32 0, i32 2
-    call void @__copy__a.cru(ptr %f)
+    tail call void @__copy__a.cru(ptr %f)
     ret ptr %1
   }
   
@@ -1367,9 +1361,8 @@ Increase refcount for returned params in ifs
     br i1 %3, label %ret, label %notnull
   
   notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
+    %ctor1 = load ptr, ptr %2, align 8
+    %4 = tail call ptr %ctor1(ptr %2)
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
     store ptr %4, ptr %sunkaddr, align 8
     br label %ret
@@ -1419,7 +1412,7 @@ Handle partial allocations
   $ schmu partials.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./partials
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %f.a.l = type { ptr, ptr, ptr }
   %t.a.l = type { ptr, ptr }
@@ -1490,19 +1483,18 @@ Handle partial allocations
     store i64 20, ptr %4, align 8
     store ptr %3, ptr %b, align 8
     %5 = alloca %tp.a.ll, align 8
-    %6 = load ptr, ptr %0, align 8
-    store ptr %6, ptr %5, align 8
+    store ptr %1, ptr %5, align 8
     %"1" = getelementptr inbounds %tp.a.ll, ptr %5, i32 0, i32 1
     store i64 0, ptr %"1", align 8
-    %7 = tail call ptr @malloc(i64 24)
+    %6 = tail call ptr @malloc(i64 24)
     %arr6 = alloca ptr, align 8
-    store ptr %7, ptr %arr6, align 8
-    store i64 1, ptr %7, align 8
-    %cap8 = getelementptr i64, ptr %7, i64 1
+    store ptr %6, ptr %arr6, align 8
+    store i64 1, ptr %6, align 8
+    %cap8 = getelementptr i64, ptr %6, i64 1
     store i64 1, ptr %cap8, align 8
-    %8 = getelementptr i8, ptr %7, i64 16
-    store i64 20, ptr %8, align 8
-    store ptr %7, ptr %0, align 8
+    %7 = getelementptr i8, ptr %6, i64 16
+    store i64 20, ptr %7, align 8
+    store ptr %6, ptr %0, align 8
     call void @__free_tp.a.ll(ptr %5)
     call void @__free_t.a.l(ptr %0)
     ret void
@@ -1513,23 +1505,21 @@ Handle partial allocations
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
   define linkonce_odr void @__free_tp.a.ll(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free_a.l(ptr %1)
+    tail call void @__free_a.l(ptr %0)
     ret void
   }
   
   define linkonce_odr void @__free_t.a.l(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free_a.l(ptr %1)
-    %2 = getelementptr inbounds %t.a.l, ptr %0, i32 0, i32 1
-    call void @__free_a.l(ptr %2)
+    tail call void @__free_a.l(ptr %0)
+    %1 = getelementptr inbounds %t.a.l, ptr %0, i32 0, i32 1
+    tail call void @__free_a.l(ptr %1)
     ret void
   }
   
@@ -1576,7 +1566,7 @@ Using unit values
   
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %option.t.u = type { i32 }
   %thing = type {}
@@ -1822,14 +1812,14 @@ Using unit values
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !40
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !41
   
@@ -1845,8 +1835,8 @@ Using unit values
     br i1 %lt, label %then4, label %ifcont, !dbg !42
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -1880,22 +1870,21 @@ Using unit values
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -1904,8 +1893,8 @@ Using unit values
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -1957,7 +1946,7 @@ Using unit values
   define linkonce_odr void @__free_a.u(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -1976,7 +1965,7 @@ Arguments
   $ schmu args.smu --dump-llvm
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   @__schmu_argv = global ptr null
   @__schmu_argc = global i64 0
@@ -2013,34 +2002,34 @@ Arguments
   define linkonce_odr void @__free_a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
   define linkonce_odr void @__free_a.a.c(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
+    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %2 = load i64, ptr %cnt, align 8
+    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
+    %2 = phi i64 [ %4, %child ], [ 0, %entry ]
     %3 = icmp slt i64 %2, %size
     br i1 %3, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %4 = getelementptr i8, ptr %1, i64 16
-    %5 = getelementptr ptr, ptr %4, i64 %2
-    call void @__free_a.c(ptr %5)
-    %6 = add i64 %2, 1
-    store i64 %6, ptr %cnt, align 8
+    tail call void @__free_a.c(ptr %lsr.iv)
+    %4 = add i64 %2, 1
+    store i64 %4, ptr %cnt, align 8
+    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -2050,11 +2039,11 @@ Arguments
   
   !0 = distinct !DICompileUnit(language: DW_LANG_C, file: !1, producer: "schmu 0.1x", isOptimized: false, runtimeVersion: 0, emissionKind: LineTablesOnly)
   !1 = !DIFile(filename: "args.smu", directory: "$TESTCASE_ROOT")
-  !2 = distinct !DISubprogram(name: "nothing", linkageName: "schmu_nothing", scope: !3, file: !3, line: 2, type: !4, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !2 = distinct !DISubprogram(name: "nothing", linkageName: "schmu_nothing", scope: !3, file: !3, line: 2, type: !4, scopeLine: 2, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0)
   !3 = !DIFile(filename: "args.smu", directory: "")
   !4 = !DISubroutineType(flags: DIFlagPrototyped, types: !5)
   !5 = !{}
-  !6 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !5)
+  !6 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0)
   !7 = !DILocation(line: 5, scope: !6)
   !8 = !DILocation(line: 6, column: 27, scope: !6)
   !9 = !DILocation(line: 6, column: 8, scope: !6)

@@ -2,7 +2,7 @@ Test simple setting of mutable variables
   $ schmu --dump-llvm simple_set.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./simple_set
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
@@ -173,14 +173,14 @@ Test simple setting of mutable variables
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !30
   
@@ -196,8 +196,8 @@ Test simple setting of mutable variables
     br i1 %lt, label %then4, label %ifcont, !dbg !31
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -226,22 +226,21 @@ Test simple setting of mutable variables
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -250,8 +249,8 @@ Test simple setting of mutable variables
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -330,12 +329,11 @@ Test simple setting of mutable variables
   define linkonce_odr void @__copy_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call ptr @malloc(i64 %3)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %4 = tail call ptr @malloc(i64 %3)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
     %newcap = getelementptr i64, ptr %4, i64 1
     store i64 %size, ptr %newcap, align 8
     store ptr %4, ptr %0, align 8
@@ -345,30 +343,30 @@ Test simple setting of mutable variables
   define linkonce_odr void @__copy_a.a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call ptr @malloc(i64 %3)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %4 = tail call ptr @malloc(i64 %3)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
     %newcap = getelementptr i64, ptr %4, i64 1
     store i64 %size, ptr %newcap, align 8
     store ptr %4, ptr %0, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
+    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %5 = load i64, ptr %cnt, align 8
+    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
+    %5 = phi i64 [ %7, %child ], [ 0, %entry ]
     %6 = icmp slt i64 %5, %size
     br i1 %6, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %7 = getelementptr i8, ptr %1, i64 16
-    %8 = getelementptr ptr, ptr %7, i64 %5
-    call void @__copy_a.l(ptr %8)
-    %9 = add i64 %5, 1
-    store i64 %9, ptr %cnt, align 8
+    tail call void @__copy_a.l(ptr %lsr.iv)
+    %7 = add i64 %5, 1
+    store i64 %7, ptr %cnt, align 8
+    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
     br label %rec
   
   cont:                                             ; preds = %rec
@@ -378,34 +376,34 @@ Test simple setting of mutable variables
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
   define linkonce_odr void @__free_a.a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
+    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %2 = load i64, ptr %cnt, align 8
+    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
+    %2 = phi i64 [ %4, %child ], [ 0, %entry ]
     %3 = icmp slt i64 %2, %size
     br i1 %3, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %4 = getelementptr i8, ptr %1, i64 16
-    %5 = getelementptr ptr, ptr %4, i64 %2
-    call void @__free_a.l(ptr %5)
-    %6 = add i64 %2, 1
-    store i64 %6, ptr %cnt, align 8
+    tail call void @__free_a.l(ptr %lsr.iv)
+    %4 = add i64 %2, 1
+    store i64 %4, ptr %cnt, align 8
+    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -435,7 +433,7 @@ Use mutable values as ptrs to C code
   $ schmu -c --dump-llvm ptr_to_c.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %foo = type { i64 }
   
@@ -461,7 +459,7 @@ Check aliasing
   $ schmu --dump-llvm mut_alias.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./mut_alias
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %foo = type { i64 }
   %fmt.formatter.t.u = type { %closure }
@@ -632,14 +630,14 @@ Check aliasing
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !30
   
@@ -655,8 +653,8 @@ Check aliasing
     br i1 %lt, label %then4, label %ifcont, !dbg !31
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -705,22 +703,21 @@ Check aliasing
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -729,8 +726,8 @@ Check aliasing
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -781,7 +778,7 @@ Const let
   $ schmu --dump-llvm const_let.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./const_let
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
@@ -950,14 +947,14 @@ Const let
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !30
   
@@ -973,8 +970,8 @@ Const let
     br i1 %lt, label %then4, label %ifcont, !dbg !31
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -992,25 +989,19 @@ Const let
     store i64 1, ptr %cap, align 8
     %2 = getelementptr i8, ptr %1, i64 16
     store i64 0, ptr %2, align 8
-    %3 = load ptr, ptr %0, align 8
-    %4 = getelementptr i8, ptr %3, i64 16
-    %5 = alloca i64, align 8
-    %6 = load i64, ptr %4, align 8
-    store i64 %6, ptr %5, align 8
-    store i64 1, ptr %4, align 8
+    %3 = alloca i64, align 8
+    store i64 0, ptr %3, align 8
+    store i64 1, ptr %2, align 8
     %clstmp = alloca %closure, align 8
     store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    %7 = load ptr, ptr %0, align 8
-    %8 = getelementptr i8, ptr %7, i64 16
-    %9 = load i64, ptr %8, align 8
-    call void @__fmt_stdout_println__ll(ptr %clstmp, i64 %9), !dbg !34
+    call void @__fmt_stdout_println__ll(ptr %clstmp, i64 1), !dbg !34
     %clstmp1 = alloca %closure, align 8
     store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp1, align 8
     %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
     store ptr null, ptr %envptr3, align 8
-    call void @__fmt_stdout_println__ll(ptr %clstmp1, i64 %6), !dbg !35
+    call void @__fmt_stdout_println__ll(ptr %clstmp1, i64 0), !dbg !35
     call void @__free_a.l(ptr %0)
     ret void
   }
@@ -1028,22 +1019,21 @@ Const let
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -1052,8 +1042,8 @@ Const let
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -1062,7 +1052,7 @@ Const let
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -1116,7 +1106,7 @@ Copies, but with ref-counted arrays
   $ schmu array_copies.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./array_copies
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
@@ -1290,14 +1280,14 @@ Copies, but with ref-counted arrays
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !30
   
@@ -1313,8 +1303,8 @@ Copies, but with ref-counted arrays
     br i1 %lt, label %then4, label %ifcont, !dbg !31
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -1339,22 +1329,18 @@ Copies, but with ref-counted arrays
     %4 = alloca ptr, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %4, ptr align 8 %0, i64 8, i1 false)
     call void @__copy_a.l(ptr %4)
-    %5 = load ptr, ptr %0, align 8
+    store i64 12, ptr %2, align 8
+    call void @schmu_print_0th(ptr %1), !dbg !35
+    %5 = load ptr, ptr %4, align 8
     %6 = getelementptr i8, ptr %5, i64 16
-    store i64 12, ptr %6, align 8
-    %7 = load ptr, ptr %0, align 8
-    call void @schmu_print_0th(ptr %7), !dbg !35
+    store i64 15, ptr %6, align 8
+    call void @schmu_print_0th(ptr %1), !dbg !36
+    %7 = load ptr, ptr %3, align 8
+    call void @schmu_print_0th(ptr %7), !dbg !37
     %8 = load ptr, ptr %4, align 8
-    %9 = getelementptr i8, ptr %8, i64 16
-    store i64 15, ptr %9, align 8
-    %10 = load ptr, ptr %0, align 8
-    call void @schmu_print_0th(ptr %10), !dbg !36
-    %11 = load ptr, ptr %3, align 8
-    call void @schmu_print_0th(ptr %11), !dbg !37
-    %12 = load ptr, ptr %4, align 8
-    call void @schmu_print_0th(ptr %12), !dbg !38
-    %13 = load ptr, ptr %3, align 8
-    call void @schmu_print_0th(ptr %13), !dbg !39
+    call void @schmu_print_0th(ptr %8), !dbg !38
+    %9 = load ptr, ptr %3, align 8
+    call void @schmu_print_0th(ptr %9), !dbg !39
     call void @__free_a.l(ptr %4)
     call void @__free_a.l(ptr %3)
     call void @__free_a.l(ptr %0)
@@ -1386,22 +1372,21 @@ Copies, but with ref-counted arrays
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -1410,8 +1395,8 @@ Copies, but with ref-counted arrays
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -1420,12 +1405,11 @@ Copies, but with ref-counted arrays
   define linkonce_odr void @__copy_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call ptr @malloc(i64 %3)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %4 = tail call ptr @malloc(i64 %3)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
     %newcap = getelementptr i64, ptr %4, i64 1
     store i64 %size, ptr %newcap, align 8
     store ptr %4, ptr %0, align 8
@@ -1435,7 +1419,7 @@ Copies, but with ref-counted arrays
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -1500,7 +1484,7 @@ Arrays in records
   $ schmu array_in_record_copies.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./array_in_record_copies
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %arrec = type { ptr }
   %fmt.formatter.t.u = type { %closure }
@@ -1673,14 +1657,14 @@ Arrays in records
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !30
   
@@ -1696,8 +1680,8 @@ Arrays in records
     br i1 %lt, label %then4, label %ifcont, !dbg !31
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -1721,8 +1705,8 @@ Arrays in records
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %3, ptr align 8 %0, i64 8, i1 false)
     call void @__copy_arrec(ptr %3)
     store i64 12, ptr %2, align 8
-    %unbox = load i64, ptr %0, align 8
-    call void @schmu_print_thing(i64 %unbox), !dbg !34
+    %4 = ptrtoint ptr %1 to i64
+    call void @schmu_print_thing(i64 %4), !dbg !34
     %unbox1 = load i64, ptr %3, align 8
     call void @schmu_print_thing(i64 %unbox1), !dbg !35
     call void @__free_arrec(ptr %3)
@@ -1758,22 +1742,21 @@ Arrays in records
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -1782,8 +1765,8 @@ Arrays in records
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -1792,12 +1775,11 @@ Arrays in records
   define linkonce_odr void @__copy_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call ptr @malloc(i64 %3)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %4 = tail call ptr @malloc(i64 %3)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
     %newcap = getelementptr i64, ptr %4, i64 1
     store i64 %size, ptr %newcap, align 8
     store ptr %4, ptr %0, align 8
@@ -1806,22 +1788,20 @@ Arrays in records
   
   define linkonce_odr void @__copy_arrec(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__copy_a.l(ptr %1)
+    tail call void @__copy_a.l(ptr %0)
     ret void
   }
   
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
   define linkonce_odr void @__free_arrec(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free_a.l(ptr %1)
+    tail call void @__free_a.l(ptr %0)
     ret void
   }
   
@@ -1869,7 +1849,7 @@ Nested arrays
   $ schmu nested_array.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./nested_array
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
@@ -2141,14 +2121,14 @@ Nested arrays
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !48
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !49
   
@@ -2164,8 +2144,8 @@ Nested arrays
     br i1 %lt, label %then4, label %ifcont, !dbg !50
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -2208,22 +2188,21 @@ Nested arrays
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -2232,8 +2211,8 @@ Nested arrays
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -2243,12 +2222,12 @@ Nested arrays
   
   define linkonce_odr ptr @__ctor_tp._fmt.formatter.t.ulrfmt.formatter.t.u_fmt.formatter.t.ulrfmt.formatter.t.ull(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 64)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 64, i1 false)
+    %1 = tail call ptr @malloc(i64 64)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 64, i1 false)
     %f0 = getelementptr inbounds { ptr, ptr, %closure, %closure, i64, i64 }, ptr %1, i32 0, i32 2
-    call void @__copy__fmt.formatter.t.ulrfmt.formatter.t.u(ptr %f0)
+    tail call void @__copy__fmt.formatter.t.ulrfmt.formatter.t.u(ptr %f0)
     %f1 = getelementptr inbounds { ptr, ptr, %closure, %closure, i64, i64 }, ptr %1, i32 0, i32 3
-    call void @__copy__fmt.formatter.t.ulrfmt.formatter.t.u(ptr %f1)
+    tail call void @__copy__fmt.formatter.t.ulrfmt.formatter.t.u(ptr %f1)
     ret ptr %1
   }
   
@@ -2260,9 +2239,8 @@ Nested arrays
     br i1 %3, label %ret, label %notnull
   
   notnull:                                          ; preds = %entry
-    %ctor2 = bitcast ptr %2 to ptr
-    %ctor1 = load ptr, ptr %ctor2, align 8
-    %4 = call ptr %ctor1(ptr %2)
+    %ctor1 = load ptr, ptr %2, align 8
+    %4 = tail call ptr %ctor1(ptr %2)
     %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
     store ptr %4, ptr %sunkaddr, align 8
     br label %ret
@@ -2273,8 +2251,7 @@ Nested arrays
   
   define linkonce_odr void @__free_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -2320,12 +2297,11 @@ Nested arrays
   define linkonce_odr void @__copy_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call ptr @malloc(i64 %3)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %4 = tail call ptr @malloc(i64 %3)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
     %newcap = getelementptr i64, ptr %4, i64 1
     store i64 %size, ptr %newcap, align 8
     store ptr %4, ptr %0, align 8
@@ -2335,30 +2311,30 @@ Nested arrays
   define linkonce_odr void @__copy_a.a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call ptr @malloc(i64 %3)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %4 = tail call ptr @malloc(i64 %3)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
     %newcap = getelementptr i64, ptr %4, i64 1
     store i64 %size, ptr %newcap, align 8
     store ptr %4, ptr %0, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
+    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %5 = load i64, ptr %cnt, align 8
+    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
+    %5 = phi i64 [ %7, %child ], [ 0, %entry ]
     %6 = icmp slt i64 %5, %size
     br i1 %6, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %7 = getelementptr i8, ptr %1, i64 16
-    %8 = getelementptr ptr, ptr %7, i64 %5
-    call void @__copy_a.l(ptr %8)
-    %9 = add i64 %5, 1
-    store i64 %9, ptr %cnt, align 8
+    tail call void @__copy_a.l(ptr %lsr.iv)
+    %7 = add i64 %5, 1
+    store i64 %7, ptr %cnt, align 8
+    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
     br label %rec
   
   cont:                                             ; preds = %rec
@@ -2368,34 +2344,34 @@ Nested arrays
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
   define linkonce_odr void @__free_a.a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
+    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %2 = load i64, ptr %cnt, align 8
+    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
+    %2 = phi i64 [ %4, %child ], [ 0, %entry ]
     %3 = icmp slt i64 %2, %size
     br i1 %3, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %4 = getelementptr i8, ptr %1, i64 16
-    %5 = getelementptr ptr, ptr %4, i64 %2
-    call void @__free_a.l(ptr %5)
-    %6 = add i64 %2, 1
-    store i64 %6, ptr %cnt, align 8
+    tail call void @__free_a.l(ptr %lsr.iv)
+    %4 = add i64 %2, 1
+    store i64 %4, ptr %cnt, align 8
+    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -2414,7 +2390,7 @@ Modify in function
   $ schmu --dump-llvm modify_in_fn.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./modify_in_fn
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %f = type { i64 }
   %fmt.formatter.t.u = type { %closure }
@@ -2625,14 +2601,14 @@ Modify in function
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !32
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !33
   
@@ -2648,8 +2624,8 @@ Modify in function
     br i1 %lt, label %then4, label %ifcont, !dbg !34
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -2684,22 +2660,21 @@ Modify in function
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -2708,8 +2683,8 @@ Modify in function
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -2747,7 +2722,7 @@ Modify in function
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -2765,7 +2740,7 @@ Make sure variable ids are correctly propagated
   $ schmu --dump-llvm varid_propagate.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./varid_propagate
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   define linkonce_odr void @__array_push_a.ll(ptr noalias %arr, i64 %value) !dbg !2 {
   entry:
@@ -2825,12 +2800,11 @@ Make sure variable ids are correctly propagated
   define linkonce_odr void @__copy_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call ptr @malloc(i64 %3)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %4 = tail call ptr @malloc(i64 %3)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
     %newcap = getelementptr i64, ptr %4, i64 1
     store i64 %size, ptr %newcap, align 8
     store ptr %4, ptr %0, align 8
@@ -2850,11 +2824,10 @@ Make sure variable ids are correctly propagated
     store i64 1, ptr %cap, align 8
     %1 = getelementptr i8, ptr %0, i64 16
     store i64 0, ptr %1, align 8
-    %2 = load ptr, ptr %arr, align 8
-    %3 = tail call ptr @__schmu_f1_a.llra.l(ptr %2, i64 0), !dbg !12
-    %4 = alloca ptr, align 8
-    store ptr %3, ptr %4, align 8
-    call void @__free_a.l(ptr %4)
+    %2 = tail call ptr @__schmu_f1_a.llra.l(ptr %0, i64 0), !dbg !12
+    %3 = alloca ptr, align 8
+    store ptr %2, ptr %3, align 8
+    call void @__free_a.l(ptr %3)
     call void @__free_a.l(ptr %arr)
     ret i64 0
   }
@@ -2864,7 +2837,7 @@ Make sure variable ids are correctly propagated
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -2880,7 +2853,7 @@ Free array params correctly if they are returned
   $ schmu --dump-llvm pass_array_param.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./pass_array_param
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   define linkonce_odr ptr @__schmu_pass_a.lra.l(ptr %x) !dbg !2 {
   entry:
@@ -2915,7 +2888,7 @@ Free array params correctly if they are returned
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
@@ -2929,7 +2902,7 @@ Refcounts for members in arrays, records and variants
   $ schmu --dump-llvm member_refcounts.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %r = type { ptr }
   %option.t.a.l = type { i32, ptr }
@@ -3105,14 +3078,14 @@ Refcounts for members in arrays, records and variants
     %lsr.iv = phi i64 [ %lsr.iv.next, %then ], [ %3, %entry ]
     %4 = phi i64 [ %div, %then ], [ %value, %entry ]
     %div = sdiv i64 %4, %base2
-    %uglygep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    %uglygep10 = getelementptr i8, ptr %uglygep9, i64 -1
+    %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
     %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
     %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
-    store i8 %6, ptr %uglygep10, align 1
+    store i8 %6, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !30
   
@@ -3128,8 +3101,8 @@ Refcounts for members in arrays, records and variants
     br i1 %lt, label %then4, label %ifcont, !dbg !31
   
   then4:                                            ; preds = %else
-    %uglygep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
-    store i8 45, ptr %uglygep, align 1
+    %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
+    store i8 45, ptr %scevgep, align 1
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
@@ -3150,22 +3123,21 @@ Refcounts for members in arrays, records and variants
     %3 = icmp eq ptr %dtor1, null
     br i1 %3, label %just_free, label %dtor
   
-  ret:                                              ; preds = %just_free, %dtor, %entry
+  ret:                                              ; preds = %entry
     ret void
   
   dtor:                                             ; preds = %notnull
-    call void %dtor1(ptr %env)
-    br label %ret
+    tail call void %dtor1(ptr %env)
+    ret void
   
   just_free:                                        ; preds = %notnull
-    call void @free(ptr %env)
-    br label %ret
+    tail call void @free(ptr %env)
+    ret void
   }
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free__up.clru(ptr %1)
+    tail call void @__free__up.clru(ptr %0)
     ret void
   }
   
@@ -3174,8 +3146,8 @@ Refcounts for members in arrays, records and variants
   
   define linkonce_odr ptr @__ctor_tp.A64.cl(ptr %0) {
   entry:
-    %1 = call ptr @malloc(i64 88)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
+    %1 = tail call ptr @malloc(i64 88)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 88, i1 false)
     ret ptr %1
   }
   
@@ -3266,12 +3238,11 @@ Refcounts for members in arrays, records and variants
   define linkonce_odr void @__copy_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %2 = mul i64 %size, 8
     %3 = add i64 %2, 16
-    %4 = call ptr @malloc(i64 %3)
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
+    %4 = tail call ptr @malloc(i64 %3)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
     %newcap = getelementptr i64, ptr %4, i64 1
     store i64 %size, ptr %newcap, align 8
     store ptr %4, ptr %0, align 8
@@ -3281,57 +3252,55 @@ Refcounts for members in arrays, records and variants
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
   define linkonce_odr void @__free_option.t.a.l(ptr %0) {
   entry:
-    %tag1 = bitcast ptr %0 to ptr
-    %index = load i32, ptr %tag1, align 4
+    %index = load i32, ptr %0, align 4
     %1 = icmp eq i32 %index, 1
     br i1 %1, label %match, label %cont
   
   match:                                            ; preds = %entry
     %data = getelementptr inbounds %option.t.a.l, ptr %0, i32 0, i32 1
-    call void @__free_a.l(ptr %data)
-    br label %cont
+    tail call void @__free_a.l(ptr %data)
+    ret void
   
-  cont:                                             ; preds = %match, %entry
+  cont:                                             ; preds = %entry
     ret void
   }
   
   define linkonce_odr void @__free_a.a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    %sz1 = bitcast ptr %1 to ptr
-    %size = load i64, ptr %sz1, align 8
+    %size = load i64, ptr %1, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
+    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %2 = load i64, ptr %cnt, align 8
+    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
+    %2 = phi i64 [ %4, %child ], [ 0, %entry ]
     %3 = icmp slt i64 %2, %size
     br i1 %3, label %child, label %cont
   
   child:                                            ; preds = %rec
-    %4 = getelementptr i8, ptr %1, i64 16
-    %5 = getelementptr ptr, ptr %4, i64 %2
-    call void @__free_a.l(ptr %5)
-    %6 = add i64 %2, 1
-    store i64 %6, ptr %cnt, align 8
+    tail call void @__free_a.l(ptr %lsr.iv)
+    %4 = add i64 %2, 1
+    store i64 %4, ptr %cnt, align 8
+    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
     br label %rec
   
   cont:                                             ; preds = %rec
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
   define linkonce_odr void @__free_r(ptr %0) {
   entry:
-    %1 = bitcast ptr %0 to ptr
-    call void @__free_a.l(ptr %1)
+    tail call void @__free_a.l(ptr %0)
     ret void
   }
   
@@ -3368,7 +3337,7 @@ Fix codegen
   
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   define i64 @schmu_t() !dbg !2 {
   entry:
@@ -3457,7 +3426,7 @@ Explicit borrow moves
   $ schmu borrow_moves.smu --dump-llvm 2>&1 | grep -v !DI 
   ; ModuleID = 'context'
   source_filename = "context"
-  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %rr.tp.a.ll = type { %tp.a.ll }
   %tp.a.ll = type { ptr, i64 }
@@ -3484,18 +3453,17 @@ Explicit borrow moves
     %1 = getelementptr i8, ptr %0, i64 16
     store i64 0, ptr %1, align 8
     %2 = alloca %rr.tp.a.ll, align 8
-    %3 = load ptr, ptr %arr, align 8
-    store ptr %3, ptr %2, align 8
+    store ptr %0, ptr %2, align 8
     %"1" = getelementptr inbounds %tp.a.ll, ptr %2, i32 0, i32 1
     store i64 0, ptr %"1", align 8
-    %4 = alloca %rr.a.l, align 8
-    store ptr %3, ptr %4, align 8
-    %5 = ptrtoint ptr %3 to i64
-    %6 = tail call i64 @__schmu_mm_rr.a.l(i64 %5), !dbg !7
+    %3 = alloca %rr.a.l, align 8
+    store ptr %0, ptr %3, align 8
+    %4 = ptrtoint ptr %0 to i64
+    %5 = tail call i64 @__schmu_mm_rr.a.l(i64 %4), !dbg !7
     %t = alloca %option.t.a.l, align 8
     store i32 1, ptr %t, align 4
     %data = getelementptr inbounds %option.t.a.l, ptr %t, i32 0, i32 1
-    store ptr %3, ptr %data, align 8
+    store ptr %0, ptr %data, align 8
     call void @__free_a.l(ptr %arr)
     ret i64 0
   }
@@ -3505,7 +3473,7 @@ Explicit borrow moves
   define linkonce_odr void @__free_a.l(ptr %0) {
   entry:
     %1 = load ptr, ptr %0, align 8
-    call void @free(ptr %1)
+    tail call void @free(ptr %1)
     ret void
   }
   
