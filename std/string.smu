@@ -99,7 +99,7 @@ external memcpy : fun (raw_ptr[u8], raw_ptr[u8], int) -> unit
 
 fun substr(str : t, start, end) {
   assert(start >= 0)
-  assert(end < len(str))
+  assert(end <= len(str))
 
   let size = end - start
   assert(size >= 0)
