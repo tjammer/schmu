@@ -16,6 +16,8 @@ depends: [
   "llvm" {= "19-static"}
   "sexplib0" {>= "v0.15.0"}
   "ppx_sexp_conv" {>= "v0.15.0"}
+  "ocaml-lsp-server" {with-dev-setup}
+  "ocamlformat" {= "0.26.2" & with-dev-setup}
   "odoc" {with-doc}
 ]
 build: [
