@@ -93,6 +93,11 @@ let closure_t =
   Llvm.struct_set_body t typ false;
   t
 
+let array_t =
+  (* data; length; capacity *)
+  let typ = [| ptr_t; int_t; int_t |] in
+  Llvm.struct_type context typ
+
 let generic_t = Llvm.named_struct_type context "generic"
 let global_t = Llvm.(struct_type context [| i32_t; ptr_t; ptr_t |])
 

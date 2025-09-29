@@ -18,23 +18,24 @@ module type S = sig
     bool ->
     llvar
 
+  val data_ptr : Llvm.llvalue -> Llvm.llvalue
+  val len_ptr : Llvm.llvalue -> Llvm.llvalue
+  val cap_ptr : Llvm.llvalue -> Llvm.llvalue
+  val item_type : typ -> typ
   val array_get : llvar list -> typ -> llvar
   val array_length : unsafe:bool -> llvar list -> llvar
-  val array_capacity : llvar list -> llvar
-  val array_realloc : llvar list -> llvar
+  val array_capacity : unsafe:bool -> llvar list -> llvar
 
   val unsafe_array_pop_back :
     param -> llvar list -> Monomorph_tree.alloca -> llvar
 
   val array_data : llvar list -> llvar
-
-  val unsafe_array_create :
-    param -> llvar list -> typ -> Monomorph_tree.alloca -> llvar
-
-  val item_type_head_size : typ -> typ * Llvm.lltype * int * int
+  val unsafe_array_create : param -> typ -> Monomorph_tree.alloca -> llvar
 
   val iter_array_children :
     llvar -> Llvm.llvalue -> typ -> (llvar -> unit) -> unit
 
   val iter_fixed_array_children : llvar -> int -> typ -> (llvar -> unit) -> unit
+
+  val create_stringlit : Llvm_types.param -> Llvm.llvalue -> int -> llvar
 end

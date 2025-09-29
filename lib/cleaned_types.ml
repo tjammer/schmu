@@ -98,15 +98,16 @@ let rec string_of_type = function
   | Trc (Weak, t) -> Printf.sprintf "(weak_rc %s)" (string_of_type t)
 
 let is_struct = function
-  | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ | Tfixed_array _ -> true
+  | Trecord _ | Tvariant _ | Tfun _ | Tpoly _ | Tfixed_array _ | Tarray _ ->
+      true
   | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Ti8 | Ti16 | Tu32
-  | Traw_ptr _ | Tarray _ | Trc _ ->
+  | Traw_ptr _ | Trc _ ->
       false
 
 let is_aggregate = function
-  | Trecord _ | Tvariant _ | Tfixed_array _ -> true
+  | Trecord _ | Tvariant _ | Tfixed_array _ | Tarray _ -> true
   | Tint | Tbool | Tunit | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Ti8 | Ti16 | Tu32
-  | Traw_ptr _ | Tfun _ | Tpoly _ | Tarray _ | Trc _ ->
+  | Traw_ptr _ | Tfun _ | Tpoly _ | Trc _ ->
       false
 
 let rec contains_allocation = function

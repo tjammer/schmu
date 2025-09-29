@@ -28,55 +28,41 @@ struct
         print_endline (show_typ t);
         failwith "Internal Error: No array in array"
 
-  let item_type_head_size typ =
-    (* Return pair lltyp, size of head *)
-    let item_typ = item_type typ in
-    let llitem_typ = get_lltype_def item_typ in
-    let item_sz, item_align = size_alignof_typ item_typ in
-
-    let mut = false in
-    let head_sz =
-      sizeof_typ
-        (Trecord
-           ([], Rec_not [| { ftyp = Tint; mut }; { ftyp = Tint; mut } |], None))
-    in
-    assert (Int.equal head_sz 16);
-    let head_sz = alignup ~size:head_sz ~upto:item_align in
-
-    (item_typ, llitem_typ, head_sz, item_sz)
-
-  let data_ptr ptr arrtyp =
-    let _, _, head_size, _ = item_type_head_size arrtyp in
-    Llvm.build_gep u8_t ptr [| ci head_size |] "" builder
+  let data_ptr arr = Llvm.build_struct_gep array_t arr 0 "data" builder
+  let len_ptr arr = Llvm.build_struct_gep array_t arr 1 "len" builder
+  let cap_ptr arr = Llvm.build_struct_gep array_t arr 2 "cap" builder
 
   let data_get ptr arrtyp index =
-    let item_typ, llitem_typ, _, _ = item_type_head_size arrtyp in
+    let item_typ = item_type arrtyp in
+    let llitem_typ = get_lltype_def item_typ in
     match item_typ with
     | Tunit -> dummy_fn_value.value
     | _ ->
-        let ptr = data_ptr ptr arrtyp in
+        let ptr = data_ptr ptr in
         let idx = match index with Iconst i -> ci i | Idyn i -> i in
         Llvm.build_gep llitem_typ ptr [| idx |] "" builder
 
   let gen_array_lit param exprs typ allocref =
     let vec_sz = List.length exprs in
 
-    let item_typ, item_lltyp, head_size, item_size = item_type_head_size typ in
-    let cap_sz = Int.max 1 vec_sz in
-    let cap = head_size + (cap_sz * item_size) in
+    let item_typ = item_type typ in
+    let item_lltyp = get_lltype_def item_typ in
+    let item_size, _ = size_alignof_typ item_typ in
 
     let lltyp = get_lltype_def typ in
-    let ptr = malloc ~size:(Llvm.const_int int_t cap) in
 
     let arr = get_prealloc !allocref param lltyp "arr" in
-    ignore (Llvm.build_store ptr arr builder);
 
     (* Initialize counts *)
-    let dst = Llvm.build_gep int_t ptr [| ci 0 |] "size" builder in
-    ignore (Llvm.build_store (ci vec_sz) dst builder);
-    let dst = Llvm.build_gep int_t ptr [| ci 1 |] "cap" builder in
-    ignore (Llvm.build_store (ci cap_sz) dst builder);
-    let ptr = data_ptr ptr typ in
+    Llvm.build_store (ci vec_sz) (len_ptr arr) builder |> ignore;
+    Llvm.build_store (ci vec_sz) (cap_ptr arr) builder |> ignore;
+
+    let ptr =
+      if vec_sz = 0 then Llvm.const_null ptr_t
+      else malloc ~size:(Llvm.const_int int_t (vec_sz * item_size))
+    in
+
+    Llvm.build_store ptr (data_ptr arr) builder |> ignore;
 
     (* Initialize *)
     (match item_typ with
@@ -157,7 +143,7 @@ struct
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
     let arr = bring_default_var arr in
-    let value = Llvm.build_gep int_t arr.value [| ci 0 |] "len" builder in
+    let value = len_ptr arr.value in
     let value, kind =
       if unsafe then (value, Ptr)
       else (Llvm.build_load int_t value "" builder, Imm)
@@ -165,35 +151,19 @@ struct
 
     { value; typ = Tint; lltyp = int_t; kind }
 
-  let array_capacity args =
+  let array_capacity ~unsafe args =
     let arr =
       match args with
       | [ arr ] -> arr
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
     let arr = bring_default_var arr in
-    let value = Llvm.build_gep int_t arr.value [| ci 1 |] "capacity" builder in
-    let value = Llvm.build_load int_t value "" builder in
-    { value; typ = Tint; lltyp = int_t; kind = Imm }
-
-  let array_realloc args =
-    let orig, new_cap =
-      match args with
-      | [ arr; value ] -> (arr, bring_default value)
-      | _ -> failwith "Internal Error: Arity mismatch in builtin"
+    let value = cap_ptr arr.value in
+    let value, kind =
+      if unsafe then (value, Ptr)
+      else (Llvm.build_load int_t value "" builder, Imm)
     in
-
-    let _, _, head_size, item_size = item_type_head_size orig.typ in
-    let itemscap = Llvm.build_mul new_cap (ci item_size) "" builder in
-    let size = Llvm.build_add itemscap (ci head_size) "" builder in
-
-    let ptr = realloc (bring_default orig) ~size in
-    ignore (Llvm.build_store ptr orig.value builder);
-
-    let new_dst = Llvm.build_gep int_t ptr [| ci 1 |] "newcap" builder in
-    ignore (Llvm.build_store new_cap new_dst builder);
-
-    { dummy_fn_value with lltyp = unit_t }
+    { value; typ = Tint; lltyp = int_t; kind }
 
   let unsafe_array_pop_back param args allocref =
     (* We assume there is at least one item, and don't actually check the size.
@@ -205,7 +175,7 @@ struct
     in
     let arr = bring_default_var arr in
 
-    let dst = Llvm.build_gep int_t arr.value [| ci 0 |] "size" builder in
+    let dst = len_ptr arr.value in
     let sz = Llvm.build_load int_t dst "size" builder in
 
     let index = Llvm.build_sub sz (ci 1) "" builder in
@@ -238,34 +208,23 @@ struct
     let v = { value = valueptr; typ; lltyp; kind = Imm } in
     v
 
-  let unsafe_array_create param args typ allocref =
-    let sz =
-      match args with
-      | [ sz ] -> bring_default sz
-      | _ -> failwith "Internal Error: Arity mismatch in builtin"
-    in
-
-    (* array initialization code is copied from [gen_array_lit] a bit *)
-    let _, _, head_size, item_size = item_type_head_size typ in
-    (* [sz] passed here could be anything. It's unsafe alright *)
-    let itemscap = Llvm.build_mul sz (ci item_size) "" builder in
-    let size = Llvm.build_add (ci head_size) itemscap "" builder in
-
+  let unsafe_array_create param typ allocref =
+    (* Returns an empty array struct.
+       The actual creation function must fill the data *)
+    (* TODO could this just be [array_t]? *)
     let lltyp = get_lltype_def typ in
-    let ptr =
-      malloc ~size |> fun ptr -> Llvm.build_bitcast ptr lltyp "" builder
-    in
 
     let arr = get_prealloc !allocref param lltyp "arr" in
-    ignore (Llvm.build_store ptr arr builder);
-
-    (* Initialize counts *)
-    let dst = Llvm.build_gep int_t ptr [| ci 0 |] "size" builder in
-    ignore (Llvm.build_store sz dst builder);
-    let dst = Llvm.build_gep int_t ptr [| ci 1 |] "cap" builder in
-    ignore (Llvm.build_store sz dst builder);
 
     { value = arr; typ; lltyp; kind = Ptr }
+
+  let create_stringlit p ptr len =
+    let alloc = alloca p array_t "strlitarr"in
+    Llvm.build_store ptr (data_ptr alloc) builder |> ignore;
+    Llvm.build_store (ci len) (len_ptr alloc) builder |> ignore;
+    (* Negative capacity to signal a borrow value *)
+    Llvm.build_store (ci (-1)) (cap_ptr alloc) builder |> ignore;
+    { value = alloc; typ = Tarray Tu8; lltyp = array_t; kind = Ptr }
 
   let gen_fixed_array_lit param exprs typ allocref const return =
     let lltyp = get_lltype_def typ in

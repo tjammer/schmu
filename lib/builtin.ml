@@ -16,9 +16,11 @@ type t =
   | Fixed_array_get
   | Fixed_array_length
   | Fixed_array_data
-  | Unsafe_array_realloc
+  | Unsafe_malloc
+  | Unsafe_realloc
   | Unsafe_array_create
   | Unsafe_array_length
+  | Unsafe_array_capacity
   | Unsafe_nullptr
   | Unsafe_funptr
   | Unsafe_clsptr
@@ -158,20 +160,23 @@ let tbl =
           ],
           traw_ptr (Qvar "0"),
           Simple ) );
-  Hashtbl.add tbl "__unsafe_array_realloc"
-    ( Unsafe_array_realloc,
+
+  Hashtbl.add tbl "__unsafe_malloc"
+    ( Unsafe_malloc,
+      Tfun ([ { pm with pt = tint } ], traw_ptr (Qvar "0"), Simple) );
+  Hashtbl.add tbl "__unsafe_realloc"
+    ( Unsafe_realloc,
       Tfun
-        ( [
-            { pm with pt = tarray (Qvar "0"); pattr = Dmut };
-            { pm with pt = tint };
-          ],
+        ( [ { pm with pt = traw_ptr (Qvar "0") }; { pm with pt = tint } ],
           tunit,
           Simple ) );
   Hashtbl.add tbl "__unsafe_array_create"
-    ( Unsafe_array_create,
-      Tfun ([ { pm with pt = tint } ], tarray (Qvar "0"), Simple) );
+    (Unsafe_array_create, Tfun ([], tarray (Qvar "0"), Simple));
   Hashtbl.add tbl "__unsafe_array_length"
     ( Unsafe_array_length,
+      Tfun ([ { pm with pt = tarray (Qvar "0") } ], tint, Simple) );
+  Hashtbl.add tbl "__unsafe_array_capacity"
+    ( Unsafe_array_capacity,
       Tfun ([ { pm with pt = tarray (Qvar "0") } ], tint, Simple) );
   Hashtbl.add tbl "__unsafe_nullptr"
     (Unsafe_nullptr, Tfun ([], traw_ptr tu8, Simple));

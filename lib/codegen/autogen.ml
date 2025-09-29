@@ -209,46 +209,41 @@ struct
     match dst.typ with
     | Tarray t ->
         let v = bring_default_var dst in
-        let sz = Llvm.build_gep int_t v.value [| ci 0 |] "sz" builder in
+        let sz = len_ptr v.value in
         let sz = Llvm.build_load int_t sz "size" builder in
 
-        let item_type, _, head_size, item_size = item_type_head_size dst.typ in
         let is_string = match t with Tu8 -> true | _ -> false in
-        (* It's a string, so we add a null terminator for C usage *)
-        let cap_size = if is_string then head_size + 1 else head_size in
 
-        let itemscap =
-          (* Don't multiply by 1 *)
-          if item_size <> 1 then Llvm.build_mul sz (ci item_size) "" builder
+        let malloced_size =
+          (* We can just take the old size. Only need to add the null terminator *)
+          if is_string then
+            (* It's a string, so we add a null terminator for C usage *)
+            Llvm.build_add sz (ci 1) "" builder
           else sz
         in
-        (* Really capacity, not size *)
-        let size = Llvm.build_add itemscap (ci cap_size) "" builder in
 
         let lltyp = get_lltype_def dst.typ in
-        let ptr = malloc ~size in
+        let ptr = malloc ~size:malloced_size in
 
         (* Don't write to null terminator *)
-        let size =
-          if is_string then Llvm.build_sub size (ci 1) "" builder else size
-        in
         ignore
           (* Ptr is needed here to get a copy *)
-          (let src = { value = v.value; typ = dst.typ; kind = Ptr; lltyp } in
-           memcpy ~src ~dst:ptr ~size);
+          (let src_value = data_ptr v.value in
+           let src = { value = src_value; typ = dst.typ; kind = Ptr; lltyp } in
+           (* Copy for length of original size *)
+           memcpy ~src ~dst:ptr ~size:sz);
 
         (* Set new capacity since we only malloced [size] *)
-        let cap = Llvm.build_gep int_t ptr [| ci 1 |] "newcap" builder in
+        let cap = cap_ptr v.value in
         Llvm.build_store sz cap builder |> ignore;
 
         (if is_string then
            (* Set null terminator *)
-           let last = Llvm.build_gep u8_t ptr [| size |] "" builder in
+           let last = Llvm.build_gep u8_t ptr [| sz |] "" builder in
            Llvm.(build_store (const_int u8_t 0) last) builder |> ignore);
         (* set orig pointer to new ptr *)
         ignore (Llvm.build_store ptr dst.value builder);
 
-        assert (item_type = t);
         if contains_allocation t then iter_array_children v sz t copy_inner_call
     | Trc _ ->
         let v = bring_default_var dst in
@@ -497,7 +492,7 @@ struct
     | Tarray t ->
         let v = bring_default_var v in
         (if contains_allocation t then
-           let sz = Llvm.build_gep int_t v.value [| ci 0 |] "sz" builder in
+           let sz = len_ptr v.value in
            let sz = Llvm.build_load int_t sz "size" builder in
 
            iter_array_children v sz t free_call_only);

@@ -146,7 +146,7 @@ end = struct
     in
 
     match typed_expr.expr with
-    | Mconst (String s) -> gen_string_lit s typed_expr.typ
+    | Mconst (String s) -> gen_string_lit param s
     | Mconst (Array (arr, allocref, id)) ->
         let v = gen_array_lit param arr typed_expr.typ allocref in
         Hashtbl.replace free_tbl id v;
@@ -758,6 +758,38 @@ end = struct
     | Unsafe_addr ->
         let value = List.hd args in
         { value with kind = Imm; typ = Traw_ptr value.typ; lltyp = ptr_t }
+    | Unsafe_malloc ->
+        let value = List.hd args |> bring_default in
+        let payload_size =
+          match fnc.ret with
+          | Traw_ptr t -> sizeof_typ t
+          | _ -> failwith "Internal Error: Not a ptr"
+        in
+        let size =
+          Llvm.build_mul value
+            (Llvm.const_int int_t payload_size)
+            "size" builder
+        in
+        let value = malloc ~size in
+        { value; kind = Imm; typ = fnc.ret; lltyp = ptr_t }
+    | Unsafe_realloc -> (
+        match args with
+        | [ ptr; size ] ->
+            let payload_size =
+              match ptr.typ with
+              | Traw_ptr t -> sizeof_typ t
+              | t ->
+                  print_endline (show_typ t);
+                  failwith "Internal Error: Not a ptr realloc"
+            in
+            let size =
+              Llvm.build_mul size.value
+                (Llvm.const_int int_t payload_size)
+                "size" builder
+            in
+            realloc ptr.value ~size |> ignore;
+            { dummy_fn_value with lltyp = unit_t }
+        | _ -> failwith "Internal Error: Arity mismatch in builtin")
     | Mod -> (
         match args with
         | [ value; md ] ->
@@ -772,7 +804,8 @@ end = struct
     | Unsafe_array_length -> array_length ~unsafe:true args
     | Unsafe_array_pop_back -> unsafe_array_pop_back param args allocref
     | Array_data -> array_data args
-    | Array_capacity -> array_capacity args
+    | Array_capacity -> array_capacity ~unsafe:false args
+    | Unsafe_array_capacity -> array_capacity ~unsafe:true args
     | Fixed_array_get -> (
         match args with
         | [ arr; idx ] -> (
@@ -812,8 +845,7 @@ end = struct
             | (Const | Imm), _ ->
                 failwith "Internal Error: Taking address of immediate")
         | _ -> failwith "Internal Error: Arity mismatch in builtin")
-    | Unsafe_array_realloc -> array_realloc args
-    | Unsafe_array_create -> unsafe_array_create param args fnc.ret allocref
+    | Unsafe_array_create -> unsafe_array_create param fnc.ret allocref
     | Unsafe_nullptr ->
         let value = Llvm.const_null ptr_t in
         { value; typ = Traw_ptr Tunit; lltyp = ptr_t; kind = Const }
@@ -873,7 +905,8 @@ end = struct
         let md = di_loc param tyexpr.loc in
         let loc = fst tyexpr.loc in
         ignore
-          (assert_fail ~text ~file:loc.pos_fname ~line:loc.pos_lnum ~func md);
+          (assert_fail param ~text ~file:loc.pos_fname ~line:loc.pos_lnum ~func
+             md);
 
         Llvm.position_at_end success_bb builder;
 
@@ -1252,10 +1285,7 @@ end = struct
     ignore (gen_expr param expr);
     gen_expr param cont
 
-  and gen_string_lit s typ =
-    let lltyp = get_lltype_def typ in
-    let ptr = get_const_string s in
-    { value = ptr; typ; lltyp; kind = Const }
+  and gen_string_lit p s = get_const_string p s
 
   and gen_ctor param (variant, tag, expr) typ allocref ms =
     let lltyp = get_struct typ in
