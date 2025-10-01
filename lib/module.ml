@@ -254,6 +254,14 @@ end
 module Regen = Map_module.Make (Regeneralize)
 
 let add_ext_item ~mname t n c =
+  let linkage =
+    match n.call with
+    | Some (_, Some _path, _) ->
+        (* If a path exists, it's a schmu function with schmu linkage *)
+        `Schmu
+    | _ -> `C
+  in
+
   ext_funcs :=
     Env.
       {
@@ -262,7 +270,7 @@ let add_ext_item ~mname t n c =
         ext_cname = n.call;
         used = ref false;
         closure = c;
-        imported = Some (mname, `C);
+        imported = Some (mname, linkage);
       }
     :: !ext_funcs
 
