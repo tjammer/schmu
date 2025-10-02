@@ -228,7 +228,8 @@ struct
         (* Don't write to null terminator *)
         ignore
           (* Ptr is needed here to get a copy *)
-          (let src_value = data_ptr v.value in
+          (let src_value_ptr = data_ptr v.value in
+           let src_value = Llvm.build_load ptr_t src_value_ptr "" builder in
            let src = { value = src_value; typ = dst.typ; kind = Ptr; lltyp } in
            (* Copy for length of original size *)
            memcpy ~src ~dst:ptr ~size:sz);
