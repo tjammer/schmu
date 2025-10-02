@@ -497,7 +497,8 @@ struct
 
            iter_array_children v sz t free_call_only);
 
-        free_var v.value |> ignore
+        let ptr = Llvm.build_load ptr_t (Arr.data_ptr v.value) "" builder in
+        free_var ptr |> ignore
     | Trc (Strong, item_typ) -> free_rc v (Some item_typ)
     | Trc (Weak, _) -> free_weak_rc v
     | Trecord (_, Rec_folded, _) -> failwith "unreachable"

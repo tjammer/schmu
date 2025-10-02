@@ -40,10 +40,7 @@ functor make (m : key) {
 
   fun create(size) {
     let size = power_2_above(16, size)
-    let mut data = __unsafe_array_create(size)
-    prelude/iter_range(0, size, fun i {
-      __unsafe_ptr_set(mut array/data(data), i, mov None)
-    })
+    let data = array/init(size, mov None)
     {data, nitems = 0}
   }
 
@@ -109,10 +106,7 @@ functor make (m : key) {
 
   fun rec grow(mut tbl) {
     let size = 2 * array/length(tbl.data)
-    let mut data = __unsafe_array_create(size)
-    prelude/iter_range(0, size, fun i {
-      __unsafe_ptr_set(mut array/data(data), i, mov None)
-    })
+    let data = array/init(size, mov None)
     let mut old_data = mov tbl.data
     mut tbl.data = data
     mut tbl.nitems = 0

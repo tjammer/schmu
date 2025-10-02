@@ -32,15 +32,21 @@ struct
   let len_ptr arr = Llvm.build_struct_gep array_t arr 1 "len" builder
   let cap_ptr arr = Llvm.build_struct_gep array_t arr 2 "cap" builder
 
-  let data_get ptr arrtyp index =
-    let item_typ = item_type arrtyp in
+  let data_get value index =
+    let item_typ = item_type value.typ in
     let llitem_typ = get_lltype_def item_typ in
     match item_typ with
     | Tunit -> dummy_fn_value.value
-    | _ ->
-        let ptr = data_ptr ptr in
-        let idx = match index with Iconst i -> ci i | Idyn i -> i in
-        Llvm.build_gep llitem_typ ptr [| idx |] "" builder
+    | _ -> (
+        match (value.kind, index) with
+        | Const, Iconst i ->
+            let ptr = Llvm.(const_extractelement value.value (ci 0)) in
+            Llvm.const_gep llitem_typ ptr [| ci i |]
+        | _ ->
+            let idx = match index with Iconst i -> ci i | Idyn i -> i in
+            let ptr = data_ptr value.value in
+            let ptr = Llvm.build_load ptr_t ptr "" builder in
+            Llvm.build_gep llitem_typ ptr [| idx |] "" builder)
 
   let gen_array_lit param exprs typ allocref =
     let vec_sz = List.length exprs in
@@ -111,7 +117,7 @@ struct
 
     Llvm.position_at_end child_bb builder;
     (* The ptr has the correct type, no need to multiply size *)
-    let value = data_get arr.value arr.typ (Idyn cnt_loaded) in
+    let value = data_get arr (Idyn cnt_loaded) in
     let lltyp = get_lltype_def typ in
     let temp = { value; typ; lltyp; kind = Ptr } in
     f temp;
@@ -133,7 +139,7 @@ struct
     let arr = bring_default_var arr in
 
     let lltyp = get_lltype_def typ in
-    let value = data_get arr.value arr.typ (Idyn index) in
+    let value = data_get arr (Idyn index) in
     { value; typ; lltyp; kind = Ptr }
 
   let array_length ~unsafe args =
@@ -181,7 +187,7 @@ struct
     let index = Llvm.build_sub sz (ci 1) "" builder in
     ignore (Llvm.build_store index dst builder);
 
-    let ptr = data_get arr.value arr.typ (Idyn index) in
+    let ptr = data_get arr (Idyn index) in
 
     let item_typ = item_type arr.typ in
     let llitem_typ = get_lltype_def item_typ in
@@ -201,8 +207,8 @@ struct
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
 
+    let valueptr = data_get arr (Iconst 0) in
     let itemtyp = item_type arr.typ in
-    let valueptr = data_get arr.value arr.typ (Iconst 0) in
     let typ = Traw_ptr itemtyp in
     let lltyp = get_lltype_def typ in
     let v = { value = valueptr; typ; lltyp; kind = Imm } in
@@ -211,20 +217,9 @@ struct
   let unsafe_array_create param typ allocref =
     (* Returns an empty array struct.
        The actual creation function must fill the data *)
-    (* TODO could this just be [array_t]? *)
-    let lltyp = get_lltype_def typ in
+    let arr = get_prealloc !allocref param array_t "arr" in
 
-    let arr = get_prealloc !allocref param lltyp "arr" in
-
-    { value = arr; typ; lltyp; kind = Ptr }
-
-  let create_stringlit p ptr len =
-    let alloc = alloca p array_t "strlitarr"in
-    Llvm.build_store ptr (data_ptr alloc) builder |> ignore;
-    Llvm.build_store (ci len) (len_ptr alloc) builder |> ignore;
-    (* Negative capacity to signal a borrow value *)
-    Llvm.build_store (ci (-1)) (cap_ptr alloc) builder |> ignore;
-    { value = alloc; typ = Tarray Tu8; lltyp = array_t; kind = Ptr }
+    { value = arr; typ; lltyp = array_t; kind = Ptr }
 
   let gen_fixed_array_lit param exprs typ allocref const return =
     let lltyp = get_lltype_def typ in

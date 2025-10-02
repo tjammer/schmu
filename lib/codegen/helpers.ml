@@ -200,31 +200,23 @@ struct
       match Strtbl.find_opt string_tbl s with
       | Some ptr -> ptr
       | None ->
-          let u8 i = Llvm.const_int u8_t i in
-          let thing =
-            String.to_seq s |> Seq.map Char.code |> fun sq ->
-            Seq.append sq (Seq.return 0)
-            |> Seq.map u8 |> Array.of_seq
-            |> Llvm.const_array (Llvm.array_type u8_t (String.length s + 1))
-          in
-          let arr =
-            List.to_seq [ String.length s; Int.max 1 (String.length s) ]
-            |> Seq.map (Llvm.const_int int_t)
-            |> (fun s -> Seq.append s (Seq.return thing))
-            |> Array.of_seq
-          in
+          let content = Llvm.const_stringz context s in
 
-          let content = Llvm.const_struct context arr in
-          let value = Llvm.define_global "" content the_module in
-          Llvm.set_global_constant true value;
-          Llvm.set_linkage Llvm.Linkage.Private value;
-          Llvm.set_unnamed_addr true value;
-          let ptr = Llvm.const_bitcast value ptr_t in
+          let ptr = Llvm.define_global "" content the_module in
+          Llvm.set_global_constant true ptr;
+          Llvm.set_linkage Llvm.Linkage.Private ptr;
+          Llvm.set_unnamed_addr true ptr;
 
           Strtbl.add string_tbl s ptr;
           ptr
     in
-    Arr.create_stringlit p ptr (String.length s)
+    let ci = Llvm.const_int int_t in
+    (* Negative capacity to signal a borrow value *)
+    let value =
+      Llvm.const_struct context [| ptr; ci (String.length s); ci (-1) |]
+    in
+    ignore p;
+    { value; typ = Tarray Tu8; lltyp = array_t; kind = Const }
 
   (* use [__assert_fail] from libc *)
   let assert_fail p ~text ~file ~line ~func md =

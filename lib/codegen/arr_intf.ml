@@ -36,6 +36,4 @@ module type S = sig
     llvar -> Llvm.llvalue -> typ -> (llvar -> unit) -> unit
 
   val iter_fixed_array_children : llvar -> int -> typ -> (llvar -> unit) -> unit
-
-  val create_stringlit : Llvm_types.param -> Llvm.llvalue -> int -> llvar
 end

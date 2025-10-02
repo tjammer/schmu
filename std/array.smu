@@ -2,29 +2,47 @@ import iter
 import option
 import prelude
 
+-- TODO write signature
+
 let data = __array_data
 let length = __array_length
 
 use prelude
 
 fun create(len) {
-  let mut ret = __unsafe_array_create(len)
-  mut __unsafe_array_length(ret) = 0
-  ret
+  let mut arr = __unsafe_array_create()
+  mut __unsafe_array_length(arr) = 0
+  if len > 0 {
+    mut data(arr) = __unsafe_malloc(len)
+    mut __unsafe_array_capacity(arr) = len
+  }
+  else {
+    mut data(arr) = __unsafe_ptr_reinterpret(__unsafe_nullptr())
+    mut __unsafe_array_capacity(arr) = 0
+  }
+  arr
 }
 
 fun init(len, mov value) {
-  let mut ret = __unsafe_array_create(len)
-  mut __unsafe_array_length(ret) = len
+  let mut arr = __unsafe_array_create()
+  mut __unsafe_array_length(arr) = len
+  if len > 0 {
+    mut data(arr) = __unsafe_malloc(len)
+    mut __unsafe_array_capacity(arr) = len
+  }
+  else {
+    mut data(arr) = __unsafe_ptr_reinterpret(__unsafe_nullptr())
+    mut __unsafe_array_capacity(arr) = 0
+  }
   fun rec inner(i) {
     if i == len { () }
     else {
-      mut ret.[i] = copy(value)
+      mut arr.[i] = copy(value)
       inner(i + 1)
     }
   }
   inner(0)
-  ret
+  arr
 }
 
 fun push(mut arr, mov value) {
@@ -33,9 +51,14 @@ fun push(mut arr, mov value) {
 
   if capacity == length {
     if capacity == 0 {
-      __unsafe_array_realloc(mut arr, 4)
+      assert(is_nullptr(data(arr)))
+      mut data(arr) = __unsafe_malloc(4)
+      mut __unsafe_array_capacity(arr) = 4
     } else {
-      __unsafe_array_realloc(mut arr, 2 * capacity)
+      assert(is_nullptr(data(arr)) |> not)
+      let cap = power_2_above(capacity, capacity + 1)
+      __unsafe_realloc(data(arr), cap)
+      mut __unsafe_array_capacity(arr) = cap
     }
   }
 
@@ -114,12 +137,17 @@ fun clear(mut arr) {
 }
 
 fun reserve(mut arr, size) {
-  fun rec aux(newcap) {
-    if newcap < size { aux(2 * newcap) }
-    else { __unsafe_array_realloc(mut arr, newcap) }
-  }
   let cap = __array_capacity(arr)
-  if cap < size { aux(cap * 2) }
+  if cap < size {
+    let newcap = power_2_above(cap, size)
+    if is_nullptr(data(arr)) {
+      mut data(arr) = __unsafe_malloc(newcap)
+    }
+    else {
+      __unsafe_realloc(data(arr), newcap)
+    }
+    mut __unsafe_array_capacity(arr) = newcap
+  }
 }
 
 fun reverse(mut arr) {
