@@ -229,7 +229,7 @@ struct
 
     let d txt =
       let value = get_const_string p txt in
-      (Arr.array_data [ value ]).value
+      Arr.array_data [ value ] |> bring_default
     in
     let args = [| d text; d file; Llvm.const_int i32_t line; d func |] in
     let ft, decl = Lazy.force assert_fail in
