@@ -168,7 +168,7 @@ let tbl =
     ( Unsafe_realloc,
       Tfun
         ( [ { pm with pt = traw_ptr (Qvar "0") }; { pm with pt = tint } ],
-          tunit,
+          traw_ptr (Qvar "0"),
           Simple ) );
   Hashtbl.add tbl "__unsafe_array_create"
     (Unsafe_array_create, Tfun ([], tarray (Qvar "0"), Simple));
@@ -179,6 +179,7 @@ let tbl =
     ( Unsafe_array_capacity,
       Tfun ([ { pm with pt = tarray (Qvar "0") } ], tint, Simple) );
   Hashtbl.add tbl "__unsafe_nullptr"
+    (* TODO make this qvar *)
     (Unsafe_nullptr, Tfun ([], traw_ptr tu8, Simple));
   Hashtbl.add tbl "__unsafe_funptr"
     (Unsafe_funptr, Tfun ([ { pm with pt = Qvar "0" } ], traw_ptr tunit, Simple));

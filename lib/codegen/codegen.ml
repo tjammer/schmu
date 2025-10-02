@@ -787,8 +787,8 @@ end = struct
                 (Llvm.const_int int_t payload_size)
                 "size" builder
             in
-            realloc ptr.value ~size |> ignore;
-            { dummy_fn_value with lltyp = unit_t }
+            let value = realloc (bring_default ptr) ~size in
+            { value; typ = ptr.typ; lltyp = ptr_t; kind = Imm }
         | _ -> failwith "Internal Error: Arity mismatch in builtin")
     | Mod -> (
         match args with
