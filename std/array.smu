@@ -37,7 +37,8 @@ fun init(len, mov value) {
   fun rec inner(i) {
     if i == len { () }
     else {
-      mut arr.[i] = copy(value)
+      -- a normal mutation would free an uninitialized value
+      __unsafe_ptr_set(mut data(arr), i, copy(value))
       inner(i + 1)
     }
   }
