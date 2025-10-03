@@ -212,6 +212,27 @@ struct
         let sz = len_ptr v.value in
         let sz = Llvm.build_load int_t sz "size" builder in
 
+        (* If the size is zero, we create an empty array *)
+        let start_bb = Llvm.insertion_block builder in
+        let parent = Llvm.block_parent start_bb in
+
+        let zero_bb = Llvm.append_block context "zero" parent in
+        let cont_bb = Llvm.append_block context "cont" parent in
+        let nonempty_bb = Llvm.append_block context "nonempty" parent in
+
+        let cond = Llvm.(build_icmp Icmp.Eq sz (ci 0)) "" builder in
+        let _ = Llvm.build_cond_br cond zero_bb nonempty_bb builder in
+
+        Llvm.position_at_end zero_bb builder;
+        (* Set capacity to zero and ptr to nullptr, just to be safe *)
+        let cap = cap_ptr v.value in
+        Llvm.build_store (ci 0) cap builder |> ignore;
+        let ptr = data_ptr v.value in
+        Llvm.build_store (Llvm.const_pointer_null ptr_t) ptr builder |> ignore;
+        Llvm.build_br cont_bb builder |> ignore;
+
+        Llvm.position_at_end nonempty_bb builder;
+
         let is_string = match t with Tu8 -> true | _ -> false in
 
         let malloced_size =
@@ -246,7 +267,10 @@ struct
         (* set orig pointer to new ptr *)
         ignore (Llvm.build_store ptr dst.value builder);
 
-        if contains_allocation t then iter_array_children v sz t copy_inner_call
+        if contains_allocation t then iter_array_children v sz t copy_inner_call;
+        Llvm.build_br cont_bb builder |> ignore;
+
+        Llvm.position_at_end cont_bb builder
     | Trc _ ->
         let v = bring_default_var dst in
 
