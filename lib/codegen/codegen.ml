@@ -777,6 +777,9 @@ end = struct
         | [ ptr; size ] ->
             let payload_size =
               match ptr.typ with
+              | Traw_ptr Tunit ->
+                  (* Even for Tunit, don't realloc(0) *)
+                  1
               | Traw_ptr t -> sizeof_typ t
               | t ->
                   print_endline (show_typ t);
