@@ -222,8 +222,13 @@ struct
           else sz
         in
 
+        let item_size = sizeof_typ t in
+        let malloced_bytes =
+          Llvm.build_mul malloced_size (ci item_size) "" builder
+        in
+
         let lltyp = get_lltype_def dst.typ in
-        let ptr = malloc ~size:malloced_size in
+        let ptr = malloc ~size:malloced_bytes in
 
         (* Don't write to null terminator *)
         ignore
@@ -231,17 +236,13 @@ struct
           (let src_value_ptr = data_ptr v.value in
            let src_value = Llvm.build_load ptr_t src_value_ptr "" builder in
            let src = { value = src_value; typ = dst.typ; kind = Ptr; lltyp } in
-           (* Copy for length of original size *)
-           memcpy ~src ~dst:ptr ~size:sz);
+           (* Copy for malloced size, including null terminator *)
+           memcpy ~src ~dst:ptr ~size:malloced_bytes);
 
         (* Set new capacity since we only malloced [size] *)
         let cap = cap_ptr v.value in
         Llvm.build_store sz cap builder |> ignore;
 
-        (if is_string then
-           (* Set null terminator *)
-           let last = Llvm.build_gep u8_t ptr [| sz |] "" builder in
-           Llvm.(build_store (const_int u8_t 0) last) builder |> ignore);
         (* set orig pointer to new ptr *)
         ignore (Llvm.build_store ptr dst.value builder);
 
