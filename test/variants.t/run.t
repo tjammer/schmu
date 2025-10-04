@@ -25,9 +25,9 @@ Basic variant ctors
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %clike = type { i32 }
-  %option.t.a.c = type { i32, ptr }
+  %option.t.a.c = type { i32, { ptr, i64, i64 } }
   
-  @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"hello\00" }
+  @0 = private unnamed_addr constant [6 x i8] c"hello\00"
   
   define i32 @schmu_wrap_clike() !dbg !2 {
   entry:
@@ -37,36 +37,42 @@ Basic variant ctors
     ret i32 %unbox
   }
   
-  define { i32, i64 } @schmu_wrap_option() !dbg !6 {
+  define void @schmu_wrap_option(ptr noalias %0) !dbg !6 {
   entry:
-    %t = alloca %option.t.a.c, align 8
-    store i32 1, ptr %t, align 4
-    %data = getelementptr inbounds %option.t.a.c, ptr %t, i32 0, i32 1
-    %0 = alloca ptr, align 8
-    store ptr @0, ptr %0, align 8
-    %1 = alloca ptr, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %0, i64 8, i1 false)
-    call void @__copy_a.c(ptr %1)
-    %2 = load ptr, ptr %1, align 8
-    store ptr %2, ptr %data, align 8
-    %unbox = load { i32, i64 }, ptr %t, align 8
-    ret { i32, i64 } %unbox
+    store i32 1, ptr %0, align 4
+    %data = getelementptr inbounds %option.t.a.c, ptr %0, i32 0, i32 1
+    %1 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 5, i64 -1 }, ptr %1, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %data, ptr align 8 %1, i64 24, i1 false)
+    tail call void @__copy_a.c(ptr %data)
+    ret void
   }
   
   define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
-    %2 = add i64 %size, 17
-    %3 = tail call ptr @malloc(i64 %2)
-    %4 = sub i64 %2, 1
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
-    %newcap = getelementptr i64, ptr %3, i64 1
-    store i64 %size, ptr %newcap, align 8
-    %5 = getelementptr i8, ptr %3, i64 %4
-    store i8 0, ptr %5, align 1
-    store ptr %3, ptr %0, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
+    %1 = icmp eq i64 %size, 0
+    br i1 %1, label %zero, label %nonempty
+  
+  zero:                                             ; preds = %entry
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 0, ptr %cap, align 8
+    store ptr null, ptr %0, align 8
+    br label %cont
+  
+  cont:                                             ; preds = %nonempty, %zero
     ret void
+  
+  nonempty:                                         ; preds = %entry
+    %2 = add i64 %size, 1
+    %3 = tail call ptr @malloc(i64 %2)
+    %4 = load ptr, ptr %0, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %4, i64 %2, i1 false)
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 %size, ptr %cap2, align 8
+    store ptr %3, ptr %0, align 8
+    br label %cont
   }
   
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
@@ -102,7 +108,7 @@ Match option
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
   
-  @fmt_int_digits = external global ptr
+  @fmt_int_digits = external global { ptr, i64, i64 }
   @fmt_newline = internal constant [1 x i8] c"\0A"
   @schmu_none_int = constant %option.t.l { i32 0, i64 undef }
   
@@ -284,12 +290,11 @@ Match option
     %div = sdiv i64 %4, %base2
     %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
     %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
-    %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
-    %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !32
-    store i8 %6, ptr %scevgep10, align 1
+    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !32
+    store i8 %5, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !33
   
@@ -301,7 +306,7 @@ Match option
   
   else:                                             ; preds = %rec
     %lt = icmp slt i64 %4, 0
-    %7 = add i64 %lsr.iv, -1, !dbg !34
+    %6 = add i64 %lsr.iv, -1, !dbg !34
     br i1 %lt, label %then4, label %ifcont, !dbg !34
   
   then4:                                            ; preds = %else
@@ -310,7 +315,7 @@ Match option
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
-    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %7, %else ]
+    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %6, %else ]
     ret i64 %iftmp
   }
   
@@ -523,7 +528,7 @@ Nested pattern matching
   %option.t.test = type { i32, %test }
   %test = type { i32, double }
   
-  @fmt_int_digits = external global ptr
+  @fmt_int_digits = external global { ptr, i64, i64 }
   @fmt_newline = internal constant [1 x i8] c"\0A"
   
   declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
@@ -687,12 +692,11 @@ Nested pattern matching
     %div = sdiv i64 %4, %base2
     %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
     %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
-    %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
-    %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
-    store i8 %6, ptr %scevgep10, align 1
+    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !29
+    store i8 %5, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !30
   
@@ -704,7 +708,7 @@ Nested pattern matching
   
   else:                                             ; preds = %rec
     %lt = icmp slt i64 %4, 0
-    %7 = add i64 %lsr.iv, -1, !dbg !31
+    %6 = add i64 %lsr.iv, -1, !dbg !31
     br i1 %lt, label %then4, label %ifcont, !dbg !31
   
   then4:                                            ; preds = %else
@@ -713,7 +717,7 @@ Nested pattern matching
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
-    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %7, %else ]
+    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %6, %else ]
     ret i64 %iftmp
   }
   
@@ -852,7 +856,7 @@ Match multiple columns
   %closure = type { ptr, ptr }
   %tp.option.t.loption.t.l = type { %option.t.l, %option.t.l }
   
-  @fmt_int_digits = external global ptr
+  @fmt_int_digits = external global { ptr, i64, i64 }
   @fmt_newline = internal constant [1 x i8] c"\0A"
   @schmu_none_int = constant %option.t.l { i32 0, i64 undef }
   
@@ -1017,12 +1021,11 @@ Match multiple columns
     %div = sdiv i64 %4, %base2
     %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
     %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
-    %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
-    %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !29
-    store i8 %6, ptr %scevgep10, align 1
+    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !29
+    store i8 %5, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !30
   
@@ -1034,7 +1037,7 @@ Match multiple columns
   
   else:                                             ; preds = %rec
     %lt = icmp slt i64 %4, 0
-    %7 = add i64 %lsr.iv, -1, !dbg !31
+    %6 = add i64 %lsr.iv, -1, !dbg !31
     br i1 %lt, label %then4, label %ifcont, !dbg !31
   
   then4:                                            ; preds = %else
@@ -1043,7 +1046,7 @@ Match multiple columns
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
-    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %7, %else ]
+    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %6, %else ]
     ret i64 %iftmp
   }
   
@@ -1229,8 +1232,8 @@ Const ctors
   %tp.lllll = type { i64, i64, i64, i64, i64 }
   
   @schmu_var = constant %var { i32 0, { double, [40 x i8] } { double 1.000000e+01, [40 x i8] undef } }
-  @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"float\00" }
-  @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
+  @0 = private unnamed_addr constant [6 x i8] c"float\00"
+  @1 = private unnamed_addr constant [6 x i8] c"thing\00"
   
   declare void @string_println(ptr %0)
   
@@ -1242,19 +1245,28 @@ Const ctors
   
   then:                                             ; preds = %entry
     %data = getelementptr inbounds %var, ptr %var, i32 0, i32 1
-    tail call void @string_println(ptr @0), !dbg !7
-    ret void
+    %boxconst = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 5, i64 -1 }, ptr %boxconst, align 8
+    call void @string_println(ptr %boxconst), !dbg !7
+    br label %ifcont
   
   else:                                             ; preds = %entry
     %data1 = getelementptr inbounds %var, ptr %var, i32 0, i32 1
-    tail call void @string_println(ptr @1), !dbg !8
+    %boxconst2 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @1, i64 5, i64 -1 }, ptr %boxconst2, align 8
+    call void @string_println(ptr %boxconst2), !dbg !8
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
     ret void
   }
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
-    tail call void @string_println(ptr @0), !dbg !10
-    tail call void @schmu_dynamic(ptr @schmu_var), !dbg !11
+    %boxconst = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 5, i64 -1 }, ptr %boxconst, align 8
+    call void @string_println(ptr %boxconst), !dbg !10
+    call void @schmu_dynamic(ptr @schmu_var), !dbg !11
     ret i64 0
   }
   

@@ -2,7 +2,6 @@ import array
 import iter
 import option
 import prelude
-import unsafe
 
 module type key {
   type t

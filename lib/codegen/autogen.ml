@@ -243,7 +243,8 @@ struct
           else sz
         in
 
-        let item_size = sizeof_typ t in
+        (* Unit type *)
+        let item_size = max (sizeof_typ t) 1 in
         let malloced_bytes =
           Llvm.build_mul malloced_size (ci item_size) "" builder
         in

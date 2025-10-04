@@ -8,11 +8,11 @@ Copy string literal
   %closure = type { ptr, ptr }
   %tp.lfmt.formatter.t.u = type { i64, %fmt.formatter.t.u }
   
-  @fmt_int_digits = external global ptr
-  @fmt_stdout_missing_arg_msg = external global ptr
-  @fmt_stdout_too_many_arg_msg = external global ptr
+  @fmt_int_digits = external global { ptr, i64, i64 }
+  @fmt_stdout_missing_arg_msg = external global { ptr, i64, i64 }
+  @fmt_stdout_too_many_arg_msg = external global { ptr, i64, i64 }
   @fmt_newline = internal constant [1 x i8] c"\0A"
-  @0 = private unnamed_addr constant { i64, i64, [9 x i8] } { i64 8, i64 8, [9 x i8] c"test {}\0A\00" }
+  @0 = private unnamed_addr constant [9 x i8] c"test {}\0A\00"
   
   declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
   
@@ -141,9 +141,8 @@ Copy string literal
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
     call void @fmt_prerr(ptr %ret), !dbg !23
-    %1 = load ptr, ptr @fmt_stdout_missing_arg_msg, align 8
     %ret1 = alloca %fmt.formatter.t.u, align 8
-    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret1, ptr %ret, ptr %1), !dbg !24
+    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret1, ptr %ret, ptr @fmt_stdout_missing_arg_msg), !dbg !24
     call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret1), !dbg !25
     call void @abort()
     %failwith = alloca ptr, align 8
@@ -154,9 +153,8 @@ Copy string literal
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
     call void @fmt_prerr(ptr %ret), !dbg !27
-    %0 = load ptr, ptr @fmt_stdout_too_many_arg_msg, align 8
     %ret1 = alloca %fmt.formatter.t.u, align 8
-    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret1, ptr %ret, ptr %0), !dbg !28
+    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret1, ptr %ret, ptr @fmt_stdout_too_many_arg_msg), !dbg !28
     call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret1), !dbg !29
     call void @abort()
     ret void
@@ -256,12 +254,11 @@ Copy string literal
     %div = sdiv i64 %4, %base2
     %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
     %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
-    %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
-    %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !46
-    store i8 %6, ptr %scevgep10, align 1
+    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !46
+    store i8 %5, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !47
   
@@ -273,7 +270,7 @@ Copy string literal
   
   else:                                             ; preds = %rec
     %lt = icmp slt i64 %4, 0
-    %7 = add i64 %lsr.iv, -1, !dbg !48
+    %6 = add i64 %lsr.iv, -1, !dbg !48
     br i1 %lt, label %then4, label %ifcont, !dbg !48
   
   then4:                                            ; preds = %else
@@ -282,7 +279,7 @@ Copy string literal
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
-    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %7, %else ]
+    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %6, %else ]
     ret i64 %iftmp
   }
   
@@ -366,11 +363,13 @@ Copy string literal
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !49 {
   entry:
+    %boxconst = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 8, i64 -1 }, ptr %boxconst, align 8
     %clstmp = alloca %closure, align 8
     store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @__fmt_stdout_print1__ll(ptr @0, ptr %clstmp, i64 1), !dbg !51
+    call void @__fmt_stdout_print1__ll(ptr %boxconst, ptr %clstmp, i64 1), !dbg !51
     ret i64 0
   }
   
@@ -389,38 +388,34 @@ Copy array of strings
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
-  @schmu_a = global ptr null, align 8
-  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"test\00" }
-  @1 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"toast\00" }
+  @schmu_a = global { ptr, i64, i64 } zeroinitializer, align 8
+  @0 = private unnamed_addr constant [5 x i8] c"test\00"
+  @1 = private unnamed_addr constant [6 x i8] c"toast\00"
   
   declare void @string_println(ptr %0)
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
-    %0 = tail call ptr @malloc(i64 32)
+    store i64 2, ptr getelementptr inbounds ({ ptr, i64, i64 }, ptr @schmu_a, i32 0, i32 1), align 8
+    store i64 2, ptr getelementptr inbounds ({ ptr, i64, i64 }, ptr @schmu_a, i32 0, i32 2), align 8
+    %0 = tail call ptr @malloc(i64 48)
     store ptr %0, ptr @schmu_a, align 8
-    store i64 2, ptr %0, align 8
-    %cap = getelementptr i64, ptr %0, i64 1
-    store i64 2, ptr %cap, align 8
-    %1 = getelementptr i8, ptr %0, i64 16
-    %2 = alloca ptr, align 8
-    store ptr @0, ptr %2, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 8 %2, i64 8, i1 false)
-    tail call void @__copy_a.c(ptr %1)
-    %"1" = getelementptr ptr, ptr %1, i64 1
-    %3 = alloca ptr, align 8
-    store ptr @1, ptr %3, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %"1", ptr align 8 %3, i64 8, i1 false)
+    %1 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 4, i64 -1 }, ptr %1, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 24, i1 false)
+    tail call void @__copy_a.c(ptr %0)
+    %"1" = getelementptr { ptr, i64, i64 }, ptr %0, i64 1
+    %2 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @1, i64 5, i64 -1 }, ptr %2, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %"1", ptr align 8 %2, i64 24, i1 false)
     tail call void @__copy_a.c(ptr %"1")
-    %4 = alloca ptr, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %4, ptr align 8 @schmu_a, i64 8, i1 false)
-    call void @__copy_a.a.c(ptr %4)
-    %5 = load ptr, ptr %4, align 8
-    %6 = getelementptr i8, ptr %5, i64 16
-    %7 = getelementptr ptr, ptr %6, i64 1
-    %8 = load ptr, ptr %7, align 8
-    call void @string_println(ptr %8), !dbg !6
-    call void @__free_a.a.c(ptr %4)
+    %3 = alloca { ptr, i64, i64 }, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %3, ptr align 8 @schmu_a, i64 24, i1 false)
+    call void @__copy_a.a.c(ptr %3)
+    %4 = load ptr, ptr %3, align 8
+    %5 = getelementptr { ptr, i64, i64 }, ptr %4, i64 1
+    call void @string_println(ptr %5), !dbg !6
+    call void @__free_a.a.c(ptr %3)
     call void @__free_a.a.c(ptr @schmu_a)
     ret i64 0
   }
@@ -429,18 +424,29 @@ Copy array of strings
   
   define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
-    %2 = add i64 %size, 17
-    %3 = tail call ptr @malloc(i64 %2)
-    %4 = sub i64 %2, 1
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
-    %newcap = getelementptr i64, ptr %3, i64 1
-    store i64 %size, ptr %newcap, align 8
-    %5 = getelementptr i8, ptr %3, i64 %4
-    store i8 0, ptr %5, align 1
-    store ptr %3, ptr %0, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
+    %1 = icmp eq i64 %size, 0
+    br i1 %1, label %zero, label %nonempty
+  
+  zero:                                             ; preds = %entry
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 0, ptr %cap, align 8
+    store ptr null, ptr %0, align 8
+    br label %cont
+  
+  cont:                                             ; preds = %nonempty, %zero
     ret void
+  
+  nonempty:                                         ; preds = %entry
+    %2 = add i64 %size, 1
+    %3 = tail call ptr @malloc(i64 %2)
+    %4 = load ptr, ptr %0, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %4, i64 %2, i1 false)
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 %size, ptr %cap2, align 8
+    store ptr %3, ptr %0, align 8
+    br label %cont
   }
   
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
@@ -448,35 +454,46 @@ Copy array of strings
   
   define linkonce_odr void @__copy_a.a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
-    %2 = mul i64 %size, 8
-    %3 = add i64 %2, 16
-    %4 = tail call ptr @malloc(i64 %3)
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
-    %newcap = getelementptr i64, ptr %4, i64 1
-    store i64 %size, ptr %newcap, align 8
-    store ptr %4, ptr %0, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
+    %1 = icmp eq i64 %size, 0
+    br i1 %1, label %zero, label %nonempty
+  
+  zero:                                             ; preds = %entry
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 0, ptr %cap, align 8
+    store ptr null, ptr %0, align 8
+    br label %cont
+  
+  cont:                                             ; preds = %rec, %zero
+    ret void
+  
+  nonempty:                                         ; preds = %entry
+    %2 = mul i64 %size, 24
+    %3 = tail call ptr @malloc(i64 %2)
+    %4 = load ptr, ptr %0, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %4, i64 %2, i1 false)
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 %size, ptr %cap2, align 8
+    store ptr %3, ptr %0, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
-    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
-  rec:                                              ; preds = %child, %entry
-    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
-    %5 = phi i64 [ %7, %child ], [ 0, %entry ]
+  rec:                                              ; preds = %child, %nonempty
+    %lsr.iv = phi i64 [ %lsr.iv.next, %child ], [ 0, %nonempty ]
+    %5 = phi i64 [ %8, %child ], [ 0, %nonempty ]
     %6 = icmp slt i64 %5, %size
     br i1 %6, label %child, label %cont
   
   child:                                            ; preds = %rec
-    tail call void @__copy_a.c(ptr %lsr.iv)
-    %7 = add i64 %5, 1
-    store i64 %7, ptr %cnt, align 8
-    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
+    %7 = load ptr, ptr %0, align 8
+    %scevgep = getelementptr i8, ptr %7, i64 %lsr.iv
+    tail call void @__copy_a.c(ptr %scevgep)
+    %8 = add i64 %5, 1
+    store i64 %8, ptr %cnt, align 8
+    %lsr.iv.next = add i64 %lsr.iv, 24
     br label %rec
-  
-  cont:                                             ; preds = %rec
-    ret void
   }
   
   define linkonce_odr void @__free_a.c(ptr %0) {
@@ -488,28 +505,30 @@ Copy array of strings
   
   define linkonce_odr void @__free_a.a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
-    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
-    %2 = phi i64 [ %4, %child ], [ 0, %entry ]
-    %3 = icmp slt i64 %2, %size
-    br i1 %3, label %child, label %cont
+    %lsr.iv = phi i64 [ %lsr.iv.next, %child ], [ 0, %entry ]
+    %1 = phi i64 [ %4, %child ], [ 0, %entry ]
+    %2 = icmp slt i64 %1, %size
+    br i1 %2, label %child, label %cont
   
   child:                                            ; preds = %rec
-    tail call void @__free_a.c(ptr %lsr.iv)
-    %4 = add i64 %2, 1
+    %3 = load ptr, ptr %0, align 8
+    %scevgep = getelementptr i8, ptr %3, i64 %lsr.iv
+    tail call void @__free_a.c(ptr %scevgep)
+    %4 = add i64 %1, 1
     store i64 %4, ptr %cnt, align 8
-    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
+    %lsr.iv.next = add i64 %lsr.iv, 24
     br label %rec
   
   cont:                                             ; preds = %rec
-    tail call void @free(ptr %1)
+    %5 = load ptr, ptr %0, align 8
+    tail call void @free(ptr %5)
     ret void
   }
   
@@ -529,62 +548,65 @@ Copy records
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %cont.t = type { %t }
-  %t = type { double, ptr, i64, ptr }
+  %t = type { double, { ptr, i64, i64 }, i64, { ptr, i64, i64 } }
   
   @schmu_a = global %cont.t zeroinitializer, align 8
-  @0 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"lul\00" }
+  @0 = private unnamed_addr constant [4 x i8] c"lul\00"
   
   declare void @string_println(ptr %0)
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     store double 1.000000e+01, ptr @schmu_a, align 8
-    %0 = alloca ptr, align 8
-    store ptr @0, ptr %0, align 8
-    %1 = alloca ptr, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %0, i64 8, i1 false)
-    call void @__copy_a.c(ptr %1)
-    %2 = load ptr, ptr %1, align 8
-    store ptr %2, ptr getelementptr inbounds (%t, ptr @schmu_a, i32 0, i32 1), align 8
+    %0 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 3, i64 -1 }, ptr %0, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 getelementptr inbounds (%t, ptr @schmu_a, i32 0, i32 1), ptr align 8 %0, i64 24, i1 false)
+    tail call void @__copy_a.c(ptr getelementptr inbounds (%t, ptr @schmu_a, i32 0, i32 1))
     store i64 10, ptr getelementptr inbounds (%t, ptr @schmu_a, i32 0, i32 2), align 8
-    %3 = call ptr @malloc(i64 40)
-    %arr = alloca ptr, align 8
-    store ptr %3, ptr %arr, align 8
-    store i64 3, ptr %3, align 8
-    %cap = getelementptr i64, ptr %3, i64 1
-    store i64 3, ptr %cap, align 8
-    %4 = getelementptr i8, ptr %3, i64 16
-    store i64 10, ptr %4, align 8
-    %"1" = getelementptr i64, ptr %4, i64 1
+    store i64 3, ptr getelementptr inbounds ({ ptr, i64, i64 }, ptr getelementptr inbounds (%t, ptr @schmu_a, i32 0, i32 3), i32 0, i32 1), align 8
+    store i64 3, ptr getelementptr inbounds ({ ptr, i64, i64 }, ptr getelementptr inbounds (%t, ptr @schmu_a, i32 0, i32 3), i32 0, i32 2), align 8
+    %1 = tail call ptr @malloc(i64 24)
+    store ptr %1, ptr getelementptr inbounds (%t, ptr @schmu_a, i32 0, i32 3), align 8
+    store i64 10, ptr %1, align 8
+    %"1" = getelementptr i64, ptr %1, i64 1
     store i64 20, ptr %"1", align 8
-    %"2" = getelementptr i64, ptr %4, i64 2
+    %"2" = getelementptr i64, ptr %1, i64 2
     store i64 30, ptr %"2", align 8
-    store ptr %3, ptr getelementptr inbounds (%t, ptr @schmu_a, i32 0, i32 3), align 8
-    %5 = alloca %cont.t, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %5, ptr align 8 @schmu_a, i64 32, i1 false)
-    call void @__copy_cont.t(ptr %5)
-    %6 = getelementptr inbounds %t, ptr %5, i32 0, i32 1
-    %7 = load ptr, ptr %6, align 8
-    call void @string_println(ptr %7), !dbg !6
-    call void @__free_cont.t(ptr %5)
+    %2 = alloca %cont.t, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %2, ptr align 8 @schmu_a, i64 64, i1 false)
+    call void @__copy_cont.t(ptr %2)
+    %3 = getelementptr inbounds %t, ptr %2, i32 0, i32 1
+    call void @string_println(ptr %3), !dbg !6
+    call void @__free_cont.t(ptr %2)
     call void @__free_cont.t(ptr @schmu_a)
     ret i64 0
   }
   
   define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
-    %2 = add i64 %size, 17
-    %3 = tail call ptr @malloc(i64 %2)
-    %4 = sub i64 %2, 1
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
-    %newcap = getelementptr i64, ptr %3, i64 1
-    store i64 %size, ptr %newcap, align 8
-    %5 = getelementptr i8, ptr %3, i64 %4
-    store i8 0, ptr %5, align 1
-    store ptr %3, ptr %0, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
+    %1 = icmp eq i64 %size, 0
+    br i1 %1, label %zero, label %nonempty
+  
+  zero:                                             ; preds = %entry
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 0, ptr %cap, align 8
+    store ptr null, ptr %0, align 8
+    br label %cont
+  
+  cont:                                             ; preds = %nonempty, %zero
     ret void
+  
+  nonempty:                                         ; preds = %entry
+    %2 = add i64 %size, 1
+    %3 = tail call ptr @malloc(i64 %2)
+    %4 = load ptr, ptr %0, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %4, i64 %2, i1 false)
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 %size, ptr %cap2, align 8
+    store ptr %3, ptr %0, align 8
+    br label %cont
   }
   
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
@@ -603,16 +625,29 @@ Copy records
   
   define linkonce_odr void @__copy_a.l(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
-    %2 = mul i64 %size, 8
-    %3 = add i64 %2, 16
-    %4 = tail call ptr @malloc(i64 %3)
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
-    %newcap = getelementptr i64, ptr %4, i64 1
-    store i64 %size, ptr %newcap, align 8
-    store ptr %4, ptr %0, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
+    %1 = icmp eq i64 %size, 0
+    br i1 %1, label %zero, label %nonempty
+  
+  zero:                                             ; preds = %entry
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 0, ptr %cap, align 8
+    store ptr null, ptr %0, align 8
+    br label %cont
+  
+  cont:                                             ; preds = %nonempty, %zero
     ret void
+  
+  nonempty:                                         ; preds = %entry
+    %2 = mul i64 %size, 8
+    %3 = tail call ptr @malloc(i64 %2)
+    %4 = load ptr, ptr %0, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %4, i64 %2, i1 false)
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 %size, ptr %cap2, align 8
+    store ptr %3, ptr %0, align 8
+    br label %cont
   }
   
   define linkonce_odr void @__copy_cont.t(ptr %0) {
@@ -666,58 +701,65 @@ Copy variants
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   %option.t.tp.a.cl = type { i32, %tp.a.cl }
-  %tp.a.cl = type { ptr, i64 }
+  %tp.a.cl = type { { ptr, i64, i64 }, i64 }
   
   @schmu_a = global %option.t.tp.a.cl zeroinitializer, align 8
-  @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"thing\00" }
+  @0 = private unnamed_addr constant [6 x i8] c"thing\00"
   
   declare void @string_println(ptr %0)
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
     store i32 1, ptr @schmu_a, align 4
-    %0 = alloca ptr, align 8
-    store ptr @0, ptr %0, align 8
-    %1 = alloca ptr, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %0, i64 8, i1 false)
-    call void @__copy_a.c(ptr %1)
-    %2 = load ptr, ptr %1, align 8
-    store ptr %2, ptr getelementptr inbounds (%option.t.tp.a.cl, ptr @schmu_a, i32 0, i32 1), align 8
+    %0 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 5, i64 -1 }, ptr %0, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 getelementptr inbounds (%option.t.tp.a.cl, ptr @schmu_a, i32 0, i32 1), ptr align 8 %0, i64 24, i1 false)
+    tail call void @__copy_a.c(ptr getelementptr inbounds (%option.t.tp.a.cl, ptr @schmu_a, i32 0, i32 1))
     store i64 0, ptr getelementptr inbounds (%tp.a.cl, ptr getelementptr inbounds (%option.t.tp.a.cl, ptr @schmu_a, i32 0, i32 1), i32 0, i32 1), align 8
-    %3 = alloca %option.t.tp.a.cl, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %3, ptr align 8 @schmu_a, i64 24, i1 false)
-    call void @__copy_option.t.tp.a.cl(ptr %3)
-    %index = load i32, ptr %3, align 4
+    %1 = alloca %option.t.tp.a.cl, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 @schmu_a, i64 40, i1 false)
+    call void @__copy_option.t.tp.a.cl(ptr %1)
+    %index = load i32, ptr %1, align 4
     %eq = icmp eq i32 %index, 1
     br i1 %eq, label %then, label %ifcont, !dbg !6
   
   then:                                             ; preds = %entry
-    %data = getelementptr inbounds %option.t.tp.a.cl, ptr %3, i32 0, i32 1
-    %4 = getelementptr inbounds %tp.a.cl, ptr %data, i32 0, i32 1
-    %5 = load ptr, ptr %data, align 8
-    call void @string_println(ptr %5), !dbg !7
+    %data = getelementptr inbounds %option.t.tp.a.cl, ptr %1, i32 0, i32 1
+    %2 = getelementptr inbounds %tp.a.cl, ptr %data, i32 0, i32 1
+    call void @string_println(ptr %data), !dbg !7
     br label %ifcont
   
   ifcont:                                           ; preds = %entry, %then
-    call void @__free_option.t.tp.a.cl(ptr %3)
+    call void @__free_option.t.tp.a.cl(ptr %1)
     call void @__free_option.t.tp.a.cl(ptr @schmu_a)
     ret i64 0
   }
   
   define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
-    %2 = add i64 %size, 17
-    %3 = tail call ptr @malloc(i64 %2)
-    %4 = sub i64 %2, 1
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
-    %newcap = getelementptr i64, ptr %3, i64 1
-    store i64 %size, ptr %newcap, align 8
-    %5 = getelementptr i8, ptr %3, i64 %4
-    store i8 0, ptr %5, align 1
-    store ptr %3, ptr %0, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
+    %1 = icmp eq i64 %size, 0
+    br i1 %1, label %zero, label %nonempty
+  
+  zero:                                             ; preds = %entry
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 0, ptr %cap, align 8
+    store ptr null, ptr %0, align 8
+    br label %cont
+  
+  cont:                                             ; preds = %nonempty, %zero
     ret void
+  
+  nonempty:                                         ; preds = %entry
+    %2 = add i64 %size, 1
+    %3 = tail call ptr @malloc(i64 %2)
+    %4 = load ptr, ptr %0, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %4, i64 %2, i1 false)
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 %size, ptr %cap2, align 8
+    store ptr %3, ptr %0, align 8
+    br label %cont
   }
   
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
@@ -794,17 +836,15 @@ Copy closures
   %tp._r_rll = type { %closure, i64 }
   
   @schmu_c = global %closure zeroinitializer, align 8
-  @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"hello\00" }
+  @0 = private unnamed_addr constant [6 x i8] c"hello\00"
   
   declare void @string_println(ptr %0)
   
   define void @__fun_schmu0(ptr %0) !dbg !2 {
   entry:
-    %a = getelementptr inbounds { ptr, ptr, ptr }, ptr %0, i32 0, i32 2
-    %a1 = load ptr, ptr %a, align 8
-    %1 = getelementptr i8, ptr %a1, i64 16
-    %2 = load ptr, ptr %1, align 8
-    tail call void @string_println(ptr %2), !dbg !6
+    %a = getelementptr inbounds { ptr, ptr, { ptr, i64, i64 } }, ptr %0, i32 0, i32 2
+    %1 = load ptr, ptr %a, align 8
+    tail call void @string_println(ptr %1), !dbg !6
     ret void
   }
   
@@ -862,29 +902,28 @@ Copy closures
   
   define void @schmu_test(ptr noalias %0) !dbg !11 {
   entry:
-    %1 = tail call ptr @malloc(i64 24)
-    %arr = alloca ptr, align 8
-    store ptr %1, ptr %arr, align 8
-    store i64 1, ptr %1, align 8
-    %cap = getelementptr i64, ptr %1, i64 1
+    %arr = alloca { ptr, i64, i64 }, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %arr, i32 0, i32 1
+    store i64 1, ptr %len, align 8
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %arr, i32 0, i32 2
     store i64 1, ptr %cap, align 8
-    %2 = getelementptr i8, ptr %1, i64 16
-    %3 = alloca ptr, align 8
-    store ptr @0, ptr %3, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %2, ptr align 8 %3, i64 8, i1 false)
-    tail call void @__copy_a.c(ptr %2)
+    %1 = tail call ptr @malloc(i64 24)
+    store ptr %1, ptr %arr, align 8
+    %2 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 5, i64 -1 }, ptr %2, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 8 %2, i64 24, i1 false)
+    tail call void @__copy_a.c(ptr %1)
     store ptr @__fun_schmu0, ptr %0, align 8
-    %4 = tail call ptr @malloc(i64 24)
-    %a = getelementptr inbounds { ptr, ptr, ptr }, ptr %4, i32 0, i32 2
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %a, ptr align 8 %arr, i64 8, i1 false)
+    %3 = tail call ptr @malloc(i64 40)
+    %a = getelementptr inbounds { ptr, ptr, { ptr, i64, i64 } }, ptr %3, i32 0, i32 2
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %a, ptr align 8 %arr, i64 24, i1 false)
     tail call void @__copy_a.a.c(ptr %a)
-    %5 = load ptr, ptr %a, align 8
-    store ptr %5, ptr %a, align 8
-    store ptr @__ctor_tp.a.a.c, ptr %4, align 8
-    %dtor = getelementptr inbounds { ptr, ptr, ptr }, ptr %4, i32 0, i32 1
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %a, ptr align 1 %a, i64 24, i1 false)
+    store ptr @__ctor_tp.a.a.c, ptr %3, align 8
+    %dtor = getelementptr inbounds { ptr, ptr, { ptr, i64, i64 } }, ptr %3, i32 0, i32 1
     store ptr @__dtor_tp.a.a.c, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
-    store ptr %4, ptr %envptr, align 8
+    store ptr %3, ptr %envptr, align 8
     call void @__free_a.a.c(ptr %arr)
     ret void
   }
@@ -903,65 +942,87 @@ Copy closures
   
   define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
-    %2 = add i64 %size, 17
-    %3 = tail call ptr @malloc(i64 %2)
-    %4 = sub i64 %2, 1
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
-    %newcap = getelementptr i64, ptr %3, i64 1
-    store i64 %size, ptr %newcap, align 8
-    %5 = getelementptr i8, ptr %3, i64 %4
-    store i8 0, ptr %5, align 1
-    store ptr %3, ptr %0, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
+    %1 = icmp eq i64 %size, 0
+    br i1 %1, label %zero, label %nonempty
+  
+  zero:                                             ; preds = %entry
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 0, ptr %cap, align 8
+    store ptr null, ptr %0, align 8
+    br label %cont
+  
+  cont:                                             ; preds = %nonempty, %zero
     ret void
+  
+  nonempty:                                         ; preds = %entry
+    %2 = add i64 %size, 1
+    %3 = tail call ptr @malloc(i64 %2)
+    %4 = load ptr, ptr %0, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %4, i64 %2, i1 false)
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 %size, ptr %cap2, align 8
+    store ptr %3, ptr %0, align 8
+    br label %cont
   }
   
   define linkonce_odr void @__copy_a.a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
-    %2 = mul i64 %size, 8
-    %3 = add i64 %2, 16
-    %4 = tail call ptr @malloc(i64 %3)
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %4, ptr align 1 %1, i64 %3, i1 false)
-    %newcap = getelementptr i64, ptr %4, i64 1
-    store i64 %size, ptr %newcap, align 8
-    store ptr %4, ptr %0, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
+    %1 = icmp eq i64 %size, 0
+    br i1 %1, label %zero, label %nonempty
+  
+  zero:                                             ; preds = %entry
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 0, ptr %cap, align 8
+    store ptr null, ptr %0, align 8
+    br label %cont
+  
+  cont:                                             ; preds = %rec, %zero
+    ret void
+  
+  nonempty:                                         ; preds = %entry
+    %2 = mul i64 %size, 24
+    %3 = tail call ptr @malloc(i64 %2)
+    %4 = load ptr, ptr %0, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %4, i64 %2, i1 false)
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 %size, ptr %cap2, align 8
+    store ptr %3, ptr %0, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
-    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
-  rec:                                              ; preds = %child, %entry
-    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
-    %5 = phi i64 [ %7, %child ], [ 0, %entry ]
+  rec:                                              ; preds = %child, %nonempty
+    %lsr.iv = phi i64 [ %lsr.iv.next, %child ], [ 0, %nonempty ]
+    %5 = phi i64 [ %8, %child ], [ 0, %nonempty ]
     %6 = icmp slt i64 %5, %size
     br i1 %6, label %child, label %cont
   
   child:                                            ; preds = %rec
-    tail call void @__copy_a.c(ptr %lsr.iv)
-    %7 = add i64 %5, 1
-    store i64 %7, ptr %cnt, align 8
-    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
+    %7 = load ptr, ptr %0, align 8
+    %scevgep = getelementptr i8, ptr %7, i64 %lsr.iv
+    tail call void @__copy_a.c(ptr %scevgep)
+    %8 = add i64 %5, 1
+    store i64 %8, ptr %cnt, align 8
+    %lsr.iv.next = add i64 %lsr.iv, 24
     br label %rec
-  
-  cont:                                             ; preds = %rec
-    ret void
   }
   
   define linkonce_odr ptr @__ctor_tp.a.a.c(ptr %0) {
   entry:
-    %1 = tail call ptr @malloc(i64 24)
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 24, i1 false)
-    %a = getelementptr inbounds { ptr, ptr, ptr }, ptr %1, i32 0, i32 2
+    %1 = tail call ptr @malloc(i64 40)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
+    %a = getelementptr inbounds { ptr, ptr, { ptr, i64, i64 } }, ptr %1, i32 0, i32 2
     tail call void @__copy_a.a.c(ptr %a)
     ret ptr %1
   }
   
   define linkonce_odr void @__dtor_tp.a.a.c(ptr %0) {
   entry:
-    %a = getelementptr inbounds { ptr, ptr, ptr }, ptr %0, i32 0, i32 2
+    %a = getelementptr inbounds { ptr, ptr, { ptr, i64, i64 } }, ptr %0, i32 0, i32 2
     tail call void @__free_a.a.c(ptr %a)
     tail call void @free(ptr %0)
     ret void
@@ -976,28 +1037,30 @@ Copy closures
   
   define linkonce_odr void @__free_a.a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
-    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
-    %2 = phi i64 [ %4, %child ], [ 0, %entry ]
-    %3 = icmp slt i64 %2, %size
-    br i1 %3, label %child, label %cont
+    %lsr.iv = phi i64 [ %lsr.iv.next, %child ], [ 0, %entry ]
+    %1 = phi i64 [ %4, %child ], [ 0, %entry ]
+    %2 = icmp slt i64 %1, %size
+    br i1 %2, label %child, label %cont
   
   child:                                            ; preds = %rec
-    tail call void @__free_a.c(ptr %lsr.iv)
-    %4 = add i64 %2, 1
+    %3 = load ptr, ptr %0, align 8
+    %scevgep = getelementptr i8, ptr %3, i64 %lsr.iv
+    tail call void @__free_a.c(ptr %scevgep)
+    %4 = add i64 %1, 1
     store i64 %4, ptr %cnt, align 8
-    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
+    %lsr.iv.next = add i64 %lsr.iv, 24
     br label %rec
   
   cont:                                             ; preds = %rec
-    tail call void @free(ptr %1)
+    %5 = load ptr, ptr %0, align 8
+    tail call void @free(ptr %5)
     ret void
   }
   
@@ -1145,9 +1208,9 @@ Copy string literal on move
   
   %closure = type { ptr, ptr }
   
-  @schmu_a = global ptr null, align 8
-  @schmu_b = global ptr null, align 8
-  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"aoeu\00" }
+  @schmu_a = global { ptr, i64, i64 } zeroinitializer, align 8
+  @schmu_b = global { ptr, i64, i64 } zeroinitializer, align 8
+  @0 = private unnamed_addr constant [5 x i8] c"aoeu\00"
   
   declare void @string_modify_buf(ptr noalias %0, ptr %1)
   
@@ -1156,40 +1219,36 @@ Copy string literal on move
   define void @__fun_schmu0(ptr noalias %arr) !dbg !2 {
   entry:
     %0 = load ptr, ptr %arr, align 8
-    %1 = getelementptr i8, ptr %0, i64 16
-    %2 = getelementptr inbounds i8, ptr %1, i64 1
-    store i8 105, ptr %2, align 1
+    %1 = getelementptr inbounds i8, ptr %0, i64 1
+    store i8 105, ptr %1, align 1
     ret void
   }
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
+    store i64 1, ptr getelementptr inbounds ({ ptr, i64, i64 }, ptr @schmu_a, i32 0, i32 1), align 8
+    store i64 1, ptr getelementptr inbounds ({ ptr, i64, i64 }, ptr @schmu_a, i32 0, i32 2), align 8
     %0 = tail call ptr @malloc(i64 24)
     store ptr %0, ptr @schmu_a, align 8
-    store i64 1, ptr %0, align 8
-    %cap = getelementptr i64, ptr %0, i64 1
-    store i64 1, ptr %cap, align 8
-    %1 = getelementptr i8, ptr %0, i64 16
-    %2 = alloca ptr, align 8
-    store ptr @0, ptr %2, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 8 %2, i64 8, i1 false)
-    tail call void @__copy_a.c(ptr %1)
-    %3 = alloca ptr, align 8
-    store ptr @0, ptr %3, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_b, ptr align 8 %3, i64 8, i1 false)
+    %1 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 4, i64 -1 }, ptr %1, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 24, i1 false)
+    tail call void @__copy_a.c(ptr %0)
+    %2 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 4, i64 -1 }, ptr %2, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 @schmu_b, ptr align 8 %2, i64 24, i1 false)
     tail call void @__copy_a.c(ptr @schmu_b)
     %clstmp = alloca %closure, align 8
     store ptr @__fun_schmu0, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
     call void @string_modify_buf(ptr @schmu_b, ptr %clstmp), !dbg !7
-    %4 = load ptr, ptr @schmu_b, align 8
-    call void @string_println(ptr %4), !dbg !8
-    call void @string_println(ptr @0), !dbg !9
-    %5 = load ptr, ptr @schmu_a, align 8
-    %6 = getelementptr i8, ptr %5, i64 16
-    %7 = load ptr, ptr %6, align 8
-    call void @string_println(ptr %7), !dbg !10
+    call void @string_println(ptr @schmu_b), !dbg !8
+    %boxconst = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 4, i64 -1 }, ptr %boxconst, align 8
+    call void @string_println(ptr %boxconst), !dbg !9
+    %3 = load ptr, ptr @schmu_a, align 8
+    call void @string_println(ptr %3), !dbg !10
     call void @__free_a.c(ptr @schmu_b)
     call void @__free_a.a.c(ptr @schmu_a)
     ret i64 0
@@ -1199,18 +1258,29 @@ Copy string literal on move
   
   define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
-    %2 = add i64 %size, 17
-    %3 = tail call ptr @malloc(i64 %2)
-    %4 = sub i64 %2, 1
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
-    %newcap = getelementptr i64, ptr %3, i64 1
-    store i64 %size, ptr %newcap, align 8
-    %5 = getelementptr i8, ptr %3, i64 %4
-    store i8 0, ptr %5, align 1
-    store ptr %3, ptr %0, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
+    %1 = icmp eq i64 %size, 0
+    br i1 %1, label %zero, label %nonempty
+  
+  zero:                                             ; preds = %entry
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 0, ptr %cap, align 8
+    store ptr null, ptr %0, align 8
+    br label %cont
+  
+  cont:                                             ; preds = %nonempty, %zero
     ret void
+  
+  nonempty:                                         ; preds = %entry
+    %2 = add i64 %size, 1
+    %3 = tail call ptr @malloc(i64 %2)
+    %4 = load ptr, ptr %0, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %4, i64 %2, i1 false)
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 %size, ptr %cap2, align 8
+    store ptr %3, ptr %0, align 8
+    br label %cont
   }
   
   ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
@@ -1225,28 +1295,30 @@ Copy string literal on move
   
   define linkonce_odr void @__free_a.a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
-    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
-    %2 = phi i64 [ %4, %child ], [ 0, %entry ]
-    %3 = icmp slt i64 %2, %size
-    br i1 %3, label %child, label %cont
+    %lsr.iv = phi i64 [ %lsr.iv.next, %child ], [ 0, %entry ]
+    %1 = phi i64 [ %4, %child ], [ 0, %entry ]
+    %2 = icmp slt i64 %1, %size
+    br i1 %2, label %child, label %cont
   
   child:                                            ; preds = %rec
-    tail call void @__free_a.c(ptr %lsr.iv)
-    %4 = add i64 %2, 1
+    %3 = load ptr, ptr %0, align 8
+    %scevgep = getelementptr i8, ptr %3, i64 %lsr.iv
+    tail call void @__free_a.c(ptr %scevgep)
+    %4 = add i64 %1, 1
     store i64 %4, ptr %cnt, align 8
-    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
+    %lsr.iv.next = add i64 %lsr.iv, 24
     br label %rec
   
   cont:                                             ; preds = %rec
-    tail call void @free(ptr %1)
+    %5 = load ptr, ptr %0, align 8
+    tail call void @free(ptr %5)
     ret void
   }
   
