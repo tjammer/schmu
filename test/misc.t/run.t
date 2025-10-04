@@ -92,8 +92,8 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   %f3s = type { float, float, float }
   %shader = type { i32, ptr }
   
-  @0 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c"a\00" }
-  @1 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c"b\00" }
+  @0 = private unnamed_addr constant [2 x i8] c"a\00"
+  @1 = private unnamed_addr constant [2 x i8] c"b\00"
   
   declare ptr @string_data(ptr %0)
   
@@ -178,18 +178,22 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %ret27 = alloca %f3s, align 8
     %5 = call { <2 x float>, float } @subf3s(<2 x float> %fst24, float %snd26), !dbg !16
     store { <2 x float>, float } %5, ptr %ret27, align 8
-    %6 = call ptr @string_data(ptr @0), !dbg !17
-    %7 = call ptr @string_data(ptr @1), !dbg !18
-    %ret28 = alloca %shader, align 8
+    %boxconst28 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 1, i64 -1 }, ptr %boxconst28, align 8
+    %6 = call ptr @string_data(ptr %boxconst28), !dbg !17
+    %boxconst29 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @1, i64 1, i64 -1 }, ptr %boxconst29, align 8
+    %7 = call ptr @string_data(ptr %boxconst29), !dbg !18
+    %ret30 = alloca %shader, align 8
     %8 = call { i32, i64 } @load_shader(ptr %6, ptr %7), !dbg !19
-    store { i32, i64 } %8, ptr %ret28, align 8
+    store { i32, i64 } %8, ptr %ret30, align 8
     %9 = alloca %shader, align 8
     store i32 0, ptr %9, align 4
     %locs = getelementptr inbounds %shader, ptr %9, i32 0, i32 1
     store ptr null, ptr %locs, align 8
-    %boxconst33 = alloca %v4, align 8
-    store %v4 { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02, double 1.000000e+03 }, ptr %boxconst33, align 8
-    call void @set_shader_value(i32 0, i64 0, i32 0, ptr %boxconst33), !dbg !20
+    %boxconst35 = alloca %v4, align 8
+    store %v4 { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02, double 1.000000e+03 }, ptr %boxconst35, align 8
+    call void @set_shader_value(i32 0, i64 0, i32 0, ptr %boxconst35), !dbg !20
     ret i64 0
   }
   
@@ -203,36 +207,42 @@ Test 'and', 'or' and 'not'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
-  @0 = private unnamed_addr constant { i64, i64, [6 x i8] } { i64 5, i64 5, [6 x i8] c"false\00" }
-  @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"true\00" }
-  @2 = private unnamed_addr constant { i64, i64, [12 x i8] } { i64 11, i64 11, [12 x i8] c"test 'and':\00" }
-  @3 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"yes\00" }
-  @4 = private unnamed_addr constant { i64, i64, [3 x i8] } { i64 2, i64 2, [3 x i8] c"no\00" }
-  @5 = private unnamed_addr constant { i64, i64, [11 x i8] } { i64 10, i64 10, [11 x i8] c"test 'or':\00" }
-  @6 = private unnamed_addr constant { i64, i64, [12 x i8] } { i64 11, i64 11, [12 x i8] c"test 'not':\00" }
+  @0 = private unnamed_addr constant [6 x i8] c"false\00"
+  @1 = private unnamed_addr constant [5 x i8] c"true\00"
+  @2 = private unnamed_addr constant [12 x i8] c"test 'and':\00"
+  @3 = private unnamed_addr constant [4 x i8] c"yes\00"
+  @4 = private unnamed_addr constant [3 x i8] c"no\00"
+  @5 = private unnamed_addr constant [11 x i8] c"test 'or':\00"
+  @6 = private unnamed_addr constant [12 x i8] c"test 'not':\00"
   
   declare void @string_println(ptr %0)
   
   define i1 @schmu_false_() !dbg !2 {
   entry:
-    tail call void @string_println(ptr @0), !dbg !6
+    %boxconst = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 5, i64 -1 }, ptr %boxconst, align 8
+    call void @string_println(ptr %boxconst), !dbg !6
     ret i1 false
   }
   
   define i1 @schmu_true_() !dbg !7 {
   entry:
-    tail call void @string_println(ptr @1), !dbg !8
+    %boxconst = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @1, i64 4, i64 -1 }, ptr %boxconst, align 8
+    call void @string_println(ptr %boxconst), !dbg !8
     ret i1 true
   }
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !9 {
   entry:
-    tail call void @string_println(ptr @2), !dbg !10
-    %0 = tail call i1 @schmu_true_(), !dbg !11
+    %boxconst = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @2, i64 11, i64 -1 }, ptr %boxconst, align 8
+    call void @string_println(ptr %boxconst), !dbg !10
+    %0 = call i1 @schmu_true_(), !dbg !11
     br i1 %0, label %true1, label %cont
   
   true1:                                            ; preds = %entry
-    %1 = tail call i1 @schmu_true_(), !dbg !12
+    %1 = call i1 @schmu_true_(), !dbg !12
     br i1 %1, label %true2, label %cont
   
   true2:                                            ; preds = %true1
@@ -243,203 +253,247 @@ Test 'and', 'or' and 'not'
     br i1 %andtmp, label %then, label %else, !dbg !11
   
   then:                                             ; preds = %cont
-    tail call void @string_println(ptr @3), !dbg !13
+    %boxconst1 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @3, i64 3, i64 -1 }, ptr %boxconst1, align 8
+    call void @string_println(ptr %boxconst1), !dbg !13
     br label %ifcont
   
   else:                                             ; preds = %cont
-    tail call void @string_println(ptr @4), !dbg !14
+    %boxconst2 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @4, i64 2, i64 -1 }, ptr %boxconst2, align 8
+    call void @string_println(ptr %boxconst2), !dbg !14
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
-    %2 = tail call i1 @schmu_true_(), !dbg !15
-    br i1 %2, label %true11, label %cont3
+    %2 = call i1 @schmu_true_(), !dbg !15
+    br i1 %2, label %true13, label %cont5
   
-  true11:                                           ; preds = %ifcont
-    %3 = tail call i1 @schmu_false_(), !dbg !16
-    br i1 %3, label %true22, label %cont3
+  true13:                                           ; preds = %ifcont
+    %3 = call i1 @schmu_false_(), !dbg !16
+    br i1 %3, label %true24, label %cont5
   
-  true22:                                           ; preds = %true11
-    br label %cont3
+  true24:                                           ; preds = %true13
+    br label %cont5
   
-  cont3:                                            ; preds = %true22, %true11, %ifcont
-    %andtmp4 = phi i1 [ false, %ifcont ], [ false, %true11 ], [ true, %true22 ]
-    br i1 %andtmp4, label %then5, label %else6, !dbg !15
+  cont5:                                            ; preds = %true24, %true13, %ifcont
+    %andtmp6 = phi i1 [ false, %ifcont ], [ false, %true13 ], [ true, %true24 ]
+    br i1 %andtmp6, label %then7, label %else9, !dbg !15
   
-  then5:                                            ; preds = %cont3
-    tail call void @string_println(ptr @3), !dbg !17
-    br label %ifcont7
+  then7:                                            ; preds = %cont5
+    %boxconst8 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @3, i64 3, i64 -1 }, ptr %boxconst8, align 8
+    call void @string_println(ptr %boxconst8), !dbg !17
+    br label %ifcont11
   
-  else6:                                            ; preds = %cont3
-    tail call void @string_println(ptr @4), !dbg !18
-    br label %ifcont7
+  else9:                                            ; preds = %cont5
+    %boxconst10 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @4, i64 2, i64 -1 }, ptr %boxconst10, align 8
+    call void @string_println(ptr %boxconst10), !dbg !18
+    br label %ifcont11
   
-  ifcont7:                                          ; preds = %else6, %then5
-    %4 = tail call i1 @schmu_false_(), !dbg !19
-    br i1 %4, label %true18, label %cont10
+  ifcont11:                                         ; preds = %else9, %then7
+    %4 = call i1 @schmu_false_(), !dbg !19
+    br i1 %4, label %true112, label %cont14
   
-  true18:                                           ; preds = %ifcont7
-    %5 = tail call i1 @schmu_true_(), !dbg !20
-    br i1 %5, label %true29, label %cont10
+  true112:                                          ; preds = %ifcont11
+    %5 = call i1 @schmu_true_(), !dbg !20
+    br i1 %5, label %true213, label %cont14
   
-  true29:                                           ; preds = %true18
-    br label %cont10
+  true213:                                          ; preds = %true112
+    br label %cont14
   
-  cont10:                                           ; preds = %true29, %true18, %ifcont7
-    %andtmp11 = phi i1 [ false, %ifcont7 ], [ false, %true18 ], [ true, %true29 ]
-    br i1 %andtmp11, label %then12, label %else13, !dbg !19
+  cont14:                                           ; preds = %true213, %true112, %ifcont11
+    %andtmp15 = phi i1 [ false, %ifcont11 ], [ false, %true112 ], [ true, %true213 ]
+    br i1 %andtmp15, label %then16, label %else18, !dbg !19
   
-  then12:                                           ; preds = %cont10
-    tail call void @string_println(ptr @3), !dbg !21
-    br label %ifcont14
+  then16:                                           ; preds = %cont14
+    %boxconst17 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @3, i64 3, i64 -1 }, ptr %boxconst17, align 8
+    call void @string_println(ptr %boxconst17), !dbg !21
+    br label %ifcont20
   
-  else13:                                           ; preds = %cont10
-    tail call void @string_println(ptr @4), !dbg !22
-    br label %ifcont14
+  else18:                                           ; preds = %cont14
+    %boxconst19 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @4, i64 2, i64 -1 }, ptr %boxconst19, align 8
+    call void @string_println(ptr %boxconst19), !dbg !22
+    br label %ifcont20
   
-  ifcont14:                                         ; preds = %else13, %then12
-    %6 = tail call i1 @schmu_false_(), !dbg !23
-    br i1 %6, label %true115, label %cont17
+  ifcont20:                                         ; preds = %else18, %then16
+    %6 = call i1 @schmu_false_(), !dbg !23
+    br i1 %6, label %true121, label %cont23
   
-  true115:                                          ; preds = %ifcont14
-    %7 = tail call i1 @schmu_false_(), !dbg !24
-    br i1 %7, label %true216, label %cont17
+  true121:                                          ; preds = %ifcont20
+    %7 = call i1 @schmu_false_(), !dbg !24
+    br i1 %7, label %true222, label %cont23
   
-  true216:                                          ; preds = %true115
-    br label %cont17
+  true222:                                          ; preds = %true121
+    br label %cont23
   
-  cont17:                                           ; preds = %true216, %true115, %ifcont14
-    %andtmp18 = phi i1 [ false, %ifcont14 ], [ false, %true115 ], [ true, %true216 ]
-    br i1 %andtmp18, label %then19, label %else20, !dbg !23
+  cont23:                                           ; preds = %true222, %true121, %ifcont20
+    %andtmp24 = phi i1 [ false, %ifcont20 ], [ false, %true121 ], [ true, %true222 ]
+    br i1 %andtmp24, label %then25, label %else27, !dbg !23
   
-  then19:                                           ; preds = %cont17
-    tail call void @string_println(ptr @3), !dbg !25
-    br label %ifcont21
+  then25:                                           ; preds = %cont23
+    %boxconst26 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @3, i64 3, i64 -1 }, ptr %boxconst26, align 8
+    call void @string_println(ptr %boxconst26), !dbg !25
+    br label %ifcont29
   
-  else20:                                           ; preds = %cont17
-    tail call void @string_println(ptr @4), !dbg !26
-    br label %ifcont21
+  else27:                                           ; preds = %cont23
+    %boxconst28 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @4, i64 2, i64 -1 }, ptr %boxconst28, align 8
+    call void @string_println(ptr %boxconst28), !dbg !26
+    br label %ifcont29
   
-  ifcont21:                                         ; preds = %else20, %then19
-    tail call void @string_println(ptr @5), !dbg !27
-    %8 = tail call i1 @schmu_true_(), !dbg !28
-    br i1 %8, label %cont22, label %false1
+  ifcont29:                                         ; preds = %else27, %then25
+    %boxconst30 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @5, i64 10, i64 -1 }, ptr %boxconst30, align 8
+    call void @string_println(ptr %boxconst30), !dbg !27
+    %8 = call i1 @schmu_true_(), !dbg !28
+    br i1 %8, label %cont31, label %false1
   
-  false1:                                           ; preds = %ifcont21
-    %9 = tail call i1 @schmu_true_(), !dbg !29
-    br i1 %9, label %cont22, label %false2
+  false1:                                           ; preds = %ifcont29
+    %9 = call i1 @schmu_true_(), !dbg !29
+    br i1 %9, label %cont31, label %false2
   
   false2:                                           ; preds = %false1
-    br label %cont22
+    br label %cont31
   
-  cont22:                                           ; preds = %false2, %false1, %ifcont21
-    %andtmp23 = phi i1 [ true, %ifcont21 ], [ true, %false1 ], [ false, %false2 ]
-    br i1 %andtmp23, label %then24, label %else25, !dbg !28
+  cont31:                                           ; preds = %false2, %false1, %ifcont29
+    %andtmp32 = phi i1 [ true, %ifcont29 ], [ true, %false1 ], [ false, %false2 ]
+    br i1 %andtmp32, label %then33, label %else35, !dbg !28
   
-  then24:                                           ; preds = %cont22
-    tail call void @string_println(ptr @3), !dbg !30
-    br label %ifcont26
+  then33:                                           ; preds = %cont31
+    %boxconst34 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @3, i64 3, i64 -1 }, ptr %boxconst34, align 8
+    call void @string_println(ptr %boxconst34), !dbg !30
+    br label %ifcont37
   
-  else25:                                           ; preds = %cont22
-    tail call void @string_println(ptr @4), !dbg !31
-    br label %ifcont26
+  else35:                                           ; preds = %cont31
+    %boxconst36 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @4, i64 2, i64 -1 }, ptr %boxconst36, align 8
+    call void @string_println(ptr %boxconst36), !dbg !31
+    br label %ifcont37
   
-  ifcont26:                                         ; preds = %else25, %then24
-    %10 = tail call i1 @schmu_true_(), !dbg !32
-    br i1 %10, label %cont29, label %false127
+  ifcont37:                                         ; preds = %else35, %then33
+    %10 = call i1 @schmu_true_(), !dbg !32
+    br i1 %10, label %cont40, label %false138
   
-  false127:                                         ; preds = %ifcont26
-    %11 = tail call i1 @schmu_false_(), !dbg !33
-    br i1 %11, label %cont29, label %false228
+  false138:                                         ; preds = %ifcont37
+    %11 = call i1 @schmu_false_(), !dbg !33
+    br i1 %11, label %cont40, label %false239
   
-  false228:                                         ; preds = %false127
-    br label %cont29
+  false239:                                         ; preds = %false138
+    br label %cont40
   
-  cont29:                                           ; preds = %false228, %false127, %ifcont26
-    %andtmp30 = phi i1 [ true, %ifcont26 ], [ true, %false127 ], [ false, %false228 ]
-    br i1 %andtmp30, label %then31, label %else32, !dbg !32
+  cont40:                                           ; preds = %false239, %false138, %ifcont37
+    %andtmp41 = phi i1 [ true, %ifcont37 ], [ true, %false138 ], [ false, %false239 ]
+    br i1 %andtmp41, label %then42, label %else44, !dbg !32
   
-  then31:                                           ; preds = %cont29
-    tail call void @string_println(ptr @3), !dbg !34
-    br label %ifcont33
+  then42:                                           ; preds = %cont40
+    %boxconst43 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @3, i64 3, i64 -1 }, ptr %boxconst43, align 8
+    call void @string_println(ptr %boxconst43), !dbg !34
+    br label %ifcont46
   
-  else32:                                           ; preds = %cont29
-    tail call void @string_println(ptr @4), !dbg !35
-    br label %ifcont33
+  else44:                                           ; preds = %cont40
+    %boxconst45 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @4, i64 2, i64 -1 }, ptr %boxconst45, align 8
+    call void @string_println(ptr %boxconst45), !dbg !35
+    br label %ifcont46
   
-  ifcont33:                                         ; preds = %else32, %then31
-    %12 = tail call i1 @schmu_false_(), !dbg !36
-    br i1 %12, label %cont36, label %false134
+  ifcont46:                                         ; preds = %else44, %then42
+    %12 = call i1 @schmu_false_(), !dbg !36
+    br i1 %12, label %cont49, label %false147
   
-  false134:                                         ; preds = %ifcont33
-    %13 = tail call i1 @schmu_true_(), !dbg !37
-    br i1 %13, label %cont36, label %false235
+  false147:                                         ; preds = %ifcont46
+    %13 = call i1 @schmu_true_(), !dbg !37
+    br i1 %13, label %cont49, label %false248
   
-  false235:                                         ; preds = %false134
-    br label %cont36
+  false248:                                         ; preds = %false147
+    br label %cont49
   
-  cont36:                                           ; preds = %false235, %false134, %ifcont33
-    %andtmp37 = phi i1 [ true, %ifcont33 ], [ true, %false134 ], [ false, %false235 ]
-    br i1 %andtmp37, label %then38, label %else39, !dbg !36
+  cont49:                                           ; preds = %false248, %false147, %ifcont46
+    %andtmp50 = phi i1 [ true, %ifcont46 ], [ true, %false147 ], [ false, %false248 ]
+    br i1 %andtmp50, label %then51, label %else53, !dbg !36
   
-  then38:                                           ; preds = %cont36
-    tail call void @string_println(ptr @3), !dbg !38
-    br label %ifcont40
+  then51:                                           ; preds = %cont49
+    %boxconst52 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @3, i64 3, i64 -1 }, ptr %boxconst52, align 8
+    call void @string_println(ptr %boxconst52), !dbg !38
+    br label %ifcont55
   
-  else39:                                           ; preds = %cont36
-    tail call void @string_println(ptr @4), !dbg !39
-    br label %ifcont40
+  else53:                                           ; preds = %cont49
+    %boxconst54 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @4, i64 2, i64 -1 }, ptr %boxconst54, align 8
+    call void @string_println(ptr %boxconst54), !dbg !39
+    br label %ifcont55
   
-  ifcont40:                                         ; preds = %else39, %then38
-    %14 = tail call i1 @schmu_false_(), !dbg !40
-    br i1 %14, label %cont43, label %false141
+  ifcont55:                                         ; preds = %else53, %then51
+    %14 = call i1 @schmu_false_(), !dbg !40
+    br i1 %14, label %cont58, label %false156
   
-  false141:                                         ; preds = %ifcont40
-    %15 = tail call i1 @schmu_false_(), !dbg !41
-    br i1 %15, label %cont43, label %false242
+  false156:                                         ; preds = %ifcont55
+    %15 = call i1 @schmu_false_(), !dbg !41
+    br i1 %15, label %cont58, label %false257
   
-  false242:                                         ; preds = %false141
-    br label %cont43
+  false257:                                         ; preds = %false156
+    br label %cont58
   
-  cont43:                                           ; preds = %false242, %false141, %ifcont40
-    %andtmp44 = phi i1 [ true, %ifcont40 ], [ true, %false141 ], [ false, %false242 ]
-    br i1 %andtmp44, label %then45, label %else46, !dbg !40
+  cont58:                                           ; preds = %false257, %false156, %ifcont55
+    %andtmp59 = phi i1 [ true, %ifcont55 ], [ true, %false156 ], [ false, %false257 ]
+    br i1 %andtmp59, label %then60, label %else62, !dbg !40
   
-  then45:                                           ; preds = %cont43
-    tail call void @string_println(ptr @3), !dbg !42
-    br label %ifcont47
+  then60:                                           ; preds = %cont58
+    %boxconst61 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @3, i64 3, i64 -1 }, ptr %boxconst61, align 8
+    call void @string_println(ptr %boxconst61), !dbg !42
+    br label %ifcont64
   
-  else46:                                           ; preds = %cont43
-    tail call void @string_println(ptr @4), !dbg !43
-    br label %ifcont47
+  else62:                                           ; preds = %cont58
+    %boxconst63 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @4, i64 2, i64 -1 }, ptr %boxconst63, align 8
+    call void @string_println(ptr %boxconst63), !dbg !43
+    br label %ifcont64
   
-  ifcont47:                                         ; preds = %else46, %then45
-    tail call void @string_println(ptr @6), !dbg !44
-    %16 = tail call i1 @schmu_true_(), !dbg !45
+  ifcont64:                                         ; preds = %else62, %then60
+    %boxconst65 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @6, i64 11, i64 -1 }, ptr %boxconst65, align 8
+    call void @string_println(ptr %boxconst65), !dbg !44
+    %16 = call i1 @schmu_true_(), !dbg !45
     %17 = xor i1 %16, true
-    br i1 %17, label %then48, label %else49, !dbg !46
+    br i1 %17, label %then66, label %else68, !dbg !46
   
-  then48:                                           ; preds = %ifcont47
-    tail call void @string_println(ptr @3), !dbg !47
-    br label %ifcont50
+  then66:                                           ; preds = %ifcont64
+    %boxconst67 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @3, i64 3, i64 -1 }, ptr %boxconst67, align 8
+    call void @string_println(ptr %boxconst67), !dbg !47
+    br label %ifcont70
   
-  else49:                                           ; preds = %ifcont47
-    tail call void @string_println(ptr @4), !dbg !48
-    br label %ifcont50
+  else68:                                           ; preds = %ifcont64
+    %boxconst69 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @4, i64 2, i64 -1 }, ptr %boxconst69, align 8
+    call void @string_println(ptr %boxconst69), !dbg !48
+    br label %ifcont70
   
-  ifcont50:                                         ; preds = %else49, %then48
-    %18 = tail call i1 @schmu_false_(), !dbg !49
+  ifcont70:                                         ; preds = %else68, %then66
+    %18 = call i1 @schmu_false_(), !dbg !49
     %19 = xor i1 %18, true
-    br i1 %19, label %then51, label %else52, !dbg !50
+    br i1 %19, label %then71, label %else73, !dbg !50
   
-  then51:                                           ; preds = %ifcont50
-    tail call void @string_println(ptr @3), !dbg !51
-    br label %ifcont53
+  then71:                                           ; preds = %ifcont70
+    %boxconst72 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @3, i64 3, i64 -1 }, ptr %boxconst72, align 8
+    call void @string_println(ptr %boxconst72), !dbg !51
+    br label %ifcont75
   
-  else52:                                           ; preds = %ifcont50
-    tail call void @string_println(ptr @4), !dbg !52
-    br label %ifcont53
+  else73:                                           ; preds = %ifcont70
+    %boxconst74 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @4, i64 2, i64 -1 }, ptr %boxconst74, align 8
+    call void @string_println(ptr %boxconst74), !dbg !52
+    br label %ifcont75
   
-  ifcont53:                                         ; preds = %else52, %then51
+  ifcont75:                                         ; preds = %else73, %then71
     ret i64 0
   }
   
@@ -580,10 +634,10 @@ Piping for ctors and field accessors
   %closure = type { ptr, ptr }
   %option.t.l = type { i32, i64 }
   
-  @fmt_int_digits = external global ptr
+  @fmt_int_digits = external global { ptr, i64, i64 }
   @fmt_newline = internal constant [1 x i8] c"\0A"
-  @0 = private unnamed_addr constant { i64, i64, [3 x i8] } { i64 2, i64 2, [3 x i8] c"u8\00" }
-  @1 = private unnamed_addr constant { i64, i64, [1 x [1 x i8]] } { i64 0, i64 1, [1 x [1 x i8]] zeroinitializer }
+  @0 = private unnamed_addr constant [3 x i8] c"u8\00"
+  @1 = private unnamed_addr constant [1 x i8] zeroinitializer
   
   declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
   
@@ -593,7 +647,7 @@ Piping for ctors and field accessors
   
   declare i8 @string_get(ptr %0, i64 %1)
   
-  declare ptr @string_of_array(ptr %0)
+  declare void @string_of_array(ptr noalias %0, ptr %1)
   
   declare void @string_println(ptr %0)
   
@@ -751,7 +805,9 @@ Piping for ctors and field accessors
     %1 = zext i8 %u to i64
     %ret = alloca %fmt.formatter.t.u, align 8
     call void @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret, ptr %p, i64 %1), !dbg !35
-    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %ret, ptr @0), !dbg !36
+    %boxconst = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 2, i64 -1 }, ptr %boxconst, align 8
+    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %ret, ptr %boxconst), !dbg !36
     ret void
   }
   
@@ -809,12 +865,11 @@ Piping for ctors and field accessors
     %div = sdiv i64 %4, %base2
     %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
     %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
-    %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
-    %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !44
-    store i8 %6, ptr %scevgep10, align 1
+    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !44
+    store i8 %5, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
     br i1 %ne, label %then, label %else, !dbg !45
   
@@ -826,7 +881,7 @@ Piping for ctors and field accessors
   
   else:                                             ; preds = %rec
     %lt = icmp slt i64 %4, 0
-    %7 = add i64 %lsr.iv, -1, !dbg !46
+    %6 = add i64 %lsr.iv, -1, !dbg !46
     br i1 %lt, label %then4, label %ifcont, !dbg !46
   
   then4:                                            ; preds = %else
@@ -835,7 +890,7 @@ Piping for ctors and field accessors
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
-    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %7, %else ]
+    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %6, %else ]
     ret i64 %iftmp
   }
   
@@ -894,34 +949,35 @@ Piping for ctors and field accessors
     %1 = tail call i64 @__fun_schmu1(i32 %fst1, i64 %snd2), !dbg !50
     tail call void @Printi(i64 %1), !dbg !51
     tail call void @Printi(i64 1), !dbg !52
-    tail call void @string_println(ptr @1), !dbg !53
+    %boxconst3 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @1, i64 0, i64 -1 }, ptr %boxconst3, align 8
+    call void @string_println(ptr %boxconst3), !dbg !53
     %clstmp = alloca %closure, align 8
     store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
     call void @__fmt_stdout_println__ll(ptr %clstmp, i64 10), !dbg !54
-    %clstmp3 = alloca %closure, align 8
-    store ptr @__fmt_u8_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp3, align 8
-    %envptr5 = getelementptr inbounds %closure, ptr %clstmp3, i32 0, i32 1
-    store ptr null, ptr %envptr5, align 8
-    %2 = call ptr @malloc(i64 19)
-    %arr = alloca ptr, align 8
-    store ptr %2, ptr %arr, align 8
-    store i64 3, ptr %2, align 8
-    %cap = getelementptr i64, ptr %2, i64 1
+    %clstmp4 = alloca %closure, align 8
+    store ptr @__fmt_u8_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp4, align 8
+    %envptr6 = getelementptr inbounds %closure, ptr %clstmp4, i32 0, i32 1
+    store ptr null, ptr %envptr6, align 8
+    %arr = alloca { ptr, i64, i64 }, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %arr, i32 0, i32 1
+    store i64 3, ptr %len, align 8
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %arr, i32 0, i32 2
     store i64 3, ptr %cap, align 8
-    %3 = getelementptr i8, ptr %2, i64 16
-    store i8 97, ptr %3, align 1
-    %"1" = getelementptr i8, ptr %3, i64 1
+    %2 = call ptr @malloc(i64 3)
+    store ptr %2, ptr %arr, align 8
+    store i8 97, ptr %2, align 1
+    %"1" = getelementptr i8, ptr %2, i64 1
     store i8 98, ptr %"1", align 1
-    %"2" = getelementptr i8, ptr %3, i64 2
+    %"2" = getelementptr i8, ptr %2, i64 2
     store i8 99, ptr %"2", align 1
-    %4 = call ptr @string_of_array(ptr %2), !dbg !55
-    %5 = call i8 @string_get(ptr %4, i64 1), !dbg !56
-    call void @__fmt_stdout_println__cc(ptr %clstmp3, i8 %5), !dbg !57
-    %6 = alloca ptr, align 8
-    store ptr %4, ptr %6, align 8
-    call void @__free_a.c(ptr %6)
+    %ret = alloca { ptr, i64, i64 }, align 8
+    call void @string_of_array(ptr %ret, ptr %arr), !dbg !55
+    %3 = call i8 @string_get(ptr %ret, i64 1), !dbg !56
+    call void @__fmt_stdout_println__cc(ptr %clstmp4, i8 %3), !dbg !57
+    call void @__free_a.c(ptr %ret)
     ret i64 0
   }
   
@@ -990,15 +1046,15 @@ Increase refcount for returned params in ifs
   
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
-  %fmt.formatter.t.a.c = type { %closure, ptr }
+  %fmt.formatter.t.a.c = type { %closure, { ptr, i64, i64 } }
   %tp.lfmt.formatter.t.a.c = type { i64, %fmt.formatter.t.a.c }
   
-  @fmt_str_missing_arg_msg = external global ptr
-  @fmt_str_too_many_arg_msg = external global ptr
-  @0 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c"/\00" }
-  @schmu_s = constant ptr @0
+  @fmt_str_missing_arg_msg = external global { ptr, i64, i64 }
+  @fmt_str_too_many_arg_msg = external global { ptr, i64, i64 }
+  @0 = private unnamed_addr constant [2 x i8] c"/\00"
+  @schmu_s = constant { ptr, i64, i64 } { ptr @0, i64 1, i64 -1 }
   @fmt_newline = internal constant [1 x i8] c"\0A"
-  @1 = private unnamed_addr constant { i64, i64, [4 x i8] } { i64 3, i64 3, [4 x i8] c"/{}\00" }
+  @1 = private unnamed_addr constant [4 x i8] c"/{}\00"
   
   declare i64 @string_len(ptr %0)
   
@@ -1016,12 +1072,12 @@ Increase refcount for returned params in ifs
     ret void
   }
   
-  define linkonce_odr ptr @__fmt_formatter_extract_fmt.formatter.t.a.cra.c(ptr %fm) !dbg !8 {
+  define linkonce_odr void @__fmt_formatter_extract_fmt.formatter.t.a.cra.c(ptr noalias %0, ptr %fm) !dbg !8 {
   entry:
-    %0 = getelementptr inbounds %fmt.formatter.t.a.c, ptr %fm, i32 0, i32 1
+    %1 = getelementptr inbounds %fmt.formatter.t.a.c, ptr %fm, i32 0, i32 1
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 1 %1, i64 24, i1 false)
     tail call void @__free_except1_fmt.formatter.t.a.c(ptr %fm)
-    %1 = load ptr, ptr %0, align 8
-    ret ptr %1
+    ret void
   }
   
   define linkonce_odr void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %fm) !dbg !9 {
@@ -1033,13 +1089,13 @@ Increase refcount for returned params in ifs
   define linkonce_odr void @__fmt_formatter_format_fmt.formatter.t.a.crfmt.formatter.t.a.c(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !10 {
   entry:
     %1 = alloca %fmt.formatter.t.a.c, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 24, i1 false)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 40, i1 false)
     %2 = getelementptr inbounds %fmt.formatter.t.a.c, ptr %1, i32 0, i32 1
     %loadtmp = load ptr, ptr %1, align 8
     %envptr = getelementptr inbounds %closure, ptr %1, i32 0, i32 1
     %loadtmp1 = load ptr, ptr %envptr, align 8
     call void %loadtmp(ptr %2, ptr %ptr, i64 %len, ptr %loadtmp1), !dbg !11
-    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 24, i1 false)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 40, i1 false)
     ret void
   }
   
@@ -1075,76 +1131,72 @@ Increase refcount for returned params in ifs
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
     call void @fmt_prerr(ptr %ret), !dbg !23
-    %1 = load ptr, ptr @fmt_str_missing_arg_msg, align 8
     %ret1 = alloca %fmt.formatter.t.u, align 8
-    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret1, ptr %ret, ptr %1), !dbg !24
+    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret1, ptr %ret, ptr @fmt_str_missing_arg_msg), !dbg !24
     call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret1), !dbg !25
     call void @abort()
     %failwith = alloca ptr, align 8
     ret void
   }
   
-  define linkonce_odr ptr @__fmt_str_impl_fmt_fail_too_many_ra.c() !dbg !26 {
+  define linkonce_odr void @__fmt_str_impl_fmt_fail_too_many_ra.c(ptr noalias %0) !dbg !26 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
     call void @fmt_prerr(ptr %ret), !dbg !27
-    %0 = load ptr, ptr @fmt_str_too_many_arg_msg, align 8
     %ret1 = alloca %fmt.formatter.t.u, align 8
-    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret1, ptr %ret, ptr %0), !dbg !28
+    call void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret1, ptr %ret, ptr @fmt_str_too_many_arg_msg), !dbg !28
     call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret1), !dbg !29
     call void @abort()
     %failwith = alloca ptr, align 8
-    ret ptr undef
+    ret void
   }
   
-  define linkonce_odr ptr @__fmt_str_print1__a.ca.c(ptr %fmtstr, ptr %f0, ptr %v0) !dbg !30 {
+  define linkonce_odr void @__fmt_str_print1__a.ca.c(ptr noalias %0, ptr %fmtstr, ptr %f0, ptr %v0) !dbg !30 {
   entry:
     %__fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c = alloca %closure, align 8
     store ptr @__fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, ptr %__fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, align 8
-    %clsr___fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c = alloca { ptr, ptr, %closure, ptr }, align 8
-    %f01 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, i32 0, i32 2
+    %clsr___fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c = alloca { ptr, ptr, %closure, { ptr, i64, i64 } }, align 8
+    %f01 = getelementptr inbounds { ptr, ptr, %closure, { ptr, i64, i64 } }, ptr %clsr___fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, i32 0, i32 2
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %f01, ptr align 1 %f0, i64 16, i1 false)
-    %v02 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, i32 0, i32 3
-    store ptr %v0, ptr %v02, align 8
+    %v02 = getelementptr inbounds { ptr, ptr, %closure, { ptr, i64, i64 } }, ptr %clsr___fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, i32 0, i32 3
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %v02, ptr align 1 %v0, i64 24, i1 false)
     store ptr @__ctor_tp._fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, ptr %clsr___fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, align 8
-    %dtor = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %clsr___fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, i32 0, i32 1
+    %dtor = getelementptr inbounds { ptr, ptr, %closure, { ptr, i64, i64 } }, ptr %clsr___fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, i32 0, i32 1
     store ptr null, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %__fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, i32 0, i32 1
     store ptr %clsr___fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c, ptr %envptr, align 8
     %ret = alloca %tp.lfmt.formatter.t.a.c, align 8
     call void @fmt_str_helper_printn(ptr %ret, ptr %fmtstr, ptr %__fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c), !dbg !31
-    %0 = getelementptr inbounds %tp.lfmt.formatter.t.a.c, ptr %ret, i32 0, i32 1
-    %1 = load i64, ptr %ret, align 8
-    %ne = icmp ne i64 %1, 1
+    %1 = getelementptr inbounds %tp.lfmt.formatter.t.a.c, ptr %ret, i32 0, i32 1
+    %2 = load i64, ptr %ret, align 8
+    %ne = icmp ne i64 %2, 1
     br i1 %ne, label %then, label %else, !dbg !32
   
   then:                                             ; preds = %entry
-    %2 = call ptr @__fmt_str_impl_fmt_fail_too_many_ra.c(), !dbg !33
-    call void @__free_fmt.formatter.t.a.c(ptr %0)
+    call void @__fmt_str_impl_fmt_fail_too_many_ra.c(ptr %0), !dbg !33
+    call void @__free_fmt.formatter.t.a.c(ptr %1)
     br label %ifcont
   
   else:                                             ; preds = %entry
-    %3 = call ptr @__fmt_formatter_extract_fmt.formatter.t.a.cra.c(ptr %0), !dbg !34
+    call void @__fmt_formatter_extract_fmt.formatter.t.a.cra.c(ptr %0, ptr %1), !dbg !34
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
-    %iftmp = phi ptr [ %2, %then ], [ %3, %else ]
-    ret ptr %iftmp
+    ret void
   }
   
   define linkonce_odr void @__fun_fmt_str2_C_fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c(ptr noalias %0, ptr %fmter, i64 %i, ptr %1) !dbg !35 {
   entry:
-    %v0 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 3
-    %v01 = load ptr, ptr %v0, align 8
+    %v0 = getelementptr inbounds { ptr, ptr, %closure, { ptr, i64, i64 } }, ptr %1, i32 0, i32 3
     %eq = icmp eq i64 %i, 0
     br i1 %eq, label %then, label %else, !dbg !36
   
   then:                                             ; preds = %entry
     %sunkaddr = getelementptr inbounds i8, ptr %1, i64 16
     %loadtmp = load ptr, ptr %sunkaddr, align 8
-    %sunkaddr3 = getelementptr inbounds i8, ptr %1, i64 24
-    %loadtmp2 = load ptr, ptr %sunkaddr3, align 8
-    tail call void %loadtmp(ptr %0, ptr %fmter, ptr %v01, ptr %loadtmp2), !dbg !37
+    %sunkaddr2 = getelementptr inbounds i8, ptr %1, i64 24
+    %loadtmp1 = load ptr, ptr %sunkaddr2, align 8
+    tail call void %loadtmp(ptr %0, ptr %fmter, ptr %v0, ptr %loadtmp1), !dbg !37
     ret void
   
   else:                                             ; preds = %entry
@@ -1177,7 +1229,7 @@ Increase refcount for returned params in ifs
     %loadtmp = load ptr, ptr %sunkaddr, align 8
     %sunkaddr3 = getelementptr inbounds i8, ptr %0, i64 24
     %loadtmp2 = load ptr, ptr %sunkaddr3, align 8
-    tail call void %loadtmp(ptr @0, ptr %loadtmp2), !dbg !42
+    tail call void %loadtmp(ptr @schmu_s, ptr %loadtmp2), !dbg !42
     store i64 %lsr.iv, ptr %1, align 8
     %lsr.iv.next = add i64 %lsr.iv, 1
     br label %rec
@@ -1185,15 +1237,10 @@ Increase refcount for returned params in ifs
   
   define void @schmu_test(ptr %value) !dbg !43 {
   entry:
-    %0 = alloca ptr, align 8
-    store ptr %value, ptr %0, align 8
-    %1 = alloca ptr, align 8
-    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 8 %0, i64 8, i1 false)
-    call void @__copy_a.c(ptr %1)
-    %2 = load ptr, ptr %1, align 8
-    %3 = alloca ptr, align 8
-    store ptr %2, ptr %3, align 8
-    call void @__free_a.c(ptr %3)
+    %0 = alloca { ptr, i64, i64 }, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %0, ptr align 1 %value, i64 24, i1 false)
+    call void @__copy_a.c(ptr %0)
+    call void @__free_a.c(ptr %0)
     ret void
   }
   
@@ -1214,6 +1261,9 @@ Increase refcount for returned params in ifs
     call void @schmu_inner(i64 0, ptr %clsr_schmu_inner), !dbg !45
     ret void
   }
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define linkonce_odr void @__free__a.cp.clru(ptr %0) {
   entry:
@@ -1277,18 +1327,15 @@ Increase refcount for returned params in ifs
     ret void
   }
   
-  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
-  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
-  
   declare void @abort()
   
   define linkonce_odr ptr @__ctor_tp._fmt.formatter.t.a.ca.crfmt.formatter.t.a.ca.c(ptr %0) {
   entry:
-    %1 = tail call ptr @malloc(i64 40)
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 40, i1 false)
-    %f0 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 2
+    %1 = tail call ptr @malloc(i64 56)
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %1, ptr align 1 %0, i64 56, i1 false)
+    %f0 = getelementptr inbounds { ptr, ptr, %closure, { ptr, i64, i64 } }, ptr %1, i32 0, i32 2
     tail call void @__copy__fmt.formatter.t.a.ca.crfmt.formatter.t.a.c(ptr %f0)
-    %v0 = getelementptr inbounds { ptr, ptr, %closure, ptr }, ptr %1, i32 0, i32 3
+    %v0 = getelementptr inbounds { ptr, ptr, %closure, { ptr, i64, i64 } }, ptr %1, i32 0, i32 3
     tail call void @__copy_a.c(ptr %v0)
     ret ptr %1
   }
@@ -1315,18 +1362,29 @@ Increase refcount for returned params in ifs
   
   define linkonce_odr void @__copy_a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
-    %2 = add i64 %size, 17
-    %3 = tail call ptr @malloc(i64 %2)
-    %4 = sub i64 %2, 1
-    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %1, i64 %4, i1 false)
-    %newcap = getelementptr i64, ptr %3, i64 1
-    store i64 %size, ptr %newcap, align 8
-    %5 = getelementptr i8, ptr %3, i64 %4
-    store i8 0, ptr %5, align 1
-    store ptr %3, ptr %0, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
+    %1 = icmp eq i64 %size, 0
+    br i1 %1, label %zero, label %nonempty
+  
+  zero:                                             ; preds = %entry
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 0, ptr %cap, align 8
+    store ptr null, ptr %0, align 8
+    br label %cont
+  
+  cont:                                             ; preds = %nonempty, %zero
     ret void
+  
+  nonempty:                                         ; preds = %entry
+    %2 = add i64 %size, 1
+    %3 = tail call ptr @malloc(i64 %2)
+    %4 = load ptr, ptr %0, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %4, i64 %2, i1 false)
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 %size, ptr %cap2, align 8
+    store ptr %3, ptr %0, align 8
+    br label %cont
   }
   
   define linkonce_odr void @__free_a.c(ptr %0) {
@@ -1414,88 +1472,76 @@ Handle partial allocations
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
-  %f.a.l = type { ptr, ptr, ptr }
-  %t.a.l = type { ptr, ptr }
-  %tp.a.ll = type { ptr, i64 }
+  %f.a.l = type { { ptr, i64, i64 }, { ptr, i64, i64 }, { ptr, i64, i64 } }
+  %t.a.l = type { { ptr, i64, i64 }, { ptr, i64, i64 } }
+  %tp.a.ll = type { { ptr, i64, i64 }, i64 }
   
-  define ptr @schmu_inf() !dbg !2 {
+  define void @schmu_inf(ptr noalias %0) !dbg !2 {
   entry:
-    %0 = alloca %f.a.l, align 8
-    %1 = tail call ptr @malloc(i64 24)
-    %arr = alloca ptr, align 8
-    store ptr %1, ptr %arr, align 8
-    store i64 1, ptr %1, align 8
-    %cap = getelementptr i64, ptr %1, i64 1
+    %1 = alloca %f.a.l, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %1, i32 0, i32 1
+    store i64 1, ptr %len, align 8
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %1, i32 0, i32 2
     store i64 1, ptr %cap, align 8
-    %2 = getelementptr i8, ptr %1, i64 16
+    %2 = tail call ptr @malloc(i64 8)
+    store ptr %2, ptr %1, align 8
     store i64 10, ptr %2, align 8
-    store ptr %1, ptr %0, align 8
-    %b = getelementptr inbounds %f.a.l, ptr %0, i32 0, i32 1
-    %3 = tail call ptr @malloc(i64 24)
-    %arr1 = alloca ptr, align 8
-    store ptr %3, ptr %arr1, align 8
-    store i64 1, ptr %3, align 8
-    %cap3 = getelementptr i64, ptr %3, i64 1
-    store i64 1, ptr %cap3, align 8
-    %4 = getelementptr i8, ptr %3, i64 16
-    store i64 10, ptr %4, align 8
+    %b = getelementptr inbounds %f.a.l, ptr %1, i32 0, i32 1
+    %len1 = getelementptr inbounds { ptr, i64, i64 }, ptr %b, i32 0, i32 1
+    store i64 1, ptr %len1, align 8
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %b, i32 0, i32 2
+    store i64 1, ptr %cap2, align 8
+    %3 = tail call ptr @malloc(i64 8)
     store ptr %3, ptr %b, align 8
-    %c = getelementptr inbounds %f.a.l, ptr %0, i32 0, i32 2
-    %5 = tail call ptr @malloc(i64 24)
-    %arr5 = alloca ptr, align 8
-    store ptr %5, ptr %arr5, align 8
-    store i64 1, ptr %5, align 8
-    %cap7 = getelementptr i64, ptr %5, i64 1
-    store i64 1, ptr %cap7, align 8
-    %6 = getelementptr i8, ptr %5, i64 16
-    store i64 10, ptr %6, align 8
-    store ptr %5, ptr %c, align 8
-    %7 = alloca ptr, align 8
+    store i64 10, ptr %3, align 8
+    %c = getelementptr inbounds %f.a.l, ptr %1, i32 0, i32 2
+    %len5 = getelementptr inbounds { ptr, i64, i64 }, ptr %c, i32 0, i32 1
+    store i64 1, ptr %len5, align 8
+    %cap6 = getelementptr inbounds { ptr, i64, i64 }, ptr %c, i32 0, i32 2
+    store i64 1, ptr %cap6, align 8
+    %4 = tail call ptr @malloc(i64 8)
+    store ptr %4, ptr %c, align 8
+    store i64 10, ptr %4, align 8
+    %5 = alloca { ptr, i64, i64 }, align 8
     call void @__free_a.l(ptr %c)
-    %.pre.pre = load ptr, ptr %0, align 8
-    store ptr %.pre.pre, ptr %7, align 8
-    call void @__free_a.l(ptr %7)
-    %sunkaddr = getelementptr inbounds i8, ptr %0, i64 8
-    %8 = load ptr, ptr %sunkaddr, align 8
-    ret ptr %8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %5, ptr align 8 %1, i64 24, i1 false)
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %b, i64 24, i1 false)
+    call void @__free_a.l(ptr %5)
+    ret void
   }
   
   define void @schmu_set_moved() !dbg !6 {
   entry:
     %0 = alloca %t.a.l, align 8
-    %1 = tail call ptr @malloc(i64 24)
-    %arr = alloca ptr, align 8
-    store ptr %1, ptr %arr, align 8
-    store i64 1, ptr %1, align 8
-    %cap = getelementptr i64, ptr %1, i64 1
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    store i64 1, ptr %len, align 8
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
     store i64 1, ptr %cap, align 8
-    %2 = getelementptr i8, ptr %1, i64 16
-    store i64 10, ptr %2, align 8
+    %1 = tail call ptr @malloc(i64 8)
     store ptr %1, ptr %0, align 8
+    store i64 10, ptr %1, align 8
     %b = getelementptr inbounds %t.a.l, ptr %0, i32 0, i32 1
-    %3 = tail call ptr @malloc(i64 24)
-    %arr1 = alloca ptr, align 8
-    store ptr %3, ptr %arr1, align 8
-    store i64 1, ptr %3, align 8
-    %cap3 = getelementptr i64, ptr %3, i64 1
-    store i64 1, ptr %cap3, align 8
-    %4 = getelementptr i8, ptr %3, i64 16
-    store i64 20, ptr %4, align 8
-    store ptr %3, ptr %b, align 8
-    %5 = alloca %tp.a.ll, align 8
-    store ptr %1, ptr %5, align 8
-    %"1" = getelementptr inbounds %tp.a.ll, ptr %5, i32 0, i32 1
+    %len1 = getelementptr inbounds { ptr, i64, i64 }, ptr %b, i32 0, i32 1
+    store i64 1, ptr %len1, align 8
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %b, i32 0, i32 2
+    store i64 1, ptr %cap2, align 8
+    %2 = tail call ptr @malloc(i64 8)
+    store ptr %2, ptr %b, align 8
+    store i64 20, ptr %2, align 8
+    %3 = alloca %tp.a.ll, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %3, ptr align 8 %0, i64 24, i1 false)
+    %"1" = getelementptr inbounds %tp.a.ll, ptr %3, i32 0, i32 1
     store i64 0, ptr %"1", align 8
-    %6 = tail call ptr @malloc(i64 24)
-    %arr6 = alloca ptr, align 8
-    store ptr %6, ptr %arr6, align 8
-    store i64 1, ptr %6, align 8
-    %cap8 = getelementptr i64, ptr %6, i64 1
-    store i64 1, ptr %cap8, align 8
-    %7 = getelementptr i8, ptr %6, i64 16
-    store i64 20, ptr %7, align 8
-    store ptr %6, ptr %0, align 8
-    call void @__free_tp.a.ll(ptr %5)
+    %arr = alloca { ptr, i64, i64 }, align 8
+    %len6 = getelementptr inbounds { ptr, i64, i64 }, ptr %arr, i32 0, i32 1
+    store i64 1, ptr %len6, align 8
+    %cap7 = getelementptr inbounds { ptr, i64, i64 }, ptr %arr, i32 0, i32 2
+    store i64 1, ptr %cap7, align 8
+    %4 = tail call ptr @malloc(i64 8)
+    store ptr %4, ptr %arr, align 8
+    store i64 20, ptr %4, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %0, ptr align 8 %arr, i64 24, i1 false)
+    call void @__free_tp.a.ll(ptr %3)
     call void @__free_t.a.l(ptr %0)
     ret void
   }
@@ -1508,6 +1554,9 @@ Handle partial allocations
     tail call void @free(ptr %1)
     ret void
   }
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
   
   define linkonce_odr void @__free_tp.a.ll(ptr %0) {
   entry:
@@ -1525,15 +1574,16 @@ Handle partial allocations
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !7 {
   entry:
-    %0 = tail call ptr @schmu_inf(), !dbg !8
-    tail call void @schmu_set_moved(), !dbg !9
-    %1 = alloca ptr, align 8
-    store ptr %0, ptr %1, align 8
-    call void @__free_a.l(ptr %1)
+    %ret = alloca { ptr, i64, i64 }, align 8
+    call void @schmu_inf(ptr %ret), !dbg !8
+    call void @schmu_set_moved(), !dbg !9
+    call void @__free_a.l(ptr %ret)
     ret i64 0
   }
   
   declare void @free(ptr %0)
+  
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
   
   !llvm.dbg.cu = !{!0}
   
@@ -1574,7 +1624,7 @@ Using unit values
   %fmt.formatter.t.u = type { %closure }
   %closure = type { ptr, ptr }
   
-  @fmt_int_digits = external global ptr
+  @fmt_int_digits = external global { ptr, i64, i64 }
   @schmu_a = constant i8 0
   @schmu_b = constant %option.t.u { i32 1 }
   @schmu_t = constant %thing zeroinitializer
@@ -1585,13 +1635,18 @@ Using unit values
   @schmu_b__2 = global %option.t.u zeroinitializer, align 4
   @schmu_t2 = global %thing zeroinitializer, align 1
   @schmu_u2 = global i8 0, align 1
-  @schmu_arr = global ptr null, align 8
+  @schmu_arr = global { ptr, i64, i64 } zeroinitializer, align 8
   @schmu_u__2 = global i8 0, align 1
-  @0 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"some\00" }
-  @1 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"none\00" }
-  @2 = private unnamed_addr constant { i64, i64, [5 x i8] } { i64 4, i64 4, [5 x i8] c"99.9\00" }
+  @0 = private unnamed_addr constant [18 x i8] c"__array_push_a.uu\00"
+  @1 = private unnamed_addr constant [10 x i8] c"array.smu\00"
+  @2 = private unnamed_addr constant [15 x i8] c"file not found\00"
+  @3 = private unnamed_addr constant [5 x i8] c"some\00"
+  @4 = private unnamed_addr constant [5 x i8] c"none\00"
+  @5 = private unnamed_addr constant [5 x i8] c"99.9\00"
   
   declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
+  
+  declare i64 @prelude_power_2_above(i64 %0, i64 %1)
   
   declare i64 @string_len(ptr %0)
   
@@ -1626,66 +1681,86 @@ Using unit values
   
   define linkonce_odr void @__array_push_a.uu(ptr noalias %arr) !dbg !7 {
   entry:
-    %0 = load ptr, ptr %arr, align 8
-    %capacity = getelementptr i64, ptr %0, i64 1
-    %1 = load i64, ptr %capacity, align 8
-    %2 = load i64, ptr %0, align 8
-    %eq = icmp eq i64 %1, %2
-    br i1 %eq, label %then, label %ifcont5, !dbg !8
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %arr, i32 0, i32 2
+    %0 = load i64, ptr %cap, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %arr, i32 0, i32 1
+    %1 = load i64, ptr %len, align 8
+    %eq = icmp eq i64 %0, %1
+    br i1 %eq, label %then, label %ifcont12, !dbg !8
   
   then:                                             ; preds = %entry
-    %eq1 = icmp eq i64 %1, 0
+    %eq1 = icmp eq i64 %0, 0
     br i1 %eq1, label %then2, label %else, !dbg !9
   
   then2:                                            ; preds = %then
-    %3 = tail call ptr @realloc(ptr %0, i64 16)
-    store ptr %3, ptr %arr, align 8
-    %newcap = getelementptr i64, ptr %3, i64 1
-    store i64 4, ptr %newcap, align 8
-    br label %ifcont5
+    %2 = load ptr, ptr %arr, align 8
+    %3 = icmp eq ptr %2, null
+    br i1 %3, label %success, label %fail, !dbg !10
+  
+  success:                                          ; preds = %then2
+    %4 = tail call ptr @malloc(i64 0)
+    store ptr %4, ptr %arr, align 8
+    %sunkaddr = getelementptr inbounds i8, ptr %arr, i64 16
+    store i64 4, ptr %sunkaddr, align 8
+    br label %ifcont12
+  
+  fail:                                             ; preds = %then2
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 55, ptr @0), !dbg !10
+    unreachable
   
   else:                                             ; preds = %then
-    %mul = mul i64 2, %1
-    %4 = tail call ptr @realloc(ptr %0, i64 16)
-    store ptr %4, ptr %arr, align 8
-    %newcap3 = getelementptr i64, ptr %4, i64 1
-    store i64 %mul, ptr %newcap3, align 8
-    br label %ifcont5
+    %5 = load ptr, ptr %arr, align 8
+    %6 = icmp eq ptr %5, null
+    %7 = xor i1 %6, true
+    br i1 %7, label %success6, label %fail7, !dbg !11
   
-  ifcont5:                                          ; preds = %entry, %then2, %else
-    %5 = phi ptr [ %4, %else ], [ %3, %then2 ], [ %0, %entry ]
-    %add = add i64 %2, 1
-    store i64 %add, ptr %5, align 8
+  success6:                                         ; preds = %else
+    %add = add i64 %0, 1
+    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !12
+    %9 = tail call ptr @realloc(ptr %5, i64 %8)
+    store ptr %9, ptr %arr, align 8
+    %sunkaddr16 = getelementptr inbounds i8, ptr %arr, i64 16
+    store i64 %8, ptr %sunkaddr16, align 8
+    br label %ifcont12
+  
+  fail7:                                            ; preds = %else
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 59, ptr @0), !dbg !11
+    unreachable
+  
+  ifcont12:                                         ; preds = %entry, %success, %success6
+    %add15 = add i64 %1, 1
+    %sunkaddr17 = getelementptr inbounds i8, ptr %arr, i64 8
+    store i64 %add15, ptr %sunkaddr17, align 8
     ret void
   }
   
-  define linkonce_odr void @__fmt_endl_fmt.formatter.t.uru(ptr %p) !dbg !10 {
+  define linkonce_odr void @__fmt_endl_fmt.formatter.t.uru(ptr %p) !dbg !13 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !12
-    call void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %ret), !dbg !13
+    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !15
+    call void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %ret), !dbg !16
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %fm) !dbg !14 {
+  define linkonce_odr void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %fm) !dbg !17 {
   entry:
     tail call void @__free_except1_fmt.formatter.t.u(ptr %fm)
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !15 {
+  define linkonce_odr void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !18 {
   entry:
     %1 = alloca %fmt.formatter.t.u, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
     %loadtmp = load ptr, ptr %1, align 8
     %envptr = getelementptr inbounds %closure, ptr %1, i32 0, i32 1
     %loadtmp1 = load ptr, ptr %envptr, align 8
-    tail call void %loadtmp(ptr %ptr, i64 %len, ptr %loadtmp1), !dbg !16
+    tail call void %loadtmp(ptr %ptr, i64 %len, ptr %loadtmp1), !dbg !19
     call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %1, i64 16, i1 false)
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !17 {
+  define linkonce_odr void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !20 {
   entry:
     %1 = alloca [64 x i8], align 1
     store [64 x i8] zeroinitializer, ptr %1, align 1
@@ -1701,10 +1776,10 @@ Using unit values
   
   cont:                                             ; preds = %false2, %false1, %entry
     %andtmp = phi i1 [ true, %entry ], [ true, %false1 ], [ false, %false2 ]
-    br i1 %andtmp, label %then, label %else, !dbg !18
+    br i1 %andtmp, label %then, label %else, !dbg !21
   
   then:                                             ; preds = %cont
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 1), !dbg !19
+    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 1), !dbg !22
     br label %ifcont
   
   else:                                             ; preds = %cont
@@ -1720,7 +1795,7 @@ Using unit values
     store ptr null, ptr %dtor, align 8
     %envptr = getelementptr inbounds %closure, ptr %fmt_aux, i32 0, i32 1
     store ptr %clsr_fmt_aux, ptr %envptr, align 8
-    %2 = call i64 @fmt_aux(i64 %value, i64 0, ptr %clsr_fmt_aux), !dbg !20
+    %2 = call i64 @fmt_aux(i64 %value, i64 0, ptr %clsr_fmt_aux), !dbg !23
     %add = add i64 %2, 1
     %div = sdiv i64 %add, 2
     %__fun_fmt2 = alloca %closure, align 8
@@ -1735,55 +1810,55 @@ Using unit values
     store ptr null, ptr %dtor7, align 8
     %envptr8 = getelementptr inbounds %closure, ptr %__fun_fmt2, i32 0, i32 1
     store ptr %clsr___fun_fmt2, ptr %envptr8, align 8
-    call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !21
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !22
+    call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !24
+    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !25
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %i) !dbg !23 {
+  define linkonce_odr void @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %i) !dbg !26 {
   entry:
-    tail call void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, i64 %i, i64 10), !dbg !24
+    tail call void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, i64 %i, i64 10), !dbg !27
     ret void
   }
   
-  define linkonce_odr void @__fmt_stdout_println__a.ca.c(ptr %fmt, ptr %value) !dbg !25 {
+  define linkonce_odr void @__fmt_stdout_println__a.ca.c(ptr %fmt, ptr %value) !dbg !28 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
-    call void @fmt_fmt_stdout_create(ptr %ret), !dbg !26
+    call void @fmt_fmt_stdout_create(ptr %ret), !dbg !29
     %loadtmp = load ptr, ptr %fmt, align 8
     %envptr = getelementptr inbounds %closure, ptr %fmt, i32 0, i32 1
     %loadtmp1 = load ptr, ptr %envptr, align 8
     %ret2 = alloca %fmt.formatter.t.u, align 8
-    call void %loadtmp(ptr %ret2, ptr %ret, ptr %value, ptr %loadtmp1), !dbg !27
-    call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret2), !dbg !28
+    call void %loadtmp(ptr %ret2, ptr %ret, ptr %value, ptr %loadtmp1), !dbg !30
+    call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret2), !dbg !31
     ret void
   }
   
-  define linkonce_odr void @__fmt_stdout_println__ll(ptr %fmt, i64 %value) !dbg !29 {
+  define linkonce_odr void @__fmt_stdout_println__ll(ptr %fmt, i64 %value) !dbg !32 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
-    call void @fmt_fmt_stdout_create(ptr %ret), !dbg !30
+    call void @fmt_fmt_stdout_create(ptr %ret), !dbg !33
     %loadtmp = load ptr, ptr %fmt, align 8
     %envptr = getelementptr inbounds %closure, ptr %fmt, i32 0, i32 1
     %loadtmp1 = load ptr, ptr %envptr, align 8
     %ret2 = alloca %fmt.formatter.t.u, align 8
-    call void %loadtmp(ptr %ret2, ptr %ret, i64 %value, ptr %loadtmp1), !dbg !31
-    call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret2), !dbg !32
+    call void %loadtmp(ptr %ret2, ptr %ret, i64 %value, ptr %loadtmp1), !dbg !34
+    call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret2), !dbg !35
     ret void
   }
   
-  define linkonce_odr void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, ptr %str) !dbg !33 {
+  define linkonce_odr void @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, ptr %str) !dbg !36 {
   entry:
-    %1 = tail call ptr @string_data(ptr %str), !dbg !34
-    %2 = tail call i64 @string_len(ptr %str), !dbg !35
-    tail call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 %2), !dbg !36
+    %1 = tail call ptr @string_data(ptr %str), !dbg !37
+    %2 = tail call i64 @string_len(ptr %str), !dbg !38
+    tail call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 %2), !dbg !39
     ret void
   }
   
-  define linkonce_odr void @__fun_fmt2(i64 %i, ptr %0) !dbg !37 {
+  define linkonce_odr void @__fun_fmt2(i64 %i, ptr %0) !dbg !40 {
   entry:
     %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
     %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
@@ -1791,11 +1866,11 @@ Using unit values
     %_fmt_length2 = load i64, ptr %_fmt_length, align 8
     %sub = sub i64 %_fmt_length2, %i
     %sub3 = sub i64 %sub, 1
-    tail call void @__array_fixed_swap_items_A64.c(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !38
+    tail call void @__array_fixed_swap_items_A64.c(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !41
     ret void
   }
   
-  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !39 {
+  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !42 {
   entry:
     %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
     %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
@@ -1814,14 +1889,13 @@ Using unit values
     %div = sdiv i64 %4, %base2
     %scevgep9 = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
     %scevgep10 = getelementptr i8, ptr %scevgep9, i64 -1
-    %5 = load ptr, ptr @fmt_int_digits, align 8
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
-    %6 = tail call i8 @string_get(ptr %5, i64 %add), !dbg !40
-    store i8 %6, ptr %scevgep10, align 1
+    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !43
+    store i8 %5, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
-    br i1 %ne, label %then, label %else, !dbg !41
+    br i1 %ne, label %then, label %else, !dbg !44
   
   then:                                             ; preds = %rec
     store i64 %div, ptr %1, align 8
@@ -1831,8 +1905,8 @@ Using unit values
   
   else:                                             ; preds = %rec
     %lt = icmp slt i64 %4, 0
-    %7 = add i64 %lsr.iv, -1, !dbg !42
-    br i1 %lt, label %then4, label %ifcont, !dbg !42
+    %6 = add i64 %lsr.iv, -1, !dbg !45
+    br i1 %lt, label %then4, label %ifcont, !dbg !45
   
   then4:                                            ; preds = %else
     %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
@@ -1840,20 +1914,24 @@ Using unit values
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then4
-    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %7, %else ]
+    %iftmp = phi i64 [ %lsr.iv, %then4 ], [ %6, %else ]
     ret i64 %iftmp
   }
   
-  define void @schmu_a__2() !dbg !43 {
+  define void @schmu_a__2() !dbg !46 {
   entry:
     ret void
   }
   
-  define void @schmu_t__2(ptr noalias %0) !dbg !45 {
+  define void @schmu_t__2(ptr noalias %0) !dbg !48 {
   entry:
     store %thing zeroinitializer, ptr %0, align 1
     ret void
   }
+  
+  declare void @prelude_assert_fail(ptr %0, ptr %1, i32 %2, ptr %3)
+  
+  declare ptr @malloc(i64 %0)
   
   declare ptr @realloc(ptr %0, i64 %1)
   
@@ -1898,47 +1976,48 @@ Using unit values
     ret ptr %1
   }
   
-  declare ptr @malloc(i64 %0)
-  
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !46 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !49 {
   entry:
     store i32 1, ptr @schmu_b__2, align 4
-    tail call void @schmu_a__2(), !dbg !47
+    tail call void @schmu_a__2(), !dbg !50
     %index = load i32, ptr @schmu_b__2, align 4
     %eq = icmp eq i32 %index, 1
-    br i1 %eq, label %then, label %else, !dbg !48
+    br i1 %eq, label %then, label %else, !dbg !51
   
   then:                                             ; preds = %entry
-    tail call void @string_println(ptr @0), !dbg !49
+    %boxconst = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @3, i64 4, i64 -1 }, ptr %boxconst, align 8
+    call void @string_println(ptr %boxconst), !dbg !52
     br label %ifcont
   
   else:                                             ; preds = %entry
-    tail call void @string_println(ptr @1), !dbg !50
+    %boxconst1 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @4, i64 4, i64 -1 }, ptr %boxconst1, align 8
+    call void @string_println(ptr %boxconst1), !dbg !53
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
-    tail call void @schmu_t__2(ptr @schmu_t2), !dbg !51
+    call void @schmu_t__2(ptr @schmu_t2), !dbg !54
     %clstmp = alloca %closure, align 8
     store ptr @__fmt_str_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @__fmt_stdout_println__a.ca.c(ptr %clstmp, ptr @2), !dbg !52
-    %0 = call ptr @malloc(i64 16)
+    %boxconst2 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @5, i64 4, i64 -1 }, ptr %boxconst2, align 8
+    call void @__fmt_stdout_println__a.ca.c(ptr %clstmp, ptr %boxconst2), !dbg !55
+    store i64 2, ptr getelementptr inbounds ({ ptr, i64, i64 }, ptr @schmu_arr, i32 0, i32 1), align 8
+    store i64 2, ptr getelementptr inbounds ({ ptr, i64, i64 }, ptr @schmu_arr, i32 0, i32 2), align 8
+    %0 = call ptr @malloc(i64 0)
     store ptr %0, ptr @schmu_arr, align 8
-    store i64 2, ptr %0, align 8
-    %cap = getelementptr i64, ptr %0, i64 1
-    store i64 2, ptr %cap, align 8
-    %1 = getelementptr i8, ptr %0, i64 16
-    call void @__array_push_a.uu(ptr @schmu_arr), !dbg !53
-    %clstmp1 = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp1, align 8
-    %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
-    store ptr null, ptr %envptr3, align 8
-    %2 = load ptr, ptr @schmu_arr, align 8
-    %3 = load i64, ptr %2, align 8
-    call void @__fmt_stdout_println__ll(ptr %clstmp1, i64 %3), !dbg !54
-    %4 = alloca %thing, align 8
-    %5 = alloca %thing, align 8
+    call void @__array_push_a.uu(ptr @schmu_arr), !dbg !56
+    %clstmp3 = alloca %closure, align 8
+    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp3, align 8
+    %envptr5 = getelementptr inbounds %closure, ptr %clstmp3, i32 0, i32 1
+    store ptr null, ptr %envptr5, align 8
+    %1 = load i64, ptr getelementptr inbounds ({ ptr, i64, i64 }, ptr @schmu_arr, i32 0, i32 1), align 8
+    call void @__fmt_stdout_println__ll(ptr %clstmp3, i64 %1), !dbg !57
+    %2 = alloca %thing, align 8
+    %3 = alloca %thing, align 8
     call void @__free_a.u(ptr @schmu_arr)
     ret i64 0
   }
@@ -1969,13 +2048,13 @@ Arguments
   
   @__schmu_argv = global ptr null
   @__schmu_argc = global i64 0
-  @0 = private unnamed_addr constant { i64, i64, [2 x i8] } { i64 1, i64 1, [2 x i8] c" \00" }
+  @0 = private unnamed_addr constant [2 x i8] c" \00"
   
-  declare ptr @string_concat(ptr %0, ptr %1)
+  declare void @string_concat(ptr noalias %0, ptr %1, ptr %2)
   
   declare void @string_println(ptr %0)
   
-  declare ptr @sys_make_argv()
+  declare void @sys_make_argv(ptr noalias %0)
   
   define void @schmu_nothing() !dbg !2 {
   entry:
@@ -1987,15 +2066,15 @@ Arguments
     store i64 %__argc, ptr @__schmu_argc, align 8
     store ptr %__argv, ptr @__schmu_argv, align 8
     tail call void @schmu_nothing(), !dbg !7
-    %0 = tail call ptr @sys_make_argv(), !dbg !8
-    %1 = tail call ptr @string_concat(ptr @0, ptr %0), !dbg !9
-    tail call void @string_println(ptr %1), !dbg !10
-    %2 = alloca ptr, align 8
-    store ptr %1, ptr %2, align 8
-    call void @__free_a.c(ptr %2)
-    %3 = alloca ptr, align 8
-    store ptr %0, ptr %3, align 8
-    call void @__free_a.a.c(ptr %3)
+    %boxconst = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 1, i64 -1 }, ptr %boxconst, align 8
+    %ret = alloca { ptr, i64, i64 }, align 8
+    call void @sys_make_argv(ptr %ret), !dbg !8
+    %ret1 = alloca { ptr, i64, i64 }, align 8
+    call void @string_concat(ptr %ret1, ptr %boxconst, ptr %ret), !dbg !9
+    call void @string_println(ptr %ret1), !dbg !10
+    call void @__free_a.c(ptr %ret1)
+    call void @__free_a.a.c(ptr %ret)
     ret i64 0
   }
   
@@ -2008,28 +2087,30 @@ Arguments
   
   define linkonce_odr void @__free_a.a.c(ptr %0) {
   entry:
-    %1 = load ptr, ptr %0, align 8
-    %size = load i64, ptr %1, align 8
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
     %cnt = alloca i64, align 8
     store i64 0, ptr %cnt, align 8
-    %scevgep = getelementptr i8, ptr %1, i64 16
     br label %rec
   
   rec:                                              ; preds = %child, %entry
-    %lsr.iv = phi ptr [ %scevgep1, %child ], [ %scevgep, %entry ]
-    %2 = phi i64 [ %4, %child ], [ 0, %entry ]
-    %3 = icmp slt i64 %2, %size
-    br i1 %3, label %child, label %cont
+    %lsr.iv = phi i64 [ %lsr.iv.next, %child ], [ 0, %entry ]
+    %1 = phi i64 [ %4, %child ], [ 0, %entry ]
+    %2 = icmp slt i64 %1, %size
+    br i1 %2, label %child, label %cont
   
   child:                                            ; preds = %rec
-    tail call void @__free_a.c(ptr %lsr.iv)
-    %4 = add i64 %2, 1
+    %3 = load ptr, ptr %0, align 8
+    %scevgep = getelementptr i8, ptr %3, i64 %lsr.iv
+    tail call void @__free_a.c(ptr %scevgep)
+    %4 = add i64 %1, 1
     store i64 %4, ptr %cnt, align 8
-    %scevgep1 = getelementptr i8, ptr %lsr.iv, i64 8
+    %lsr.iv.next = add i64 %lsr.iv, 24
     br label %rec
   
   cont:                                             ; preds = %rec
-    tail call void @free(ptr %1)
+    %5 = load ptr, ptr %0, align 8
+    tail call void @free(ptr %5)
     ret void
   }
   

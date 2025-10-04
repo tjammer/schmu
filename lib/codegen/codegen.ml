@@ -146,7 +146,7 @@ end = struct
     in
 
     match typed_expr.expr with
-    | Mconst (String s) -> gen_string_lit param s
+    | Mconst (String s) -> gen_string_lit s
     | Mconst (Array (arr, allocref, id)) ->
         let v = gen_array_lit param arr typed_expr.typ allocref in
         Hashtbl.replace free_tbl id v;
@@ -908,8 +908,7 @@ end = struct
         let md = di_loc param tyexpr.loc in
         let loc = fst tyexpr.loc in
         ignore
-          (assert_fail param ~text ~file:loc.pos_fname ~line:loc.pos_lnum ~func
-             md);
+          (assert_fail ~text ~file:loc.pos_fname ~line:loc.pos_lnum ~func md);
 
         Llvm.position_at_end success_bb builder;
 
@@ -1288,7 +1287,7 @@ end = struct
     ignore (gen_expr param expr);
     gen_expr param cont
 
-  and gen_string_lit p s = get_const_string p s
+  and gen_string_lit s = get_const_string s
 
   and gen_ctor param (variant, tag, expr) typ allocref ms =
     let lltyp = get_struct typ in

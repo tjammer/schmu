@@ -207,16 +207,16 @@ struct
       | _ -> failwith "Internal Error: Arity mismatch in builtin"
     in
 
-    let ptr =
+    let ptr, kind =
       match arr.kind with
-      | Const -> Llvm.(const_extractelement arr.value (ci 0))
-      | _ -> data_ptr arr.value
+      | Const -> (Llvm.(const_extractelement arr.value (ci 0)), Const)
+      | _ -> (data_ptr arr.value, Ptr)
     in
 
     let itemtyp = item_type arr.typ in
     let typ = Traw_ptr itemtyp in
     let lltyp = get_lltype_def typ in
-    let v = { value = ptr; typ; lltyp; kind = Ptr } in
+    let v = { value = ptr; typ; lltyp; kind } in
     v
 
   let unsafe_array_create param typ allocref =

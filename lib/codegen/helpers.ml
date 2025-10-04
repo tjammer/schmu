@@ -67,13 +67,12 @@ module type S = sig
   val realloc : Llvm.llvalue -> size:Llvm.llvalue -> Llvm.llvalue
   val malloc : size:Llvm.llvalue -> Llvm.llvalue
   val alloca : Llvm_types.param -> Llvm.lltype -> string -> Llvm.llvalue
-  val get_const_string : Llvm_types.param -> string -> llvar
+  val get_const_string : string -> llvar
   val free_var : Llvm.llvalue -> Llvm.llvalue
   val set_in_init : bool -> unit
   val is_in_init : unit -> bool
 
   val assert_fail :
-    Llvm_types.param ->
     text:string ->
     file:string ->
     line:int ->
@@ -195,7 +194,7 @@ struct
     let ft, decl = Lazy.force free in
     Llvm.build_call ft decl [| ptr |] "" builder
 
-  let get_const_string p s =
+  let get_const_string s =
     let ptr =
       match Strtbl.find_opt string_tbl s with
       | Some ptr -> ptr
@@ -215,11 +214,10 @@ struct
     let value =
       Llvm.const_struct context [| ptr; ci (String.length s); ci (-1) |]
     in
-    ignore p;
     { value; typ = Tarray Tu8; lltyp = array_t; kind = Const }
 
   (* use [__assert_fail] from libc *)
-  let assert_fail p ~text ~file ~line ~func md =
+  let assert_fail ~text ~file ~line ~func md =
     let assert_fail =
       lazy
         Llvm.(
@@ -228,7 +226,7 @@ struct
     in
 
     let d txt =
-      let value = get_const_string p txt in
+      let value = get_const_string txt in
       Arr.array_data [ value ] |> bring_default
     in
     let args = [| d text; d file; Llvm.const_int i32_t line; d func |] in

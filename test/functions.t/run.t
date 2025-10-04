@@ -1249,39 +1249,27 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %ifcont12
   
   fail:                                             ; preds = %then2
-    %const20 = bitcast i64 8390045716234135910 to i64, !dbg !8
-    %const18 = bitcast i64 7886698471316681313 to i64, !dbg !8
-    %const16 = bitcast i64 6879637049958293343 to i64, !dbg !8
-    %5 = inttoptr i64 %const16 to ptr, !dbg !8
-    %6 = inttoptr i64 %const18 to ptr, !dbg !8
-    %7 = inttoptr i64 %const20 to ptr, !dbg !8
-    tail call void @prelude_assert_fail(ptr %7, ptr %6, i32 55, ptr %5), !dbg !8
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 55, ptr @0), !dbg !8
     unreachable
   
   else:                                             ; preds = %then
-    %8 = load ptr, ptr %arr, align 8
-    %9 = icmp eq ptr %8, null
-    %10 = xor i1 %9, true
-    br i1 %10, label %success6, label %fail7, !dbg !9
+    %5 = load ptr, ptr %arr, align 8
+    %6 = icmp eq ptr %5, null
+    %7 = xor i1 %6, true
+    br i1 %7, label %success6, label %fail7, !dbg !9
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %11 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !10
-    %size = mul i64 %11, 8
-    %12 = tail call ptr @realloc(ptr %8, i64 %size)
-    store ptr %12, ptr %arr, align 8
-    %sunkaddr21 = getelementptr inbounds i8, ptr %arr, i64 16
-    store i64 %11, ptr %sunkaddr21, align 8
+    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !10
+    %size = mul i64 %8, 8
+    %9 = tail call ptr @realloc(ptr %5, i64 %size)
+    store ptr %9, ptr %arr, align 8
+    %sunkaddr16 = getelementptr inbounds i8, ptr %arr, i64 16
+    store i64 %8, ptr %sunkaddr16, align 8
     br label %ifcont12
   
   fail7:                                            ; preds = %else
-    %const19 = bitcast i64 8390045716234135910 to i64, !dbg !9
-    %const17 = bitcast i64 7886698471316681313 to i64, !dbg !9
-    %const = bitcast i64 6879637049958293343 to i64, !dbg !9
-    %13 = inttoptr i64 %const to ptr, !dbg !9
-    %14 = inttoptr i64 %const17 to ptr, !dbg !9
-    %15 = inttoptr i64 %const19 to ptr, !dbg !9
-    tail call void @prelude_assert_fail(ptr %15, ptr %14, i32 59, ptr %13), !dbg !9
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 59, ptr @0), !dbg !9
     unreachable
   
   else11:                                           ; preds = %entry
@@ -1289,12 +1277,12 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %ifcont12
   
   ifcont12:                                         ; preds = %success, %success6, %else11
-    %16 = phi ptr [ %.pre, %else11 ], [ %12, %success6 ], [ %4, %success ]
-    %17 = getelementptr inbounds i64, ptr %16, i64 %1
-    store i64 %value, ptr %17, align 8
+    %10 = phi ptr [ %.pre, %else11 ], [ %9, %success6 ], [ %4, %success ]
+    %11 = getelementptr inbounds i64, ptr %10, i64 %1
+    store i64 %value, ptr %11, align 8
     %add15 = add i64 %1, 1
-    %sunkaddr22 = getelementptr inbounds i8, ptr %arr, i64 8
-    store i64 %add15, ptr %sunkaddr22, align 8
+    %sunkaddr17 = getelementptr inbounds i8, ptr %arr, i64 8
+    store i64 %add15, ptr %sunkaddr17, align 8
     ret void
   }
   
@@ -1703,39 +1691,27 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %ifcont12
   
   fail:                                             ; preds = %then2
-    %const20 = bitcast i64 8390045716234135910 to i64, !dbg !10
-    %const18 = bitcast i64 7886698471316681313 to i64, !dbg !10
-    %const16 = bitcast i64 6879637049958293343 to i64, !dbg !10
-    %5 = inttoptr i64 %const16 to ptr, !dbg !10
-    %6 = inttoptr i64 %const18 to ptr, !dbg !10
-    %7 = inttoptr i64 %const20 to ptr, !dbg !10
-    tail call void @prelude_assert_fail(ptr %7, ptr %6, i32 55, ptr %5), !dbg !10
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 55, ptr @0), !dbg !10
     unreachable
   
   else:                                             ; preds = %then
-    %8 = load ptr, ptr %arr, align 8
-    %9 = icmp eq ptr %8, null
-    %10 = xor i1 %9, true
-    br i1 %10, label %success6, label %fail7, !dbg !11
+    %5 = load ptr, ptr %arr, align 8
+    %6 = icmp eq ptr %5, null
+    %7 = xor i1 %6, true
+    br i1 %7, label %success6, label %fail7, !dbg !11
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %11 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !12
-    %size = mul i64 %11, 8
-    %12 = tail call ptr @realloc(ptr %8, i64 %size)
-    store ptr %12, ptr %arr, align 8
-    %sunkaddr21 = getelementptr inbounds i8, ptr %arr, i64 16
-    store i64 %11, ptr %sunkaddr21, align 8
+    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !12
+    %size = mul i64 %8, 8
+    %9 = tail call ptr @realloc(ptr %5, i64 %size)
+    store ptr %9, ptr %arr, align 8
+    %sunkaddr16 = getelementptr inbounds i8, ptr %arr, i64 16
+    store i64 %8, ptr %sunkaddr16, align 8
     br label %ifcont12
   
   fail7:                                            ; preds = %else
-    %const19 = bitcast i64 8390045716234135910 to i64, !dbg !11
-    %const17 = bitcast i64 7886698471316681313 to i64, !dbg !11
-    %const = bitcast i64 6879637049958293343 to i64, !dbg !11
-    %13 = inttoptr i64 %const to ptr, !dbg !11
-    %14 = inttoptr i64 %const17 to ptr, !dbg !11
-    %15 = inttoptr i64 %const19 to ptr, !dbg !11
-    tail call void @prelude_assert_fail(ptr %15, ptr %14, i32 59, ptr %13), !dbg !11
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 59, ptr @0), !dbg !11
     unreachable
   
   else11:                                           ; preds = %entry
@@ -1743,12 +1719,12 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %ifcont12
   
   ifcont12:                                         ; preds = %success, %success6, %else11
-    %16 = phi ptr [ %.pre, %else11 ], [ %12, %success6 ], [ %4, %success ]
-    %17 = getelementptr inbounds i64, ptr %16, i64 %1
-    store i64 %value, ptr %17, align 8
+    %10 = phi ptr [ %.pre, %else11 ], [ %9, %success6 ], [ %4, %success ]
+    %11 = getelementptr inbounds i64, ptr %10, i64 %1
+    store i64 %value, ptr %11, align 8
     %add15 = add i64 %1, 1
-    %sunkaddr22 = getelementptr inbounds i8, ptr %arr, i64 8
-    store i64 %add15, ptr %sunkaddr22, align 8
+    %sunkaddr17 = getelementptr inbounds i8, ptr %arr, i64 8
+    store i64 %add15, ptr %sunkaddr17, align 8
     ret void
   }
   
@@ -2490,38 +2466,26 @@ The lamba passed as array_iter argument is polymorphic
     br label %ifcont12
   
   fail:                                             ; preds = %then2
-    %const20 = bitcast i64 8390045716234135910 to i64, !dbg !17
-    %const18 = bitcast i64 7886698471316681313 to i64, !dbg !17
-    %const16 = bitcast i64 6879637049958293343 to i64, !dbg !17
-    %5 = inttoptr i64 %const16 to ptr, !dbg !17
-    %6 = inttoptr i64 %const18 to ptr, !dbg !17
-    %7 = inttoptr i64 %const20 to ptr, !dbg !17
-    tail call void @prelude_assert_fail(ptr %7, ptr %6, i32 55, ptr %5), !dbg !17
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 55, ptr @0), !dbg !17
     unreachable
   
   else:                                             ; preds = %then
-    %8 = load ptr, ptr %arr, align 8
-    %9 = icmp eq ptr %8, null
-    %10 = xor i1 %9, true
-    br i1 %10, label %success6, label %fail7, !dbg !18
+    %5 = load ptr, ptr %arr, align 8
+    %6 = icmp eq ptr %5, null
+    %7 = xor i1 %6, true
+    br i1 %7, label %success6, label %fail7, !dbg !18
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %11 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !19
-    %12 = tail call ptr @realloc(ptr %8, i64 %11)
-    store ptr %12, ptr %arr, align 8
-    %sunkaddr21 = getelementptr inbounds i8, ptr %arr, i64 16
-    store i64 %11, ptr %sunkaddr21, align 8
+    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !19
+    %9 = tail call ptr @realloc(ptr %5, i64 %8)
+    store ptr %9, ptr %arr, align 8
+    %sunkaddr16 = getelementptr inbounds i8, ptr %arr, i64 16
+    store i64 %8, ptr %sunkaddr16, align 8
     br label %ifcont12
   
   fail7:                                            ; preds = %else
-    %const19 = bitcast i64 8390045716234135910 to i64, !dbg !18
-    %const17 = bitcast i64 7886698471316681313 to i64, !dbg !18
-    %const = bitcast i64 6879637049958293343 to i64, !dbg !18
-    %13 = inttoptr i64 %const to ptr, !dbg !18
-    %14 = inttoptr i64 %const17 to ptr, !dbg !18
-    %15 = inttoptr i64 %const19 to ptr, !dbg !18
-    tail call void @prelude_assert_fail(ptr %15, ptr %14, i32 59, ptr %13), !dbg !18
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 59, ptr @0), !dbg !18
     unreachable
   
   else11:                                           ; preds = %entry
@@ -2529,12 +2493,12 @@ The lamba passed as array_iter argument is polymorphic
     br label %ifcont12
   
   ifcont12:                                         ; preds = %success, %success6, %else11
-    %16 = phi ptr [ %.pre, %else11 ], [ %12, %success6 ], [ %4, %success ]
-    %17 = getelementptr inbounds i8, ptr %16, i64 %1
-    store i8 %value, ptr %17, align 1
+    %10 = phi ptr [ %.pre, %else11 ], [ %9, %success6 ], [ %4, %success ]
+    %11 = getelementptr inbounds i8, ptr %10, i64 %1
+    store i8 %value, ptr %11, align 1
     %add15 = add i64 %1, 1
-    %sunkaddr22 = getelementptr inbounds i8, ptr %arr, i64 8
-    store i64 %add15, ptr %sunkaddr22, align 8
+    %sunkaddr17 = getelementptr inbounds i8, ptr %arr, i64 8
+    store i64 %add15, ptr %sunkaddr17, align 8
     ret void
   }
   
