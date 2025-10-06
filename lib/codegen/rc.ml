@@ -20,6 +20,7 @@ module type S = sig
   val to_weak : llvar -> llvar
   val unsafe_of_weak : llvar -> llvar
   val cnt : llvar -> llvar
+  val unsafe_addr : llvar -> llvar
 end
 
 module Make (C : Core) (T : Lltypes_intf.S) (H : Helpers.S) = struct
@@ -78,6 +79,12 @@ module Make (C : Core) (T : Lltypes_intf.S) (H : Helpers.S) = struct
 
     let typ = Trc (Strong, item_type v.typ) in
     { v with typ }
+
+  let unsafe_addr v =
+    let value = bring_default_var v in
+
+    let typ = Traw_ptr (item_type value.typ) in
+    { value with kind = Imm; typ; lltyp = ptr_t }
 
   let cnt v =
     let def = bring_default v in

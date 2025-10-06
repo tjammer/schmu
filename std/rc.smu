@@ -13,6 +13,8 @@ signature {
 
   val to_weak : fun (rc['a]) -> weak_rc['a]
   val of_weak : fun (weak_rc['a]) -> option/t[rc['a]]
+
+  val unsafe_addr : fun (rc['a]) -> raw_ptr['a]
 }
 
 let create = __rc_create
@@ -42,3 +44,5 @@ fun read(rc, fn) {
 fun write(mut rc, fn) {
   fn(mut __unsafe_rc_get(rc))
 }
+
+let unsafe_addr = __unsafe_rc_addr

@@ -1057,6 +1057,8 @@ end = struct
         let a, b = binary () in
         let value = Llvm.(build_icmp Icmp.Eq a b "rceq") builder in
         { value; lltyp = bool_t; typ = Tbool; kind = Imm }
+    | Unsafe_rc_addr ->
+        List.hd args |> bring_default_var |> fun llvar -> R.unsafe_addr llvar
     | Any_abort -> (
         let ft, abort =
           Llvm.(

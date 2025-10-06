@@ -66,6 +66,7 @@ type t =
   | Rc_cnt
   | Rc_wcnt
   | Rc_equal
+  | Unsafe_rc_addr
   | Any_abort
   | Any_exit
 [@@deriving show]
@@ -310,6 +311,9 @@ let tbl =
         ( [ { pm with pt = trc (Qvar "0") }; { pm with pt = trc (Qvar "0") } ],
           tbool,
           Simple ) );
+  Hashtbl.add tbl "__unsafe_rc_addr"
+    ( Unsafe_rc_addr,
+      Tfun ([ { pm with pt = trc (Qvar "0") } ], traw_ptr (Qvar "0"), Simple) );
   Hashtbl.add tbl "__any_abort" (Any_abort, Tfun ([], Qvar "0", Simple));
   Hashtbl.add tbl "__any_exit"
     (Any_exit, Tfun ([ { pm with pt = ti32 } ], Qvar "0", Simple));
