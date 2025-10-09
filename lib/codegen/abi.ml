@@ -164,7 +164,7 @@ module Make (T : Lltypes_intf.S) : Abi_intf.S = struct
         failwith "Internal Error: Cannot deal with const two types yet"
     | One_param (Ints _) ->
         let pieces = Llvm.struct_element_types value.lltyp |> Array.length in
-        if pieces > 1 then Llvm.const_bitcast value.value target_type
+        if pieces > 1 then Llvm.const_trunc_or_bitcast value.value target_type
         else
           let value = Llvm.build_extractvalue value.value 0 "" builder in
           Llvm.const_bitcast value target_type
