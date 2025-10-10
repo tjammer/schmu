@@ -5,6 +5,7 @@ import hashtbl
 import in_channel
 import int
 import iter
+import libc
 import option
 import prelude
 import rc
@@ -33,6 +34,7 @@ module hashtbl = hashtbl
 module in_channel = in_channel
 module int = int
 module iter = iter
+module libc = libc
 module option = option
 module rc = rc
 module set = set
