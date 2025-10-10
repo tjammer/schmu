@@ -1515,7 +1515,24 @@ let has_init_code tree =
   in
   aux Monomorph_tree.(tree.expr)
 
-let add_global_init funcs outname start_loc kind body =
+let add_global_init funcs outname start_loc triple kind body =
+  let is_darwin_triple triple =
+    let darwin = "darwin" in
+    let rec is_darwin itr idw =
+      if itr = String.length triple || idw = String.length darwin then true
+      else if String.get triple itr = String.get darwin idw then
+        is_darwin (itr + 1) (idw + 1)
+      else false
+    in
+    let rec find_darwin i =
+      if i = String.length triple then false
+      else if String.get triple i = 'd' then
+        if is_darwin i 0 then true else find_darwin (i + 1)
+      else find_darwin (i + 1)
+    in
+    find_darwin 0
+  in
+
   let fname, glname =
     match kind with
     | `Ctor -> ("__" ^ outname ^ "_init", "llvm.global_ctors")
@@ -1537,7 +1554,12 @@ let add_global_init funcs outname start_loc kind body =
   let init = Vars.find fname p.vars in
   let open Llvm in
   set_linkage Linkage.Internal init.value;
-  set_section ".text.startup" init.value;
+  let startup_sec =
+    if is_darwin_triple triple then
+      "__TEXT,__StaticInit,regular,pure_instructions"
+    else ".text.startup"
+  in
+  set_section startup_sec init.value;
 
   let init =
     [| const_int i32_t 65535; init.value; const_pointer_null ptr_t |]
@@ -1666,7 +1688,7 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
   else if has_init_code tree then (
     (* Or module init *)
     H.set_in_init true;
-    add_global_init funcs outname start_loc `Ctor tree;
+    add_global_init funcs outname start_loc triple `Ctor tree;
 
     (* Add frees to global dctors in reverse order *)
     if not (Seq.is_empty frees) then
@@ -1675,7 +1697,8 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
         Monomorph_tree.
           { typ = Tunit; expr = Mconst Unit; return = true; loc; const = Cnot }
       in
-      add_global_init no_param outname start_loc `Dtor (free_mallocs body frees));
+      add_global_init no_param outname start_loc triple `Dtor
+        (free_mallocs body frees));
   (* Generate internal helper functions for arrays *)
   Auto.gen_functions ();
 
