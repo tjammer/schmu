@@ -2,7 +2,7 @@ Compile stubs
   $ cc -c stub.c
 
 Simple record creation (out of order)
-  $ schmu --dump-llvm stub.o simple.smu 2>&1 | grep -v !DI && ./simple
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm stub.o simple.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -22,10 +22,12 @@ Simple record creation (out of order)
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o simple.smu 
+  $ ./simple
   10
 
 Pass record to function
-  $ schmu --dump-llvm stub.o pass.smu 2>&1 | grep -v !DI && ./pass
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm pass.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -55,11 +57,13 @@ Pass record to function
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o pass.smu
+  $ ./pass
   20
 
 
 Create record
-  $ schmu --dump-llvm stub.o create.smu 2>&1 | grep -v !DI && ./create
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm create.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -91,10 +95,12 @@ Create record
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o create.smu
+  $ ./create
   8
 
 Nested records
-  $ schmu --dump-llvm stub.o nested.smu 2>&1 | grep -v !DI && ./nested
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm nested.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -150,11 +156,13 @@ Nested records
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o nested.smu
+  $ ./nested
   3
   124
 
 Pass generic record
-  $ schmu --dump-llvm stub.o parametrized_pass.smu 2>&1 | grep -v !DI && ./parametrized_pass
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm parametrized_pass.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -266,11 +274,13 @@ Pass generic record
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o parametrized_pass.smu
+  $ ./parametrized_pass
   700
   234
 
 Access parametrized record fields
-  $ schmu --dump-llvm stub.o parametrized_get.smu 2>&1 | grep -v !DI && ./parametrized_get
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm parametrized_get.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -359,6 +369,8 @@ Access parametrized record fields
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o parametrized_get.smu
+  $ ./parametrized_get
   700
   1
   20
@@ -366,7 +378,7 @@ Access parametrized record fields
   0
 
 Make sure alignment of generic param works
-  $ schmu --dump-llvm stub.o misaligned_get.smu 2>&1 | grep -v !DI && ./misaligned_get
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm misaligned_get.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -397,10 +409,12 @@ Make sure alignment of generic param works
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o misaligned_get.smu
+  $ ./misaligned_get
   30
 
 Parametrization needs to be given, if a type is generic
-  $ schmu --dump-llvm stub.o missing_parameter.smu 2>&1 | grep -v !DI
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm missing_parameter.smu 2>&1 | grep -v !DI
   missing_parameter.smu:5.10-11: error: Type t expects 1 type parameter.
   
   5 | fun (t : t) { t.t }
@@ -408,7 +422,7 @@ Parametrization needs to be given, if a type is generic
   
 
 Support function/closure fields
-  $ schmu --dump-llvm stub.o function_fields.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./function_fields
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm function_fields.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -725,6 +739,8 @@ Support function/closure fields
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o function_fields.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./function_fields
   0
   1
   2
@@ -738,7 +754,7 @@ Support function/closure fields
   100
 
 Regression test: Closures for records used to use store/load like for register values
-  $ schmu --dump-llvm stub.o closure.smu 2>&1 | grep -v !DI && ./closure
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm closure.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -765,12 +781,14 @@ Regression test: Closures for records used to use store/load like for register v
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o closure.smu
+  $ ./closure
   12
   14
 
 Regression test: Return allocas were propagated by lets to values earlier in a function.
 This caused stores to a wrong pointer type in LLVM
-  $ schmu --dump-llvm stub.o nested_init_let.smu 2>&1 | grep -v !DI && ./nested_init_let
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm nested_init_let.smu 2>&1 | grep -v !DI
   nested_init_let.smu:12.9-10: warning: Unused binding a.
   
   12 |     let a = {y = {x = 1}, z = 2}
@@ -825,13 +843,15 @@ This caused stores to a wrong pointer type in LLVM
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o nested_init_let.smu > /dev/null 2>&1
+  $ ./nested_init_let
   15
   12
   17
   9
 
 A return of a field should not be preallocated
-  $ schmu --dump-llvm stub.o nested_prealloc.smu 2>&1 | grep -v !DI && ./nested_prealloc
+  $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm nested_prealloc.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -954,13 +974,15 @@ A return of a field should not be preallocated
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o nested_prealloc.smu
+  $ ./nested_prealloc
   2
   12
 
 Free nested records
   $ schmu free_nested.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./free_nested
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./free_nested
 
 Free missing record fields
   $ schmu free_missing_fields.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./free_missing_fields
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./free_missing_fields

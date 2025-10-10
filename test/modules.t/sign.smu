@@ -10,7 +10,7 @@ signature {
   val create_use_hidden : fun () -> use_hidden_type
   val create_abstr : fun () -> abstr
 }
-external ext : fun (string/cstr, int) -> unit = "printf"
+external ext : fun (string/cstr, int) -> unit = "myprintf"
 fun int(i : int) {
   fmt/println(fmt/int, i)
 }

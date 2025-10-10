@@ -1,5 +1,8 @@
+Compile stubs
+  $ cc -c stub.c
+
 Simplest module with 1 type and 1 nonpolymorphic function
-  $ schmu nonpoly_func.smu -m --dump-llvm 2>&1 | grep -v !DI
+  $ schmu nonpoly_func.smu -m --dump-llvm -c --target x86_64-unknown-linux-gnu -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   nonpoly_func.smu:4.7-8: warning: Unused binding c.
   
   4 |   let c = 10
@@ -20,10 +23,11 @@ Simplest module with 1 type and 1 nonpolymorphic function
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu nonpoly_func.smu -m > /dev/null 2>&1
   $ cat nonpoly_func.smi | sed -E 's/([0-9]+:\/.*lib\/schmu\/std)//'
   (()((5:Mtype(((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:26)))6:either((6:params())(4:kind(8:Dvariant((12:is_recursive5:false)(8:has_base4:true)(17:params_behind_ptr5:false))(((5:cname4:left)(4:ctyp())(5:index1:0))((5:cname5:right)(4:ctyp())(5:index1:1)))))(6:in_sgn5:false)(14:contains_alloc5:false)))(4:Mfun(((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:3)(7:pos_bol2:28)(8:pos_cnum2:32))((9:pos_fname16:nonpoly_func.smu)(8:pos_lnum1:6)(7:pos_bol2:70)(8:pos_cnum2:71)))(4:Tfun(((2:pt(7:Tconstr3:int()5:false))(5:pattr5:Dnorm)(5:pmode(6:Iknown4:Many)))((2:pt(7:Tconstr3:int()5:false))(5:pattr5:Dnorm)(5:pmode(6:Iknown4:Many))))(7:Tconstr3:int()5:false)6:Simple)((4:user8:add_ints)(4:call((8:add_ints(12:nonpoly_func)()))))))((/std/string5:false)))
 
-  $ schmu import_nonpoly_func.smu --dump-llvm 2>&1 | grep -v !DI
+  $ schmu import_nonpoly_func.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -303,10 +307,11 @@ Simplest module with 1 type and 1 nonpolymorphic function
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu import_nonpoly_func.smu
   $ ./import_nonpoly_func
   5
 
-  $ schmu local_import_nonpoly_func.smu --dump-llvm 2>&1 | grep -v !DI
+  $ schmu local_import_nonpoly_func.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -608,11 +613,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu local_import_nonpoly_func.smu
   $ ./local_import_nonpoly_func
   5
   5
 
-  $ schmu lets.smu -m --dump-llvm 2>&1 | grep -v !DI
+  $ schmu lets.smu -m --dump-llvm -c --target x86_64-unknown-linux-gnu -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -637,8 +643,9 @@ Simplest module with 1 type and 1 nonpolymorphic function
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu lets.smu -m
 
-  $ schmu import_lets.smu --dump-llvm 2>&1 | grep -v !DI
+  $ schmu import_lets.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -649,7 +656,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare ptr @string_data(ptr %0)
   
-  declare void @printf(ptr %0, i64 %1)
+  declare void @myprintf(ptr %0, i64 %1)
   
   define void @schmu_inside_fn() !dbg !2 {
   entry:
@@ -663,12 +670,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store { ptr, i64, i64 } { ptr @0, i64 3, i64 -1 }, ptr %boxconst, align 8
     %0 = call ptr @string_data(ptr %boxconst), !dbg !8
     %1 = load i64, ptr @lets_a__2, align 8
-    call void @printf(ptr %0, i64 %1), !dbg !9
+    call void @myprintf(ptr %0, i64 %1), !dbg !9
     %boxconst1 = alloca { ptr, i64, i64 }, align 8
     store { ptr, i64, i64 } { ptr @0, i64 3, i64 -1 }, ptr %boxconst1, align 8
     %2 = call ptr @string_data(ptr %boxconst1), !dbg !10
     %3 = load i64, ptr @lets_b, align 8
-    call void @printf(ptr %2, i64 %3), !dbg !11
+    call void @myprintf(ptr %2, i64 %3), !dbg !11
     ret void
   }
   
@@ -678,12 +685,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store { ptr, i64, i64 } { ptr @0, i64 3, i64 -1 }, ptr %boxconst, align 8
     %0 = call ptr @string_data(ptr %boxconst), !dbg !13
     %1 = load i64, ptr @lets_a__2, align 8
-    call void @printf(ptr %0, i64 %1), !dbg !14
+    call void @myprintf(ptr %0, i64 %1), !dbg !14
     %boxconst1 = alloca { ptr, i64, i64 }, align 8
     store { ptr, i64, i64 } { ptr @0, i64 3, i64 -1 }, ptr %boxconst1, align 8
     %2 = call ptr @string_data(ptr %boxconst1), !dbg !15
     %3 = load i64, ptr @lets_b, align 8
-    call void @printf(ptr %2, i64 %3), !dbg !16
+    call void @myprintf(ptr %2, i64 %3), !dbg !16
     call void @schmu_inside_fn(), !dbg !17
     ret i64 0
   }
@@ -691,13 +698,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu import_lets.smu stub.o
   $ ./import_lets
   11
   21
   11
   21
 
-  $ schmu local_import_lets.smu --dump-llvm 2>&1 | grep -v !DI
+  $ schmu local_import_lets.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -708,7 +716,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare ptr @string_data(ptr %0)
   
-  declare void @printf(ptr %0, i64 %1)
+  declare void @myprintf(ptr %0, i64 %1)
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
@@ -716,43 +724,46 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store { ptr, i64, i64 } { ptr @0, i64 3, i64 -1 }, ptr %boxconst, align 8
     %0 = call ptr @string_data(ptr %boxconst), !dbg !6
     %1 = load i64, ptr @lets_a__2, align 8
-    call void @printf(ptr %0, i64 %1), !dbg !7
+    call void @myprintf(ptr %0, i64 %1), !dbg !7
     %boxconst1 = alloca { ptr, i64, i64 }, align 8
     store { ptr, i64, i64 } { ptr @0, i64 3, i64 -1 }, ptr %boxconst1, align 8
     %2 = call ptr @string_data(ptr %boxconst1), !dbg !8
     %3 = load i64, ptr @lets_b, align 8
-    call void @printf(ptr %2, i64 %3), !dbg !9
+    call void @myprintf(ptr %2, i64 %3), !dbg !9
     %boxconst2 = alloca { ptr, i64, i64 }, align 8
     store { ptr, i64, i64 } { ptr @0, i64 3, i64 -1 }, ptr %boxconst2, align 8
     %4 = call ptr @string_data(ptr %boxconst2), !dbg !10
     %5 = load i64, ptr @lets_a__2, align 8
-    call void @printf(ptr %4, i64 %5), !dbg !11
+    call void @myprintf(ptr %4, i64 %5), !dbg !11
     %boxconst3 = alloca { ptr, i64, i64 }, align 8
     store { ptr, i64, i64 } { ptr @0, i64 3, i64 -1 }, ptr %boxconst3, align 8
     %6 = call ptr @string_data(ptr %boxconst3), !dbg !12
     %7 = load i64, ptr @lets_b, align 8
-    call void @printf(ptr %6, i64 %7), !dbg !13
+    call void @myprintf(ptr %6, i64 %7), !dbg !13
     ret i64 0
   }
   
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu local_import_lets.smu stub.o
   $ ./local_import_lets
   11
   21
   11
   21
 
-  $ schmu -m --dump-llvm poly_func.smu 2>&1 | grep -v !DI
+  $ schmu -m --dump-llvm -c --target x86_64-unknown-linux-gnu poly_func.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
   
   !llvm.dbg.cu = !{!0}
   
+  $ schmu -m poly_func.smu
 
-  $ schmu import_poly_func.smu --dump-llvm 2>&1 | grep -v !DI
+
+  $ schmu import_poly_func.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1073,12 +1084,13 @@ Simplest module with 1 type and 1 nonpolymorphic function
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu import_poly_func.smu
   $ ./import_poly_func
   0
   0
   1
 
-  $ schmu local_import_poly_func.smu --dump-llvm 2>&1 | grep -v !DI
+  $ schmu local_import_poly_func.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1399,12 +1411,13 @@ Simplest module with 1 type and 1 nonpolymorphic function
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu local_import_poly_func.smu
   $ ./local_import_poly_func
   0
   0
   1
 
-  $ schmu -m malloc_some.smu --dump-llvm 2>&1 | grep -v !DI
+  $ schmu -m malloc_some.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1466,7 +1479,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   $ cat malloc_some.smi | sed -E 's/([0-9]+:\/.*lib\/schmu\/std)//'
   (()((5:Mtype(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum1:0))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:1)(7:pos_bol1:0)(8:pos_cnum2:29)))6:either((6:params())(4:kind(8:Dvariant((12:is_recursive5:false)(8:has_base4:true)(17:params_behind_ptr5:false))(((5:cname4:left)(4:ctyp())(5:index1:4))((5:cname5:right)(4:ctyp())(5:index1:5)))))(6:in_sgn5:false)(14:contains_alloc5:false)))(4:Mfun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:31)(8:pos_cnum2:35))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:3)(7:pos_bol2:31)(8:pos_cnum2:57)))(4:Tfun(((2:pt(7:Tconstr3:int()5:false))(5:pattr5:Dnorm)(5:pmode(6:Iknown4:Many)))((2:pt(7:Tconstr3:int()5:false))(5:pattr5:Dnorm)(5:pmode(6:Iknown4:Many))))(7:Tconstr3:int()5:false)6:Simple)((4:user8:add_ints)(4:call((8:add_ints(11:malloc_some)())))))(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:59)(8:pos_cnum2:59))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:5)(7:pos_bol2:59)(8:pos_cnum2:69)))(7:Tconstr3:int()5:false)((4:user1:a)(4:call((1:a(11:malloc_some)()))))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:71)(8:pos_cnum2:71))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:7)(7:pos_bol2:71)(8:pos_cnum2:93)))(7:Tconstr3:int()5:false)((4:user1:b)(4:call((1:b(11:malloc_some)()))))5:false)(9:Mpoly_fun(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum2:99))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:114)))((7:nparams(1:x))(4:body((3:typ(4:Qvar1:1))(4:expr(4:Move((3:typ(4:Qvar1:1))(4:expr(3:App(6:callee((3:typ(4:Tfun(((2:pt(4:Qvar1:1))(5:pattr5:Dnorm)(5:pmode(6:Iknown4:Many))))(4:Qvar1:1)6:Simple))(4:expr(3:Var4:copy()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:106))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:110))))))(4:args((((3:typ(4:Qvar1:1))(4:expr(3:Var1:x()))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:111))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:112)))))5:Dnorm)))(11:borrow_call5:No_bc)))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:106))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:113)))))))(4:attr((5:const5:false)(6:global5:false)(3:mut5:false)))(3:loc(((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:106))((9:pos_fname15:malloc_some.smu)(8:pos_lnum1:9)(7:pos_bol2:95)(8:pos_cnum3:113))))))(4:func((7:tparams(((2:pt(4:Qvar1:1))(5:pattr5:Dnorm)(5:pmode(6:Iknown4:Many)))))(3:ret(4:Qvar1:1))(4:kind6:Simple)(7:touched())))(6:inline5:false)(6:is_rec5:false))2:id())(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:116)(8:pos_cnum3:116))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:11)(7:pos_bol3:116)(8:pos_cnum3:134)))(7:Tconstr5:array((7:Tconstr3:int()5:false))4:true)((4:user5:vtest)(4:call((5:vtest(11:malloc_some)()))))5:false)(4:Mext(((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:135)(8:pos_cnum3:135))((9:pos_fname15:malloc_some.smu)(8:pos_lnum2:12)(7:pos_bol3:135)(8:pos_cnum3:151)))(7:Tconstr5:array((7:Tconstr3:int()5:false))4:true)((4:user6:vtest2)(4:call((6:vtest2(11:malloc_some)()))))5:false))((/std/string5:false)))
 
-  $ schmu use_malloc_some.smu --dump-llvm 2>&1 | grep -v !DI
+  $ schmu -m malloc_some.smu
+  $ schmu use_malloc_some.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   use_malloc_some.smu:5.5-17: warning: Unused binding do_something.
   
   5 | fun do_something(big) {
@@ -1483,7 +1497,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare ptr @string_data(ptr %0)
   
-  declare void @printf(ptr %0, i64 %1)
+  declare void @myprintf(ptr %0, i64 %1)
   
   define linkonce_odr i1 @__array_inner__2_Ca.l_lrb(i64 %i, ptr %0) !dbg !2 {
   entry:
@@ -1585,7 +1599,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %boxconst = alloca { ptr, i64, i64 }, align 8
     store { ptr, i64, i64 } { ptr @0, i64 3, i64 -1 }, ptr %boxconst, align 8
     %0 = call ptr @string_data(ptr %boxconst), !dbg !20
-    call void @printf(ptr %0, i64 %i), !dbg !21
+    call void @myprintf(ptr %0, i64 %i), !dbg !21
     ret void
   }
   
@@ -1696,7 +1710,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./use_malloc_some
+  $ schmu use_malloc_some.smu stub.o > /dev/null 2>&1
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./use_malloc_some
   0
   1
 
@@ -1737,7 +1752,7 @@ Test signature
   22 | fun hidden(a) {
            ^^^^^^
   
-  $ schmu use-sign.smu
+  $ schmu use-sign.smu stub.o
   use-sign.smu:21.5-15: warning: Unused binding use_hidden.
   
   21 | fun use_hidden () {
@@ -1768,7 +1783,7 @@ Polymorphic lambdas in modules
 
 
 Local modules
-  $ schmu --dump-llvm local_module.smu 2>&1 | grep -v !DI
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu local_module.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2064,7 +2079,8 @@ Local modules
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./local_module
+  $ schmu local_module.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./local_module
   hey test
   hey thing
   hey poly test
@@ -2100,7 +2116,7 @@ Use local module from other file
 
 
 Local modules can shadow types. Use unique type names in codegen
-  $ schmu local_module_type_shadowing.smu --dump-llvm 2>&1 | grep -v !DI
+  $ schmu local_module_type_shadowing.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   local_module_type_shadowing.smu:5.5-6: warning: Unused binding t.
   
   5 | let t = {a = 10}
@@ -2165,7 +2181,7 @@ Use directory as module
 Transitive polymorphic dependency needs to be available
   $ schmu -m transitive.smu
   $ schmu -m direct_dep.smu
-  $ schmu use_dep.smu --dump-llvm 2>&1 | grep -v !DI
+  $ schmu use_dep.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2192,7 +2208,7 @@ Transitive polymorphic dependency needs to be available
   !5 = !{}
 
 Apply local functors
-  $ schmu --dump-llvm local_functor.smu 2>&1 | grep -v !DI
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu local_functor.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2558,13 +2574,14 @@ Apply local functors
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu local_functor.smu
   $ ./local_functor
   5
   5
 
 Simple functor
   $ schmu -m simple_functor.smu
-  $ schmu use_simple_functor.smu --dump-llvm 2>&1 | grep -v !DI
+  $ schmu use_simple_functor.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2892,6 +2909,7 @@ Simple functor
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu use_simple_functor.smu
   $ ./use_simple_functor
   create: this other
 
@@ -2937,7 +2955,7 @@ Ensure prelude is not importable
 Fix handling of parameterized abstract types
   $ schmu -m nullvec.smu
   $ schmu use_nullvec.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./use_nullvec
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./use_nullvec
 
 Fix external declarations in inner modules
   $ schmu inner_module_externals.smu
@@ -2945,7 +2963,7 @@ Fix external declarations in inner modules
 Make applied functors hidden behind signatures usable. Does this apply to local module too?
   $ schmu -m hidden_functor_app.smu
   $ schmu use_hidden_functor_app.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./use_hidden_functor_app
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./use_hidden_functor_app
 
 Check deps
   $ schmu -m --deps modd/modd.smu
@@ -2966,7 +2984,7 @@ A regression test for monomorphization. Without proper regeneralization, the
 type could change during monomorphization due to overlapping qvar ids.
   $ schmu -m async.smu
   $ schmu test_async.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./test_async
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./test_async
   resolving first promise
   resolved to 3
   resolving second promise
@@ -2975,7 +2993,7 @@ type could change during monomorphization due to overlapping qvar ids.
 Same thing borrow calls, also test module outname
   $ schmu -m async_borrow_call.smu -o async
   $ schmu test_async_borrow_call.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./test_async_borrow_call
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./test_async_borrow_call
   resolving first promise
   resolved to 3
   resolving second promise
@@ -2983,7 +3001,7 @@ Same thing borrow calls, also test module outname
 
 More complicated case, also regression test for frees from once moved closed variables
   $ schmu test_expl.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./test_expl
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./test_expl
   resolving first promise
   resolved to 3
   resolving second promise
@@ -2991,7 +3009,7 @@ More complicated case, also regression test for frees from once moved closed var
 
 Borrow call case with capture copies
   $ schmu test_async_borrow_call_copies.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./test_async_borrow_call_copies
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./test_async_borrow_call_copies
   resolving first promise
   resolved to 3
   resolving second promise

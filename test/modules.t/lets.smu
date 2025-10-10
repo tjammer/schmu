@@ -1,6 +1,6 @@
 let a = 12
 
-external printf : fun (string/cstr, int) -> unit
+external printf : fun (string/cstr, int) -> unit = "myprintf"
 
 fun generate_b() {21}
 

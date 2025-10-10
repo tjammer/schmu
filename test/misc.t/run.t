@@ -4,7 +4,7 @@ Compile stubs
   ar: creating libstub.a
 
 Test elif
-  $ schmu --dump-llvm stub.o elseif.smu 2>&1 | grep -v !DI && ./elseif
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o elseif.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -52,9 +52,11 @@ Test elif
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o elseif.smu
+  $ ./elseif
 
 Test simple typedef
-  $ schmu --dump-llvm stub.o simple_typealias.smu 2>&1 | grep -v !DI && ./simple_typealias
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o simple_typealias.smu 2>&1 | grep -v !DI
   simple_typealias.smu:2.10-14: warning: Unused binding puts.
   
   2 | external puts : fun (foo) -> unit
@@ -72,9 +74,11 @@ Test simple typedef
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o simple_typealias.smu > /dev/null 2>&1
+  $ ./simple_typealias
 
 Test x86_64-linux-gnu ABI (parts of it, anyway)
-  $ schmu --dump-llvm -c abi.smu 2>&1 | grep -v !DI
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu -c abi.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -202,7 +206,7 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   !5 = !{}
 
 Test 'and', 'or' and 'not'
-  $ schmu --dump-llvm stub.o boolean_logic.smu 2>&1 | grep -v !DI && ./boolean_logic
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o boolean_logic.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -500,6 +504,8 @@ Test 'and', 'or' and 'not'
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o boolean_logic.smu
+  $ ./boolean_logic
   test 'and':
   true
   true
@@ -529,7 +535,7 @@ Test 'and', 'or' and 'not'
   yes
 
 
-  $ schmu --dump-llvm stub.o unary_minus.smu 2>&1 | grep -v !DI && ./unary_minus
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o unary_minus.smu 2>&1 | grep -v !DI
   unary_minus.smu:1.5-6: warning: Unused binding a.
   
   1 | let a = -1.0
@@ -569,6 +575,8 @@ Test 'and', 'or' and 'not'
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o unary_minus.smu > /dev/null 2>&1
+  $ ./unary_minus
   [254]
 
 Test unused binding warning
@@ -625,7 +633,7 @@ We can have if without else
   [1]
 
 Piping for ctors and field accessors
-  $ schmu stub.o --dump-llvm piping.smu 2>&1 | grep -v !DI && ./piping
+  $ schmu stub.o --dump-llvm -c --target x86_64-unknown-linux-gnu piping.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -995,6 +1003,8 @@ Piping for ctors and field accessors
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o piping.smu
+  $ ./piping
   
   2
   1
@@ -1039,7 +1049,7 @@ Polymorphic mutual recursive function
   right
 
 Increase refcount for returned params in ifs
-  $ schmu --dump-llvm if_ret_param.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./if_ret_param
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu if_ret_param.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1446,6 +1456,8 @@ Increase refcount for returned params in ifs
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu if_ret_param.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./if_ret_param
 
 Allow patterns in decls
   $ schmu pattern_decls.smu && ./pattern_decls
@@ -1461,13 +1473,13 @@ Assertions
   $ echo $ret
   hmm
   $ cat err | grep assert
-  assert: assert.smu:9: main: Assertion `false' failed.
+  assert: assert.smu:8: main: Assertion `false' failed.
 
 Find function by callname even when not calling
   $ schmu find_fn.smu
 
 Handle partial allocations
-  $ schmu partials.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./partials
+  $ schmu partials.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !D
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1588,12 +1600,14 @@ Handle partial allocations
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu partials.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./partials
 
 Correct link order for cc flags
   $ schmu piping.smu --cc -L. --cc -lstub
 
 Using unit values
-  $ schmu unit_values.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./unit_values
+  $ schmu unit_values.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !D
   unit_values.smu:3.5-6: warning: Unused binding b.
   
   3 | let b = Some(a)
@@ -2036,12 +2050,14 @@ Using unit values
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu unit_values.smu > /dev/null 2>&1
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./unit_values
   some
   99.9
   3
 
 Arguments
-  $ schmu args.smu --dump-llvm
+  $ schmu args.smu --dump-llvm -c --target x86_64-unknown-linux-gnu
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2129,18 +2145,19 @@ Arguments
   !8 = !DILocation(line: 6, column: 27, scope: !6)
   !9 = !DILocation(line: 6, column: 8, scope: !6)
   !10 = !DILocation(line: 6, scope: !6)
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./args and other --args=2
+  $ schmu args.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./args and other --args=2
   ./args and other --args=2
 
 Support closures with unit types. Closures with only unit types are a special
 case and don't need to be allocated.
   $ schmu unit_closures.smu
-  $ valgrind ./unit_closures 2>&1 | grep allocs | cut -f 5- -d '='
+  $ valgrind-wrapper ./unit_closures 2>&1 | grep allocs | cut -f 5- -d '='
      total heap usage: 2 allocs, 2 frees, 64 bytes allocated
 
 Weak rcs
   $ schmu weak_rc.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./weak_rc
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./weak_rc
 
 Cyclic ref counts
   $ schmu rc_cycle.smu
@@ -2149,11 +2166,11 @@ Cyclic ref counts
   2 | type any_rc['a] = Strong(rc['a]) | Weak(weak_rc['a])
                         ^^^^^^
   
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./rc_cycle
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./rc_cycle
 
 Currying in pipes
   $ schmu curry_pipe.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./curry_pipe
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./curry_pipe
   a: 10 b: 12 c: 1 d: 2
   [cont] a: 10 b: 11
 
@@ -2171,7 +2188,7 @@ Codgen fixes for recursive types
   14 |   | Other(rc[prom_state])
            ^^^^^
   
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./codegen_recursive2
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./codegen_recursive2
 
 No unmutated warning on addr
   $ schmu --check no_unmutated_warning.smu
@@ -2183,4 +2200,4 @@ Regression test for miscompile
   12 | type key_state = Resolv_deps(resolv_deps) | Building(building) | Built(built)
                                                                         ^^^^^
   
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./miscompile_variant_parents
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./miscompile_variant_parents

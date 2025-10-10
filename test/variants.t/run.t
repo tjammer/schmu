@@ -1,5 +1,5 @@
 Basic variant ctors
-  $ schmu basic.smu --dump-llvm
+  $ schmu basic.smu --dump-llvm --target x86_64-unknown-linux-gnu -c
   basic.smu:4.15-18: warning: Unused constructor: One.
   
   4 | type larger = One | Two(foo) | Three(int)
@@ -99,7 +99,7 @@ Basic variant ctors
   !7 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0)
 
 Match option
-  $ schmu match_option.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./match_option
+  $ schmu match_option.smu --dump-llvm --target x86_64-unknown-linux-gnu -c  2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -508,6 +508,8 @@ Match option
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu match_option.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./match_option
   1
   0
   1
@@ -518,7 +520,7 @@ Match option
   0
 
 Nested pattern matching
-  $ schmu match_nested.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./match_nested
+  $ schmu match_nested.smu --dump-llvm --target x86_64-unknown-linux-gnu -c  2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -840,13 +842,15 @@ Nested pattern matching
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu match_nested.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./match_nested
   3
   2
   1
   0
 
 Match multiple columns
-  $ schmu tuple_match.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./tuple_match
+  $ schmu tuple_match.smu --dump-llvm --target x86_64-unknown-linux-gnu -c  2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1195,6 +1199,8 @@ Match multiple columns
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu tuple_match.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./tuple_match
   3
   2
   1
@@ -1210,14 +1216,14 @@ Match multiple columns
 
 Record literals in pattern matches
   $ schmu match_record.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./match_record
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./match_record
   10
   -1
   20
   -2
 
 Const ctors
-  $ schmu const_ctor_issue.smu --dump-llvm
+  $ schmu const_ctor_issue.smu --dump-llvm --target x86_64-unknown-linux-gnu -c
   const_ctor_issue.smu:2.27-32: warning: Constructor is never used to build values: Thing.
   
   2 | type var = Float(float) | Thing(thing)
@@ -1284,7 +1290,8 @@ Const ctors
   !9 = distinct !DISubprogram(name: "main", linkageName: "main", scope: !3, file: !3, line: 1, type: !4, scopeLine: 1, flags: DIFlagPrototyped, spFlags: DISPFlagDefinition | DISPFlagOptimized, unit: !0)
   !10 = !DILocation(line: 6, column: 14, scope: !9)
   !11 = !DILocation(line: 15, scope: !9)
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./const_ctor_issue
+  $ schmu const_ctor_issue.smu > /dev/null 2>&1
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./const_ctor_issue
   float
   float
 
@@ -1296,15 +1303,15 @@ Mutate in pattern matches
 
 Don't free catchall let pattern in other branch
   $ schmu dont_free_catchall_let_pattern.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./dont_free_catchall_let_pattern
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./dont_free_catchall_let_pattern
 
 Basic recursive types
   $ schmu recursive.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./recursive
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./recursive
 
 Support path prefixes in match patterns
   $ schmu path_prefix.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./path_prefix
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./path_prefix
 
 Regression test for this if structure
   $ schmu failwith_ifs.smu

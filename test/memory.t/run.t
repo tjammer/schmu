@@ -1,5 +1,5 @@
 Drop last element
-  $ schmu --dump-llvm array_drop_back.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./array_drop_back
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu array_drop_back.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -419,6 +419,8 @@ Drop last element
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu array_drop_back.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./array_drop_back
   2
   some
   1
@@ -427,7 +429,7 @@ Drop last element
   0
 
 Array push
-  $ schmu --dump-llvm array_push.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./array_push
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu array_push.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1034,6 +1036,8 @@ Array push
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu array_push.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./array_push
   3
   2
   3
@@ -1041,7 +1045,7 @@ Array push
 
 Don't free string literals
   $ schmu borrow_string_lit.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_string_lit
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./borrow_string_lit
 
 Use captured record-field functions
   $ schmu capture_record_pattern.smu && ./capture_record_pattern
@@ -1050,7 +1054,7 @@ Use captured record-field functions
   printing 1.1
 
 Monomorphization in closures
-  $ schmu --dump-llvm closure_monomorph.smu 2>&1 | grep -v !DI && ./closure_monomorph
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu closure_monomorph.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1951,6 +1955,8 @@ Monomorphization in closures
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu closure_monomorph.smu
+  $ ./closure_monomorph
   0
   9
   30
@@ -1965,7 +1971,7 @@ Monomorphization in closures
   2030
 
 Const fixed array
-  $ schmu --dump-llvm const_fixed_arr.smu 2>&1 | grep -v !DI
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu const_fixed_arr.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2233,11 +2239,12 @@ Const fixed array
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./const_fixed_arr
+  $ schmu const_fixed_arr.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./const_fixed_arr
   17
 
 Decrease ref counts for local variables in if branches
-  $ schmu --dump-llvm decr_rc_if.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./decr_rc_if
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu decr_rc_if.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2303,6 +2310,8 @@ Decrease ref counts for local variables in if branches
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu decr_rc_if.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./decr_rc_if
 
 Check allocs in fixed array
   $ schmu fixed_array_allocs.smu
@@ -2317,15 +2326,15 @@ Check allocs in fixed array
               ^^^
   
 
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./fixed_array_allocs
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./fixed_array_allocs
   3
   hi
   hie
   oho
 
-Allocate vectors on the heap and free them. Check with valgrind whenever something changes here.
+Allocate vectors on the heap and free them. Check with valgrind-wrapper whenever something changes here.
 Also mutable fields and 'realloc' builtin
-  $ schmu --dump-llvm free_array.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./free_array
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu free_array.smu 2>&1 | grep -v !DI
   free_array.smu:7.5-8: warning: Unused binding arr.
   
   7 | let arr = [copy("hey"), copy("young"), copy("world")]
@@ -2942,24 +2951,26 @@ Also mutable fields and 'realloc' builtin
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu free_array.smu > /dev/null 2>&1
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./free_array
 
 Free correctly when moving ifs with outer borrows
-  $ schmu free_cond.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_cond
+  $ schmu free_cond.smu && valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./free_cond
 
 Free moved parameters
-  $ schmu free_moved_param.smu && valgrind -q --leak-check=yes --show-reachable=yes ./free_moved_param
+  $ schmu free_moved_param.smu && valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./free_moved_param
 
 Don't free params if parts are passed in tail calls
   $ schmu free_param_parts.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./free_param_parts
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./free_param_parts
   thing
   none
 
 Functions in arrays
-  $ schmu function_array.smu && valgrind -q --leak-check=yes --show-reachable=yes ./function_array
+  $ schmu function_array.smu && valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./function_array
 
 Global lets with expressions
-  $ schmu --dump-llvm global_let.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./global_let
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu global_let.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -3070,24 +3081,26 @@ Global lets with expressions
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu global_let.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./global_let
 
 Don't try to free string literals in ifs
-  $ schmu incr_str_lit_ifs.smu && valgrind -q --leak-check=yes --show-reachable=yes ./incr_str_lit_ifs
+  $ schmu incr_str_lit_ifs.smu && valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./incr_str_lit_ifs
   none
   none
 
 `inner` here should not make `tmp` a const, otherwise could gen would fail
   $ schmu mutable_inner_let.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./mutable_inner_let
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./mutable_inner_let
 
 Incr refcounts correctly in ifs
-  $ schmu rc_ifs.smu && valgrind -q --leak-check=yes --show-reachable=yes ./rc_ifs
+  $ schmu rc_ifs.smu && valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./rc_ifs
 
 Incr refcounts correctly for closed over returns
-  $ schmu rc_linear_closed_return.smu && valgrind -q --leak-check=yes --show-reachable=yes ./rc_linear_closed_return
+  $ schmu rc_linear_closed_return.smu && valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./rc_linear_closed_return
 
 Regression test for issue #19
-  $ schmu --dump-llvm regression_issue_19.smu 2>&1 | grep -v !DI && ./regression_issue_19
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu regression_issue_19.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -3159,9 +3172,11 @@ Regression test for issue #19
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu regression_issue_19.smu
+  $ ./regression_issue_19
 
 Tailcall loops
-  $ schmu --dump-llvm regression_issue_26.smu 2>&1 | grep -v !DI && ./regression_issue_26
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu regression_issue_26.smu 2>&1 | grep -v !DI
   regression_issue_26.smu:25.9-15: warning: Unused binding nested.
   
   25 | fun rec nested(a, b, c) {
@@ -3866,6 +3881,8 @@ Tailcall loops
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu regression_issue_26.smu > /dev/null 2>&1
+  $ ./regression_issue_26
   0, 0
   0, 1
   0, 2
@@ -3905,7 +3922,7 @@ Tailcall loops
   2, 2, 2
 
 Make sure an if returns either Const or Const_ptr, but in a consistent way
-  $ schmu -c --dump-llvm regression_issue_30.smu 2>&1 | grep -v !DI
+  $ schmu -c --dump-llvm -c --target x86_64-unknown-linux-gnu regression_issue_30.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -3973,7 +3990,7 @@ Make sure an if returns either Const or Const_ptr, but in a consistent way
   !5 = !{}
 
 Ensure global are loadad correctly when passed to functions
-  $ schmu --dump-llvm regression_load_global.smu 2>&1 | grep -v !DI
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu regression_load_global.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -4011,7 +4028,7 @@ Ensure global are loadad correctly when passed to functions
   !5 = !{}
 
 Return closures
-  $ schmu --dump-llvm return_closure.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./return_closure
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu return_closure.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -4376,12 +4393,14 @@ Return closures
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu return_closure.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./return_closure
   25
   47
   146
 
 Return nonclosure functions
-  $ schmu --dump-llvm return_fn.smu 2>&1 | grep -v !DI && ./return_fn
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu return_fn.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -4712,11 +4731,13 @@ Return nonclosure functions
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu return_fn.smu
+  $ ./return_fn
   24
   25
 
 Take/use not all allocations of a record in tailrec calls
-  $ schmu --dump-llvm take_partial_alloc.smu 2>&1 | grep -v !DI
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu -c --target x86_64-unknown-linux-gnu take_partial_alloc.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -5081,14 +5102,15 @@ Take/use not all allocations of a record in tailrec calls
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./take_partial_alloc
+  $ schmu take_partial_alloc.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./take_partial_alloc
 
 Take/use not all allocations of a record in tailrec calls, different order for pattern matches
   $ schmu take_partial_alloc_reorder.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./take_partial_alloc_reorder
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./take_partial_alloc_reorder
 
 Mutable variables in upward closures
-  $ schmu upward_mut.smu && valgrind -q --leak-check=yes --show-reachable=yes ./upward_mut
+  $ schmu upward_mut.smu && valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./upward_mut
   1
   2
   3
@@ -5100,24 +5122,24 @@ Mutable variables in upward closures
 
 Partially free rc
   $ schmu partial_rc.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./partial_rc
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./partial_rc
 
 Leak builtin
   $ schmu leak.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./leak
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./leak
   thing
 
 Fix double free
   $ schmu match_partial_move.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./match_partial_move
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./match_partial_move
 
 Fix leak after fix above
   $ schmu match_partial_move_followup_leak.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./match_partial_move_followup_leak
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./match_partial_move_followup_leak
 
 Fix parent reentering
   $ schmu reenter_parent.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./reenter_parent
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./reenter_parent
 
 Fix partial parent setting
   $ schmu set_partial_parent.smu
@@ -5126,7 +5148,7 @@ Fix partial parent setting
   4 | type key_state = Resolv_deps | Building(building) | Built(built)
                        ^^^^^^^^^^^
   
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./set_partial_parent
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./set_partial_parent
 
 Correctly track partial moves in record expressions
   $ schmu partial_move_in_record.smu
@@ -5140,8 +5162,8 @@ Correctly track partial moves in record expressions
   8 | type key_state = Resolv_deps(resolv_deps) | Building(building) | Built(built)
                                                   ^^^^^^^^
   
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./partial_move_in_record
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./partial_move_in_record
 
 Mutable bindings cannot be const
   $ schmu mut_nonconst.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./mut_nonconst
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./mut_nonconst

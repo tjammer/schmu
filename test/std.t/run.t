@@ -1,7 +1,7 @@
 Test hashtbl
   $ schmu -m stbl.smu
   $ schmu hashtbl_test.smu
-  $ valgrind_wrapper -q --leak-check=yes --show-reachable=yes ./hashtbl_test
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./hashtbl_test
   # hashtbl
   ## string
   1.1
@@ -15,12 +15,12 @@ Test hashtbl
 
 String module test
   $ schmu string.smu
-  $ valgrind_wrapper -q --leak-check=yes --show-reachable=yes ./string
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./string
   hello, world, :)
 
 In channel module test
   $ schmu in_channel.smu
-  $ valgrind_wrapper -q --leak-check=yes --show-reachable=yes ./in_channel
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./in_channel
   match in_channel/open("in_channel.smu") {
     Some(i
   c) -> 
@@ -223,12 +223,12 @@ In channel module test
 
 Test unsafe/addr
   $ schmu unsafe_addr.smu
-  $ valgrind_wrapper -q --leak-check=yes --show-reachable=yes ./unsafe_addr
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./unsafe_addr
   2
 
 Use iter and print with dot call
   $ schmu iter_print.smu
-  $ valgrind_wrapper -q --leak-check=yes --show-reachable=yes ./iter_print
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./iter_print
   0
   2
   4
@@ -238,11 +238,11 @@ Use iter and print with dot call
 
 Reverse an empty array
   $ schmu array.smu
-  $ valgrind_wrapper -q --leak-check=yes --show-reachable=yes ./array
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./array
 
 Formatting
   $ schmu fmt.smu
-  $ valgrind_wrapper -q --leak-check=yes --show-reachable=yes ./fmt
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./fmt
   this prints to stderr
   heya
   heya 12 you
@@ -264,7 +264,7 @@ Formatting
 
 Test set
   $ schmu set_test.smu
-  $ valgrind_wrapper -q --leak-check=yes --show-reachable=yes ./set_test
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./set_test
   0
   1
   2

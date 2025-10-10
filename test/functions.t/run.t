@@ -6,7 +6,7 @@ We discard the triple, b/c it varies from distro to distro
 e.g. x86_64-unknown-linux-gnu on Fedora vs x86_64-pc-linux-gnu on gentoo
 
 Simple fibonacci
-  $ schmu --dump-llvm -o a.out stub.o fib.smu 2>&1 | grep -v !DI && ./a.out
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu -o a.out stub.o fib.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -290,10 +290,12 @@ Simple fibonacci
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu -o a.out stub.o fib.smu
+  $ ./a.out
   832040
 
 Fibonacci, but we shadow a bunch
-  $ schmu --dump-llvm stub.o shadowing.smu 2>&1 | grep -v !DI && ./shadowing
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o shadowing.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -340,10 +342,12 @@ Fibonacci, but we shadow a bunch
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o shadowing.smu
+  $ ./shadowing
   832040
 
 Multiple parameters
-  $ schmu --dump-llvm stub.o multi_params.smu 2>&1 | grep -v !DI && ./multi_params
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o multi_params.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -383,10 +387,12 @@ Multiple parameters
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o multi_params.smu
+  $ ./multi_params
   [1]
 
 We have downwards closures
-  $ schmu --dump-llvm stub.o closure.smu 2>&1 | grep -v !DI && ./closure
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o closure.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -432,10 +438,12 @@ We have downwards closures
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o closure.smu
+  $ ./closure
   [12]
 
 First class functions
-  $ schmu --dump-llvm stub.o first_class.smu 2>&1 | grep -v !DI && ./first_class
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o first_class.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -551,6 +559,8 @@ First class functions
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o first_class.smu
+  $ ./first_class
   1
   2
   0
@@ -559,7 +569,7 @@ First class functions
   5
 
 Don't try to create 'void' value in if
-  $ schmu --dump-llvm stub.o if_return_void.smu 2>&1 | grep -v !DI && ./if_return_void
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o if_return_void.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -611,13 +621,15 @@ Don't try to create 'void' value in if
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o if_return_void.smu
+  $ ./if_return_void
   4
   3
   2
   0
 
 Captured values should not overwrite function params
-  $ schmu --dump-llvm stub.o -o a.out overwrite_params.smu 2>&1 | grep -v !DI && ./a.out
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o -o a.out overwrite_params.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -670,11 +682,13 @@ Captured values should not overwrite function params
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o -o a.out overwrite_params.smu
+  $ ./a.out
   3
 
 Functions can be generic. In this test, we generate 'apply' only once and use it with
 3 different functions with different types
-  $ schmu --dump-llvm stub.o generic_fun_arg.smu 2>&1 | grep -v !DI && ./generic_fun_arg
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o generic_fun_arg.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -858,6 +872,8 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o generic_fun_arg.smu
+  $ ./generic_fun_arg
   21
   22
   23
@@ -867,7 +883,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
   18
 
 A generic pass function. This example is not 100% correct, but works due to calling convertion.
-  $ schmu --dump-llvm stub.o generic_pass.smu 2>&1 | grep -v !DI && ./generic_pass
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o generic_pass.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -951,13 +967,15 @@ A generic pass function. This example is not 100% correct, but works due to call
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o generic_pass.smu
+  $ ./generic_pass
   20
   700
 
 
 This is a regression test. The 'add1' function was not marked as a closure when being called from
 a second function. Instead, the closure struct was being created again and the code segfaulted
-  $ schmu --dump-llvm stub.o indirect_closure.smu 2>&1 | grep -v !DI && ./indirect_closure
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o indirect_closure.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1049,11 +1067,13 @@ a second function. Instead, the closure struct was being created again and the c
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o indirect_closure.smu
+  $ ./indirect_closure
   16
   16
 
 Closures can recurse too
-  $ schmu --dump-llvm stub.o -o a.out recursive_closure.smu 2>&1 | grep -v !DI && ./a.out
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o -o a.out recursive_closure.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1093,6 +1113,8 @@ Closures can recurse too
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o -o a.out recursive_closure.smu
+  $ ./a.out
   0
   1
   2
@@ -1113,7 +1135,7 @@ Print error when returning a polymorphic lambda in an if expression
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   
 Allow mixing of typedefs and external decls in the preface
-  $ schmu --dump-llvm stub.o mix_preface.smu 2>&1 | grep -v !DI && ./mix_preface
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o mix_preface.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1130,9 +1152,11 @@ Allow mixing of typedefs and external decls in the preface
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o mix_preface.smu
+  $ ./mix_preface
 
 Support monomorphization of nested functions
-  $ schmu --dump-llvm stub.o monomorph_nested.smu 2>&1 | grep -v !DI && ./monomorph_nested
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o monomorph_nested.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1203,11 +1227,13 @@ Support monomorphization of nested functions
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o monomorph_nested.smu
+  $ ./monomorph_nested
   12
   24
 
 Nested polymorphic closures. Does not quite work for another nesting level
-  $ schmu --dump-llvm stub.o nested_polymorphic_closures.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./nested_polymorphic_closures
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o nested_polymorphic_closures.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1557,6 +1583,8 @@ Nested polymorphic closures. Does not quite work for another nesting level
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o nested_polymorphic_closures.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./nested_polymorphic_closures
   2
   4
   6
@@ -1574,7 +1602,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   10
 
 Closures have to be added to the env of other closures, so they can be called correctly
-  $ schmu --dump-llvm stub.o closures_to_env.smu 2>&1 | grep -v !DI && ./closures_to_env
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o closures_to_env.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1584,7 +1612,7 @@ Closures have to be added to the env of other closures, so they can be called co
   
   declare ptr @string_data(ptr %0)
   
-  declare void @printf(ptr %0, i64 %1)
+  declare void @myprintf(ptr %0, i64 %1)
   
   define i64 @schmu_close_over_a() !dbg !2 {
   entry:
@@ -1597,7 +1625,7 @@ Closures have to be added to the env of other closures, so they can be called co
     store { ptr, i64, i64 } { ptr @0, i64 3, i64 -1 }, ptr %boxconst, align 8
     %0 = call ptr @string_data(ptr %boxconst), !dbg !7
     %1 = call i64 @schmu_close_over_a(), !dbg !8
-    call void @printf(ptr %0, i64 %1), !dbg !9
+    call void @myprintf(ptr %0, i64 %1), !dbg !9
     ret void
   }
   
@@ -1610,10 +1638,12 @@ Closures have to be added to the env of other closures, so they can be called co
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu stub.o closures_to_env.smu
+  $ ./closures_to_env
   20
 
 Don't copy mutable types in setup of tailrecursive functions
-  $ schmu --dump-llvm tailrec_mutable.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./tailrec_mutable
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu tailrec_mutable.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2295,6 +2325,8 @@ Don't copy mutable types in setup of tailrecursive functions
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu tailrec_mutable.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./tailrec_mutable
   true
   true
   2
@@ -2303,7 +2335,7 @@ Don't copy mutable types in setup of tailrecursive functions
   2
 
 The lamba passed as array_iter argument is polymorphic
-  $ schmu polymorphic_lambda_argument.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./polymorphic_lambda_argument
+  $ schmu polymorphic_lambda_argument.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -3017,20 +3049,22 @@ The lamba passed as array_iter argument is polymorphic
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu polymorphic_lambda_argument.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./polymorphic_lambda_argument
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 
 Infer type in upward closure
-  $ schmu closure_inference.smu && valgrind -q --leak-check=yes --show-reachable=yes ./closure_inference
+  $ schmu closure_inference.smu && valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./closure_inference
   ("", "x")
   ("x", "i")
   ("i", "x")
 
 Refcount captured values and destroy correctly
-  $ schmu closure_dtor.smu && valgrind -q --leak-check=yes --show-reachable=yes ./closure_dtor
+  $ schmu closure_dtor.smu && valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./closure_dtor
   ++aoeu
 
 Function call returning a polymorphic function
-  $ schmu poly_fn_ret_fn.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./poly_fn_ret_fn
+  $ schmu poly_fn_ret_fn.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -3410,11 +3444,13 @@ Function call returning a polymorphic function
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu poly_fn_ret_fn.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./poly_fn_ret_fn
   a foo
 
 Check allocations of nested closures
   $ schmu nested_closure_allocs.smu
-  $ valgrind ./nested_closure_allocs 2>&1 | grep allocs | cut -f 5- -d '='
+  $ valgrind-wrapper ./nested_closure_allocs 2>&1 | grep allocs | cut -f 5- -d '='
    Command: ./nested_closure_allocs
      total heap usage: 8 allocs, 8 frees, 240 bytes allocated
 
@@ -3426,20 +3462,20 @@ Check that binops with multiple argument works
 
 Knuth's man or boy test
   $ schmu man_or_boy.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./man_or_boy
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./man_or_boy
   -67
 
 Local environments must not be freed in self-recursive functions
   $ schmu selfrec_fun_param.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./selfrec_fun_param
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./selfrec_fun_param
 
 Shadowing of names in monomorph pass
   $ schmu shadowing2.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./shadowing2
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./shadowing2
 
 Upward closures are moved closures
   $ schmu closure_move_upward.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./closure_move_upward
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./closure_move_upward
   on iteration: 0
   on iteration: 1
   on iteration: 2
@@ -3453,7 +3489,7 @@ Upward closures are moved closures
 
 Only direct recursive calls count as recursive
   $ schmu nested_recursive.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./nested_recursive
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./nested_recursive
   heya
   none
 
@@ -3468,13 +3504,13 @@ Failwith function
 
 Monomorphize functions as variables
   $ schmu monomorph_variable.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./monomorph_variable
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./monomorph_variable
   0
   0
 
 Unit parameters in folds
   $ schmu unit_param.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./unit_param
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./unit_param
 
 Monomorphize types where the correct subst doesn't show up immediately
   $ schmu monomorph_later.smu
@@ -3483,11 +3519,11 @@ Monomorphize types where the correct subst doesn't show up immediately
   14 |   | Other(rc[prom_state])
            ^^^^^
   
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./monomorph_later
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./monomorph_later
 
 Inner functions which call a recursive outer closure must close correctly over
 the closure's environment
-  $ schmu --dump-llvm inner_recursive_closure_call.smu 2>&1 | grep -v !DI
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu inner_recursive_closure_call.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -4035,11 +4071,12 @@ the closure's environment
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./inner_recursive_closure_call
+  $ schmu inner_recursive_closure_call.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./inner_recursive_closure_call
   12
 
 Shadowing with external functions
-  $ schmu -c shadow_external1.smu --dump-llvm 2>&1 | grep -v !DI 
+  $ schmu -c shadow_external1.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -4061,7 +4098,7 @@ Shadowing with external functions
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
-  $ schmu -c shadow_external2.smu --dump-llvm 2>&1 | grep -v !DI 
+  $ schmu -c shadow_external2.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"

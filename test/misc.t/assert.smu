@@ -1,10 +1,9 @@
-external stdout : raw_ptr[u8]
 external fflush : fun (raw_ptr[u8]) -> unit
 
 assert(true)
 
 println("hmm")
-fflush(stdout) -- flush to see it in testing
+fflush(libc/stdout) -- flush to see it in testing
 
 assert(false)
 

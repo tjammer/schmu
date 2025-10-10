@@ -1,5 +1,5 @@
 Copy string literal
-  $ schmu --dump-llvm string_lit.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./string_lit
+  $ schmu --dump-llvm --target x86_64-unknown-linux-gnu -c string_lit.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -380,10 +380,12 @@ Copy string literal
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu string_lit.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./string_lit
   test 1
 
 Copy array of strings
-  $ schmu --dump-llvm arr_of_strings.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./arr_of_strings
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu arr_of_strings.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -539,10 +541,12 @@ Copy array of strings
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu arr_of_strings.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./arr_of_strings
   toast
 
 Copy records
-  $ schmu --dump-llvm records.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./records
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu records.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -692,10 +696,12 @@ Copy records
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu records.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./records
   lul
 
 Copy variants
-  $ schmu variants.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./variants
+  $ schmu variants.smu --dump-llvm --target x86_64-unknown-linux-gnu -c 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -823,10 +829,12 @@ Copy variants
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu variants.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./variants
   thing
 
 Copy closures
-  $ schmu --dump-llvm closure.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./closure
+  $ schmu --dump-llvm --target x86_64-unknown-linux-gnu -c closure.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1198,10 +1206,12 @@ Copy closures
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu closure.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./closure
   hello
 
 Copy string literal on move
-  $ schmu copy_string_lit.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./copy_string_lit
+  $ schmu copy_string_lit.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1329,14 +1339,16 @@ Copy string literal on move
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu copy_string_lit.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./copy_string_lit
   aieu
   aoeu
   aoeu
 
 Correctly copy array
   $ schmu copy_array.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./copy_array
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./copy_array
 
 Correctly copy rc
   $ schmu rc.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./rc
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./rc

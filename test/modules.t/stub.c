@@ -1,5 +1,3 @@
 #include <stdio.h>
 
-void printi(int i) { printf("%i\n", i); }
-
 void myprintf(const char *fmt, long value) { printf(fmt, value); }

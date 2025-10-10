@@ -1,5 +1,5 @@
 Test simple setting of mutable variables
-  $ schmu --dump-llvm simple_set.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./simple_set
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu simple_set.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -432,6 +432,8 @@ Test simple setting of mutable variables
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu simple_set.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./simple_set
   14
   15
 
@@ -448,7 +450,7 @@ Warn on unneeded mutable bindings
               ^
   
 Use mutable values as ptrs to C code
-  $ schmu -c --dump-llvm ptr_to_c.smu 2>&1 | grep -v !DI
+  $ schmu -c --dump-llvm -c --target x86_64-unknown-linux-gnu ptr_to_c.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -474,7 +476,7 @@ Use mutable values as ptrs to C code
   !5 = !{}
 
 Check aliasing
-  $ schmu --dump-llvm mut_alias.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./mut_alias
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu mut_alias.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -784,6 +786,8 @@ Check aliasing
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu mut_alias.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./mut_alias
   1
   0
   0
@@ -792,7 +796,7 @@ Check aliasing
   0
 
 Const let
-  $ schmu --dump-llvm const_let.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./const_let
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu const_let.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1108,6 +1112,8 @@ Const let
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu const_let.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./const_let
   1
   0
   1
@@ -1115,7 +1121,7 @@ Const let
 
 
 Copies, but with ref-counted arrays
-  $ schmu array_copies.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./array_copies
+  $ schmu array_copies.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1480,6 +1486,8 @@ Copies, but with ref-counted arrays
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu array_copies.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./array_copies
   12
   12
   10
@@ -1493,7 +1501,7 @@ Copies, but with ref-counted arrays
   10
 
 Arrays in records
-  $ schmu array_in_record_copies.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./array_in_record_copies
+  $ schmu array_in_record_copies.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -1851,6 +1859,8 @@ Arrays in records
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu array_in_record_copies.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./array_in_record_copies
   12
   10
   in fun
@@ -1858,7 +1868,7 @@ Arrays in records
   10
 
 Nested arrays
-  $ schmu nested_array.smu --dump-llvm 2>&1 | grep -v !DI&& valgrind -q --leak-check=yes --show-reachable=yes ./nested_array
+  $ schmu nested_array.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2411,12 +2421,14 @@ Nested arrays
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu nested_array.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./nested_array
   15, 20
   10, 20
 
 
 Modify in function
-  $ schmu --dump-llvm modify_in_fn.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./modify_in_fn
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu modify_in_fn.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2787,11 +2799,13 @@ Modify in function
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu modify_in_fn.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./modify_in_fn
   30
   2
 
 Make sure variable ids are correctly propagated
-  $ schmu --dump-llvm varid_propagate.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./varid_propagate
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu varid_propagate.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2942,9 +2956,11 @@ Make sure variable ids are correctly propagated
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu varid_propagate.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./varid_propagate
 
 Free array params correctly if they are returned
-  $ schmu --dump-llvm pass_array_param.smu 2>&1 | grep -v !DI && valgrind -q --leak-check=yes --show-reachable=yes ./pass_array_param
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu pass_array_param.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -2996,9 +3012,11 @@ Free array params correctly if they are returned
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
+  $ schmu pass_array_param.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./pass_array_param
 
 Refcounts for members in arrays, records and variants
-  $ schmu --dump-llvm member_refcounts.smu 2>&1 | grep -v !DI
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu member_refcounts.smu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -3409,7 +3427,8 @@ Refcounts for members in arrays, records and variants
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./member_refcounts
+  $ schmu member_refcounts.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./member_refcounts
   10
   20
   30
@@ -3422,7 +3441,7 @@ Convert Const_ptr values to Ptr in copy
   $ schmu ref_to_const.smu
 
 Fix codegen
-  $ schmu --dump-llvm codegen_nested_projections.smu 2>&1 | grep -v !DI
+  $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu codegen_nested_projections.smu 2>&1 | grep -v !DI
   codegen_nested_projections.smu:4.11-12: warning: Unused binding z.
   
   4 |   let mut z = mut y
@@ -3456,11 +3475,11 @@ Fix codegen
 
 Partial move parameter
   $ schmu partially_move_parameter.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./partially_move_parameter
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./partially_move_parameter
 
 Partial move set
   $ schmu partial_move_set.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./partial_move_set
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./partial_move_set
 
 Track unmutated binding warnings across projections
   $ schmu projection_warnings.smu
@@ -3501,27 +3520,27 @@ Track unmutated binding warnings across projections
   
 Mutable locals must not be globals even if constexpr
   $ schmu mutable_locals.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./mutable_locals
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./mutable_locals
   false
   false
   false
 
 Partial moves out of variants with in arrays with dynamic indices
   $ schmu dyn_partial_move.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./dyn_partial_move
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./dyn_partial_move
 
 Nested simple borrow call
   $ schmu borrow_call_nest.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_call_nest
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./borrow_call_nest
   some: 3
   12
 
 Move variables directly in 'once' context
   $ schmu borrow_call_move_once.smu
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_call_move_once
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./borrow_call_move_once
 
 Explicit borrow moves
-  $ schmu borrow_moves.smu --dump-llvm 2>&1 | grep -v !DI 
+  $ schmu borrow_moves.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
   ; ModuleID = 'context'
   source_filename = "context"
   target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
@@ -3582,4 +3601,5 @@ Explicit borrow moves
   !llvm.dbg.cu = !{!0}
   
   !5 = !{}
-  $ valgrind -q --leak-check=yes --show-reachable=yes ./borrow_moves
+  $ schmu borrow_moves.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./borrow_moves

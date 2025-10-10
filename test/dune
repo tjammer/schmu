@@ -1,5 +1,6 @@
 (cram
  (deps
+  (alias valgrind-wrapper)
   (package schmu)))
 
 (tests
@@ -7,3 +8,29 @@
  (modes
   (native exe))
  (libraries alcotest schmulang))
+
+(executable
+ (public_name valgrind-wrapper)
+ (name valgrind_wrapper_dummy)
+ (enabled_if
+  (= %{system} macosx))
+ (libraries unix))
+
+(executable
+ (public_name valgrind-wrapper)
+ (name valgrind_wrapper_real)
+ (enabled_if
+  (= %{system} linux))
+ (libraries unix))
+
+(alias
+ (name valgrind-wrapper)
+ (deps valgrind_wrapper_dummy.exe)
+ (enabled_if
+  (= %{system} macosx)))
+
+(alias
+ (name valgrind-wrapper)
+ (deps valgrind_wrapper_real.exe)
+ (enabled_if
+  (= %{system} linux)))
