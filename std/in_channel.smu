@@ -184,6 +184,7 @@ fun readall(mut ic) {
     Some(_) -> {
       -- add null terminator
       array/push(mut buf, '\000')
+      array/pop_back(mut buf) |> ignore
       string/of_array(mov buf)
     }
     None -> copy("")
