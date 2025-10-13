@@ -248,6 +248,7 @@ functor make_printer(m : concrete_formatter) {
         if (start + len) < length {
           -- we have not reached the end of the format string yet
           match string/get(str, start + len) {
+            -- use numeric char literals to deal with parenthesis detection in emacs
             123u8 -> {
               -- '{'
               match escape {
