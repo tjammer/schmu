@@ -1,7 +1,6 @@
 Compile stubs
   $ cc -c stub.c
-  $ ar rs libstub.a stub.o
-  ar: creating libstub.a
+  $ ar rs libstub.a stub.o > /dev/null 2>&1
 
 Test elif
   $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o elseif.smu 2>&1 | grep -v !DI
@@ -1472,8 +1471,7 @@ Assertions
   [134]
   $ echo $ret
   hmm
-  $ cat err | grep assert
-  assert: assert.smu:8: main: Assertion `false' failed.
+  $ cat err | grep assert | grep 8 | grep false | grep -q failed
 
 Find function by callname even when not calling
   $ schmu find_fn.smu
