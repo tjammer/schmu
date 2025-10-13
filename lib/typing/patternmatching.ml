@@ -755,9 +755,14 @@ module Make (C : Core) (R : Recs) = struct
       ref (Array.to_seq rfields |> Seq.map (fun f -> f.fname) |> Set.of_seq)
     in
 
-    let find_name loc name =
+    let find_name_exn loc name =
       let rec inner i =
-        if i = Array.length rfields then None
+        if i = Array.length rfields then
+          let msg =
+            Printf.sprintf "Unbound field %s on record %s" name
+              (string_of_type mn t)
+          in
+          raise (Error (loc, msg))
         else
           let field = rfields.(i) in
           if String.equal field.fname name then
@@ -765,7 +770,7 @@ module Make (C : Core) (R : Recs) = struct
                Set.mem name !fset
             then (
               fset := Set.remove name !fset;
-              Some (field, i))
+              (field, i))
             else
               let msg =
                 Printf.sprintf
@@ -782,28 +787,33 @@ module Make (C : Core) (R : Recs) = struct
     let index_fields =
       List.map
         (fun ((loc, name), pat) ->
-          let field, index =
-            match find_name loc name with
-            | Some f -> f
-            | None ->
-                let msg =
-                  Printf.sprintf "Unbound field %s on record %s" name
-                    (string_of_type mn t)
-                in
-                raise (Error (loc, msg))
-          in
+          let field, index = find_name_exn loc name in
           (field, index, loc, name, pat))
-        fields
+        (snd fields)
     in
 
     (* Make sure no fields are missing *)
-    (if not (Set.is_empty !fset) then
-       let missing = Set.choose !fset in
-       let msg =
-         Printf.sprintf
-           "There are missing fields in record pattern, for instance %s" missing
-       in
-       raise (Error (loc, msg)));
+    let index_fields =
+      if not (Set.is_empty !fset) then
+        match fst fields with
+        | `Pats ->
+            let missing = Set.choose !fset in
+            let msg =
+              Printf.sprintf
+                "There are missing fields in record pattern, for instance %s"
+                missing
+            in
+            raise (Error (loc, msg))
+        | `Trail loc ->
+            (* Add missing fields as wildcard patterns *)
+            Set.fold
+              (fun name acc ->
+                let field, index = find_name_exn loc name in
+                (field, index, loc, name, Some (Ast.Pwildcard (loc, Ast.Dnorm)))
+                :: acc)
+              !fset index_fields
+      else index_fields
+    in
     index_fields
 
   (* from containers *)
@@ -826,6 +836,25 @@ module Make (C : Core) (R : Recs) = struct
     env
 
   let path_typ loc env p = Env.(find_val loc (Path.Pid (expr_name p)) env).typ
+
+  (* Helper functions for trailing wildcard match in record pattern *)
+  let get_labelset pats =
+    let get_loc = function
+      | Ast.Rp_item ((loc, _), _) -> loc
+      | Rp_trail loc -> loc
+    in
+    let rec aux first pats names = function
+      | Ast.Rp_item (((_, name), _) as pat) :: tl ->
+          aux false (pat :: pats) (name :: names) tl
+      | Rp_trail loc :: _ when first ->
+          raise (Error (loc, "Record pattern cannot start with wildcard"))
+      | Rp_trail _ :: p :: _ ->
+          raise (Error (get_loc p, "Unexpected pattern after wildcard"))
+      | Rp_trail loc :: [] -> (`Trail loc, pats, names)
+      | [] -> (`Pats, pats, names)
+    in
+    let kind, pats, names = aux true [] [] pats in
+    (kind, List.rev pats, List.rev names)
 
   let rec type_pattern env ((path : path), pat) =
     (* This function got a little more complicated since we expand or-patterns
@@ -906,14 +935,14 @@ module Make (C : Core) (R : Recs) = struct
                let pat = Tp_record (loc, fields, dattr) in
                (path, { ptyp; pat }))
     | Precord (loc, pats, dattr) ->
-        let labelset = List.map (fun ((_, name), _) -> name) pats in
         let annot = make_annot (path_typ loc env path) in
+        let trail, pats, labelset = get_labelset pats in
         let ptyp = get_record_type env loc labelset annot in
         unify
           (loc, "Record pattern has unexpected type:")
           (path_typ loc env path) ptyp env;
 
-        let index_fields = calc_index_fields env loc pats ptyp in
+        let index_fields = calc_index_fields env loc (trail, pats) ptyp in
         let fields =
           List.map
             (fun (field, index, floc, name, pat) ->

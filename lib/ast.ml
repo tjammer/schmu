@@ -72,7 +72,7 @@ and pattern =
   | Pvar of ident * decl_attr
   | Ptup of loc * (loc * pattern) list * decl_attr
   | Pwildcard of loc * decl_attr
-  | Precord of loc * (ident * pattern option) list * decl_attr
+  | Precord of loc * record_pitem list * decl_attr
   | Plit_int of loc * int64
   | Plit_char of loc * char
   | Plit_unit of loc
@@ -100,6 +100,7 @@ and stmt =
   | Use of loc * Path.t
 
 and block = stmt list
+and record_pitem = Rp_item of (ident * pattern option) | Rp_trail of loc
 
 type external_decl = loc * ident * type_spec * string option
 type typename = { name : string; poly_param : string list }

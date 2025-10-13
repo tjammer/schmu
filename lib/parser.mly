@@ -274,8 +274,9 @@ record_pattern(x):
     { Precord ($loc, items, Dnorm) }
 
 record_item_pattern(x):
-  | ident = ident; Equal; pat = x; { ident, Some pat }
-  | ident = ident; { ident, None }
+  | ident = ident; Equal; pat = x; { Rp_item (ident, Some pat) }
+  | ident = ident; { Rp_item(ident, None) }
+  | Wildcard { Rp_trail $loc }
 
 with_loc(x):
   | pat = x; { $loc, pat }

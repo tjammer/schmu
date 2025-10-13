@@ -717,6 +717,52 @@ let test_match_unit_redundant () =
   () -> ()
 }|}
 
+let test_match_record_trail_wc () =
+  test "unit"
+    {|
+type record = { a : int, b : int }
+
+let r = { a = 0, b = 1 }
+match r {
+  { a = 0, _ } -> ()
+  _ -> ()
+}
+|}
+
+let test_match_record_trail_wc_first () =
+  test_exn "Record pattern cannot start with wildcard"
+    {|
+type record = { a : int, b : int }
+
+let r = { a = 0, b = 1 }
+match r {
+  { _, a = _ } -> ()
+}
+|}
+
+let test_match_record_trail_wc_only () =
+  test_exn "Record pattern cannot start with wildcard"
+    {|
+type record = { a : int, b : int }
+
+let r = { a = 0, b = 1 }
+match r {
+  { _ } -> ()
+}
+|}
+
+let test_match_record_trail_wc_not_last () =
+  test_exn "Unexpected pattern after wildcard"
+    {|
+type record = { a : int, b : int }
+
+let r = { a = 0, b = 1 }
+match r {
+  { a = 0, _, c = _ } -> ()
+  _ -> ()
+}
+|}
+
 let test_multi_record2 () =
   test "foo[int, bool]"
     "type foo['a, 'b] = {a : 'a, b : 'b}; {a = 0, b = false}"
@@ -2516,6 +2562,11 @@ let () =
           case "guard no var leak" test_match_guard_dont_leak_vars;
           case "unit" test_match_unit;
           case "unit redundant" test_match_unit_redundant;
+          case "record trail wildcard" test_match_record_trail_wc;
+          case "record trail wildcard first" test_match_record_trail_wc_first;
+          case "record trail wildcard only" test_match_record_trail_wc_only;
+          case "record trail wildcard not last"
+            test_match_record_trail_wc_not_last;
         ] );
       ( "multi params",
         [
