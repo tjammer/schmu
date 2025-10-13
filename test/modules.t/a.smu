@@ -1,0 +1,14 @@
+module d {
+  type t = string/cstr
+  fun equal(_e, _n) {
+    true
+  }
+  fun hash(_) {
+    0
+  }
+}
+module i = hashtbl/make(d)
+type handle = {
+  j : i/t[int],
+  k : array[string]
+}

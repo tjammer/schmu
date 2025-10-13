@@ -1,0 +1,5 @@
+import a
+module handle {
+  type b = a/handle
+}
+type handle = handle/b

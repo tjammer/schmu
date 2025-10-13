@@ -129,7 +129,7 @@ type t = {
       (* externals won't collide between scopes and modules, thus we keep a reference type here *)
   in_mut : int ref;
   modpath : Path.t;
-  find_module : t -> Ast.loc -> string -> cached_module;
+  find_module : Ast.loc -> Path.t -> cached_module;
   scope_of_located : t -> Path.t -> (scope, string) result;
   decl_tbl : (Path.t, type_decl) Hashtbl.t;
 }
@@ -382,29 +382,6 @@ let get_module env loc = function
       | Ok scope -> (path, scope)
       | Error s -> raise (Error.Error (loc, s)))
 
-let add_module_alias loc ~key ~mname env =
-  let rs key =
-    let msg = "Cannot find module: " ^ key ^ " in " ^ Path.show mname in
-    raise (Error.Error (loc, msg))
-  in
-  let rec start env = function
-    | Path.Pid key -> env.find_module env loc key
-    | Pmod (key, tl) ->
-        let scope = env.find_module env loc key |> get_module env loc |> snd in
-        add scope tl
-  and add scope = function
-    | Path.Pid key -> (
-        match Map.find_opt key scope.modules with Some m -> m | None -> rs key)
-    | Pmod (key, tl) -> (
-        match Map.find_opt key scope.modules with
-        | Some cached ->
-            let scope = get_module env loc cached |> snd in
-            add scope tl
-        | None -> rs key)
-  in
-  let cached_module = start env mname in
-  add_module ~key cached_module env
-
 let add_module_type key mtype env =
   let scope, tl = decap_exn env in
   let path = Path.append key env.modpath in
@@ -571,8 +548,9 @@ let find_general ~(find : key -> scope -> 'a option)
         match find_module hd scopes with
         | Some scope -> traverse_module scope tl
         | None ->
+            assert (not of_base);
             let scope =
-              env.find_module env loc hd |> get_module env loc |> snd
+              env.find_module loc (Pid hd) |> get_module env loc |> snd
             in
             traverse_module scope tl)
   and find_value ~of_base key = function
@@ -685,11 +663,7 @@ let query_val_opt loc pkey ~instantiate env =
     | Pmod (hd, tl) -> (
         match find_module lvl hd scopes with
         | Some scope -> traverse_module lvl scope tl
-        | None ->
-            let scope =
-              env.find_module env loc hd |> get_module env loc |> snd
-            in
-            traverse_module lvl scope tl)
+        | None -> None)
   and find_value lvl key = function
     | [] -> None
     | scope :: tl -> (
@@ -757,6 +731,40 @@ let find_module_opt ?(query = false) loc name env =
       if query then mark_module_used scope;
       match kind with Cm_located path | Cm_cached (path, _) -> path)
     loc name env
+
+let add_module_alias loc ~key ~mname env =
+  let rs key =
+    let msg =
+      if String.equal key (Path.show mname) then
+        Format.sprintf "Module %s has not been imported" key
+      else Format.asprintf "Cannot find module: %s in %a" key Path.pp mname
+    in
+    raise (Error.Error (loc, msg))
+  in
+  let rec start env = function
+    | Path.Pid key as md -> (
+        match find_module_opt ~query:true loc md env with
+        | Some path -> env.find_module loc path
+        | None -> rs key)
+    | Pmod (key, tl) ->
+        let scope =
+          match find_module_opt ~query:true loc (Pid key) env with
+          | Some path -> env.find_module loc path |> get_module env loc |> snd
+          | None -> rs key
+        in
+        add scope tl
+  and add scope = function
+    | Path.Pid key -> (
+        match Map.find_opt key scope.modules with Some m -> m | None -> rs key)
+    | Pmod (key, tl) -> (
+        match Map.find_opt key scope.modules with
+        | Some cached ->
+            let scope = get_module env loc cached |> snd in
+            add scope tl
+        | None -> rs key)
+  in
+  let cached_module = start env mname in
+  add_module ~key cached_module env
 
 let find_module_type_opt loc name env =
   find_general
@@ -950,6 +958,14 @@ let use_module env loc name =
     | Stoplevel tbl | Sfunc tbl | Scont tbl -> tbl
     | Smodule _ -> failwith "Unexpected module"
   in
+  let rs key =
+    let msg =
+      if String.equal key (Path.show name) then
+        Format.sprintf "Module %s has not been imported" key
+      else Format.asprintf "Cannot find module: %s in %a" key Path.pp name
+    in
+    raise (Error.Error (loc, msg))
+  in
   let scope =
     find_general
       ~find:(fun key scope -> Map.find_opt key scope.modules)
@@ -957,8 +973,7 @@ let use_module env loc name =
         mark_module_used scope;
         cached_module)
       loc name env
-    |> (function
-         | Some m -> m | None -> env.find_module env loc (Path.get_hd name))
+    |> (function Some m -> m | None -> rs (Path.show name))
     |> get_module env loc |> snd
     |> fun scope -> fix_scope_loc scope loc
   in

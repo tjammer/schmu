@@ -48,7 +48,7 @@ val def_mname : Path.t -> value
 (** Default value, everything is false with Path arg is mname *)
 
 val empty :
-  find_module:(t -> Ast.loc -> key -> cached_module) ->
+  find_module:(Ast.loc -> Path.t -> cached_module) ->
   scope_of_located:(t -> Path.t -> (scope, string) result) ->
   Path.t ->
   t

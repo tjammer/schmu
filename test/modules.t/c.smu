@@ -1,0 +1,2 @@
+import b
+type t = b/handle

@@ -71,7 +71,18 @@ val register_applied_functor :
 
 val poly_funcs : (Path.t * Typed_tree.toplevel_item) list ref
 val paths : string list ref
-val find_module : Env.t -> Ast.loc -> string -> Env.cached_module
+
+(* Interaction between environment and module cache: The module cache keeps all
+   visited modules by their absolute path name, e.g. file a/local b. Aliases
+   link to the correct absolute path, e.g. file a/ local b = file c/local b
+   would link to file c/local b. The module cache doesn't care about
+   reachability of its modules, it just provides the module by path. Providing
+   the module here means providing an [Env.cached_module]. Only the env cares
+   about reachability and visibility. For a given scope, only explicitly
+   declared modules are visible to the outside while just imported modules are
+   invisible. *)
+
+val find_module : Ast.loc -> Path.t -> Env.cached_module
 
 val scope_of_functor_param :
   Env.t -> loc -> param:Path.t -> Module_type.t -> Env.cached_module

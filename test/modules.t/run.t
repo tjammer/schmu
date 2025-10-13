@@ -3024,3 +3024,8 @@ Ensure no dups when linking
 
 Suppress unused signature ctors
   $ schmu suppress_unused_signature_ctors.smu
+
+Strange module opening bug
+  $ schmu -m a.smu
+  $ schmu -m b.smu
+  $ schmu c.smu

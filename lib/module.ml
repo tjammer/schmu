@@ -400,7 +400,7 @@ let rec add_to_env env foreign (mname, m) =
         List.fold_left
           (fun env item ->
             match item with
-            | Mtype (_, name, decl) -> Env.add_type None name decl env
+            | Mtype (l, name, decl) -> Env.add_type (Some l) name decl env
             | Mfun (l, typ, n) ->
                 Env.(
                   add_value n.user { def_val with typ; global = true } l env
@@ -632,45 +632,26 @@ and register_applied_functor env loc key mname modul =
     in
     Ok (Env.add_module ~key cached env)
 
-let find_module env loc name =
+let find_module loc name =
   (* We first search the env for local modules. Then we try read the module the normal way *)
   let r =
-    match Env.find_module_opt ~query:true loc (Path.Pid name) env with
-    | Some name -> (
-        match Hashtbl.find_opt module_cache name with
-        | Some (Cached (kind, scope, _)) ->
-            Ok
-              Env.(
-                Cm_cached (modpath_of_kind kind, Env.fix_scope_loc scope loc))
-        | Some ((Located _ | Functor _) as cached) ->
-            Ok (envmodule_of_cached name cached)
-        | None ->
-            let msg =
-              Printf.sprintf "Module %s should be local but cannot be found"
-                (Path.show name)
-            in
-            raise (Error (loc, msg)))
-    | None -> (
-        (* Check if we have imported the module before *)
-        let m =
-          if !allow_transitive_deps then
-            let mname = Path.Pid name in
-            match Hashtbl.find_opt module_cache mname with
-            | Some r -> Ok (envmodule_of_cached mname r)
-            | None -> Error ()
-          else Error ()
+    match Hashtbl.find_opt module_cache name with
+    | Some (Cached (kind, scope, _)) ->
+        Ok Env.(Cm_cached (modpath_of_kind kind, Env.fix_scope_loc scope loc))
+    | Some ((Located _ | Functor _) as cached) ->
+        Ok (envmodule_of_cached name cached)
+    | None ->
+        let msg =
+          Format.asprintf "Module %a should be local but cannot be found"
+            Path.pp name
         in
-        match m with
-        | Ok m -> Ok m
-        | Error () ->
-            let msg = Printf.sprintf "Module %s has not been imported" name in
-            raise (Error (loc, msg)))
+        raise (Error (loc, msg))
   in
 
   match r with
   | Ok m -> m
   | Error s ->
-      let msg = Printf.sprintf "Module %s: %s" name s in
+      let msg = Format.asprintf "Module %a: %s" Path.pp name s in
       raise (Error (loc, msg))
 
 let functor_msg path =
