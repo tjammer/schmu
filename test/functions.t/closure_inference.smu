@@ -19,8 +19,6 @@ fun string_of_view(view) {
   iter_range(view.start, view.start + view.len, fun c {
     array/push(mut ret, mov string/get(view.pbuf, c))
   })
-  array/push(mut ret, mov '\000')
-  array/pop_back(mut ret) |> ignore
   string/of_array(ret)
 }
 

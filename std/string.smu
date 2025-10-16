@@ -174,7 +174,16 @@ fun modify_buf(mut str : t, f) {
   ()
 }
 
-fun of_array(mov arr : array[u8]) { arr }
+fun of_array(mov arr : array[u8]) {
+  -- always add null terminator. The array might have a hidden null terminator
+  -- already, but we can't be certain and don't want each caller to remember
+  -- adding null.
+  let mut arr = mov arr
+  array/push(mut arr, '\000')
+  array/pop_back(mut arr) |> ignore
+  arr
+}
+
 fun to_array(mov str : t) { str }
 
 fun of_fixed_array(arr : array#?[u8]) {

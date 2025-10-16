@@ -181,12 +181,7 @@ fun readline(mut ic, mut buf) {
 fun readall(mut ic) {
   let mut buf = array/create(bufsize)
   match readrem(mut ic, mut buf) {
-    Some(_) -> {
-      -- add null terminator
-      array/push(mut buf, '\000')
-      array/pop_back(mut buf) |> ignore
-      string/of_array(mov buf)
-    }
+    Some(_) -> string/of_array(mov buf)
     None -> copy("")
   }
 }
