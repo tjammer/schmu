@@ -139,6 +139,7 @@ fun clear(mut arr) {
 
 fun reserve(mut arr, size) {
   let cap = __array_capacity(arr)
+  let startcap = if cap > 0 { cap } else { 1 }
   if cap < size {
     let newcap = power_2_above_or_equal(startcap, size)
     if is_nullptr(data(arr)) {
