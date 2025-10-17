@@ -74,7 +74,7 @@ fun fill(mut buf, icbuf, lower, upper) {
   let diff = upper - lower
   let len = array/length(buf)
   -- We call [fill] often in [readall] so we allocate eagerly
-  array/reserve(mut buf, prelude/power_2_above(16, len + diff))
+  array/reserve(mut buf, prelude/power_2_above_or_equal(16, len + diff))
 
   memcpy(array/data(buf) |> unsafe/at(len), array/fixed/data(icbuf) |> unsafe/at(lower), diff)
   mut __unsafe_array_length(buf) = len + diff

@@ -57,7 +57,7 @@ fun push(mut arr, mov value) {
       mut __unsafe_array_capacity(arr) = 4
     } else {
       assert(is_nullptr(data(arr)) |> not)
-      let cap = power_2_above(capacity, capacity + 1)
+      let cap = power_2_above_or_equal(capacity, capacity + 1)
       mut data(arr) = __unsafe_realloc(data(arr), cap)
       mut __unsafe_array_capacity(arr) = cap
     }
@@ -140,7 +140,7 @@ fun clear(mut arr) {
 fun reserve(mut arr, size) {
   let cap = __array_capacity(arr)
   if cap < size {
-    let newcap = power_2_above(cap, size)
+    let newcap = power_2_above_or_equal(startcap, size)
     if is_nullptr(data(arr)) {
       mut data(arr) = __unsafe_malloc(newcap)
     }

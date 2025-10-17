@@ -2447,7 +2447,7 @@ Modify in function
   
   declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
   
-  declare i64 @prelude_power_2_above(i64 %0, i64 %1)
+  declare i64 @prelude_power_2_above_or_equal(i64 %0, i64 %1)
   
   declare i8 @string_get(ptr %0, i64 %1)
   
@@ -2511,7 +2511,7 @@ Modify in function
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !12
+    %8 = tail call i64 @prelude_power_2_above_or_equal(i64 %0, i64 %add), !dbg !12
     %size = mul i64 %8, 8
     %9 = tail call ptr @realloc(ptr %5, i64 %size)
     store ptr %9, ptr %arr, align 8
@@ -2814,7 +2814,7 @@ Make sure variable ids are correctly propagated
   @1 = private unnamed_addr constant [10 x i8] c"array.smu\00"
   @2 = private unnamed_addr constant [15 x i8] c"file not found\00"
   
-  declare i64 @prelude_power_2_above(i64 %0, i64 %1)
+  declare i64 @prelude_power_2_above_or_equal(i64 %0, i64 %1)
   
   define linkonce_odr void @__array_push_a.ll(ptr noalias %arr, i64 %value) !dbg !2 {
   entry:
@@ -2853,7 +2853,7 @@ Make sure variable ids are correctly propagated
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !10
+    %8 = tail call i64 @prelude_power_2_above_or_equal(i64 %0, i64 %add), !dbg !10
     %size = mul i64 %8, 8
     %9 = tail call ptr @realloc(ptr %5, i64 %size)
     store ptr %9, ptr %arr, align 8

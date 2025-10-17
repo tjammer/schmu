@@ -28,11 +28,11 @@ fun iter_range(from, to, f) {
 
 fun char_equal(a, b) { int_of_u8(a) == int_of_u8(b) }
 
-fun rec power_2_above(x, n) {
+fun rec power_2_above_or_equal(x, n) {
   if x >= n { x }
   else {
     if (x * 2) < 0 { x }
-    else { power_2_above(x * 2, n) }
+    else { power_2_above_or_equal(x * 2, n) }
   }
 }
 

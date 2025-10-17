@@ -450,7 +450,7 @@ Array push
   
   declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
   
-  declare i64 @prelude_power_2_above(i64 %0, i64 %1)
+  declare i64 @prelude_power_2_above_or_equal(i64 %0, i64 %1)
   
   declare i8 @string_get(ptr %0, i64 %1)
   
@@ -514,7 +514,7 @@ Array push
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !12
+    %8 = tail call i64 @prelude_power_2_above_or_equal(i64 %0, i64 %add), !dbg !12
     %size = mul i64 %8, 24
     %9 = tail call ptr @realloc(ptr %5, i64 %size)
     store ptr %9, ptr %arr, align 8
@@ -577,7 +577,7 @@ Array push
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !18
+    %8 = tail call i64 @prelude_power_2_above_or_equal(i64 %0, i64 %add), !dbg !18
     %size = mul i64 %8, 8
     %9 = tail call ptr @realloc(ptr %5, i64 %size)
     store ptr %9, ptr %arr, align 8
@@ -2413,7 +2413,7 @@ Also mutable fields and 'realloc' builtin
   @5 = private unnamed_addr constant [6 x i8] c"young\00"
   @6 = private unnamed_addr constant [6 x i8] c"world\00"
   
-  declare i64 @prelude_power_2_above(i64 %0, i64 %1)
+  declare i64 @prelude_power_2_above_or_equal(i64 %0, i64 %1)
   
   define linkonce_odr void @__array_push_a.a.la.l(ptr noalias %arr, ptr %value) !dbg !2 {
   entry:
@@ -2452,7 +2452,7 @@ Also mutable fields and 'realloc' builtin
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !10
+    %8 = tail call i64 @prelude_power_2_above_or_equal(i64 %0, i64 %add), !dbg !10
     %size = mul i64 %8, 24
     %9 = tail call ptr @realloc(ptr %5, i64 %size)
     store ptr %9, ptr %arr, align 8
@@ -2517,7 +2517,7 @@ Also mutable fields and 'realloc' builtin
   
   success6:                                         ; preds = %else
     %add = add i64 %1, 1
-    %9 = tail call i64 @prelude_power_2_above(i64 %1, i64 %add), !dbg !16
+    %9 = tail call i64 @prelude_power_2_above_or_equal(i64 %1, i64 %add), !dbg !16
     %size = mul i64 %9, 8
     %10 = tail call ptr @realloc(ptr %6, i64 %size)
     store ptr %10, ptr %arr, align 8

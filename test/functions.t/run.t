@@ -1245,7 +1245,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   @1 = private unnamed_addr constant [10 x i8] c"array.smu\00"
   @2 = private unnamed_addr constant [15 x i8] c"file not found\00"
   
-  declare i64 @prelude_power_2_above(i64 %0, i64 %1)
+  declare i64 @prelude_power_2_above_or_equal(i64 %0, i64 %1)
   
   declare void @printi(i64 %0)
   
@@ -1286,7 +1286,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !10
+    %8 = tail call i64 @prelude_power_2_above_or_equal(i64 %0, i64 %add), !dbg !10
     %size = mul i64 %8, 8
     %9 = tail call ptr @realloc(ptr %5, i64 %size)
     store ptr %9, ptr %arr, align 8
@@ -1664,7 +1664,7 @@ Don't copy mutable types in setup of tailrecursive functions
   
   declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
   
-  declare i64 @prelude_power_2_above(i64 %0, i64 %1)
+  declare i64 @prelude_power_2_above_or_equal(i64 %0, i64 %1)
   
   declare i64 @string_len(ptr %0)
   
@@ -1732,7 +1732,7 @@ Don't copy mutable types in setup of tailrecursive functions
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !12
+    %8 = tail call i64 @prelude_power_2_above_or_equal(i64 %0, i64 %add), !dbg !12
     %size = mul i64 %8, 8
     %9 = tail call ptr @realloc(ptr %5, i64 %size)
     store ptr %9, ptr %arr, align 8
@@ -2354,7 +2354,7 @@ The lamba passed as array_iter argument is polymorphic
   
   declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
   
-  declare i64 @prelude_power_2_above(i64 %0, i64 %1)
+  declare i64 @prelude_power_2_above_or_equal(i64 %0, i64 %1)
   
   declare i8 @string_get(ptr %0, i64 %1)
   
@@ -2509,7 +2509,7 @@ The lamba passed as array_iter argument is polymorphic
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !19
+    %8 = tail call i64 @prelude_power_2_above_or_equal(i64 %0, i64 %add), !dbg !19
     %9 = tail call ptr @realloc(ptr %5, i64 %8)
     store ptr %9, ptr %arr, align 8
     %sunkaddr16 = getelementptr inbounds i8, ptr %arr, i64 16

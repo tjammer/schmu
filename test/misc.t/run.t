@@ -1658,7 +1658,7 @@ Using unit values
   
   declare void @prelude_iter_range(i64 %0, i64 %1, ptr %2)
   
-  declare i64 @prelude_power_2_above(i64 %0, i64 %1)
+  declare i64 @prelude_power_2_above_or_equal(i64 %0, i64 %1)
   
   declare i64 @string_len(ptr %0)
   
@@ -1728,7 +1728,7 @@ Using unit values
   
   success6:                                         ; preds = %else
     %add = add i64 %0, 1
-    %8 = tail call i64 @prelude_power_2_above(i64 %0, i64 %add), !dbg !12
+    %8 = tail call i64 @prelude_power_2_above_or_equal(i64 %0, i64 %add), !dbg !12
     %9 = tail call ptr @realloc(ptr %5, i64 %8)
     store ptr %9, ptr %arr, align 8
     %sunkaddr16 = getelementptr inbounds i8, ptr %arr, i64 16
