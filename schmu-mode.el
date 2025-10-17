@@ -18,7 +18,7 @@
   (rx symbol-start
       (or "fun" "type" "if" "then" "else" "and" "or" "external" "let"
           "match" "with" "module" "signature" "val" "functor"
-          "use" "import" "mov" "mut" "bor")
+          "use" "import" "mov" "mut" "bor" "rec")
       symbol-end)
   "Schmu language keywords.")
 
@@ -35,7 +35,8 @@
   "Schmu language builtin types.")
 
 (defconst schmu-function-pattern
-  (rx symbol-start "fun" (1+ space) (group (seq (any lower ?_) (* (any word ?_))))))
+  (rx symbol-start "fun" (1+ space) (? (seq "rec" (1+ space)))
+      (group (seq (any lower ?_) (* (any word ?_))))))
 
 (defconst schmu-call-pattern
   (rx symbol-start (group (seq (any lower ?_) (* (any word ?_))))
@@ -59,7 +60,7 @@
   (rx symbol-start (group (seq (any upper) (* (any word ?_))))))
 
 (defconst schmu-variable-pattern
-  (rx symbol-start "let" (1+ space)
+  (rx symbol-start "let" (1+ space) (? (seq "mut" (1+ space)))
       (group (seq (any lower ?_) (* (any word ?_)) (opt (or ?& ?!))))
       (1+ space)))
 
@@ -76,7 +77,7 @@
     (,schmu-constants-regexp . font-lock-constant-face)
     (,schmu-module-pattern 1 font-lock-type-face)
     (,schmu-fixed-array-pattern 1 font-lock-constant-face)
-    (,schmu-function-pattern 1 font-lock-function-name-face)
+    (,schmu-function-pattern 1 font-lock-variable-name-face)
     (,schmu-types-regexp . font-lock-type-face)
     (,schmu-variable-pattern 1 font-lock-variable-name-face)
     (,schmu-call-pattern 1 font-lock-function-name-face)
