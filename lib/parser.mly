@@ -25,6 +25,7 @@
 %token Mut
 %token Mov
 %token Bor
+%token Main
 %token Wildcard
 %token <int64> Int
 %token <char> U8
@@ -98,6 +99,7 @@ top_item:
   | modtype = modtype { modtype }
   | Signature; sgn = signature_expr { Signature ($loc, sgn) }
   | Import; id = Ident { Import ($loc(id), id) }
+  | main = main { main }
 
 stmt_no_ident:
 /* Needed to disambiguate block expression from record expression */
@@ -155,6 +157,10 @@ modul:
 
 module_application:
   | path = path_with_loc; args = parens(path_with_loc) { path, args }
+
+main:
+  | _l = Main; Lcurly; items = separated_nonempty_list(Semicolon, top_item); Rcurly
+    { Main ($loc(_l), items) }
 
 path_with_loc:
   | path = use_path { $loc, path }

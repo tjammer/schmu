@@ -74,7 +74,7 @@ let check_annot env loc l r =
     raise (Error (loc, msg))
 
 let main_path = Path.Pid "schmu"
-let is_module = function Path.Pid "schmu" -> false | Pid _ | Pmod _ -> true
+let is_module m = String.equal "schmu" (Path.get_hd m) |> not
 
 let loc_equal (af, asnd) (bf, bsnd) =
   (* Exclusivity uses location of the whole expression, because it doesn't have
@@ -2199,6 +2199,9 @@ and convert_prog env items modul =
     | Import (loc, name) ->
         let env = Module.import_module env loc ~regeneralize name in
         (env, items, m)
+    | Main (_loc, prog) ->
+        if is_module (Env.modpath env) then (env, items, m)
+        else List.fold_left aux (env, items, m) prog
   and aux_stmt (old, env, items, m) = function
     | Ast.Let (loc, _decl, _pexpr, Some _) ->
         raise (Error (loc, "Cannot return borrow at top level"))

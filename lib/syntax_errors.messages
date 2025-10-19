@@ -226,6 +226,14 @@ prog: Type Ident Equal Ident Rpar
 
 Expecting square brackets for parameterized type
 
+prog: Main With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Main Lcurly With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Signature With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -394,7 +402,7 @@ prog: Fun Lcurly With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: Fun Lcurly Ident Equal Ident Right_arrow
+prog: Fun Lcurly Wildcard Right_arrow
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1159,6 +1167,10 @@ prog: Module Ident Equal Ident Lpar Ident With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Module Ident Equal Ident Lpar Ident Comma With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Main Lcurly Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

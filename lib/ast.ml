@@ -124,6 +124,7 @@ type top_item =
   | Module_type of ident * signature list
   | Signature of loc * signature_expr
   | Import of ident
+  | Main of loc * prog
 
 and module_decl = loc * string * Path.t option
 and functor_param = loc * string * Path.t
