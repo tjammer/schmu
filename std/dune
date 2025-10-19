@@ -149,6 +149,13 @@
    (run schmu --release -m --no-std rc.smu))))
 
 (rule
+ (targets deque.o deque.smi)
+ (deps %{bin:schmu} deque.smu prelude.smi option.smi iter.smi array.smi)
+ (action
+  (progn
+   (run schmu --release -m --no-std deque.smu))))
+
+(rule
  (targets libc.o libc.smi)
  (deps %{bin:schmu} libc.macos.smu)
  (enabled_if
@@ -187,6 +194,8 @@
   std.smu
   string.smi
   sys.smi
+  set.smi
+  deque.smi
   unsafe.smi
   fmt.smi)
  (action
@@ -246,6 +255,37 @@
   set.smu
   (set.smi as std/set.smi)
   (set.o as std/set.o)
+  deque.smu
+  (deque.smi as std/deque.smi)
+  (deque.o as std/deque.o)
   libc.smu
   (libc.smi as std/libc.smi)
   (libc.o as std/libc.o)))
+
+(cram
+ (deps
+  (package schmu)
+  (:std
+   (source_tree .))
+  ;; there must be a better way than redeclaring all of this again
+  string.o
+  string.smi
+  array.o
+  array.smi
+  int.smi
+  int.o
+  fmt.o
+  fmt.smi
+  schubfach.smi
+  schubfach.o
+  unsafe.smi
+  unsafe.o
+  iter.o
+  iter.smi
+  libc.o
+  option.o
+  option.smi
+  prelude.o
+  prelude.smi
+  rc.o
+  rc.smi))

@@ -1,0 +1,200 @@
+import array
+import iter
+import option
+import prelude
+
+signature {
+  -- a growable double ended queue
+  type t['a]
+
+  -- creates a deque with an initial capacity
+  val create : fun(int) -> t['a]
+
+  -- appends an element to the back of the queue
+  val push_back : fun (mut t['a], mov 'a) -> unit
+  -- appends an element to the front of the queue
+  val push_front : fun (mut t['a], mov 'a) -> unit
+
+  -- removes the last element and returns it as an option
+  val pop_back : fun(mut t['a]) -> option/t['a]
+  -- removes the first element and returns it as an option
+  val pop_front : fun(mut t['a]) -> option/t['a]
+}
+
+use option
+use prelude
+
+type t['a] = { mut head : int, mut len : int, mut data : array[option/t['a]] }
+
+fun create(size) {
+  { head = 0, len = 0, data = array/create(size) }
+}
+
+fun is_full(deq) {
+  deq.len == __array_capacity(deq.data)
+}
+
+fun fill_none(mut data, from, newcap) {
+  iter/range(from, newcap) |> iter/iter(fun i {
+    __unsafe_ptr_set(mut array/data(data), i, mov None)
+  })
+  mut __unsafe_array_length(data) = newcap
+}
+
+fun grow(mut deq) {
+  let old_cap = __array_capacity(deq.data)
+  let newcap = if old_cap == 0 { 1 } else { old_cap * 2 }
+  array/reserve(mut deq.data, newcap)
+
+  -- fill new entries with None
+  fill_none(mut deq.data, old_cap, __array_capacity(deq.data))
+
+  --    H             L
+  --   [o o o o o o o o ] before
+  --    H             L
+  -- A [o o o o o o o o . . . . . . . . ] after
+  --        L H
+  --   [o o o o o o o o ] before
+  --          H             L
+  -- B [. . . o o o o o o o o . . . . . ] after
+  --              L H
+  --   [o o o o o o o o ] before
+  --              L                 H
+  -- C [o o o o o o . . . . . . . . o o ] after
+  -- We don't implement case C yet and instead use B
+
+  -- find out L position
+  let is_a = deq.head <= (old_cap - deq.len)
+
+  if is_a {
+    -- nothing to do
+    ()
+  }
+  else {
+    -- copy tail to newly allocated part so we get a contiguous queue
+    iter/range(0, deq.head) |> iter/iter(fun i {
+      array/swap_items(mut deq.data, i, old_cap + i)
+    })
+  }
+}
+
+fun wrap_index(deq, idx) {
+  let cap = __array_capacity(deq.data)
+  if idx >= cap { idx - cap }
+  else if idx < 0 { idx + cap }
+  else { idx }
+}
+
+fun push_back(mut deq, mov value) {
+  if is_full(deq) {
+    grow(mut deq)
+  }
+
+  let index = wrap_index(deq, deq.head + deq.len)
+  mut deq.data.[index] = Some(value)
+  mut deq.len = deq.len + 1
+}
+
+fun push_front(mut deq, mov value) {
+  if is_full(deq) {
+    grow(mut deq)
+  }
+
+  let index = wrap_index(deq, deq.head - 1)
+  mut deq.data.[index] = Some(value)
+  mut deq.len = deq.len + 1
+  mut deq.head = index
+}
+
+fun pop_front(mut deq) {
+  if deq.len == 0 { None }
+  else {
+    -- index must be a single variable so our move checker can work with it
+    let index = deq.head
+    let item = mov deq.data.[index]
+    assert(option/is_some(item))
+    mut deq.data.[index] = None
+    mut deq.head = wrap_index(deq, deq.head + 1)
+    mut deq.len = deq.len - 1
+    item
+  }
+}
+
+fun pop_back(mut deq) {
+  if deq.len == 0 { None }
+  else {
+    let index = wrap_index(deq, deq.head + deq.len - 1)
+    let item = mov deq.data.[index]
+    assert(option/is_some(item))
+    mut deq.data.[index] = None
+    mut deq.len = deq.len - 1
+    item
+  }
+}
+
+main {
+  import fmt
+
+  fun some_equal(l, r) {
+    match l {
+      Some(l) -> l == r
+      _ -> false
+    }
+  }
+
+  let mut deq = create(0)
+
+  push_front(mut deq, 0)
+  push_front(mut deq, 1)
+  push_front(mut deq, 2)
+
+  assert(pop_front(mut deq) |> some_equal(2))
+  assert(pop_front(mut deq) |> some_equal(1))
+  assert(pop_front(mut deq) |> some_equal(0))
+
+  push_front(mut deq, 0)
+  push_front(mut deq, 1)
+  push_front(mut deq, 2)
+
+  assert(pop_back(mut deq) |> some_equal(0))
+  assert(pop_back(mut deq) |> some_equal(1))
+  assert(pop_back(mut deq) |> some_equal(2))
+
+  let mut deq = create(0)
+
+  push_back(mut deq, 0)
+  push_back(mut deq, 1)
+  push_back(mut deq, 2)
+
+  assert(pop_front(mut deq) |> some_equal(0))
+  assert(pop_front(mut deq) |> some_equal(1))
+  assert(pop_front(mut deq) |> some_equal(2))
+
+  push_back(mut deq, 0)
+  push_back(mut deq, 1)
+  push_back(mut deq, 2)
+
+  assert(pop_back(mut deq) |> some_equal(2))
+  assert(pop_back(mut deq) |> some_equal(1))
+  assert(pop_back(mut deq) |> some_equal(0))
+
+  push_back(mut deq, 0)
+  push_front(mut deq, 1)
+  push_back(mut deq, 2)
+  push_front(mut deq, 3)
+
+  assert(pop_back(mut deq) |> some_equal(2))
+  assert(pop_back(mut deq) |> some_equal(0))
+  assert(pop_back(mut deq) |> some_equal(1))
+  assert(pop_back(mut deq) |> some_equal(3))
+
+  push_back(mut deq, 0)
+  push_front(mut deq, 1)
+  push_back(mut deq, 2)
+  push_front(mut deq, 3)
+
+  assert(pop_front(mut deq) |> some_equal(3))
+  assert(pop_front(mut deq) |> some_equal(1))
+  assert(pop_front(mut deq) |> some_equal(0))
+  assert(pop_front(mut deq) |> some_equal(2))
+}

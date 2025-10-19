@@ -1,4 +1,5 @@
 import array
+import deque
 import float
 import fmt
 import hashtbl
@@ -28,6 +29,7 @@ let char_equal = prelude/char_equal
 let iter_range = prelude/iter_range
 
 module array = array
+module deque = deque
 module float = float
 module fmt = fmt
 module hashtbl = hashtbl
