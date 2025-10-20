@@ -77,7 +77,7 @@
     (,schmu-constants-regexp . font-lock-constant-face)
     (,schmu-module-pattern 1 font-lock-type-face)
     (,schmu-fixed-array-pattern 1 font-lock-constant-face)
-    (,schmu-function-pattern 1 font-lock-variable-name-face)
+    (,schmu-function-pattern 1 font-lock-function-name-face)
     (,schmu-types-regexp . font-lock-type-face)
     (,schmu-variable-pattern 1 font-lock-variable-name-face)
     (,schmu-call-pattern 1 font-lock-function-name-face)
