@@ -3029,3 +3029,6 @@ Strange module opening bug
   $ schmu -m a.smu
   $ schmu -m b.smu
   $ schmu c.smu
+
+Values in signatures must be marked as globals
+  $ schmu global_from_sign.smu

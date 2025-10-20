@@ -1,0 +1,5 @@
+module intset = set/make(int)
+
+fun _use_set_empty(mov value) {
+  intset/insert(intset/empty, value)
+}

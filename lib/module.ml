@@ -463,7 +463,8 @@ let rec add_to_env env foreign (mname, m) =
               (* Not in the signature of the module we add it to *)
               | Mtypedef decl -> Env.add_type None name decl env
               | Mvalue (typ, cn) -> (
-                  Env.(add_value name { def_val with typ } loc env)
+                  Env.(
+                    add_value name { def_val with typ; global = true } loc env)
                   |> fun env ->
                   match cn with
                   | None -> env
