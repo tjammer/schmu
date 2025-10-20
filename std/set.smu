@@ -15,7 +15,7 @@ module type sig {
 
   val empty : t
   val singleton : fun (mov key) -> t 
-  val add : fun (t, mov key) -> t
+  val insert : fun (t, mov key) -> t
   val remove : fun (t, key) -> t
   val find : fun (t, key, once fun (option/t[key]) -> 'a) -> 'a
 
@@ -117,7 +117,7 @@ functor make (ord : ordered) {
     }
   }
 
-  fun rec add(s, mov x) {
+  fun rec insert(s, mov x) {
     match s {
       None -> singleton(x)
       Some(rc) -> {
@@ -126,11 +126,11 @@ functor make (ord : ordered) {
         let c = ord/compare(x, vval)
         if c == 0 { copy(s) }
         else if c < 0 {
-          let ll = add(l, x)
+          let ll = insert(l, x)
           if equal(l, ll) { copy(s) } else { balance(ll, v, r) }
         }
         else {
-          let rr = add(r, x)
+          let rr = insert(r, x)
           if equal(r, rr) { copy(s) } else { balance(l, v, rr) }
         }
       }
@@ -231,12 +231,12 @@ main {
   let println = string/println
 
   let s = set/empty
-  let s1 = set/add(s, 0)
-  let s2 = set/add(s, 0)
-  let s3 = set/add(s2, 1)
+  let s1 = set/insert(s, 0)
+  let s2 = set/insert(s, 0)
+  let s3 = set/insert(s2, 1)
   let s4 = set/remove(s3, 0)
-  let s3 = set/add(s3, 2)
-  let s5 = set/add(s3, 3)
+  let s3 = set/insert(s3, 2)
+  let s5 = set/insert(s3, 3)
 
   set/iter(s5) |> iter/iter(fun i { fmt/(println(int, i)) })
   println("")
