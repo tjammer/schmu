@@ -415,7 +415,7 @@ Make sure alignment of generic param works
 
 Parametrization needs to be given, if a type is generic
   $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm missing_parameter.smu 2>&1 | grep -v !DI
-  missing_parameter.smu:5.10-11: error: Type t expects 1 type parameter.
+  missing_parameter.smu:5.10-11: error: Type t expects 1 type parameter
   
   5 | fun (t : t) { t.t }
                ^
@@ -789,7 +789,7 @@ Regression test: Closures for records used to use store/load like for register v
 Regression test: Return allocas were propagated by lets to values earlier in a function.
 This caused stores to a wrong pointer type in LLVM
   $ schmu --target x86_64-unknown-linux-gnu -c --dump-llvm nested_init_let.smu 2>&1 | grep -v !DI
-  nested_init_let.smu:12.9-10: warning: Unused binding a.
+  nested_init_let.smu:12.9-10: warning: Unused binding a
   
   12 |     let a = {y = {x = 1}, z = 2}
                ^

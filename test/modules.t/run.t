@@ -3,7 +3,7 @@ Compile stubs
 
 Simplest module with 1 type and 1 nonpolymorphic function
   $ schmu nonpoly_func.smu -m --dump-llvm -c --target x86_64-unknown-linux-gnu -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
-  nonpoly_func.smu:4.7-8: warning: Unused binding c.
+  nonpoly_func.smu:4.7-8: warning: Unused binding c
   
   4 |   let c = 10
             ^
@@ -1481,7 +1481,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
 
   $ schmu -m malloc_some.smu
   $ schmu use_malloc_some.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
-  use_malloc_some.smu:5.5-17: warning: Unused binding do_something.
+  use_malloc_some.smu:5.5-17: warning: Unused binding do_something
   
   5 | fun do_something(big) {
           ^^^^^^^^^^^^
@@ -1718,7 +1718,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
 Allocate and clean init code with refcounting
   $ schmu init.smu -m
   $ schmu use_init.smu
-  use_init.smu:3.5-9: warning: Unused module 'use' declaration init.
+  use_init.smu:3.5-9: warning: Unused module 'use' declaration init
   
   3 | use init
           ^^^^
@@ -1729,12 +1729,12 @@ Allocate and clean init code with refcounting
 Use module name prefix for function names to prevent linker dups
   $ schmu nameclash_mod.smu -m
   $ schmu nameclash_use.smu
-  nameclash_use.smu:3.5-18: warning: Unused module 'use' declaration nameclash_mod.
+  nameclash_use.smu:3.5-18: warning: Unused module 'use' declaration nameclash_mod
   
   3 | use nameclash_mod
           ^^^^^^^^^^^^^
   
-  nameclash_use.smu:4.5-18: warning: Unused binding specific_name.
+  nameclash_use.smu:4.5-18: warning: Unused binding specific_name
   
   4 | fun specific_name() { () }
           ^^^^^^^^^^^^^
@@ -1747,13 +1747,13 @@ Distinguish closures and functions
 
 Test signature
   $ schmu -m sign.smu
-  sign.smu:22.5-11: warning: Unused binding hidden.
+  sign.smu:22.5-11: warning: Unused binding hidden
   
   22 | fun hidden(a) {
            ^^^^^^
   
   $ schmu use-sign.smu stub.o
-  use-sign.smu:21.5-15: warning: Unused binding use_hidden.
+  use-sign.smu:21.5-15: warning: Unused binding use_hidden
   
   21 | fun use_hidden () {
            ^^^^^^^^^^
@@ -1763,14 +1763,14 @@ Test signature
   200
   20
   $ schmu use-sign-hidden.smu
-  use-sign-hidden.smu:6.1-7: error: No var named hidden.
+  use-sign-hidden.smu:6.1-7: error: No var named hidden
   
   6 | hidden(10)
       ^^^^^^
   
   [1]
   $ schmu use-sign-hidden-type.smu
-  use-sign-hidden-type.smu:5.9-20: error: Unbound type hidden_type.
+  use-sign-hidden-type.smu:5.9-20: error: Unbound type hidden_type
   
   5 | let i : hidden_type = 10
               ^^^^^^^^^^^
@@ -2117,7 +2117,7 @@ Use local module from other file
 
 Local modules can shadow types. Use unique type names in codegen
   $ schmu local_module_type_shadowing.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !DI
-  local_module_type_shadowing.smu:5.5-6: warning: Unused binding t.
+  local_module_type_shadowing.smu:5.5-6: warning: Unused binding t
   
   5 | let t = {a = 10}
           ^
@@ -2145,7 +2145,7 @@ Local modules can shadow types. Use unique type names in codegen
 
 Search for modules when variables cannot be found
   $ schmu err_local_otherfile.smu
-  err_local_otherfile.smu:3.1-24: error: No var named local_otherfile/aliased, but a module with the name exists.
+  err_local_otherfile.smu:3.1-24: error: No var named local_otherfile/aliased, but a module with the name exists
   
   3 | local_otherfile/aliased
       ^^^^^^^^^^^^^^^^^^^^^^^
@@ -2171,7 +2171,7 @@ Use directory as module
 
   $ printf "import indirect\nprintln(indirect/a)" > err.smu
   $ schmu err.smu
-  err.smu:1.8-16: error: Cannot find module: indirect.
+  err.smu:1.8-16: error: Cannot find module: indirect
   
   1 | import indirect
              ^^^^^^^^
@@ -2918,7 +2918,7 @@ Nameclashes with filename
 
 No mutable global state in modules
   $ schmu -m mutable_global_state.smu
-  mutable_global_state.smu:1.1-14: error: Mutable top level bindings are not allowed in modules.
+  mutable_global_state.smu:1.1-14: error: Mutable top level bindings are not allowed in modules
   
   1 | let mut _ = 0
       ^^^^^^^^^^^^^
@@ -2927,7 +2927,7 @@ No mutable global state in modules
 
 No mutable global state in submodules
   $ schmu mutable_global_state_submodule.smu
-  mutable_global_state_submodule.smu:2.3-16: error: Mutable top level bindings are not allowed in modules.
+  mutable_global_state_submodule.smu:2.3-16: error: Mutable top level bindings are not allowed in modules
   
   2 |   let mut _ = 0
         ^^^^^^^^^^^^^
@@ -2936,7 +2936,7 @@ No mutable global state in submodules
 
 Ensure prelude is not reachable
   $ schmu use_prelude.smu
-  use_prelude.smu:1.8-26: error: Module prelude has not been imported.
+  use_prelude.smu:1.8-26: error: Module prelude has not been imported
   
   1 | ignore(prelude/iter_range)
              ^^^^^^^^^^^^^^^^^^
@@ -2945,7 +2945,7 @@ Ensure prelude is not reachable
 
 Ensure prelude is not importable
   $ schmu import_prelude.smu
-  import_prelude.smu:1.8-15: error: Cannot find module: prelude.
+  import_prelude.smu:1.8-15: error: Cannot find module: prelude
   
   1 | import prelude
              ^^^^^^^
@@ -2973,7 +2973,7 @@ Check deps
 
 Use correct location to report functor application errors
   $ schmu functor_app_err.smu
-  functor_app_err.smu:7.27-31: error: Mismatch between implementation and signature: Missing implementation of fun (t, t) -> bool equal.
+  functor_app_err.smu:7.27-31: error: Mismatch between implementation and signature: Missing implementation of fun (t, t) -> bool equal
   
   7 | module tbl = hashtbl/make(file)
                                 ^^^^

@@ -2315,12 +2315,12 @@ Decrease ref counts for local variables in if branches
 
 Check allocs in fixed array
   $ schmu fixed_array_allocs.smu
-  fixed_array_allocs.smu:1.5-8: warning: Unused binding arr.
+  fixed_array_allocs.smu:1.5-8: warning: Unused binding arr
   
   1 | let arr = #[#[1, 2, 3], #[3, 4, 5]]
           ^^^
   
-  fixed_array_allocs.smu:8.9-12: warning: Unmutated mutable binding arr.
+  fixed_array_allocs.smu:8.9-12: warning: Unmutated mutable binding arr
   
   8 | let mut arr = #[copy("hey"), copy("hie")] -- correctly free as mutate
               ^^^
@@ -2335,52 +2335,52 @@ Check allocs in fixed array
 Allocate vectors on the heap and free them. Check with valgrind-wrapper whenever something changes here.
 Also mutable fields and 'realloc' builtin
   $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu free_array.smu 2>&1 | grep -v !DI
-  free_array.smu:7.5-8: warning: Unused binding arr.
+  free_array.smu:7.5-8: warning: Unused binding arr
   
   7 | let arr = [copy("hey"), copy("young"), copy("world")]
           ^^^
   
-  free_array.smu:8.5-8: warning: Unused binding arr.
+  free_array.smu:8.5-8: warning: Unused binding arr
   
   8 | let arr = [copy(x), {x = 2}, {x = 3}]
           ^^^
   
-  free_array.smu:47.5-8: warning: Unused binding arr.
+  free_array.smu:47.5-8: warning: Unused binding arr
   
   47 | let arr = make_arr()
            ^^^
   
-  free_array.smu:50.5-11: warning: Unused binding normal.
+  free_array.smu:50.5-11: warning: Unused binding normal
   
   50 | let normal = nest_fns()
            ^^^^^^
   
-  free_array.smu:54.5-11: warning: Unused binding nested.
+  free_array.smu:54.5-11: warning: Unused binding nested
   
   54 | let nested = make_nested_arr()
            ^^^^^^
   
-  free_array.smu:55.5-11: warning: Unused binding nested.
+  free_array.smu:55.5-11: warning: Unused binding nested
   
   55 | let nested = nest_allocs()
            ^^^^^^
   
-  free_array.smu:58.5-15: warning: Unused binding rec_of_arr.
+  free_array.smu:58.5-15: warning: Unused binding rec_of_arr
   
   58 | let rec_of_arr = {index = 12, arr = [1, 2]}
            ^^^^^^^^^^
   
-  free_array.smu:59.5-15: warning: Unused binding rec_of_arr.
+  free_array.smu:59.5-15: warning: Unused binding rec_of_arr
   
   59 | let rec_of_arr = record_of_arrs()
            ^^^^^^^^^^
   
-  free_array.smu:61.5-15: warning: Unused binding arr_of_rec.
+  free_array.smu:61.5-15: warning: Unused binding arr_of_rec
   
   61 | let arr_of_rec = [record_of_arrs(), record_of_arrs()]
            ^^^^^^^^^^
   
-  free_array.smu:62.5-15: warning: Unused binding arr_of_rec.
+  free_array.smu:62.5-15: warning: Unused binding arr_of_rec
   
   62 | let arr_of_rec = arr_of_records()
            ^^^^^^^^^^
@@ -3177,7 +3177,7 @@ Regression test for issue #19
 
 Tailcall loops
   $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu regression_issue_26.smu 2>&1 | grep -v !DI
-  regression_issue_26.smu:25.9-15: warning: Unused binding nested.
+  regression_issue_26.smu:25.9-15: warning: Unused binding nested
   
   25 | fun rec nested(a, b, c) {
                ^^^^^^
@@ -5143,7 +5143,7 @@ Fix parent reentering
 
 Fix partial parent setting
   $ schmu set_partial_parent.smu
-  set_partial_parent.smu:4.18-29: warning: Constructor is never used to build values: Resolv_deps.
+  set_partial_parent.smu:4.18-29: warning: Constructor is never used to build values: Resolv_deps
   
   4 | type key_state = Resolv_deps | Building(building) | Built(built)
                        ^^^^^^^^^^^
@@ -5152,12 +5152,12 @@ Fix partial parent setting
 
 Correctly track partial moves in record expressions
   $ schmu partial_move_in_record.smu
-  partial_move_in_record.smu:4.26-32: warning: Unused constructor: Module.
+  partial_move_in_record.smu:4.26-32: warning: Unused constructor: Module
   
   4 | type rule = Executable | Module
                                ^^^^^^
   
-  partial_move_in_record.smu:8.45-53: warning: Constructor is never used to build values: Building.
+  partial_move_in_record.smu:8.45-53: warning: Constructor is never used to build values: Building
   
   8 | type key_state = Resolv_deps(resolv_deps) | Building(building) | Built(built)
                                                   ^^^^^^^^

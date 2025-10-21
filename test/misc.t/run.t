@@ -56,7 +56,7 @@ Test elif
 
 Test simple typedef
   $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o simple_typealias.smu 2>&1 | grep -v !DI
-  simple_typealias.smu:2.10-14: warning: Unused binding puts.
+  simple_typealias.smu:2.10-14: warning: Unused binding puts
   
   2 | external puts : fun (foo) -> unit
                ^^^^
@@ -535,22 +535,22 @@ Test 'and', 'or' and 'not'
 
 
   $ schmu --dump-llvm -c --target x86_64-unknown-linux-gnu stub.o unary_minus.smu 2>&1 | grep -v !DI
-  unary_minus.smu:1.5-6: warning: Unused binding a.
+  unary_minus.smu:1.5-6: warning: Unused binding a
   
   1 | let a = -1.0
           ^
   
-  unary_minus.smu:2.5-6: warning: Unused binding a.
+  unary_minus.smu:2.5-6: warning: Unused binding a
   
   2 | let a = -.1.0
           ^
   
-  unary_minus.smu:3.5-6: warning: Unused binding a.
+  unary_minus.smu:3.5-6: warning: Unused binding a
   
   3 | let a = - 1.0
           ^
   
-  unary_minus.smu:4.5-6: warning: Unused binding a.
+  unary_minus.smu:4.5-6: warning: Unused binding a
   
   4 | let a = -. 1.0
           ^
@@ -580,37 +580,37 @@ Test 'and', 'or' and 'not'
 
 Test unused binding warning
   $ schmu unused.smu stub.o
-  unused.smu:2.5-12: warning: Unused binding unused1.
+  unused.smu:2.5-12: warning: Unused binding unused1
   
   2 | let unused1 = 0
           ^^^^^^^
   
-  unused.smu:5.5-12: warning: Unused binding unused2.
+  unused.smu:5.5-12: warning: Unused binding unused2
   
   5 | let unused2 = 0
           ^^^^^^^
   
-  unused.smu:12.5-16: warning: Unused binding use_unused3.
+  unused.smu:12.5-16: warning: Unused binding use_unused3
   
   12 | fun use_unused3() {
            ^^^^^^^^^^^
   
-  unused.smu:17.9-16: warning: Unused binding unused4.
+  unused.smu:17.9-16: warning: Unused binding unused4
   
   17 |     let unused4 = 0
                ^^^^^^^
   
-  unused.smu:20.9-16: warning: Unused binding unused5.
+  unused.smu:20.9-16: warning: Unused binding unused5
   
   20 |     let unused5 = 0
                ^^^^^^^
   
-  unused.smu:33.9-18: warning: Unused binding usedlater.
+  unused.smu:33.9-18: warning: Unused binding usedlater
   
   33 |     let usedlater = 0
                ^^^^^^^^^
   
-  unused.smu:46.9-18: warning: Unused binding usedlater.
+  unused.smu:46.9-18: warning: Unused binding usedlater
   
   46 |     let usedlater = 0
                ^^^^^^^^^
@@ -624,7 +624,7 @@ We can have if without else
   $ schmu if_no_else.smu
   if_no_else.smu:2.1-11: error: A conditional without else branch should evaluato to type unit.
   expecting unit
-  but found int.
+  but found int
   
   2 | if true{2}
       ^^^^^^^^^^
@@ -1606,22 +1606,22 @@ Correct link order for cc flags
 
 Using unit values
   $ schmu unit_values.smu --dump-llvm -c --target x86_64-unknown-linux-gnu 2>&1 | grep -v !D
-  unit_values.smu:3.5-6: warning: Unused binding b.
+  unit_values.smu:3.5-6: warning: Unused binding b
   
   3 | let b = Some(a)
           ^
   
-  unit_values.smu:8.8-9: warning: Unused binding a.
+  unit_values.smu:8.8-9: warning: Unused binding a
   
   8 |   Some(a) -> println("some")
              ^
   
-  unit_values.smu:14.5-6: warning: Unused binding u.
+  unit_values.smu:14.5-6: warning: Unused binding u
   
   14 | let u = t.u
            ^
   
-  unit_values.smu:18.5-7: warning: Unused binding u2.
+  unit_values.smu:18.5-7: warning: Unused binding u2
   
   18 | let u2 = t2.u
            ^^
@@ -2159,7 +2159,7 @@ Weak rcs
 
 Cyclic ref counts
   $ schmu rc_cycle.smu
-  rc_cycle.smu:2.19-25: warning: Unused constructor: Strong.
+  rc_cycle.smu:2.19-25: warning: Unused constructor: Strong
   
   2 | type any_rc['a] = Strong(rc['a]) | Weak(weak_rc['a])
                         ^^^^^^
@@ -2174,14 +2174,14 @@ Currying in pipes
 
 Codgen fixes for recursive types
   $ schmu codegen_recursive.smu
-  codegen_recursive.smu:5.5-10: warning: Constructor is never used to build values: Other.
+  codegen_recursive.smu:5.5-10: warning: Constructor is never used to build values: Other
   
   5 |   | Other(rc[prom_state])
           ^^^^^
   
 
   $ schmu codegen_recursive2.smu
-  codegen_recursive2.smu:14.5-10: warning: Constructor is never used to build values: Other.
+  codegen_recursive2.smu:14.5-10: warning: Constructor is never used to build values: Other
   
   14 |   | Other(rc[prom_state])
            ^^^^^
@@ -2193,7 +2193,7 @@ No unmutated warning on addr
 
 Regression test for miscompile
   $ schmu miscompile_variant_parents.smu
-  miscompile_variant_parents.smu:12.66-71: warning: Constructor is never used to build values: Built.
+  miscompile_variant_parents.smu:12.66-71: warning: Constructor is never used to build values: Built
   
   12 | type key_state = Resolv_deps(resolv_deps) | Building(building) | Built(built)
                                                                         ^^^^^

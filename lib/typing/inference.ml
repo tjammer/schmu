@@ -143,14 +143,6 @@ let rec generalize = function
   | Tfixed_array (i, t) -> Tfixed_array (i, generalize t)
   | t -> t
 
-(* and generalize_param_mode rf = *)
-(*   (\* This should use levels *\) *)
-(*   match repr_mode !rf with *)
-(*   | Iunknown -> *)
-(*       rf := Iknown Many; *)
-(*       rf *)
-(*   | _ -> rf *)
-
 and generalize_closure = function
   | Simple -> Simple
   | Closure cls ->

@@ -1129,7 +1129,7 @@ Closures can recurse too
 
 Print error when returning a polymorphic lambda in an if expression
   $ schmu --dump-llvm stub.o no_lambda_let_poly_monomorph.smu 2>&1 | grep -v !DI
-  no_lambda_let_poly_monomorph.smu:5.9-59: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though..
+  no_lambda_let_poly_monomorph.smu:5.9-59: error: Returning polymorphic anonymous function in if expressions is not supported (yet). Sorry. You can type the function concretely though.
   
   5 | let f = if true {fun(x) {copy(x)}} else {fun(x) {copy(x)}}
               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -3514,7 +3514,7 @@ Unit parameters in folds
 
 Monomorphize types where the correct subst doesn't show up immediately
   $ schmu monomorph_later.smu
-  monomorph_later.smu:14.5-10: warning: Constructor is never used to build values: Other.
+  monomorph_later.smu:14.5-10: warning: Constructor is never used to build values: Other
   
   14 |   | Other(rc[prom_state])
            ^^^^^

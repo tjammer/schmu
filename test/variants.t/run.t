@@ -1,21 +1,21 @@
 Basic variant ctors
   $ schmu basic.smu --dump-llvm --target x86_64-unknown-linux-gnu -c
-  basic.smu:4.15-18: warning: Unused constructor: One.
+  basic.smu:4.15-18: warning: Unused constructor: One
   
   4 | type larger = One | Two(foo) | Three(int)
                     ^^^
   
-  basic.smu:8.14-15: warning: Unused constructor: A.
+  basic.smu:8.14-15: warning: Unused constructor: A
   
   8 | type clike = A | B | C | D | E
                    ^
   
-  basic.smu:12.5-15: warning: Unused binding wrap_clike.
+  basic.smu:12.5-15: warning: Unused binding wrap_clike
   
   12 | fun wrap_clike() { C }
            ^^^^^^^^^^
   
-  basic.smu:14.5-16: warning: Unused binding wrap_option.
+  basic.smu:14.5-16: warning: Unused binding wrap_option
   
   14 | fun wrap_option() {Some(copy("hello"))}
            ^^^^^^^^^^^
@@ -1207,7 +1207,7 @@ Match multiple columns
   0
 
   $ schmu custom_tag_reuse.smu
-  custom_tag_reuse.smu:1.27-28: error: Tag 1 already used for constructor a.
+  custom_tag_reuse.smu:1.27-28: error: Tag 1 already used for constructor a
   
   1 | type tags = A(1) | B(0) | C(int)
                                 ^
@@ -1224,7 +1224,7 @@ Record literals in pattern matches
 
 Const ctors
   $ schmu const_ctor_issue.smu --dump-llvm --target x86_64-unknown-linux-gnu -c
-  const_ctor_issue.smu:2.27-32: warning: Constructor is never used to build values: Thing.
+  const_ctor_issue.smu:2.27-32: warning: Constructor is never used to build values: Thing
   
   2 | type var = Float(float) | Thing(thing)
                                 ^^^^^
@@ -1315,7 +1315,7 @@ Support path prefixes in match patterns
 
 Regression test for this if structure
   $ schmu failwith_ifs.smu
-  failwith_ifs.smu:2.33-39: warning: Constructor is never used to build values: Rcurly.
+  failwith_ifs.smu:2.33-39: warning: Constructor is never used to build values: Rcurly
   
   2 | type token = With | Semicolon | Rcurly
                                       ^^^^^^
@@ -1323,7 +1323,7 @@ Regression test for this if structure
 
 Regression test for tuple match
   $ schmu tuple_match_regression.smu
-  tuple_match_regression.smu:1.12-13: warning: Constructor is never used to build values: A.
+  tuple_match_regression.smu:1.12-13: warning: Constructor is never used to build values: A
   
   1 | type tok = A | B | C(int)
                  ^
