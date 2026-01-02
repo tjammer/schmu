@@ -156,6 +156,13 @@
    (run schmu --release -m --no-std deque.smu))))
 
 (rule
+ (targets random.o random.smi)
+ (deps %{bin:schmu} prelude.smi iter.smi)
+ (action
+  (progn
+   (run schmu --release -m --no-std random.smu))))
+
+(rule
  (targets libc.o libc.smi)
  (deps %{bin:schmu} libc.macos.smu)
  (enabled_if
@@ -196,6 +203,7 @@
   sys.smi
   set.smi
   deque.smi
+  random.smi
   unsafe.smi
   fmt.smi)
  (action
@@ -258,6 +266,9 @@
   deque.smu
   (deque.smi as std/deque.smi)
   (deque.o as std/deque.o)
+  random.smu
+  (random.smi as std/random.smi)
+  (random.o as std/random.o)
   libc.smu
   (libc.smi as std/libc.smi)
   (libc.o as std/libc.o)))

@@ -1,0 +1,79 @@
+-- Simple PCG rng https://www.pcg-random.org/
+
+import prelude
+
+signature {
+  type state
+
+  -- initialize the random state. First int is state, second is sequence
+  -- constant
+  val seed : fun (mut state, int, int) -> unit
+  -- a random value between 0 and 2**32
+  val random : fun(mut state) -> int
+  -- a random value between 0 and int, exclusive
+  val bounded : fun(mut state, int) -> int
+}
+
+use prelude
+
+type state = { mut state : int, mut inc : int }
+
+fun trunc(i) { land(i, 0xffffffff) }
+
+fun random(mut state) {
+  let oldstate = mov state.state
+  mut state.state =  oldstate * 6364136223846793005 + state.inc
+  let xorshifted = lshr(oldstate, 18) |> lxor(oldstate) |> lshr(27) |> trunc
+  let rot = lshr(oldstate, 59) |> trunc
+  lshr(xorshifted, rot)
+  |> lor(lshl(xorshifted, land(-rot, 31)))
+  |> trunc
+}
+
+fun bounded(mut state, bound : int) {
+  -- To avoid bias, we need to make the range of the RNG a multiple of bound,
+  -- which we do by dropping output less than a threshold. A naive scheme to
+  -- calculate the threshold would be to do
+  let threshold = mod(-bound, bound)
+
+  fun rec aux() {
+    let r = random(mut state)
+    if r >= threshold { mod(r, bound) } else { aux() }
+  }
+
+  aux()
+}
+
+fun seed(mut state, initstate, initseq) {
+  mut state.state = 0
+  mut state.inc = lor(lshl(initseq, 1), 1)
+  random(mut state) |> ignore
+  mut state.state = state.state + initstate
+  random(mut state) |> ignore
+}
+
+main {
+  import iter
+  import fmt
+  import string
+
+  let mut rng = { state = 0, inc = 0 }
+
+  seed(mut rng, 42, 54)
+
+  iter/range(0, 5) |> iter/iter(fun i {
+    fmt/(print1("round {}\n", int, i + 1))
+    string/print(" 32 bit:")
+    iter_range(0, 6, fun _ {
+      fmt/print1(" 0x{}", fun (mov p, i) {
+        fmt/int_base_unsigned(p, i, 16)
+        }, random(mut rng))
+    })
+    string/print("\n coins:  ")
+    iter_range(0, 65, fun _ {
+      fmt/print(fmt/char, if bounded(mut rng, 2) == 1 { 'H' } else { 'T' })
+    })
+    string/println("\n")
+  })
+  string/println("done")
+}

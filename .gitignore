@@ -18,3 +18,4 @@ literature/
 /*.txt
 /*.pdf
 err.sh
+manifest.scm

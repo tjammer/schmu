@@ -9,6 +9,7 @@ import iter
 import libc
 import option
 import prelude
+import random
 import rc
 import set
 import string
@@ -38,6 +39,7 @@ module int = int
 module iter = iter
 module libc = libc
 module option = option
+module random = random
 module rc = rc
 module set = set
 module string = string
