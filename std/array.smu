@@ -1,8 +1,44 @@
 import iter
 import option
 import prelude
+import random
 
 -- TODO write signature
+
+-- signature {
+--   type t['a] = array['a]
+
+--   -- create(len) returns an empty array of capacity len
+--   val create : fun (int) -> t['a]
+--   -- init(len, mov value) returns an array of length len with copies of value
+--   val init : fun (int, mov 'a) -> t['a]
+--   -- push(mut arr, mov value) appends value to arr
+--   val push : fun (mut t['a], mov 'a) -> unit
+--   -- length(arr) returns the length of arr
+--   val length : fun (t['a]) -> int
+--   -- iter(arr, cont) is the iterator of arr
+--   val iter : fun (t['a], iter/consumer['a]) -> iter/continue
+--   -- data(arr) returns a raw ptr to arr's data
+--   val data : fun (t['a]) -> raw_ptr['a]
+--   -- empty(arr) returns if the value is empty
+--   val empty : fun (t['a]) -> bool
+--   -- map(arr, f) returns a new array with values f(items of arr)
+--   val map : fun (t['a], fun ('a) -> 'b) -> t['b]
+--   -- map_inplace(mut arr, f) applies f(items of arr)
+--   val map_inplace : fun (mut t['a], fun (mut 'a) -> unit) -> unit
+--   -- clear(mut arr) removes all entries of arr
+--   val clear : fun (mut t['a]) -> unit
+--   -- pop_back(mut arr) returns the last element
+--   val pop_back : fun (mut t['a]) -> option/t['a]
+--   -- reserve(mut arr, len) ensures arr's capacity is at least len
+--   val reserve : fun (mut t['a], int) -> unit
+--   -- reverse(mut arr) reverses the order of items in arr
+--   val reverse : fun (mut t['a]) -> unit
+--   -- swap_items(mut arr, i, j) swaps items at i and j in place
+--   val swap_items : fun (mut t['a], int, int) -> unit
+--   -- shuffle(mut rs, mut arr) shuffles the order of items in arr in place
+--   val shuffle : fun (mut random/state, mut t['a]) -> unit
+-- }
 
 let data = __array_data
 let length = __array_length
@@ -156,6 +192,14 @@ fun reverse(mut arr) {
   let length = length(arr)
   iter_range(0, length / 2, fun i {
     swap_items(mut arr, i, length - i - 1)
+  })
+}
+
+fun shuffle(mut rs, mut arr) {
+  let len = length(arr)
+  iter/range(0, len - 1) |> iter/iter(fun i {
+    let j = random/bounded2(mut rs, i, len - 1)
+    swap_items(mut arr, i, j)
   })
 }
 

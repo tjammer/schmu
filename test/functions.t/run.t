@@ -1275,7 +1275,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %ifcont12
   
   fail:                                             ; preds = %then2
-    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 55, ptr @0), !dbg !8
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 91, ptr @0), !dbg !8
     unreachable
   
   else:                                             ; preds = %then
@@ -1295,7 +1295,7 @@ Nested polymorphic closures. Does not quite work for another nesting level
     br label %ifcont12
   
   fail7:                                            ; preds = %else
-    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 59, ptr @0), !dbg !9
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 95, ptr @0), !dbg !9
     unreachable
   
   else11:                                           ; preds = %entry
@@ -1721,7 +1721,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %ifcont12
   
   fail:                                             ; preds = %then2
-    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 55, ptr @0), !dbg !10
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 91, ptr @0), !dbg !10
     unreachable
   
   else:                                             ; preds = %then
@@ -1741,7 +1741,7 @@ Don't copy mutable types in setup of tailrecursive functions
     br label %ifcont12
   
   fail7:                                            ; preds = %else
-    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 59, ptr @0), !dbg !11
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 95, ptr @0), !dbg !11
     unreachable
   
   else11:                                           ; preds = %entry
@@ -2498,7 +2498,7 @@ The lamba passed as array_iter argument is polymorphic
     br label %ifcont12
   
   fail:                                             ; preds = %then2
-    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 55, ptr @0), !dbg !17
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 91, ptr @0), !dbg !17
     unreachable
   
   else:                                             ; preds = %then
@@ -2517,7 +2517,7 @@ The lamba passed as array_iter argument is polymorphic
     br label %ifcont12
   
   fail7:                                            ; preds = %else
-    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 59, ptr @0), !dbg !18
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 95, ptr @0), !dbg !18
     unreachable
   
   else11:                                           ; preds = %entry

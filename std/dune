@@ -14,7 +14,7 @@
 
 (rule
  (targets array.o array.smi)
- (deps %{bin:schmu} array.smu prelude.smi option.smi iter.smi)
+ (deps %{bin:schmu} array.smu prelude.smi option.smi iter.smi random.smi)
  (action
   (progn
    (run schmu --release -m --no-std array.smu))))
@@ -158,7 +158,7 @@
 
 (rule
  (targets random.o random.smi)
- (deps %{bin:schmu} prelude.smi iter.smi)
+ (deps %{bin:schmu} random.smu prelude.smi iter.smi)
  (action
   (progn
    (run schmu --release -m --no-std random.smu))))
@@ -300,5 +300,7 @@
   option.smi
   prelude.o
   prelude.smi
+  random.o
+  random.smi
   rc.o
   rc.smi))

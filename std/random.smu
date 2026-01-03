@@ -7,11 +7,15 @@ signature {
 
   -- initialize the random state. First int is state, second is sequence
   -- constant
+  val init : fun (int, int) -> state
+  -- seed a given random state. First int is state, second is sequence constant
   val seed : fun (mut state, int, int) -> unit
   -- a random value between 0 and 2**32
   val random : fun(mut state) -> int
   -- a random value between 0 and int, exclusive
   val bounded : fun(mut state, int) -> int
+  -- a random value between int and int, exclusive
+  val bounded2 : fun(mut state, int, int) -> int
 }
 
 use prelude
@@ -44,6 +48,10 @@ fun bounded(mut state, bound : int) {
   aux()
 }
 
+fun bounded2(mut state, lo, hi) {
+  lo + bounded(mut state, hi - lo)
+}
+
 fun seed(mut state, initstate, initseq) {
   mut state.state = 0
   mut state.inc = lor(lshl(initseq, 1), 1)
@@ -52,14 +60,20 @@ fun seed(mut state, initstate, initseq) {
   random(mut state) |> ignore
 }
 
+fun init(state, inc) {
+  let mut rs = { state, inc }
+  seed(mut rs, state, inc)
+  rs
+}
+
 main {
   import iter
   import fmt
   import string
 
-  let mut rng = { state = 0, inc = 0 }
-
-  seed(mut rng, 42, 54)
+  -- let mut rng = { state = 0, inc = 0 }
+  -- seed(mut rng, 42, 54)
+  let mut rng = init(42, 54)
 
   iter/range(0, 5) |> iter/iter(fun i {
     fmt/(print1("round {}\n", int, i + 1))

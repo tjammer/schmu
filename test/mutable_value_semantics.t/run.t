@@ -2500,7 +2500,7 @@ Modify in function
     br label %ifcont12
   
   fail:                                             ; preds = %then2
-    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 55, ptr @0), !dbg !10
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 91, ptr @0), !dbg !10
     unreachable
   
   else:                                             ; preds = %then
@@ -2520,7 +2520,7 @@ Modify in function
     br label %ifcont12
   
   fail7:                                            ; preds = %else
-    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 59, ptr @0), !dbg !11
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 95, ptr @0), !dbg !11
     unreachable
   
   else11:                                           ; preds = %entry
@@ -2842,7 +2842,7 @@ Make sure variable ids are correctly propagated
     br label %ifcont12
   
   fail:                                             ; preds = %then2
-    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 55, ptr @0), !dbg !8
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 91, ptr @0), !dbg !8
     unreachable
   
   else:                                             ; preds = %then
@@ -2862,7 +2862,7 @@ Make sure variable ids are correctly propagated
     br label %ifcont12
   
   fail7:                                            ; preds = %else
-    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 59, ptr @0), !dbg !9
+    tail call void @prelude_assert_fail(ptr @2, ptr @1, i32 95, ptr @0), !dbg !9
     unreachable
   
   else11:                                           ; preds = %entry

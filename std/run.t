@@ -22,8 +22,8 @@ Test deque
   $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./deque
 
 Test random
-  $ schmu --no-std random.smu
-  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./random
+  $ schmu --no-std random.smu -o test_random
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./test_random
   round 1
    32 bit: 0xa15c02b7 0x7b47f409 0xba1d3330 0x83d2f293 0xbfa4784b 0xcbed606e
    coins:  HHTTTHTHHHTHTTTHHHHHTTTHHHTHTHTHTTHTTTHHHHHHTTTTHHTTTTTHTTTTTTTHT
