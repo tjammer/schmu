@@ -195,10 +195,11 @@ fun reverse(mut arr) {
   })
 }
 
+-- https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
 fun shuffle(mut rs, mut arr) {
   let len = length(arr)
   iter/range(0, len - 1) |> iter/iter(fun i {
-    let j = random/bounded2(mut rs, i, len - 1)
+    let j = random/bounded2(mut rs, i, len)
     swap_items(mut arr, i, j)
   })
 }

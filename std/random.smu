@@ -1,16 +1,16 @@
--- Simple PCG rng https://www.pcg-random.org/
+-- xoshiro256++ https://prng.di.unimi.it/xoshiro256plusplus.c
 
+import libc
 import prelude
 
 signature {
   type state
 
-  -- initialize the random state. First int is state, second is sequence
-  -- constant
-  val init : fun (int, int) -> state
-  -- seed a given random state. First int is state, second is sequence constant
-  val seed : fun (mut state, int, int) -> unit
-  -- a random value between 0 and 2**32
+  -- initialize the random state with a specified seed
+  val init : fun (int) -> state
+  -- self_init() initializes the random state with data from /dev/urandom
+  val self_init : fun () -> state
+  -- a random value between 0 and 2**64
   val random : fun(mut state) -> int
   -- a random value between 0 and int, exclusive
   val bounded : fun(mut state, int) -> int
@@ -20,18 +20,26 @@ signature {
 
 use prelude
 
-type state = { mut state : int, mut inc : int }
+type state = array#4[int]
 
-fun trunc(i) { land(i, 0xffffffff) }
+fun rotl(x, k) {
+  lor(lshl(x, k), lshr(x, 64 - k))
+}
 
-fun random(mut state) {
-  let oldstate = mov state.state
-  mut state.state =  oldstate * 6364136223846793005 + state.inc
-  let xorshifted = lshr(oldstate, 18) |> lxor(oldstate) |> lshr(27) |> trunc
-  let rot = lshr(oldstate, 59) |> trunc
-  lshr(xorshifted, rot)
-  |> lor(lshl(xorshifted, land(-rot, 31)))
-  |> trunc
+fun random(mut state : state) {
+  let result = rotl(state#[0] + state#[3], 23) + state#[0]
+  let t = lshl(state#[1], 17)
+
+  mut state#[2] = lxor(state#[2], state#[0])
+  mut state#[3] = lxor(state#[3], state#[1])
+  mut state#[1] = lxor(state#[1], state#[2])
+  mut state#[0] = lxor(state#[0], state#[3])
+
+  mut state#[2] = lxor(state#[2], t)
+
+  mut state#[3] = rotl(state#[3], 45)
+
+  result
 }
 
 fun bounded(mut state, bound : int) {
@@ -52,18 +60,32 @@ fun bounded2(mut state, lo, hi) {
   lo + bounded(mut state, hi - lo)
 }
 
-fun seed(mut state, initstate, initseq) {
-  mut state.state = 0
-  mut state.inc = lor(lshl(initseq, 1), 1)
-  random(mut state) |> ignore
-  mut state.state = state.state + initstate
-  random(mut state) |> ignore
+fun splitmix64(mut x) {
+  mut x = x + 0x9e3779b97f4a7c15
+  let mut z = mov x
+  mut z = lxor(z, lshr(z, 30)) * 0xbf58476d1ce4e5b9
+  mut z = lxor(z, lshr(z, 27)) * 0x94d049bb133111eb
+  lxor(z, lshr(z, 31))
 }
 
-fun init(state, inc) {
-  let mut rs = { state, inc }
-  seed(mut rs, state, inc)
-  rs
+fun init(seed) {
+  let mut state = mov seed
+  #[
+    splitmix64(mut state),
+    splitmix64(mut state),
+    splitmix64(mut state),
+    splitmix64(mut state)
+  ]
+}
+
+fun self_init() {
+  let filepath = #['/', 'd', 'e', 'v', '/', 'u', 'r', 'a', 'n', 'd', 'o', 'm']
+  let fd = libc/open(__fixed_array_data(filepath), 0i32, 0i32)
+  let mut seed = #[0]
+  mut seed#[0] = 0 -- silence a warning due to unsafe code
+  let read = libc/read(fd, __unsafe_ptr_reinterpret(__fixed_array_data(seed)), 8)
+  assert(read <> 0) -- TODO use time if this ever fails
+  init(seed#[0])
 }
 
 main {
@@ -71,23 +93,22 @@ main {
   import fmt
   import string
 
-  -- let mut rng = { state = 0, inc = 0 }
-  -- seed(mut rng, 42, 54)
-  let mut rng = init(42, 54)
+  let mut rng = #[1234567, 0, 0, 0]
 
   iter/range(0, 5) |> iter/iter(fun i {
     fmt/(print1("round {}\n", int, i + 1))
-    string/print(" 32 bit:")
+    string/print(" 64 bit:")
     iter_range(0, 6, fun _ {
       fmt/print1(" 0x{}", fun (mov p, i) {
         fmt/int_base_unsigned(p, i, 16)
         }, random(mut rng))
     })
-    string/print("\n coins:  ")
-    iter_range(0, 65, fun _ {
-      fmt/print(fmt/char, if bounded(mut rng, 2) == 1 { 'H' } else { 'T' })
-    })
     string/println("\n")
+  })
+  string/println("splitmix64")
+  let mut x = 1234567
+  iter/range(0, 5) |> iter/iter(fun _ {
+    fmt/println(fmt/uint, splitmix64(mut x))
   })
   string/println("done")
 }
