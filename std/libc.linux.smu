@@ -11,3 +11,5 @@ external fclose : fun (raw_ptr[u8]) -> int
 external memcmp : fun (raw_ptr[u8], raw_ptr[u8], int) -> i32
 external memcpy : fun (raw_ptr[u8], raw_ptr[u8], int) -> unit
 external strlen : fun (raw_ptr[u8]) -> int
+external getline : fun (mut raw_ptr[u8], mut int, file) -> int
+external strtol : fun (raw_ptr[u8], mut raw_ptr[u8], int) -> int

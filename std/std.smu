@@ -82,6 +82,18 @@ let >=. = float/(>=)
 let ==. = float/(==)
 let <>. = float/(<>)
 
--- fun read_int() {
+fun read_int() {
+  -- will be re-allocated automatically if it's too small
+  let mut buf = array/init(256, '\000')
+  let mut len = array/length(buf)
+  let read = libc/getline(mut array/data(buf), mut len, libc/stdin)
 
--- }
+  if read == -1 { None }
+  else {
+    let mut ptr = array/data(buf)
+    let result = libc/strtol(array/data(buf), mut ptr, 0)
+    -- we expect a newline, otherwise it failed
+    if char_equal(unsafe/get(ptr, 0), '\n') { Some(result) }
+    else { None }
+  }
+}
