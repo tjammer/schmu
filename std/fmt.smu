@@ -35,18 +35,15 @@ module formatter {
   }
 }
 
-type file = raw_ptr[u8]
-external fwrite : fun (raw_ptr[u8], int, int, file) -> unit
-
 fun pr() {
   formatter/create(
-    fun(mut _ : unit, ptr, len) { fwrite(ptr, 1, len, libc/stdout) }, ()
+    fun(mut _ : unit, ptr, len) { libc/fwrite(ptr, 1, len, libc/stdout) }, ()
   )
 }
 
 fun prerr() {
   formatter/create(
-    fun(mut _ : unit, ptr, len) { fwrite(ptr, 1, len, libc/stderr) }, ()
+    fun(mut _ : unit, ptr, len) { libc/fwrite(ptr, 1, len, libc/stderr) }, ()
   )
 }
 
@@ -388,7 +385,7 @@ module fmt_stdout {
 
   fun create() {
     formatter/create(
-      fun(mut _ : unit, ptr, len) { fwrite(ptr, 1, len, libc/stdout) }, ()
+      fun(mut _ : unit, ptr, len) { libc/fwrite(ptr, 1, len, libc/stdout) }, ()
     )
   }
 }
@@ -398,7 +395,7 @@ module fmt_stderr {
 
   fun create() {
     formatter/create(
-      fun(mut _ : unit, ptr, len) { fwrite(ptr, 1, len, libc/stderr) }, ()
+      fun(mut _ : unit, ptr, len) { libc/fwrite(ptr, 1, len, libc/stderr) }, ()
     )
   }
 }

@@ -42,6 +42,7 @@ fun data(str : t) { array/data(str) }
 fun get(str : t, i) { str.[i] }
 
 use prelude
+use libc
 
 fun hash(str) {
   -- unsigned long
@@ -58,8 +59,6 @@ fun hash(str) {
     (hash * 33) + int_of_u8(c)
   })
 }
-
-external memcmp : fun (raw_ptr[u8], raw_ptr[u8], int) -> i32
 
 fun equal(l, r) {
   if len(l) == len(r) {
@@ -94,8 +93,6 @@ fun concat(delim, strings) {
   array/pop_back(mut ret) |> ignore
   ret
 }
-
-external memcpy : fun (raw_ptr[u8], raw_ptr[u8], int) -> unit
 
 fun substr(str : t, start, end) {
   assert(start >= 0)
@@ -192,8 +189,6 @@ fun of_fixed_array(arr : array#?[u8]) {
   ret
 }
 
-external strlen : fun (raw_ptr[u8]) -> int
-
 fun of_cstr(cstr) {
   -- NOTE we could implement this without traversing the string twice
   let size = strlen(cstr)
@@ -203,9 +198,6 @@ fun of_cstr(cstr) {
   mut __unsafe_array_length(arr) = size
   arr
 }
-
-type file = raw_ptr[u8]
-external fwrite : fun (cstr, int, int, file) -> unit
 
 let newline = #['\n']
 

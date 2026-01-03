@@ -1,5 +1,13 @@
 type file = raw_ptr[u8]
 external stdout : file
 external stderr : file
+external stdin : file
 
 external assert_fail : fun (raw_ptr[u8], raw_ptr[u8], i32, raw_ptr[u8]) -> unit = "__assert_fail"
+external fwrite : fun (raw_ptr[u8], int, int, file) -> unit
+external fread : fun (raw_ptr[u8], int, int, file) -> int
+external fopen : fun (raw_ptr[u8], raw_ptr[u8]) -> file
+external fclose : fun (raw_ptr[u8]) -> int
+external memcmp : fun (raw_ptr[u8], raw_ptr[u8], int) -> i32
+external memcpy : fun (raw_ptr[u8], raw_ptr[u8], int) -> unit
+external strlen : fun (raw_ptr[u8]) -> int

@@ -1,5 +1,6 @@
 import array
 import iter
+import libc
 import option
 import prelude
 import string
@@ -33,11 +34,7 @@ type file = raw_ptr[u8]
 
 type t = {mut buf : array#4096[u8], mut head : int, mut unseen : int, file : file}
 
-type cstr = raw_ptr[u8]
-external fread : fun (cstr, int, int, file) -> int
-external fopen : fun (cstr, cstr) -> file
-external fclose : fun (cstr) -> int
-
+use libc
 use option
 use prelude
 

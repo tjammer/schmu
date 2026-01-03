@@ -112,6 +112,7 @@
   in_channel.smu
   array.smi
   iter.smi
+  libc.smi
   option.smi
   prelude.smi
   string.smi
@@ -294,6 +295,7 @@
   iter.o
   iter.smi
   libc.o
+  libc.smi
   option.o
   option.smi
   prelude.o
