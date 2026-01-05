@@ -206,6 +206,94 @@ fun shuffle(mut rs, mut arr) {
 
 fun empty(arr) { length(arr) == 0 }
 
+fun initf(len, f) {
+  let mut arr = __unsafe_array_create()
+  mut __unsafe_array_length(arr) = len
+  if len > 0 {
+    mut data(arr) = __unsafe_malloc(len)
+    mut __unsafe_array_capacity(arr) = len
+  }
+  else {
+    mut data(arr) = __unsafe_ptr_reinterpret(__unsafe_nullptr())
+    mut __unsafe_array_capacity(arr) = 0
+  }
+  fun rec inner(i) {
+    if i == len { () }
+    else {
+      -- a normal mutation would free an uninitialized value
+      __unsafe_ptr_set(mut data(arr), i, f(i))
+      inner(i + 1)
+    }
+  }
+  inner(0)
+  arr
+}
+
+fun merge(mut arr, mut tmp, startl, endl, startr, endr, cmp) {
+  fun rec fill(i, curl, curr) {
+    let endl = curl > endl
+    let endr = curr > endr
+    if endl and endr { () }
+    else if endl {
+      mut tmp.[i] = curr
+      fill(i + 1, curl, curr + 1)
+    }
+    else if endr {
+      mut tmp.[i] = curl
+      fill(i + 1, curl + 1, curr)
+    }
+    else {
+      if cmp(arr.[curl], arr.[curr]) < 0 {
+        mut tmp.[i] = curl
+        fill(i + 1, curl + 1, curr)
+      }
+      else {
+        mut tmp.[i] = curr
+        fill(i + 1, curl, curr + 1)
+      }
+    }
+  }
+  fill(startl, startl, startr)
+
+  fun rec find_index(mut index, i) {
+    if index < i {
+      mut index = tmp.[index]
+      find_index(mut index, i)
+    }
+    else { () }
+  }
+
+  fun rec cpy(i) {
+    if i > endr { () }
+    else {
+      let mut index = mov tmp.[i]
+      -- this index has been swapped to a higher position
+      find_index(mut index, i)
+      swap_items(mut arr, i, index)
+      -- remember that item i now lives at index
+      mut tmp.[i] = index
+      cpy(i + 1)
+    }
+  }
+  cpy(startl)
+}
+
+fun rec merge_sort(mut arr, mut tmp, i, n, cmp) {
+  if n < 2 { () }
+  else {
+    let m = n / 2
+    merge_sort(mut arr, mut tmp, i, m, cmp)
+    merge_sort(mut arr, mut tmp, i + m, n - m, cmp)
+    merge(mut arr, mut tmp, i, i + m - 1, i + m, i + n - 1, cmp)
+  }
+}
+
+fun sort(mut arr, cmp) {
+  let n = length(arr)
+  let mut tmp = init(n, 0)
+  merge_sort(mut arr, mut tmp, 0, n, cmp)
+}
+
 module fixed {
   let get = __fixed_array_get
   let length = __fixed_array_length

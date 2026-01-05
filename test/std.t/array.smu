@@ -1,3 +1,10 @@
 -- regression: reverse an empty array
 let mut arr : array[int] = []
 array/reverse(mut arr)
+
+let mut arr = array/initf(2000, fun (i : int) { i })
+let mut rs = random/self_init()
+array/shuffle(mut rs, mut arr)
+array/sort(mut arr, int/compare)
+array/iter(arr) |> iter/fold((true, 0), fun (mov (b, last), i) { b and last <= i, i })
+|> fun ((b, _)) { assert(b) }
