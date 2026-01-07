@@ -5167,3 +5167,8 @@ Correctly track partial moves in record expressions
 Mutable bindings cannot be const
   $ schmu mut_nonconst.smu
   $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./mut_nonconst
+
+Propgate local owns
+  $ schmu propagate_local_owns.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./propagate_local_owns
+  0

@@ -982,10 +982,32 @@ let own_local_borrow ~local old_tree =
   (* What about new borrow ids to old items? Could check not id directly but
      id's tree*)
   let rec aux = function
-    | [] -> local
-    | { id; _ } :: tl -> if Trst.mem id old_tree then aux tl else Owned
+    | [] -> (local, false)
+    | { id; _ } :: tl -> if Trst.mem id old_tree then aux tl else (Owned, true)
   in
-  match local with Owned -> Owned | Borrowed bs -> aux bs
+  match local with Owned -> (Owned, false) | Borrowed bs -> aux bs
+
+let rec fixuplocals = function
+  | ( Var _ | Const _ | Bop _ | Unop _ | Lambda _ | App _ | Record _ | Field _
+    | Set _ | Ctor _ | Variant_index _ | Variant_data _ ) as e ->
+      e
+  | Move e -> Move { e with expr = fixuplocals e.expr }
+  | If (c, owning, t, f) ->
+      If
+        ( c,
+          owning,
+          { t with expr = Move { t with expr = fixuplocals t.expr } },
+          { f with expr = Move { f with expr = fixuplocals f.expr } } )
+  | Let l ->
+      Let { l with cont = { l.cont with expr = fixuplocals l.cont.expr } }
+  | Bind (a, b, c, cont) ->
+      Bind (a, b, c, { cont with expr = fixuplocals cont.expr })
+  | Function (a, b, c, cont) ->
+      Function (a, b, c, { cont with expr = fixuplocals cont.expr })
+  | Mutual_rec_decls (a, cont) ->
+      Mutual_rec_decls (a, { cont with expr = fixuplocals cont.expr })
+  | Sequence (a, cont) ->
+      Sequence (a, { cont with expr = fixuplocals cont.expr })
 
 let cond_move typ = if Types.contains_allocation typ then Dmove else Dnorm
 
@@ -1318,10 +1340,10 @@ let rec check_expr st ac part tyex =
       let f, fb, ftrees = check_expr { st with trees } ac part f in
       let prefix = "Branches have different ownership: " in
       (* We could also deal with frees right here *)
+      let town, localownt = own_local_borrow ~local:tb trees
+      and fown, localownf = own_local_borrow ~local:fb trees in
       let owning, borrow =
-        match
-          (own_local_borrow ~local:tb trees, own_local_borrow ~local:fb trees)
-        with
+        match (town, fown) with
         | Borrowed t, Borrowed f ->
             (* dedup? *)
             let bs =
@@ -1345,7 +1367,21 @@ let rec check_expr st ac part tyex =
         Trst.(
           update ~old:st.trees (merge ~mname:st.mname tyex.loc ttrees ftrees))
       in
-      let expr = If (cond, Some owning, t, f) in
+      (* Our [own_local_borrow] from above only works if the referenced binding
+         is in the exact same scope. We can easily introduce a new scope which
+         is deeper and won't recognize that it should own this borrow. For
+         instance, let matched = [1]; if true { matched } else { matched }.
+         Here, matched is clearly owned, but the branches in the if don't know
+         that. In most cases, this is handled will in the next pass, but ifs
+         introduce a new malloc and thus loose the information. Hence we
+         propagate to all returning, nested ifs. *)
+      let expr =
+        If
+          ( cond,
+            Some owning,
+            (if localownt then { t with expr = fixuplocals t.expr } else t),
+            if localownf then { f with expr = fixuplocals f.expr } else f )
+      in
       ({ tyex with expr }, borrow, trees)
   | Field (e, i, name) ->
       (match fst ac with

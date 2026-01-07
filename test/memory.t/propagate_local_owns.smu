@@ -1,0 +1,14 @@
+fun player_choose_card(lead, hand) {
+  let choice = match lead {
+    None -> copy(hand)
+    _ -> {
+      let matched = [1]
+      if true { matched } else { matched }
+    }
+  }
+  array/iter(choice) |> iter/iteri(fun (i, _) {
+    fmt/print1("{}\n", fmt/int, i)
+  })
+}
+let arr = array/init(2, 0)
+player_choose_card(Some(0), arr)
