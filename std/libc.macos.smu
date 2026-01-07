@@ -3,7 +3,7 @@ external stdout : file = "__stdoutp"
 external stderr : file = "__stderrp"
 external stdin : file = "__stdinp"
 
-external assert_fail : fun (raw_ptr[u8], raw_ptr[u8], i32, raw_ptr[u8]) -> unit = "__assert_fail"
+external assert_fail : fun (raw_ptr[u8], raw_ptr[u8], i32, raw_ptr[u8]) -> unit = "__assert_rtn"
 external fwrite : fun (raw_ptr[u8], int, int, file) -> unit
 external fread : fun (raw_ptr[u8], int, int, file) -> int
 external fopen : fun (raw_ptr[u8], raw_ptr[u8]) -> file
@@ -13,3 +13,6 @@ external memcpy : fun (raw_ptr[u8], raw_ptr[u8], int) -> unit
 external strlen : fun (raw_ptr[u8]) -> int
 external getline : fun (mut raw_ptr[u8], mut int, file) -> int
 external strtol : fun (raw_ptr[u8], mut raw_ptr[u8], int) -> int
+external open : fun (raw_ptr[u8], i32, i32) ->  i32
+external close : fun (i32) -> unit
+external read : fun (i32, raw_ptr[u8], int) -> int
