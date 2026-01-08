@@ -3032,3 +3032,10 @@ Strange module opening bug
 
 Values in signatures must be marked as globals
   $ schmu global_from_sign.smu
+
+Use correct module name on nested -o parameter
+  $ mkdir -p nest/deeper
+  $ cd nest
+  $ schmu -m ../redefine_symbol_functor.smu -o deeper/redefine_symbol_functor.o
+  $ cat deeper/redefine_symbol_functor.smi | grep -q -v deeper
+  $ schmu -s deeper ../use_redefine_symbol_functor.smu

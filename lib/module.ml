@@ -723,8 +723,9 @@ let uses_args () =
 
 let to_channel c ~outname m =
   let module Smap = Map.Make (String) in
+  let basename = Filename.basename outname in
   let _, m =
-    rev m |> Canon.map_module (Path.Pid outname) (Map_canon.empty_sub ())
+    rev m |> Canon.map_module (Path.Pid basename) (Map_canon.empty_sub ())
   in
   (* Correct objects only exist after [canonize_t] *)
   let objects =

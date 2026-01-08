@@ -67,7 +67,9 @@ let run file
   let open Schmulang in
   try
     Parse.parse file >>= fun prog ->
-    let mname = if modul then Path.Pid outname else Typing.main_path in
+    let mname =
+      if modul then Path.Pid (Filename.basename outname) else Typing.main_path
+    in
     let start_loc =
       let loc =
         Lexing.{ pos_fname = file; pos_lnum = 1; pos_bol = 1; pos_cnum = 1 }
