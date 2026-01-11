@@ -294,6 +294,24 @@ fun sort(mut arr, cmp) {
   merge_sort(mut arr, mut tmp, 0, n, cmp)
 }
 
+fun remove(mut arr, i) {
+  if i >= length(arr) { option/None }
+  else {
+    -- move selected item to end
+    swap_items(mut arr, i, length(arr) - 1)
+    -- if we remove the last, or second-to-last item everything is already in
+    -- order
+    if length(arr) - i > 2 {
+      -- swap remaining items
+      iter_range(i, length(arr) - 2, fun i {
+        swap_items(mut arr, i, i + 1)
+      })
+    }
+    -- return removed item
+    pop_back(mut arr)
+  }
+}
+
 module fixed {
   let get = __fixed_array_get
   let length = __fixed_array_length

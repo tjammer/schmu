@@ -2,9 +2,44 @@
 let mut arr : array[int] = []
 array/reverse(mut arr)
 
+-- sort
 let mut arr = array/initf(2000, fun (i : int) { i })
 let mut rs = random/self_init()
 array/shuffle(mut rs, mut arr)
 array/sort(mut arr, int/compare)
 array/iter(arr) |> iter/fold((true, 0), fun (mov (b, last), i) { b and last <= i, i })
 |> fun ((b, _)) { assert(b) }
+
+-- removal
+let mut arr : array[int] = []
+assert(array/length(arr) == 0)
+assert(array/remove(mut arr, 0) |> option/is_none)
+assert(array/remove(mut arr, 3) |> option/is_none)
+let mut arr = [0]
+assert(array/remove(mut arr, 0) |> option/is_some)
+assert(array/empty(arr))
+assert(array/remove(mut arr, 0) |> option/is_none)
+let mut arr = [1, 0]
+match array/remove(mut arr, 0) {
+  None -> assert(false)
+  Some(i) -> assert(i == 1)
+}
+assert(array/length(arr) == 1)
+match array/remove(mut arr, 0) {
+  None -> assert(false)
+  Some(i) -> assert(i == 0)
+}
+assert(array/empty(arr))
+assert(array/remove(mut arr, 0) |> option/is_none)
+let mut arr = [1, 0, 2, 3]
+match array/remove(mut arr, 1) {
+  None -> assert(false)
+  Some(i) -> assert(i == 0)
+}
+assert(array/length(arr) == 3)
+match array/remove(mut arr, 1) {
+  None -> assert(false)
+  Some(i) -> assert(i == 2)
+}
+assert(arr.[0] == 1)
+assert(arr.[1] == 3)
