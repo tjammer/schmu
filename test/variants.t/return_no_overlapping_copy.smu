@@ -1,0 +1,20 @@
+-- functor nested(m : hashtbl/key) {
+--   module tbl = hashtbl/make(m)
+-- }
+
+fun some(i : int) { Some(i) }
+
+fun rec geti(f) {
+  match some(0) {
+    None -> {
+      println("could not parse int")
+      geti(f)
+    }
+    Some(i) -> match f(i) {
+      Some(thing) -> thing
+      None -> geti(f)
+    }
+  }
+}
+
+geti(fun (_i : int) { Some(copy("thing")) }) |> ignore

@@ -1477,12 +1477,14 @@ and morph_var_data mk p expr typ =
        toplevel lets it might not. For instance if we have an (option t) which
        is matched on at assignment. Then, the global value is t, but if we
        propagate the alloc, the parent (option t) will try to initialize into
-       the global value, which is t, another type.*)
-    if p.toplvl then
-      let alloc = Value (ref (request p)) in
-      { func with alloc }
-    else func
+       the global value, which is t, another type. Furthermore, if we reused the
+       alloca, we could get into a situation where the alloca will be used
+       instead of a temporary. This caused the bug in test
+       return_overlapping_copy *)
+    let alloc = Value (ref (request p)) in
+    { func with alloc }
   in
+
   ({ p with ret }, mk (Mvar_data (e, mid)) ret, { func with malloc })
 
 let rec morph_toplvl param items =

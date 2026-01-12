@@ -1340,3 +1340,161 @@ match instead of the ctor after the pattern guard clause
   $ schmu regression_guard.smu
   $ ./regression_guard
   some
+
+Regression for creating an overlapping memcpy on return. The return value ptr %0
+is used as a temporary return value and we copy from the temporary to (an offset
+of) the return value
+  $ schmu return_no_overlapping_copy.smu --dump-llvm --target x86_64-unknown-linux-gnu -c 2>&1 | grep -v !DI
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
+  
+  %option.t.a.c = type { i32, { ptr, i64, i64 } }
+  %closure = type { ptr, ptr }
+  %option.t.l = type { i32, i64 }
+  
+  @0 = private unnamed_addr constant [6 x i8] c"thing\00"
+  @1 = private unnamed_addr constant [20 x i8] c"could not parse int\00"
+  
+  declare void @string_println(ptr %0)
+  
+  define void @__fun_schmu0(ptr noalias %0, i64 %_i) !dbg !2 {
+  entry:
+    store i32 1, ptr %0, align 4
+    %data = getelementptr inbounds %option.t.a.c, ptr %0, i32 0, i32 1
+    %1 = alloca { ptr, i64, i64 }, align 8
+    store { ptr, i64, i64 } { ptr @0, i64 5, i64 -1 }, ptr %1, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %data, ptr align 8 %1, i64 24, i1 false)
+    tail call void @__copy_a.c(ptr %data)
+    ret void
+  }
+  
+  define linkonce_odr void @__schmu_geti__roption.t.a.cra.c(ptr noalias %0, ptr %f) !dbg !6 {
+  entry:
+    %1 = alloca %closure, align 8
+    call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %f, i64 16, i1 false)
+    %2 = alloca i1, align 1
+    store i1 false, ptr %2, align 1
+    %ret = alloca %option.t.l, align 8
+    %boxconst = alloca { ptr, i64, i64 }, align 8
+    %ret2 = alloca %option.t.a.c, align 8
+    br label %rec
+  
+  rec:                                              ; preds = %else8, %then, %entry
+    %3 = call { i32, i64 } @schmu_some(i64 0), !dbg !7
+    store { i32, i64 } %3, ptr %ret, align 8
+    %index = load i32, ptr %ret, align 4
+    %eq = icmp eq i32 %index, 0
+    br i1 %eq, label %then, label %else, !dbg !8
+  
+  then:                                             ; preds = %rec
+    store { ptr, i64, i64 } { ptr @1, i64 19, i64 -1 }, ptr %boxconst, align 8
+    call void @string_println(ptr %boxconst), !dbg !9
+    br label %rec
+  
+  else:                                             ; preds = %rec
+    %sunkaddr = getelementptr inbounds i8, ptr %ret, i64 8
+    %4 = load i64, ptr %sunkaddr, align 8
+    %loadtmp = load ptr, ptr %1, align 8
+    %envptr = getelementptr inbounds %closure, ptr %1, i32 0, i32 1
+    %loadtmp1 = load ptr, ptr %envptr, align 8
+    call void %loadtmp(ptr %ret2, i64 %4, ptr %loadtmp1), !dbg !10
+    %index4 = load i32, ptr %ret2, align 4
+    %eq5 = icmp eq i32 %index4, 1
+    br i1 %eq5, label %then6, label %else8, !dbg !11
+  
+  then6:                                            ; preds = %else
+    %data7 = getelementptr inbounds %option.t.a.c, ptr %ret2, i32 0, i32 1
+    call void @llvm.memcpy.p0.p0.i64(ptr align 1 %0, ptr align 8 %data7, i64 24, i1 false)
+    store i1 true, ptr %2, align 1
+    ret void
+  
+  else8:                                            ; preds = %else
+    call void @__free_option.t.a.c(ptr %ret2)
+    br label %rec
+  }
+  
+  define { i32, i64 } @schmu_some(i64 %i) !dbg !12 {
+  entry:
+    %t = alloca %option.t.l, align 8
+    store i32 1, ptr %t, align 4
+    %data = getelementptr inbounds %option.t.l, ptr %t, i32 0, i32 1
+    store i64 %i, ptr %data, align 8
+    %unbox = load { i32, i64 }, ptr %t, align 8
+    ret { i32, i64 } %unbox
+  }
+  
+  define linkonce_odr void @__copy_a.c(ptr %0) {
+  entry:
+    %len = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 1
+    %size = load i64, ptr %len, align 8
+    %1 = icmp eq i64 %size, 0
+    br i1 %1, label %zero, label %nonempty
+  
+  zero:                                             ; preds = %entry
+    %cap = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 0, ptr %cap, align 8
+    store ptr null, ptr %0, align 8
+    br label %cont
+  
+  cont:                                             ; preds = %nonempty, %zero
+    ret void
+  
+  nonempty:                                         ; preds = %entry
+    %2 = add i64 %size, 1
+    %3 = tail call ptr @malloc(i64 %2)
+    %4 = load ptr, ptr %0, align 8
+    tail call void @llvm.memcpy.p0.p0.i64(ptr align 1 %3, ptr align 1 %4, i64 %2, i1 false)
+    %cap2 = getelementptr inbounds { ptr, i64, i64 }, ptr %0, i32 0, i32 2
+    store i64 %size, ptr %cap2, align 8
+    store ptr %3, ptr %0, align 8
+    br label %cont
+  }
+  
+  ; Function Attrs: nocallback nofree nounwind willreturn memory(argmem: readwrite)
+  declare void @llvm.memcpy.p0.p0.i64(ptr noalias nocapture writeonly %0, ptr noalias nocapture readonly %1, i64 %2, i1 immarg %3) #0
+  
+  define linkonce_odr void @__free_a.c(ptr %0) {
+  entry:
+    %1 = load ptr, ptr %0, align 8
+    tail call void @free(ptr %1)
+    ret void
+  }
+  
+  define linkonce_odr void @__free_option.t.a.c(ptr %0) {
+  entry:
+    %index = load i32, ptr %0, align 4
+    %1 = icmp eq i32 %index, 1
+    br i1 %1, label %match, label %cont
+  
+  match:                                            ; preds = %entry
+    %data = getelementptr inbounds %option.t.a.c, ptr %0, i32 0, i32 1
+    tail call void @__free_a.c(ptr %data)
+    ret void
+  
+  cont:                                             ; preds = %entry
+    ret void
+  }
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !13 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fun_schmu0, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    %ret = alloca { ptr, i64, i64 }, align 8
+    call void @__schmu_geti__roption.t.a.cra.c(ptr %ret, ptr %clstmp), !dbg !14
+    call void @__free_a.c(ptr %ret)
+    ret i64 0
+  }
+  
+  declare void @free(ptr %0)
+  
+  declare ptr @malloc(i64 %0)
+  
+  attributes #0 = { nocallback nofree nounwind willreturn memory(argmem: readwrite) }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !5 = !{}
+  $ schmu return_no_overlapping_copy.smu > /dev/null 2>&1
