@@ -13,11 +13,3 @@ curl -sS -X 'GET' 'https://codeberg.org/api/v1/repos/tjammer/schmu/releases/1933
 
 # add new one
 curl -sS -X 'POST' 'https://codeberg.org/api/v1/repos/tjammer/schmu/releases/1933295/assets?name=schmu-latest.tbz' -H 'accept: application/json' -H 'Content-Type: multipart/form-data' -F 'attachment=@schmu-latest.tbz;type=application/x-bzip-compressed-tar' -H @auth
-
-# update release commit
-curl -sS -X 'PATCH' \
-  'https://codeberg.org/api/v1/repos/tjammer/schmu/releases/1933295' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -H @auth \
-  -d "{ \"target_commitish\": \"$(git rev-parse HEAD)\"}"

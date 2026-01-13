@@ -1,15 +1,16 @@
 steps:
   build-test:
-    image: tjammer/ocaml-llvm:20250911
+    image: tjammer/ocaml-llvm:20260115
     commands:
       - opam install . -y --deps-only --with-test
       - opam exec -- dune build
-      - opam exec -- dune runtest -f
+      - ulimit -n 65536
+      - opam exec -- dune test
     when:
       - event: push
 
   deploy:
-    image: tjammer/ocaml-llvm:20250911
+    image: tjammer/ocaml-llvm:20260115
     commands:
       - bash .woodpecker_release.sh
     environment:
