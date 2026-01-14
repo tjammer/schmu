@@ -19,6 +19,8 @@ signature {
   val iteri : fun (t['a], fun (int, 'a) -> unit) -> unit
   val fold : fun (t['a], mov 'b, fun (mov 'b, 'a) -> 'b) -> 'b
   val foldi : fun (t['a], mov 'b, fun (int, mov 'b, 'a) -> 'b) -> 'b
+  val any : fun (t['a], fun ('a) -> bool) -> bool
+  val all : fun (t['a], fun ('a) -> bool) -> bool
 }
 
 use prelude
@@ -105,4 +107,32 @@ fun iteri(it : t['a], f) {
     mut i = i + 1
     true
   }) |> ignore
+}
+
+fun any(it, f) {
+  let mut found = false
+  let _ : bool = it(fun x {
+    if f(x) {
+      mut found = true
+      -- stop the iteration after finding something which satisfies the
+      -- predicate
+      false
+    }
+    else { true }
+  })
+  found
+}
+
+fun all(it, f) {
+  let mut found = true
+  let _ : bool = it(fun x {
+    if f(x) |> not {
+      mut found = false
+      -- stop the iteration after finding something which does not satisfy the
+      -- predicate
+      false
+    }
+    else { true }
+  })
+  found
 }

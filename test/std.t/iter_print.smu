@@ -8,3 +8,15 @@ range(0, 10)
   acc + i
 })
 |>> fmt/(println(int))
+
+let found = range(0, 10) |> any(fun x {
+  fmt/(println(int, x))
+  x == 3
+})
+fmt/(println(bool, found))
+
+let found = range(0, 10) |> all(fun x {
+  fmt/(println(int, x))
+  mod(x, 2) == 0
+})
+fmt/(println(bool, found))

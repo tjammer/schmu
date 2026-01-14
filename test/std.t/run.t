@@ -235,6 +235,14 @@ Use iter and print with dot call
   6
   8
   20
+  0
+  1
+  2
+  3
+  true
+  0
+  1
+  false
 
 Reverse an empty array
   $ schmu array.smu
