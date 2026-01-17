@@ -53,6 +53,12 @@ let add_local_module loc id newm ~into =
   { into with i = Mlocal_module (loc, id, newm) :: into.i }
 
 let add_module_alias loc key mname ~into =
+  let mname =
+    match mname with
+    | Path.Pid s when not (Filename.is_relative s) ->
+        Path.Pid (Filename.basename s)
+    | path -> path
+  in
   let filename =
     match Hashtbl.find_opt module_cache mname with
     | None | Some (Cached (Clocal _, _, _) | Functor _) -> None
@@ -98,6 +104,7 @@ let ext_funcs = ref []
 let paths = ref [ "." ]
 let append_externals l = List.rev_append !ext_funcs l
 let allow_transitive_deps = ref false
+let no_std = ref false
 
 let find_file ~name ~suffix =
   let fname = String.lowercase_ascii (name ^ suffix) in
@@ -116,7 +123,7 @@ let find_file ~name ~suffix =
     | [] -> raise Not_found
   in
   let file = path !paths in
-  file
+  file |> Unix.realpath
 
 (* Number qvars from 0 and change names of Var-nodes to their unique form.
    _<module_name>_name*)
@@ -551,9 +558,11 @@ and read_module env filename loc ~regeneralize mname =
     match Sexp.input c |> Result.map t_of_sexp with
     | Ok t ->
         close_in c;
-        (* Load transitive modules. The interface files are the same as object files *)
+        (* Load transitive modules. The interface files are the same as object
+           files *)
         load_dep_modules env filename loc t.objects ~regeneralize;
         add_object_names filename t.objects;
+        let filename = make_path filename filename in
         let kind, m =
           Regeneralize.regen := Some regeneralize;
           let m = map_t ~mname (Regeneralize.empty_sub ()) t |> snd in
@@ -578,8 +587,12 @@ and add_object_names fname objects =
   let objs =
     List.fold_left
       (fun set (name, _) ->
-        let o = make_path fname name ^ ".o" |> Unix.realpath in
-        Sset.add o set)
+        (* filenames for std modules are not relative. We shouldn't try to read
+           objects files for other modules though *)
+        if not (Filename.is_relative name) then Sset.add (name ^ ".o") set
+        else
+          let o = make_path fname name ^ ".o" |> Unix.realpath in
+          Sset.add o set)
       Sset.empty objects
   in
   object_cache := Sset.union objs !object_cache
@@ -709,7 +722,8 @@ let object_names () =
       (fun _ cached set ->
         match cached with
         | Cached (Cfile (name, _), _, _) ->
-            Sset.add (normalize_path (name ^ ".o") |> Unix.realpath) set
+            assert (Filename.is_relative name |> not);
+            Sset.add (normalize_path (name ^ ".o")) set
         | Cached (Clocal _, _, _) | Functor _ -> set
         | Located _ -> set)
       module_cache Sset.empty
@@ -733,6 +747,28 @@ let to_channel c ~outname m =
       (fun _ cached set ->
         match cached with
         | Cached (Cfile (name, load), _, _) ->
+            (* For std modules, don't export the absolute path but just the
+               module name. But only when we compile them with --no-std *)
+            let name =
+              if !no_std then
+                match
+                  String.rindex_opt name (String.get Filename.dir_sep 0)
+                with
+                | None -> name
+                | Some i -> (
+                    match
+                      String.rindex_from_opt name (i - 1)
+                        (String.get Filename.dir_sep 0)
+                    with
+                    | None -> name
+                    | Some j ->
+                        if
+                          i - j = 4
+                          && String.sub name (j + 1) 3 |> String.equal "std"
+                        then Filename.basename name
+                        else name)
+              else name
+            in
             if String.ends_with ~suffix:"std" name then set
             else Smap.add (normalize_path name) load set
         | _ -> set)

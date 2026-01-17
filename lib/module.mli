@@ -71,6 +71,7 @@ val register_applied_functor :
 
 val poly_funcs : (Path.t * Typed_tree.toplevel_item) list ref
 val paths : string list ref
+val no_std : bool ref
 
 (* Interaction between environment and module cache: The module cache keeps all
    visited modules by their absolute path name, e.g. file a/local b. Aliases

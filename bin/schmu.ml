@@ -64,6 +64,8 @@ let run file
   in
 
   let std = not no_std in
+  if no_std then Schmulang.Module.no_std := true;
+
   let open Schmulang in
   try
     Parse.parse file >>= fun prog ->
