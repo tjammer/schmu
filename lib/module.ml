@@ -738,6 +738,7 @@ let uses_args () =
 let to_channel c ~outname m =
   let module Smap = Map.Make (String) in
   let basename = Filename.basename outname in
+  Canon.no_std := !no_std;
   let _, m =
     rev m |> Canon.map_module (Path.Pid basename) (Map_canon.empty_sub ())
   in
@@ -747,28 +748,7 @@ let to_channel c ~outname m =
       (fun _ cached set ->
         match cached with
         | Cached (Cfile (name, load), _, _) ->
-            (* For std modules, don't export the absolute path but just the
-               module name. But only when we compile them with --no-std *)
-            let name =
-              if !no_std then
-                match
-                  String.rindex_opt name (String.get Filename.dir_sep 0)
-                with
-                | None -> name
-                | Some i -> (
-                    match
-                      String.rindex_from_opt name (i - 1)
-                        (String.get Filename.dir_sep 0)
-                    with
-                    | None -> name
-                    | Some j ->
-                        if
-                          i - j = 4
-                          && String.sub name (j + 1) 3 |> String.equal "std"
-                        then Filename.basename name
-                        else name)
-              else name
-            in
+            let name = Canon.export_filename name in
             if String.ends_with ~suffix:"std" name then set
             else Smap.add (normalize_path name) load set
         | _ -> set)

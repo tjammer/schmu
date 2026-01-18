@@ -68,6 +68,25 @@ module Canonize = struct
 end
 
 module Make (C : Map_tree) = struct
+  let no_std = ref false
+
+  let export_filename fname =
+    (* For std modules, don't export the absolute path, just the module name.
+       But only when we compile them with --no-std *)
+    if !no_std then
+      match String.rindex_opt fname (String.get Filename.dir_sep 0) with
+      | None -> fname
+      | Some i -> (
+          match
+            String.rindex_from_opt fname (i - 1) (String.get Filename.dir_sep 0)
+          with
+          | None -> fname
+          | Some j ->
+              if i - j = 4 && String.sub fname (j + 1) 3 |> String.equal "std"
+              then Filename.basename fname
+              else fname)
+    else fname
+
   let rec map_body mname nsub sub (e : Typed_tree.typed_expr) =
     let sub, typ = C.map_type ~mname sub e.typ in
     let sub, expr = map_expr mname nsub sub e.expr in
@@ -306,7 +325,8 @@ module Make (C : Map_tree) = struct
         let sub, t = map_tl_items mname nsub sub t in
         let sub, m = map_module mname sub m in
         ((sub, nsub), Mfunctor (loc, n, ps, t, m))
-    | Mmodule_alias _ as m -> ((sub, nsub), m)
+    | Mmodule_alias (l, n, pth, fn) ->
+        ((sub, nsub), Mmodule_alias (l, n, pth, Option.map export_filename fn))
     | Mmodule_type (loc, n, intf) ->
         let _, intf = map_intf mname sub intf in
         ((sub, nsub), Mmodule_type (loc, n, intf))
