@@ -114,6 +114,26 @@ fun iter(arr, cont) {
   inner(0)
 }
 
+fun riter(arr, cont) {
+  fun rec inner(i) {
+    if i < 0 { false }
+    else {
+      if cont(arr.[i]) { inner(i - 1) }
+      else { false }
+    }
+  }
+  inner(length(arr) - 1)
+}
+
+fun collect(it) {
+  let mut arr = create(4)
+  let _ : bool = it(fun x {
+    push(mut arr, copy(x))
+    true
+  })
+  arr
+}
+
 fun map(arr, f) {
   let ret = create(length(arr))
   fun rec inner(mov ret, i) {
@@ -331,5 +351,4 @@ module fixed {
       swap_items(mut arr, i, length - i - 1)
     })
   }
-
 }

@@ -17,10 +17,10 @@ signature {
   val append : fun (mut t, t) -> unit
   val concat : fun (t, array[t]) -> t
   val substr : fun (t, int, int) -> t
-  val boyer_moore_horspool : fun (t, t) -> option/t[int]
   -- (pattern, string) / (needle, haystack)
-  val ends_with : fun (t, t) -> bool
+  val boyer_moore_horspool : fun (t, t) -> option/t[int]
   -- (str, pattern)
+  val ends_with : fun (t, t) -> bool
 
   val modify_buf : fun (mut t, fun (mut array[u8]) -> unit) -> unit
   val of_array : fun (mov array[u8]) -> t

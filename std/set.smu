@@ -18,6 +18,7 @@ module type sig {
   val insert : fun (t, mov key) -> t
   val remove : fun (t, key) -> t
   val find : fun (t, key, once fun (option/t[key]) -> 'a) -> 'a
+  val is_empty : fun (t) -> bool
 
   val merge : fun (t, t) -> t
 
@@ -185,6 +186,8 @@ functor make (ord : ordered) {
     }
   }
 
+  fun is_empty(t) { option/is_none(t) }
+
   fun iter(t, cont) {
     fun rec aux(t) {
       match t {
@@ -231,7 +234,9 @@ main {
   let println = string/println
 
   let s = set/empty
+  assert(set/is_empty(s))
   let s1 = set/insert(s, 0)
+  assert(set/is_empty(s1) |> not)
   let s2 = set/insert(s, 0)
   let s3 = set/insert(s2, 1)
   let s4 = set/remove(s3, 0)
