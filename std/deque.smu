@@ -8,7 +8,7 @@ signature {
   type t['a]
 
   -- creates a deque with an initial capacity
-  val create : fun(int) -> t['a]
+  val create : fun (int) -> t['a]
 
   -- appends an element to the back of the queue
   val push_back : fun (mut t['a], mov 'a) -> unit
@@ -16,9 +16,9 @@ signature {
   val push_front : fun (mut t['a], mov 'a) -> unit
 
   -- removes the last element and returns it as an option
-  val pop_back : fun(mut t['a]) -> option/t['a]
+  val pop_back : fun (mut t['a]) -> option/t['a]
   -- removes the first element and returns it as an option
-  val pop_front : fun(mut t['a]) -> option/t['a]
+  val pop_front : fun (mut t['a]) -> option/t['a]
 }
 
 use option
@@ -26,19 +26,21 @@ use prelude
 
 type t['a] = { mut head : int, mut len : int, mut data : array[option/t['a]] }
 
-fun create(size) {
-  { head = 0, len = 0, data = array/create(size) }
-}
-
-fun is_full(deq) {
-  deq.len == __array_capacity(deq.data)
-}
-
 fun fill_none(mut data, from, newcap) {
   iter/range(from, newcap) |> iter/iter(fun i {
     __unsafe_ptr_set(mut array/data(data), i, mov None)
   })
   mut __unsafe_array_length(data) = newcap
+}
+
+fun create(size) {
+  let mut data = array/create(size)
+  fill_none(mut data, 0, __array_capacity(data))
+  { head = 0, len = 0, data }
+}
+
+fun is_full(deq) {
+  deq.len == __array_capacity(deq.data)
 }
 
 fun grow(mut deq) {
