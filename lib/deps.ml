@@ -14,10 +14,10 @@ let rec collect_deps ~modul set = function
 let print_deps ~modul ~outname prog =
   let set = List.fold_left (collect_deps ~modul) Sset.empty prog in
   let outputs =
-    if modul then Printf.sprintf "%s.o %s.smi" outname outname else outname
+    if modul then Format.sprintf "%s.o %s.smi" outname outname else outname
   in
   let deps =
     String.concat " "
       (Sset.to_seq set |> Seq.map (fun s -> s ^ ".smi") |> List.of_seq)
   in
-  Printf.printf "%s: %s" outputs deps
+  Format.printf "%s: %s@." outputs deps
