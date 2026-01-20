@@ -137,7 +137,7 @@
 
 (rule
  (targets iter.o iter.smi)
- (deps %{bin:schmu} iter.smu prelude.smi)
+ (deps %{bin:schmu} iter.smu prelude.smi option.smi)
  (action
   (progn
    (run schmu --release -m --no-std iter.smu))))

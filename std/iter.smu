@@ -1,3 +1,4 @@
+import option
 import prelude
 
 signature {
@@ -21,6 +22,7 @@ signature {
   val foldi : fun (t['a], mov 'b, fun (int, mov 'b, 'a) -> 'b) -> 'b
   val any : fun (t['a], fun ('a) -> bool) -> bool
   val all : fun (t['a], fun ('a) -> bool) -> bool
+  val take_nth : fun (t['a], int) -> option/t['a]
 }
 
 use prelude
@@ -135,4 +137,21 @@ fun all(it, f) {
     else { true }
   })
   found
+}
+
+
+fun take_nth(it : t['a], index) {
+  let mut result = option/None
+  let mut curr = 0
+  (it(fun x {
+    if curr == index {
+      mut result = option/Some(copy(x))
+      false
+    }
+    else {
+      mut curr = curr + 1
+      true
+    }
+  })) |> ignore
+  result
 }

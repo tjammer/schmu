@@ -17,12 +17,16 @@ signature {
   val append : fun (mut t, t) -> unit
   val concat : fun (t, array[t]) -> t
   val substr : fun (t, int, int) -> t
-  -- (pattern, string) / (needle, haystack)
-  val boyer_moore_horspool : fun (t, t) -> option/t[int]
-  -- (str, pattern)
+  -- find(str, start, pattern) returns an option to the index where the pattern
+  -- was first found in str from start
+  val find : fun (t, int, t) -> option/t[int]
+  -- end_with(str, pattern) return true if str ends with pattern
   val ends_with : fun (t, t) -> bool
+  -- cut(str, start, pattern) iterates over str slices from index separated
+  -- by pattern
+  val cut : fun (t, int, t, iter/consumer[t]) -> iter/continue
 
-  val modify_buf : fun (mut t, fun (mut array[u8]) -> unit) -> unit
+  val modify_buf : fun (mut t, once fun (mut array[u8]) -> unit) -> unit
   val of_array : fun (mov array[u8]) -> t
   val to_array : fun (mov t) -> array[u8]
   val of_fixed_array : fun (array#?[u8]) -> t
@@ -119,7 +123,7 @@ fun make_skips(pattern) {
   skips
 }
 
-fun boyer_moore_horspool(pattern, str) {
+fun boyer_moore_horspool(str, start, pattern) {
   use prelude
   use option
   let patlen1 = len(pattern) - 1
@@ -146,8 +150,43 @@ fun boyer_moore_horspool(pattern, str) {
     None
   } else {
     let skips = make_skips(pattern)
-    find(skips, 0)
+    find(skips, start)
   }
+}
+
+let find = boyer_moore_horspool
+
+fun cut(str, start, pat, cont) {
+  fun rec inner(mov tmp, start) {
+    let mut tmp = mov tmp
+    fun fixup_tmp(index) {
+      let size = index - start + len(pat)
+      array/reserve(mut tmp, size + 1) -- null terminator
+      libc/memcpy(data(tmp), __unsafe_ptr_at(data(str), start), size)
+      -- fix null terminator
+      __unsafe_ptr_set(mut array/data(tmp), size, '\000')
+      -- fix length
+      mut __unsafe_array_length(tmp) = index - start
+    }
+    match find(str, start, pat) {
+      None -> {
+        -- return the rest of the string
+        let len = array/length(str)
+        if len - start > 1 {
+          fixup_tmp(len)
+          if not(array/empty(tmp)) { cont(tmp) |> ignore }
+          false
+        }
+        else { false }
+      }
+      Some(index) -> {
+        fixup_tmp(index)
+        if array/empty(tmp) or cont(tmp) { inner(tmp, index + len(pat)) }
+        else { false }
+      }
+    }
+  }
+  inner([], start)
 }
 
 fun ends_with(str, pat) {
@@ -164,7 +203,6 @@ fun ends_with(str, pat) {
   aux(len(str) - 1, len(pat) - 1)
 }
 
--- TODO this can be once
 fun modify_buf(mut str : t, f) {
   f(mut str)
   -- return type needs to be inferred as unit

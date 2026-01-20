@@ -17,6 +17,15 @@ String module test
   $ schmu string.smu
   $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./string
   hello, world, :)
+  ao
+  aoaoaoeoaoe
+  aooaoa
+  iii
+  ao
+  aoaoaoeoaoe
+  aooaoa
+  found at 2: aooaoa
+  aopataoaoaoeoaoepataooaoapat
 
 In channel module test
   $ schmu in_channel.smu

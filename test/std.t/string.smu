@@ -3,7 +3,7 @@ println(string/concat(", ", arr))
 
 let haystack = "this haystack contains a needle"
 assert(
-  25 == match string/boyer_moore_horspool("needle", haystack) {
+  25 == match string/find(haystack, 0, "needle") {
     Some(i) -> i
     None -> -1
   })
@@ -15,3 +15,21 @@ ends_with("thing.smu", "i") |> not |> assert
 ends_with("thing.smu", "") |> assert
 ends_with("", ".smu") |> not |> assert
 ends_with("hi", "ihi") |> not |> assert
+
+use fmt
+
+let haystack = "aopataoaoaoeoaoepataooaoapatiii"
+let haystackend = "aopataoaoaoeoaoepataooaoapat"
+
+string/cut(haystack, 0, "pat") |> iter/iter(string/println)
+string/cut(haystackend, 0, "pat") |> iter/iter(string/println)
+assert(string/cut(haystackend, 0, "pat") |> iter/take_nth(0) |> option/is_some)
+assert(string/cut(haystackend, 0, "aopat") |> iter/take_nth(0) |> option/is_some)
+assert(string/cut(haystackend, 0, "pat") |> iter/take_nth(10) |> option/is_none)
+let index = 2
+match string/cut(haystackend, 0, "pat") |> iter/take_nth(index) {
+  None -> ()
+  Some(strr) -> print2("found at {}: {}\n", int, index, str, strr)
+}
+
+string/cut(haystack, 0, "i") |> iter/iter(string/println)
