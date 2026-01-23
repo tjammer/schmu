@@ -66,14 +66,10 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
   let missing_polys_tbl = Hashtbl.create 64
   let poly_funcs_tbl = Hashtbl.create 64
   let deferredfunc_tbl = Hashtbl.create 64
-
-  let typ_of_abs abs =
-    let kind = match abs.func.closed with [] -> Simple | l -> Closure l in
-    Tfun (abs.func.params, abs.func.ret, kind)
+  let typ_of_abs abs = Tfun (abs.func.params, abs.func.ret, abs.func.kind)
 
   let func_of_typ = function
-    | Tfun (params, ret, Simple) -> { params; ret; closed = [] }
-    | Tfun (params, ret, Closure closed) -> { params; ret; closed }
+    | Tfun (params, ret, kind) -> { params; ret; kind }
     | _ -> failwith "Internal Error: Not a function type"
 
   let rec find_function_expr vars = function
@@ -437,11 +433,6 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
   and subst_kind subst = function
     | Simple -> Simple
     | Closure cls ->
-        let cls = subst_closed subst cls in
-        Closure cls
-
-  and subst_closed subst = function
-    | cls ->
         let cls =
           List.map
             (fun cl ->
@@ -460,7 +451,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               { cl with cltyp; clname })
             cls
         in
-        cls
+        Closure cls
 
   and subst_body p subst tree =
     let p = ref p in
@@ -523,16 +514,16 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           let lhs = sub lhs in
           let cont = sub cont in
           { tree with typ = cont.typ; expr = Mbind (id, lhs, cont) }
-      | Mlambda (name, closed, typ, alloca, upward) ->
-          let styp = subst typ and closed = subst_closed subst closed in
+      | Mlambda (name, kind, typ, alloca, upward) ->
+          let styp = subst typ and kind = subst_kind subst kind in
 
           (* We may have to monomorphize. For instance if the lambda returned from
              a polymorphic function *)
           let name = mono_callable name styp tree in
 
-          { tree with typ; expr = Mlambda (name, closed, styp, alloca, upward) }
-      | Mfunction (name, closed, typ, cont, alloca, upward) ->
-          let styp = subst typ and closed = subst_closed subst closed in
+          { tree with typ; expr = Mlambda (name, kind, styp, alloca, upward) }
+      | Mfunction (name, kind, typ, cont, alloca, upward) ->
+          let styp = subst typ and kind = subst_kind subst kind in
           (* We may have to monomorphize. For instance if the lambda returned from
              a polymorphic function *)
           let name = mono_callable name styp { tree with typ } in
@@ -540,7 +531,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           {
             tree with
             typ = cont.typ;
-            expr = Mfunction (name, closed, styp, cont, alloca, upward);
+            expr = Mfunction (name, kind, styp, cont, alloca, upward);
           }
       | Mapp { callee; args; alloca; id; ms } ->
           let ex = sub callee.ex in
@@ -744,8 +735,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       else
         let p, body = subst_body p subst func.abs.body in
 
-        let closed = subst_closed subst func.abs.func.closed in
-        let fnc = { (func_of_typ typ) with closed } in
+        let kind = subst_kind subst func.abs.func.kind in
+        let fnc = { (func_of_typ typ) with kind } in
         let name = { func.name with call } in
         let abs = { func.abs with func = fnc; body } in
         let monomorphized = true in

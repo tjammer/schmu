@@ -474,7 +474,7 @@ module Make_storage (Id : Id_t) = struct
 
   type on_call = {
     attr : Ast.decl_attr;
-    on_move : Typed_tree.touched option;
+    on_move : Types.closed option;
         (* Either Dnorm or moved with variable info to build a move expression.
            Dmove is implicit, then *)
     mode : Types.mode;
@@ -1011,37 +1011,26 @@ let rec fixuplocals = function
 
 let cond_move typ = if Types.contains_allocation typ then Dmove else Dnorm
 
-let get_closed_usage (touched : touched) =
-  (* let on_move = *)
-  (*   match kind with *)
-  (*   | Closure cls -> ( *)
-  (*       match *)
-  (*         List.find_opt (fun c -> String.equal c.clname touched.tname) cls *)
-  (*       with *)
-  (*       | Some c -> ( *)
-  (*           if c.clcopy then None *)
-  (*           else if c.clmut then Some c *)
-  (*           else *)
-  (*             (\* Move the closed variable into the closure *\) *)
-  (*             match cond_move c.cltyp with Dmove -> Some c | _ -> None) *)
-  (*       | None -> *)
-  (*           (\* Touched bit not closed? Let's read it *\) *)
-  (*           None) *)
-  (*   | Simple -> None *)
-  (* in *)
+let get_closed_usage kind (touched : touched) =
+  let on_move =
+    match kind with
+    | Closure cls -> (
+        match
+          List.find_opt (fun c -> String.equal c.clname touched.tname) cls
+        with
+        | Some c -> (
+            if c.clcopy then None
+            else if c.clmut then Some c
+            else
+              (* Move the closed variable into the closure *)
+              match cond_move c.cltyp with Dmove -> Some c | _ -> None)
+        | None ->
+            (* Touched bit not closed? Let's read it *)
+            None)
+    | Simple -> None
+  in
   let attr =
     match touched.tattr with Dmove -> cond_move touched.ttyp | attr -> attr
-  in
-  let on_move =
-    if touched.tcaptured then
-      match touched.tattr with
-      | _ when touched.tcopy ->
-          (* copy means we don't have to move it *)
-          None
-      | Dmut | Dset -> (* We have to own it *) Some touched
-      | Dnorm | Dmove -> (
-          match cond_move touched.ttyp with Dmove -> Some touched | _ -> None)
-    else None
   in
   Trst.{ attr; on_move; mode = touched.tusage }
 
@@ -1053,13 +1042,13 @@ let let_mode_borrow = function
 let let_mode_bind = function `Many -> `Many | `Once -> `Once | `Arg -> `Many
 let let_mode = function Types.Many -> `Many | Once -> `Once
 
-let move_closed t ex =
+let move_closed c ex =
   let var =
     {
       loc = ex.loc;
-      typ = t.ttyp;
+      typ = c.cltyp;
       attr = no_attr;
-      expr = Var (t.tname, t.tmname);
+      expr = Var (c.clname, c.clmname);
     }
   in
   let move = { var with expr = Move var } in
@@ -1067,10 +1056,10 @@ let move_closed t ex =
 
 let rec move_closure ex = function
   | [] -> ex
-  | t :: tl ->
+  | c :: tl ->
       (* This used to move every cloned variable unconditionally, even copied
          ones. I don't think it was correct *)
-      if t.tcopy then ex else move_closure (move_closed t ex) tl
+      if c.clcopy then ex else move_closure (move_closed c ex) tl
 
 let lambda_borrows expr bs =
   match (Typed_tree.follow_expr expr, bs) with
@@ -1407,7 +1396,7 @@ let rec check_expr st ac part tyex =
       let expr = Function (name, i, abs, cont) in
       ({ tyex with expr }, bs, trees)
   | Lambda (_, abs) -> (
-      let borrowed = bids_of_touched abs.func.touched st in
+      let borrowed = bids_of_touched abs.func.touched abs.func.kind st in
       (* It's ok to use a many value once, but not the other way around *)
       match fst ac with
       | Dmove ->
@@ -1564,17 +1553,17 @@ and check_let st ~toplevel str loc pass lmut mode rhs =
 
   (rhs, pass, { st with ids; trees })
 
-and bids_of_touched touched st =
+and bids_of_touched touched kind st =
   List.map
     (fun touched ->
       let id = Idst.get touched.tname touched.tmname st.ids
-      and usage = get_closed_usage touched in
+      and usage = get_closed_usage kind touched in
       let part = [] and oncall = Some usage and cond_borrow = false in
       { id; part; oncall; cond_borrow })
     touched
 
 and check_abs loc name ac abs tl st =
-  let touched = bids_of_touched abs.func.touched st in
+  let touched = bids_of_touched abs.func.touched abs.func.kind st in
   let bid, ids = Idst.insert name (Some st.mname) st.ids in
 
   let trees =

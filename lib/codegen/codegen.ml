@@ -162,16 +162,17 @@ end = struct
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
     | Munop (_, e) -> gen_unop param e |> fin
     | Mvar (id, kind, _) -> gen_var param typed_expr.typ id kind |> fin
-    | Mfunction (name, closed, _, cont, allocref, upward) -> (
+    | Mfunction (name, kind, _, cont, allocref, upward) -> (
         (* The functions are already generated *)
         match Vars.find_opt name param.vars with
         | Some func ->
             let func =
-              match closed with
-              | [] when is_prealloc allocref ->
+              match kind with
+              | Closure assoc ->
+                  gen_closure_obj param assoc func name allocref !upward
+              | Simple when is_prealloc allocref ->
                   gen_closure_obj param [] func name allocref false
-              | [] -> func
-              | assoc -> gen_closure_obj param assoc func name allocref !upward
+              | Simple -> func
             in
             gen_expr { param with vars = Vars.add name func param.vars } cont
         | None ->
@@ -181,15 +182,16 @@ end = struct
             gen_expr param cont)
     | Mlet (id, rhs, proj, gn, ms, cont) -> gen_let param id rhs proj gn ms cont
     | Mbind (id, equals, cont) -> gen_bind param id equals cont
-    | Mlambda (name, closed, _, allocref, upward) ->
+    | Mlambda (name, kind, _, allocref, upward) ->
         let func =
           match Vars.find_opt name param.vars with
           | Some func -> (
-              match closed with
-              | [] when is_prealloc allocref ->
+              match kind with
+              | Closure assoc ->
+                  gen_closure_obj param assoc func name allocref !upward
+              | Simple when is_prealloc allocref ->
                   gen_closure_obj param [] func name allocref false
-              | [] -> func
-              | assoc -> gen_closure_obj param assoc func name allocref !upward)
+              | Simple -> func)
           | None ->
               (* The function is polymorphic and monomorphized versions are generated. *)
               (* We just return some bogus value, it will never be applied anyway
@@ -1538,7 +1540,7 @@ let add_global_init funcs outname start_loc triple kind body =
   in
   let p =
     let upward = ref false in
-    let func = Monomorph_tree.{ params = []; ret = Tunit; closed = [] } in
+    let func = Monomorph_tree.{ params = []; ret = Tunit; kind = Simple } in
     Core.gen_function funcs
       {
         name = { Monomorph_tree.user = fname; call = fname };
@@ -1628,7 +1630,9 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
     let vars =
       List.fold_left
         (fun acc (func : Monomorph_tree.to_gen_func) ->
-          let typ = Monomorph_tree.typ_of_abs func.abs in
+          let typ =
+            Tfun (func.abs.func.params, func.abs.func.ret, func.abs.func.kind)
+          in
           let fnc = H.declare_function ~c_linkage:false func.name.call typ in
 
           (* Add to the normal variable environment *)
@@ -1672,7 +1676,7 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
                     { pt = Traw_ptr Tu8; pmut = false; pmoved = false };
                   ];
                 ret = Tint;
-                closed = [];
+                kind = Simple;
               };
             pnames = Mod_id.[ ("__argc", whatever); ("__argv", whatever) ];
             body;

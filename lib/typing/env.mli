@@ -24,8 +24,6 @@ and touched = {
   tattr_loc : Ast.loc option;
   tmname : Path.t option;
   tusage : mode; (* Set by borrowing pass. [Many] before *)
-  tcopy : bool;
-  tcaptured : bool;
 }
 
 type callname = string * Path.t option * int option
