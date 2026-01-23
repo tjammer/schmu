@@ -14,8 +14,8 @@ module type S = sig
     | Mlet of
         string * monod_tree * let_kind * global_name * malloc_list * monod_tree
     | Mbind of string * monod_tree * monod_tree
-    | Mlambda of string * fun_kind * typ * alloca * bool ref
-    | Mfunction of string * fun_kind * typ * monod_tree * alloca * bool ref
+    | Mlambda of string * closed list * typ * alloca * bool ref
+    | Mfunction of string * closed list * typ * monod_tree * alloca * bool ref
     | Mapp of {
         callee : monod_expr;
         args : (monod_expr * bool) list;
@@ -47,7 +47,7 @@ module type S = sig
     | Unit
   (* The int is the malloc id used for freeing later *)
 
-  and func = { params : param list; ret : typ; kind : fun_kind }
+  and func = { params : param list; ret : typ; closed : closed list }
 
   and abstraction = {
     func : func;

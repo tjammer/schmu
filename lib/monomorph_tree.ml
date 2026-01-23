@@ -13,8 +13,8 @@ module Mtree = struct
     | Mlet of
         string * monod_tree * let_kind * global_name * malloc_list * monod_tree
     | Mbind of string * monod_tree * monod_tree
-    | Mlambda of string * fun_kind * typ * alloca * bool ref
-    | Mfunction of string * fun_kind * typ * monod_tree * alloca * bool ref
+    | Mlambda of string * closed list * typ * alloca * bool ref
+    | Mfunction of string * closed list * typ * monod_tree * alloca * bool ref
     | Mapp of {
         callee : monod_expr;
         args : (monod_expr * bool) list;
@@ -45,7 +45,7 @@ module Mtree = struct
     | Fixed_array of monod_tree list * alloca * Mod_id.t list
     | Unit
 
-  and func = { params : param list; ret : typ; kind : fun_kind }
+  and func = { params : param list; ret : typ; closed : closed list }
 
   and abstraction = {
     func : func;
@@ -1064,6 +1064,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
 
   (* Add moved closed variables *)
   let kind = cln_kind recp abs.func.touched abs.func.kind in
+  let closed = match kind with Simple -> [] | Closure c -> c in
 
   if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
     let fn = Polymorphic (call, upward) in
@@ -1074,7 +1075,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
       p
     in
     Hashtbl.add deferredfunc_tbl call fn;
-    ({ p with vars }, (call, kind, ftyp, alloca, upward)))
+    ({ p with vars }, (call, closed, ftyp, alloca, upward)))
   else
     let inline = abs.inline in
 
@@ -1082,7 +1083,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
       {
         params = List.map (cln_param recp) abs.func.tparams;
         ret = cln recp abs.func.ret;
-        kind;
+        closed;
       }
     in
     let pnames =
@@ -1183,7 +1184,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
         let funcs = Fset.add gen_func p.funcs in
         { p with vars; funcs }
     in
-    (p, (call, func.kind, ftyp, alloca, upward))
+    (p, (call, func.closed, ftyp, alloca, upward))
 
 and morph_lambda mk typ p func_loc id abs =
   (* TODO fix lambdas for nested modules *)
@@ -1217,6 +1218,7 @@ and morph_lambda mk typ p func_loc id abs =
   (* Create temp env with correct recursion stack. We need this to for inner
      recursive closure calls. *)
   let kind = cln_kind recp abs.func.touched abs.func.kind in
+  let closed = match kind with Simple -> [] | Closure c -> c in
 
   if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
     let fn = Polymorphic (name, upward) in
@@ -1228,7 +1230,7 @@ and morph_lambda mk typ p func_loc id abs =
     in
     Hashtbl.add deferredfunc_tbl name genfn;
     ( { p with vars; ret },
-      mk (Mlambda (name, kind, ftyp, alloca, upward)) ret,
+      mk (Mlambda (name, closed, ftyp, alloca, upward)) ret,
       { no_var with fn; alloc = Value alloca } ))
   else
     let recursive = Rnone in
@@ -1236,7 +1238,7 @@ and morph_lambda mk typ p func_loc id abs =
       {
         params = List.map (cln_param recp) abs.func.tparams;
         ret = cln recp abs.func.ret;
-        kind;
+        closed;
       }
     in
     let pnames =
@@ -1311,7 +1313,7 @@ and morph_lambda mk typ p func_loc id abs =
     Apptbl.add apptbl name p;
 
     ( { p with ret },
-      mk (Mlambda (name, func.kind, ftyp, alloca, upward)) ret,
+      mk (Mlambda (name, func.closed, ftyp, alloca, upward)) ret,
       { no_var with fn; alloc = Value alloca } )
 
 and morph_app mk p callee args ret_typ =

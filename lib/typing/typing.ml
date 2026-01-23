@@ -313,6 +313,27 @@ let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
       closed_vars attr
   in
 
+  (* Copied from function below *)
+  let touched =
+    List.fold_left
+      (fun touched thing ->
+        match thing with
+        | Ast.Fa_single (loc, attr) ->
+            raise (Error (loc, "Unknown attribute: " ^ attr))
+        | Fa_param ((_, "copy"), lst) ->
+            List.fold_left
+              (fun touched (loc, id) ->
+                match add_touched_copy touched id with
+                | Some c -> c
+                | None ->
+                    let msg = "Value " ^ id ^ " is not captured, cannot copy" in
+                    raise (Error (loc, msg)))
+              touched lst
+        | Fa_param ((loc, attr), _) ->
+            raise (Error (loc, "Unknown attribute: " ^ attr)))
+      touched attr
+  in
+
   let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
   check_unused unused unmutated;
 
@@ -985,10 +1006,10 @@ end = struct
         body
     in
 
-    let inline, closed_vars =
+    let inline, closed_vars, touched =
       List.fold_left
-        (fun (inl, clsd) -> function
-          | Ast.Fa_single (_, "inline") -> (true, clsd)
+        (fun (inl, clsd, touched) -> function
+          | Ast.Fa_single (_, "inline") -> (true, clsd, touched)
           | Fa_single (loc, attr) ->
               raise (Error (loc, "Unknown attribute: " ^ attr))
           | Fa_param ((_, "copy"), lst) ->
@@ -1002,10 +1023,21 @@ end = struct
                           "Value " ^ id ^ " is not captured, cannot copy"
                         in
                         raise (Error (loc, msg)))
-                  clsd lst )
+                  clsd lst,
+                List.fold_left
+                  (fun touched (loc, id) ->
+                    match add_touched_copy touched id with
+                    | Some c -> c
+                    | None ->
+                        let msg =
+                          "Value " ^ id ^ " is not captured, cannot copy"
+                        in
+                        raise (Error (loc, msg)))
+                  touched lst )
           | Fa_param ((loc, attr), _) ->
               raise (Error (loc, "Unknown attribute: " ^ attr)))
-        (false, closed_vars) attr
+        (false, closed_vars, touched)
+        attr
     in
 
     let kind = match closed_vars with [] -> Simple | lst -> Closure lst in

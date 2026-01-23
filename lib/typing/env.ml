@@ -93,6 +93,8 @@ and touched = {
   tattr_loc : Ast.loc option;
   tmname : Path.t option;
   tusage : mode;
+  tcopy : bool;
+  tcaptured : bool;
 }
 
 type usage_list = (key * usage) list ref
@@ -486,10 +488,12 @@ let close_thing is_same modpath env =
                      {
                        tname = clname;
                        ttyp = typ;
-                       tattr = Dnorm;
+                       tattr = (if clmut then Dmut else Dnorm);
                        tattr_loc = None;
                        tmname = mname;
                        tusage = Many;
+                       tcopy = false (* Will be changed in typing *);
+                       tcaptured = Option.is_some cl;
                      }
                    in
                    match cleantyp with
