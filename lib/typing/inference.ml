@@ -132,7 +132,7 @@ let rec generalize = function
   | Tvar { contents = Link t } -> generalize t
   | Tfun (t1, t2, k) ->
       let gen p = { p with pt = generalize p.pt } in
-      Tfun (List.map gen t1, generalize t2, generalize_closure k)
+      Tfun (List.map gen t1, generalize t2, k)
   | Ttuple ts -> Ttuple (List.map generalize ts)
   | Tconstr (p, ps, ca) -> Tconstr (p, List.map generalize ps, ca)
   | Tfixed_array ({ contents = Unknown (id, li) }, t) when li > !current_level
@@ -142,11 +142,6 @@ let rec generalize = function
       generalize (Tfixed_array (l, t))
   | Tfixed_array (i, t) -> Tfixed_array (i, generalize t)
   | t -> t
-
-and generalize_closure = function
-  | Simple -> Simple
-  | Closure cls ->
-      Closure (List.map (fun c -> { c with cltyp = generalize c.cltyp }) cls)
 
 let rec inst_impl subst = function
   | Qvar id -> (
@@ -171,19 +166,6 @@ let rec inst_impl subst = function
           subst params_t
       in
       let subst, t = inst_impl subst t in
-      let subst, k =
-        match k with
-        | Simple -> (subst, k)
-        | Closure cls ->
-            let subst, cls =
-              List.fold_left_map
-                (fun s c ->
-                  let subst, cltyp = inst_impl s c.cltyp in
-                  (subst, { c with cltyp }))
-                subst cls
-            in
-            (subst, Closure cls)
-      in
       (subst, Tfun (params_t, t, k))
   | Tfixed_array ({ contents = Generalized id }, t) -> (
       let subst, t = inst_impl subst t in
@@ -363,17 +345,6 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
     | l, _ ->
         (* If we don't enconter a Qvar, don't transfer *)
         (l, ops)
-  and subst_closure = function
-    | Simple -> Simple
-    | Closure cls ->
-        let cls =
-          List.map
-            (fun cl ->
-              let cltyp = subst cl.cltyp in
-              { cl with cltyp })
-            cls
-        in
-        Closure cls
   and subst = function
     (* Substitute generic var [id] with [typ] *)
     | Tvar { contents = Link t } -> subst t
@@ -388,7 +359,6 @@ let types_match ?(abstracts_map = Pmap.empty) l r =
             ps
         in
         let ret = subst ret in
-        let kind = subst_closure kind in
         Tfun (ps, ret, kind)
     | Ttuple ts -> Ttuple (List.map subst ts)
     | Tconstr (name, ps, ca) ->

@@ -90,12 +90,15 @@ and touched = Env.touched = {
   tattr_loc : loc option;
   tmname : Path.t option;
   tusage : mode;
+  tcopy : bool;
+  tcaptured : bool;
+  tparam : bool;
 }
 
 and func = {
   tparams : param list;
   ret : typ;
-  kind : fun_kind;
+  remove_from_closure : bool;
   touched : touched list;
       (* Like closed variables but also includes globals, consts *)
 }
@@ -144,3 +147,21 @@ let rec follow_expr = function
   | Mutual_rec_decls (_, cont)
   | Sequence (_, cont) ->
       follow_expr cont.expr
+
+let add_touched_copy (touched : touched list) id =
+  let changed, touched =
+    List.fold_left_map
+      (fun changed t ->
+        if String.equal t.tname id then (true, { t with tcopy = true })
+        else (changed, t))
+      false touched
+  in
+  if changed then Some touched else None
+
+let kind_of_touched touched =
+  let captured =
+    List.fold_left
+      (fun cap (touched : touched) -> cap || touched.tcaptured)
+      false touched
+  in
+  if captured then Closure else Simple

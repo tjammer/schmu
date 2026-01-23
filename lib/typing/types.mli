@@ -14,7 +14,7 @@ type typ =
   | Tfixed_array of iv ref * typ
 [@@deriving show { with_path = false }, sexp]
 
-and fun_kind = Simple | Closure of closed list
+and fun_kind = Simple | Closure
 and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : Ast.decl_attr; pmode : inferred_mode ref }
 and field = { fname : string; ftyp : typ; mut : bool }
@@ -25,15 +25,6 @@ and iv =
   | Known of int
   | Generalized of string
   | Linked of iv ref
-
-and closed = {
-  clname : string;
-  clmut : bool;
-  cltyp : typ;
-  clparam : bool;
-  clmname : Path.t option;
-  clcopy : bool; (* otherwise move *)
-}
 
 and mode = Many | Once
 
@@ -93,7 +84,6 @@ val is_unit : typ -> bool
 val is_weak : sub:Sset.t -> typ -> bool
 val is_poly_orphan : sub:Sset.t -> typ -> bool
 val mut_of_pattr : Ast.decl_attr -> bool
-val add_closure_copy : closed list -> string -> closed list option
 val is_clike_variant : ctor array -> bool
 val is_unbound : typ -> (string * int) option
 val subst_generic : id:string -> typ -> typ -> typ

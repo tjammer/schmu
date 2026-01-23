@@ -93,6 +93,9 @@ and touched = {
   tattr_loc : Ast.loc option;
   tmname : Path.t option;
   tusage : mode;
+  tcopy : bool;
+  tcaptured : bool;
+  tparam : bool;
 }
 
 type usage_list = (key * usage) list ref
@@ -449,10 +452,10 @@ let sort_unused unused =
 
 let close_thing is_same modpath env =
   (* Close scopes up to next function scope *)
-  let rec aux old_closed old_touched unused = function
+  let rec aux old_touched unused = function
     | [] -> failwith "Internal Error: Env empty"
     | scope :: tl -> (
-        let closed_touched =
+        let touched =
           !(scope.closed) |> Closed_set.to_seq |> List.of_seq
           |> List.map
                (fun
@@ -465,20 +468,13 @@ let close_thing is_same modpath env =
                  (* Const values (and imported ones) are not closed over, they exist module-wide *)
                  let is_imported = is_imported env.modpath mname in
                  let cleantyp = repr typ in
-                 let cl =
-                   if (const && not clmut) || global || is_imported then None
+                 let tcaptured =
+                   if (const && not clmut) || global || is_imported then false
                    else
-                     let cltyp = typ
-                     and clparam = param
-                     and clmname = mname
-                     and clcopy = false in
-                     (* clcopy will be changed in typing *)
                      match cleantyp with
-                     | Tfun (_, _, Closure _) ->
-                         Some { clname; cltyp; clmut; clparam; clmname; clcopy }
-                     | Tfun _ when not param -> None
-                     | _ ->
-                         Some { clname; cltyp; clmut; clparam; clmname; clcopy }
+                     | Tfun (_, _, Closure) -> true
+                     | Tfun _ when not param -> false
+                     | _ -> true
                  in
 
                  let t =
@@ -486,22 +482,23 @@ let close_thing is_same modpath env =
                      {
                        tname = clname;
                        ttyp = typ;
-                       tattr = Dnorm;
+                       tattr = (if clmut then Dmut else Dnorm);
                        tattr_loc = None;
                        tmname = mname;
                        tusage = Many;
+                       tcopy = false (* Will be changed in typing *);
+                       tcaptured;
+                       tparam = param;
                      }
                    in
                    match cleantyp with
-                   | Tfun (_, _, Closure _) -> Some t
+                   | Tfun (_, _, Closure) -> Some t
                    | Tfun _ when not param -> None
                    | _ -> Some t
                  in
 
-                 (cl, t))
+                 t)
         in
-        let closed, touched = List.split closed_touched in
-        let closed = List.filter_map Fun.id closed in
         let touched = List.filter_map Fun.id touched in
 
         match scope.kind with
@@ -509,22 +506,21 @@ let close_thing is_same modpath env =
             let unused = find_unused unused !usage in
             let unused = find_unused_ctors unused scope.ctors in
             ( { env with values = tl; modpath },
-              closed @ old_closed,
               touched @ old_touched,
               sort_unused unused )
         | Stoplevel _ | Sfunc _ ->
             failwith "Internal Error: Unexpected scope type"
         | Scont _ ->
             (* The same usage list will be processed later at toplevel / func *)
-            aux (closed @ old_closed) (touched @ old_touched) unused tl
+            aux (touched @ old_touched) unused tl
         | Smodule { name; loc; used } ->
             let unused =
               if !used || is_module_used scope.modules then unused
               else (Path.show name, Unused_mod, loc) :: unused
             in
-            aux (closed @ old_closed) (touched @ old_touched) unused tl)
+            aux (touched @ old_touched) unused tl)
   in
-  aux [] [] [] env.values
+  aux [] [] env.values
 
 let close_function env =
   close_thing

@@ -20,7 +20,7 @@ type typ =
   | Trc of rc_kind * typ
 [@@deriving show { with_path = false }]
 
-and fun_kind = Simple | Closure of closed list
+and fun_kind = Simple | Closure
 and param = { pt : typ; pmut : bool; pmoved : bool }
 and field = { ftyp : typ; mut : bool }
 and ctor = { cname : string; ctyp : typ option; index : int }
@@ -48,8 +48,9 @@ let is_type_polymorphic typ =
         let acc =
           match kind with
           | Simple -> acc
-          | Closure cls ->
-              List.fold_left (fun acc cl -> inner acc cl.cltyp) acc cls
+          | Closure ->
+              (* We might close over polymorphic types. Don't know *)
+              true
         in
         inner acc ret
     | Tbool | Tunit | Tint | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Ti8 | Ti16

@@ -8,9 +8,9 @@ module type S = sig
   val add_closure :
     llvar Vars.t ->
     llvar ->
+    closed list ->
     (Mod_id.t, llvar) Hashtbl.t ->
     bool ->
-    fun_kind ->
     llvar Vars.t
 
   val add_params :
@@ -348,7 +348,7 @@ struct
 
   let no_prealloc = Monomorph_tree.(ref (Request { id = -1; lvl = -1 }))
 
-  let rec gen_closure_obj param assoc func name allocref upward =
+  let gen_closure_obj param assoc func name allocref upward =
     let clsr_struct = get_prealloc !allocref param closure_t name in
 
     (* Add function ptr *)
@@ -366,9 +366,10 @@ struct
             | Some v -> (
                 (* Copied from gen_var. Not all closures might be created yet *)
                 match (v.kind, v.typ) with
-                | Imm, Tfun (_, _, Closure assoc) ->
-                    gen_closure_obj param assoc v "monoclstmp" no_prealloc
-                      upward
+                | Imm, Tfun (_, _, Closure) ->
+                    failwith "this case. Don't know the closure env"
+                    (* gen_closure_obj param assoc v "monoclstmp" no_prealloc *)
+                    (*   upward *)
                 | _ -> v)
             | None ->
                 Llvm.dump_module the_module;
@@ -444,13 +445,14 @@ struct
        when passed *)
     { value = clsr_struct; typ = func.typ; lltyp = func.lltyp; kind = Ptr }
 
-  let add_closure vars func free_tbl upward = function
-    | Simple -> vars
-    | Closure assoc when is_only_units assoc ->
+  let add_closure vars func closed free_tbl upward =
+    match closed with
+    | [] -> vars
+    | assoc when is_only_units assoc ->
         List.fold_left
           (fun vars cl -> Vars.add cl.clname dummy_fn_value vars)
           vars assoc
-    | Closure assoc ->
+    | assoc ->
         let closure_index = (Llvm.params func.value |> Array.length) - 1 in
         let clsr_param = (Llvm.params func.value).(closure_index) in
         let clsr_type = lltypeof_closure assoc upward in
@@ -554,7 +556,7 @@ struct
            potential recursive calls. *)
         let f =
           match f.typ with
-          | Tfun (_, _, Closure _) ->
+          | Tfun (_, _, Closure) ->
               let clsr_struct = alloca param closure_t "reccls" in
               let fun_ptr =
                 Llvm.build_struct_gep closure_t clsr_struct 0 "funptr" builder
@@ -652,7 +654,7 @@ struct
         (* If a function is passed into [func] we convert it to a closure
            and pass nullptr to env*)
         gen_closure_obj param [] llvar "clstmp" no_prealloc false
-    | Closure _ ->
+    | Closure ->
         (* This closure is a struct and has an env *)
         llvar
 
@@ -663,12 +665,13 @@ struct
 
   (* Get monomorphized function *)
   let get_mono_func func param = function
-    | Monomorph_tree.Mono (name, upward) -> (
+    | Monomorph_tree.Mono (name, _upward) -> (
         let func = Vars.find name param.vars in
         (* Monomorphized functions are not yet converted to closures *)
         match (func.kind, func.typ) with
-        | Imm, Tfun (_, _, Closure assoc) ->
-            gen_closure_obj param assoc func "monoclstmp" no_prealloc !upward
+        | Imm, Tfun (_, _, Closure) ->
+            failwith "monoclstmp again"
+            (* gen_closure_obj param assoc func "monoclstmp" no_prealloc !upward *)
         | _ -> func)
     | Concrete name -> Vars.find name param.vars
     | Recursive name -> Vars.find name.call param.vars

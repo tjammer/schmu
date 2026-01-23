@@ -22,7 +22,7 @@ type typ =
   | Tfixed_array of iv ref * typ
 [@@deriving show { with_path = false }, sexp]
 
-and fun_kind = Simple | Closure of closed list
+and fun_kind = Simple | Closure
 and tv = Unbound of string * int | Link of typ
 and param = { pt : typ; pattr : dattr; pmode : inferred_mode ref }
 and field = { fname : string; ftyp : typ; mut : bool }
@@ -33,15 +33,6 @@ and iv =
   | Known of int
   | Generalized of string
   | Linked of iv ref
-
-and closed = {
-  clname : string;
-  clmut : bool;
-  cltyp : typ;
-  clparam : bool;
-  clmname : Path.t option;
-  clcopy : bool; (* otherwise move *)
-}
 
 and dattr = Ast.decl_attr = Dmut | Dmove | Dnorm | Dset
 and mode = Many | Once
@@ -300,16 +291,6 @@ let rec map_lazy ~inst sub typ =
 
 let mut_of_pattr = function Dmut | Dset -> true | Dnorm | Dmove -> false
 
-let add_closure_copy clsd id =
-  let changed, clsd =
-    List.fold_left_map
-      (fun changed c ->
-        if String.equal c.clname id then (true, { c with clcopy = true })
-        else (changed, c))
-      false clsd
-  in
-  if changed then Some clsd else None
-
 let is_clike_variant ctors =
   Array.fold_left
     (fun clike ctor -> if Option.is_some ctor.ctyp then false else clike)
@@ -378,12 +359,6 @@ let resolve_alias find_decl typ =
     | Tfun (ps, ret, kind) ->
         let ps = List.map (fun p -> { p with pt = aux p.pt }) ps in
         let ret = aux ret in
-        let kind =
-          match kind with
-          | Simple -> kind
-          | Closure cls ->
-              Closure (List.map (fun c -> { c with cltyp = aux c.cltyp }) cls)
-        in
         Tfun (ps, ret, kind)
     | Tconstr (name, ps, alloc) -> (
         match find_decl name with

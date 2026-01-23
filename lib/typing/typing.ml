@@ -129,7 +129,7 @@ let check_mode_noinfer mode =
         (Error (fst m, "Unknown mode, expecting 'once', not '" ^ snd m ^ "'"))
 
 let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
-  let fn_kind = if param then Closure [] else Simple in
+  let fn_kind = if param then Closure else Simple in
 
   let find env loc t tick =
     match Env.find_type_opt loc t env with
@@ -277,7 +277,7 @@ let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
   let body = List.fold_left fold_decl body param_exprs in
 
   leave_level ();
-  let _, closed_vars, touched, unused = Env.close_function env in
+  let _, touched, unused = Env.close_function env in
 
   let unmutated, body, touched =
     let params =
@@ -293,27 +293,30 @@ let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
   in
 
   (* Copied from function below *)
-  let closed_vars =
+  let touched =
     List.fold_left
-      (fun clsd thing ->
+      (fun touched thing ->
         match thing with
         | Ast.Fa_single (loc, attr) ->
             raise (Error (loc, "Unknown attribute: " ^ attr))
         | Fa_param ((_, "copy"), lst) ->
             List.fold_left
-              (fun clsd (loc, id) ->
-                match add_closure_copy clsd id with
+              (fun touched (loc, id) ->
+                match add_touched_copy touched id with
                 | Some c -> c
                 | None ->
                     let msg = "Value " ^ id ^ " is not captured, cannot copy" in
                     raise (Error (loc, msg)))
-              clsd lst
+              touched lst
         | Fa_param ((loc, attr), _) ->
             raise (Error (loc, "Unknown attribute: " ^ attr)))
-      closed_vars attr
+      touched attr
   in
 
-  let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
+  let kind = kind_of_touched touched in
+  let remove_from_closure =
+    match kind with Simple -> true | Closure -> false
+  in
   check_unused unused unmutated;
 
   let typ = Tfun (params_t, body.typ, kind) in
@@ -329,7 +332,7 @@ let post_lambda env loc body param_exprs params_t nparams params attr ret_annot
             check_annot env loc typ qtyp
       in
 
-      let func = { tparams; ret; kind; touched } in
+      let func = { tparams; ret; touched; remove_from_closure } in
       let inline = false and is_rec = false in
       let abs =
         { nparams; body = { body with typ = ret }; func; inline; is_rec }
@@ -942,7 +945,7 @@ end = struct
         in
         (* Create an empty closure. This causes inner functions to close over
            recursive calls correctly *)
-        let typ = Tfun (ps, newvar (), Closure []) in
+        let typ = Tfun (ps, newvar (), Closure) in
         ( Env.(
             add_value name { (def_value env) with typ } nameloc env
             |> add_callname ~key:name (name, Some (modpath env), unique)),
@@ -963,15 +966,15 @@ end = struct
     let body = List.fold_left fold_decl body param_exprs in
     leave_level ();
 
-    let env, closed_vars, touched, unused = Env.close_function env in
+    let env, touched, unused = Env.close_function env in
 
-    (* Remove self from closed vars *)
-    let closed_vars =
+    (* Remove self from touched *)
+    let touched =
       if is_rec then
         List.filter
-          (fun c -> if String.equal c.clname name then false else true)
-          closed_vars
-      else closed_vars
+          (fun t -> if String.equal t.tname name then false else true)
+          touched
+      else touched
     in
 
     let unmutated, body, touched =
@@ -985,30 +988,33 @@ end = struct
         body
     in
 
-    let inline, closed_vars =
+    let inline, touched =
       List.fold_left
-        (fun (inl, clsd) -> function
-          | Ast.Fa_single (_, "inline") -> (true, clsd)
+        (fun (inl, touched) -> function
+          | Ast.Fa_single (_, "inline") -> (true, touched)
           | Fa_single (loc, attr) ->
               raise (Error (loc, "Unknown attribute: " ^ attr))
           | Fa_param ((_, "copy"), lst) ->
               ( inl,
                 List.fold_left
-                  (fun clsd (loc, id) ->
-                    match add_closure_copy clsd id with
+                  (fun touched (loc, id) ->
+                    match add_touched_copy touched id with
                     | Some c -> c
                     | None ->
                         let msg =
                           "Value " ^ id ^ " is not captured, cannot copy"
                         in
                         raise (Error (loc, msg)))
-                  clsd lst )
+                  touched lst )
           | Fa_param ((loc, attr), _) ->
               raise (Error (loc, "Unknown attribute: " ^ attr)))
-        (false, closed_vars) attr
+        (false, touched) attr
     in
 
-    let kind = match closed_vars with [] -> Simple | lst -> Closure lst in
+    let kind = kind_of_touched touched in
+    let remove_from_closure =
+      match kind with Simple -> true | Closure -> false
+    in
     check_unused unused unmutated;
 
     let typ = Tfun (params_t, body.typ, kind) in
@@ -1048,7 +1054,7 @@ end = struct
             check_annot env loc typ qtyp)
         |> ignore;
 
-        let func = { tparams; ret; kind; touched } in
+        let func = { tparams; ret; touched; remove_from_closure } in
         let lambda =
           { nparams; body = { body with typ = ret }; func; inline; is_rec }
         in
@@ -1870,7 +1876,7 @@ let let_fn_alias env loc expr =
       | Some (Lambda (uniq, _)) ->
           Callname ((Module.lambda_name ~mname uniq, None, None), false)
       | _ -> Not)
-  | Tfun (_, _, Closure _) -> (
+  | Tfun (_, _, Closure) -> (
       (* Maybe alias could also be used here. Check with other special case *)
       (* If the closure is from a different module, we can use it directly *)
       match follow_expr expr.expr with
@@ -1902,7 +1908,7 @@ let rec convert_module env loc mname prog check_ret =
   (* Catch weak type variables *)
   List.iter (catch_weak_vars prog.env) prog.items;
 
-  let _, _, touched, unused = Env.close_toplevel prog.env in
+  let _, touched, unused = Env.close_toplevel prog.env in
   let unmutated, items = Borrows.check_items ~mname loc ~touched prog.items in
 
   let has_sign = match m.s with [] -> false | _ -> true in
@@ -2287,9 +2293,9 @@ and convert_prog env items modul =
               let env = Env.change_type n typ env in
               let func =
                 match typ with
-                | Tfun (tparams, ret, kind) ->
+                | Tfun (tparams, ret, _) ->
                     (* Use the generalized types for the abstraction *)
-                    { abs.func with tparams; ret; kind }
+                    { abs.func with tparams; ret }
                 | _ -> failwith "Internal Error: Is this not a function?"
               in
               let abs = { abs with func } in

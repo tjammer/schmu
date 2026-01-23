@@ -71,10 +71,12 @@ let callname call =
     call
 
 let is_polymorphic_func (f : Typed_tree.func) =
-  is_polymorphic (Tfun (f.tparams, f.ret, f.kind))
+  let kind = match f.touched with [] -> Simple | _ -> Closure in
+  is_polymorphic (Tfun (f.tparams, f.ret, kind))
 
 let type_of_func (func : Typed_tree.func) =
-  Tfun (func.tparams, func.ret, func.kind)
+  let kind = match func.touched with [] -> Simple | _ -> Closure in
+  Tfun (func.tparams, func.ret, kind)
 
 let make_fun loc ~mname name uniq (abs : Typed_tree.abstraction) =
   if is_polymorphic_func abs.func then Mpoly_fun (loc, abs, name, uniq)

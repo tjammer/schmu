@@ -98,7 +98,7 @@ module Make (A : Abi_intf.S) = struct
     let suffix =
       (* A closure needs an extra parameter for the environment  *)
       if decl then
-        match kind with Closure _ -> Seq.return ptr_t | _ -> Seq.empty
+        match kind with Closure -> Seq.return ptr_t | _ -> Seq.empty
       else Seq.return ptr_t
     in
 

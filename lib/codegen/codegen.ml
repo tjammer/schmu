@@ -30,7 +30,7 @@ end = struct
     let typ = Monomorph_tree.typ_of_abs abs in
 
     match typ with
-    | Tfun (tparams, ret_t, kind) as typ ->
+    | Tfun (tparams, ret_t, _) as typ ->
         let func = declare_function ~c_linkage:false name.call typ in
 
         (if monomorphized then
@@ -76,7 +76,9 @@ end = struct
 
         (* Add params from closure *)
         (* We generate both the code for extracting the closure and add the vars to the environment *)
-        let tvars = add_closure vars.vars func free_tbl !upward kind in
+        let tvars =
+          add_closure vars.vars func abs.func.closed free_tbl !upward
+        in
 
         (* Add parameters to env *)
         let tvars, rec_block =
@@ -162,17 +164,16 @@ end = struct
     | Mbop (bop, e1, e2) -> gen_bop param e1 e2 bop |> fin
     | Munop (_, e) -> gen_unop param e |> fin
     | Mvar (id, kind, _) -> gen_var param typed_expr.typ id kind |> fin
-    | Mfunction (name, kind, _, cont, allocref, upward) -> (
+    | Mfunction (name, closed, _, cont, allocref, upward) -> (
         (* The functions are already generated *)
         match Vars.find_opt name param.vars with
         | Some func ->
             let func =
-              match kind with
-              | Closure assoc ->
-                  gen_closure_obj param assoc func name allocref !upward
-              | Simple when is_prealloc allocref ->
+              match closed with
+              | [] when is_prealloc allocref ->
                   gen_closure_obj param [] func name allocref false
-              | Simple -> func
+              | [] -> func
+              | assoc -> gen_closure_obj param assoc func name allocref !upward
             in
             gen_expr { param with vars = Vars.add name func param.vars } cont
         | None ->
@@ -182,16 +183,15 @@ end = struct
             gen_expr param cont)
     | Mlet (id, rhs, proj, gn, ms, cont) -> gen_let param id rhs proj gn ms cont
     | Mbind (id, equals, cont) -> gen_bind param id equals cont
-    | Mlambda (name, kind, _, allocref, upward) ->
+    | Mlambda (name, closed, _, allocref, upward) ->
         let func =
           match Vars.find_opt name param.vars with
           | Some func -> (
-              match kind with
-              | Closure assoc ->
-                  gen_closure_obj param assoc func name allocref !upward
-              | Simple when is_prealloc allocref ->
+              match closed with
+              | [] when is_prealloc allocref ->
                   gen_closure_obj param [] func name allocref false
-              | Simple -> func)
+              | [] -> func
+              | assoc -> gen_closure_obj param assoc func name allocref !upward)
           | None ->
               (* The function is polymorphic and monomorphized versions are generated. *)
               (* We just return some bogus value, it will never be applied anyway
@@ -318,7 +318,7 @@ end = struct
                 failwith ("Internal Error: Could not find " ^ id ^ " in codegen")
             ))
     | Vconst | Vglobal _ -> Strtbl.find const_tbl id
-    | Vmono upward -> (
+    | Vmono _upward -> (
         let func =
           match Vars.find_opt id param.vars with
           | Some v -> v
@@ -328,8 +328,9 @@ end = struct
                 ("Internal Error: Could not find mono " ^ id ^ " in codegen")
         in
         match (func.kind, func.typ) with
-        | Imm, Tfun (_, _, Closure assoc) ->
-            gen_closure_obj param assoc func "monoclstmp" no_prealloc upward
+        | Imm, Tfun (_, _, Closure) ->
+            failwith "monoclstmp again, again"
+            (* gen_closure_obj param assoc func "monoclstmp" no_prealloc upward *)
         | _ -> func)
     | Vrecursive call -> Vars.find call param.vars
 
@@ -497,7 +498,7 @@ end = struct
       | _ -> (
           match kind with
           | Simple -> (func.value, func.lltyp, Seq.empty)
-          | Closure _ ->
+          | Closure ->
               (* We are in a recursive closure function. Get the closure env
                  and add it to the arguments we pass *)
               let closure_index =
@@ -715,7 +716,7 @@ end = struct
               | _ -> (
                   match kind with
                   | Simple -> fn.value
-                  | Closure _ ->
+                  | Closure ->
                       failwith
                         "Internal Error: Recursive function case, see [gen_app]"
                   )
@@ -744,7 +745,7 @@ end = struct
               | _ -> (
                   match kind with
                   | Simple -> Llvm.const_null ptr_t
-                  | Closure _ ->
+                  | Closure ->
                       failwith
                         "Internal Error: Recursive function case, see [gen_app]"
                   )
@@ -1540,7 +1541,7 @@ let add_global_init funcs outname start_loc triple kind body =
   in
   let p =
     let upward = ref false in
-    let func = Monomorph_tree.{ params = []; ret = Tunit; kind = Simple } in
+    let func = Monomorph_tree.{ params = []; ret = Tunit; closed = [] } in
     Core.gen_function funcs
       {
         name = { Monomorph_tree.user = fname; call = fname };
@@ -1630,9 +1631,7 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
     let vars =
       List.fold_left
         (fun acc (func : Monomorph_tree.to_gen_func) ->
-          let typ =
-            Tfun (func.abs.func.params, func.abs.func.ret, func.abs.func.kind)
-          in
+          let typ = Monomorph_tree.typ_of_abs func.abs in
           let fnc = H.declare_function ~c_linkage:false func.name.call typ in
 
           (* Add to the normal variable environment *)
@@ -1676,7 +1675,7 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
                     { pt = Traw_ptr Tu8; pmut = false; pmoved = false };
                   ];
                 ret = Tint;
-                kind = Simple;
+                closed = [];
               };
             pnames = Mod_id.[ ("__argc", whatever); ("__argv", whatever) ];
             body;

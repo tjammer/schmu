@@ -24,6 +24,9 @@ and touched = {
   tattr_loc : Ast.loc option;
   tmname : Path.t option;
   tusage : mode; (* Set by borrowing pass. [Many] before *)
+  tcopy : bool;
+  tcaptured : bool;
+  tparam : bool;
 }
 
 type callname = string * Path.t option * int option
@@ -75,9 +78,9 @@ val add_module_alias : Ast.loc -> key:string -> mname:Path.t -> t -> t
 val add_module_type : string -> Module_type.t -> t -> t
 val open_function : t -> t
 val open_toplevel : Path.t -> t -> t
-val close_function : t -> t * closed list * touched list * unused
+val close_function : t -> t * touched list * unused
 
-val close_toplevel : t -> t * closed list * touched list * unused
+val close_toplevel : t -> t * touched list * unused
 (** Returns the variables captured in the closed function scope, and first unused var  *)
 
 val use_module : t -> Ast.loc -> Path.t -> t

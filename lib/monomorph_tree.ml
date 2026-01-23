@@ -13,8 +13,8 @@ module Mtree = struct
     | Mlet of
         string * monod_tree * let_kind * global_name * malloc_list * monod_tree
     | Mbind of string * monod_tree * monod_tree
-    | Mlambda of string * fun_kind * typ * alloca * bool ref
-    | Mfunction of string * fun_kind * typ * monod_tree * alloca * bool ref
+    | Mlambda of string * closed list * typ * alloca * bool ref
+    | Mfunction of string * closed list * typ * monod_tree * alloca * bool ref
     | Mapp of {
         callee : monod_expr;
         args : (monod_expr * bool) list;
@@ -45,7 +45,7 @@ module Mtree = struct
     | Fixed_array of monod_tree list * alloca * Mod_id.t list
     | Unit
 
-  and func = { params : param list; ret : typ; kind : fun_kind }
+  and func = { params : param list; ret : typ; closed : closed list }
 
   and abstraction = {
     func : func;
@@ -134,7 +134,7 @@ open Monomorph_impl.Mallocs_ipml
 
 (* Re-exports from monomorph *)
 let typ_of_abs = typ_of_abs
-let nominal_name = nominal_name "" ~closure:false ~poly:(Tpoly "-")
+let nominal_name = nominal_name "" ~closed:[] ~poly:(Tpoly "-")
 
 let no_var =
   { fn = No_function; alloc = No_value; malloc = No_malloc; tailrec = false }
@@ -144,7 +144,7 @@ let extract_callname default p expr =
   | Builtin _ | Inline _ ->
       failwith "Internal error: Builtin or inline function captured in closure"
   | Mutual_rec _ -> failwith "TODO mutual rec"
-  | Forward_decl (name, typ, _) ->
+  | Forward_decl (name, typ, _, _) ->
       (* Indirectly recursive functions live in the closure env *)
       if is_actually_recursive p typ name then name else default
   | Polymorphic (call, _) -> call
@@ -236,10 +236,10 @@ let rec cln ss p t =
         | Tconstr (Pid "f32", _, _) -> Tf32
         | Qvar id | Tvar { contents = Unbound (id, _) } -> Tpoly id
         | Tfun (params, ret, kind) ->
-            Tfun
-              ( List.map (cln_param ss p) params,
-                cln ss p ret,
-                cln_kind ss p [] kind )
+            let kind =
+              match kind with Types.Simple -> Simple | Closure -> Closure
+            in
+            Tfun (List.map (cln_param ss p) params, cln ss p ret, kind)
         | Tconstr (Pid "raw_ptr", [ t ], _) -> Traw_ptr (cln ss p t)
         | Tconstr (Pid "array", [ t ], _) -> Tarray (cln ss p t)
         | Tconstr (Pid "rc", [ t ], _) -> Trc (Strong, cln ss p t)
@@ -365,60 +365,52 @@ let rec cln ss p t =
       Hashtbl.add cleaned_tbl hsh t;
       t
 
-and cln_kind ss p touched = function
-  | Simple -> Simple
-  | Closure vals -> (
-      let vals =
-        List.filter_map
-          (fun (cl : Types.closed) ->
-            let typ = cln ss p cl.cltyp in
+and closed_of_touched ss p = function
+  | [] -> []
+  | vals ->
+      List.filter_map
+        (fun (t : Typed_tree.touched) ->
+          if not t.tcaptured then None
+          else
+            let typ = cln ss p t.ttyp in
             let modded_name =
-              match cl.clmname with
+              match t.tmname with
               | Some mname ->
-                  reconstr_module_username ~mname ~mainmod:p.mainmodule
-                    cl.clname
-              | None -> cl.clname
+                  reconstr_module_username ~mname ~mainmod:p.mainmodule t.tname
+              | None -> t.tname
             in
             if Sset.mem modded_name p.remove_from_closure then None
             else
               let clname =
-                if not cl.clparam then
+                if not t.tparam then
                   extract_callname modded_name p
                     (Mvar (modded_name, Vnorm, None))
                 else modded_name
               in
-              let clmoved = find_moved p cl.clname touched in
+
+              let clmoved =
+                match t.tattr with
+                | Dmove ->
+                    if Types.contains_allocation t.ttyp then
+                      let mid = create_mid p in
+                      Some mid
+                    else None
+                | _ -> None
+              and clmut =
+                match t.tattr with
+                | Dmut | Dset -> true
+                | Dnorm | Dmove -> false
+              in
               Some
                 {
                   clname;
                   cltyp = typ;
-                  clmut = cl.clmut;
-                  clparam = cl.clparam;
-                  clcopy = cl.clcopy;
+                  clmut;
+                  clparam = t.tparam;
+                  clcopy = t.tcopy;
                   clmoved;
                 })
-          vals
-      in
-      (* By removing a closure (from a recursive function which didn't close)
-         it can happen that the closure in now empty. Return [Simple] aka
-         no closure *)
-      match vals with [] -> Simple | vals -> Closure vals)
-
-and find_moved p clname touched =
-  match
-    List.find_opt
-      (fun (t : Typed_tree.touched) -> String.equal t.tname clname)
-      touched
-  with
-  | None -> None
-  | Some t -> (
-      match t.tattr with
-      | Dmove ->
-          if Types.contains_allocation t.ttyp then
-            let mid = create_mid p in
-            Some mid
-          else None
-      | _ -> None)
+        vals
 
 and cln_param ss param p =
   let pt = cln ss param Types.(p.pt) in
@@ -431,7 +423,7 @@ and cln_param ss param p =
   { pt; pmut; pmoved }
 
 let cln p typ = cln Ss.empty p typ
-let cln_kind p typ = cln_kind Ss.empty p typ
+let closed_of_touched p typ = closed_of_touched Ss.empty p typ
 let cln_param param p = cln_param Ss.empty param p
 
 let add_params vars mallocs pnames params =
@@ -448,8 +440,8 @@ let add_params vars mallocs pnames params =
     (vars, mallocs) pnames params
 
 let add_moved_touched vars mallocs = function
-  | Simple -> (vars, mallocs)
-  | Closure cls ->
+  | [] -> (vars, mallocs)
+  | cls ->
       List.fold_left
         (fun (vars, mallocs) c ->
           match c.clmoved with
@@ -483,7 +475,7 @@ let set_tailrec p name =
 let set_upward = function
   | Concrete (_, _, upward)
   | Polymorphic (_, upward)
-  | Forward_decl (_, _, upward)
+  | Forward_decl (_, _, upward, _)
   | Mutual_rec (_, _, upward) ->
       upward := true
   | No_function | Builtin _ | Inline _ -> ()
@@ -1034,14 +1026,10 @@ and prep_func p func_loc (usrname, uniq, abs) =
     { p with recursion_stack }
   in
 
-  let ftyp =
-    Types.(Tfun (abs.func.tparams, abs.func.ret, abs.func.kind)) |> cln recp
-  in
+  let kind = Typed_tree.kind_of_touched abs.func.touched in
+  let ftyp = Types.(Tfun (abs.func.tparams, abs.func.ret, kind)) |> cln recp in
 
-  let remove_from_closure =
-    abs.is_rec
-    && match abs.func.kind with Types.Simple -> true | Closure _ -> false
-  in
+  let remove_from_closure = abs.is_rec && abs.func.remove_from_closure in
 
   (* In this case, the function is not really monomorphized, but might be
      defined already in another module. Setting it 'monomorphized' will cause it
@@ -1063,7 +1051,21 @@ and prep_func p func_loc (usrname, uniq, abs) =
   in
 
   (* Add moved closed variables *)
-  let kind = cln_kind recp abs.func.touched abs.func.kind in
+  let closed = closed_of_touched recp abs.func.touched in
+
+  Format.printf "ps: (%s) -> %s@."
+    (String.concat ", " (List.map Types.show_param abs.func.tparams))
+    (Types.show_typ abs.func.ret);
+  (* Format.printf "closed: %s@." *)
+  (*   (String.concat ", " (List.map show_closed closed)); *)
+  Format.printf "pseudo-closed: %s @."
+    (String.concat ", "
+       (List.filter_map
+          (fun (touched : Typed_tree.touched) ->
+            if touched.tcaptured then Some (Types.show_typ touched.ttyp)
+            else None)
+          abs.func.touched));
+  Format.printf "%s is poly %b@." usrname (is_type_polymorphic ftyp);
 
   if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
     let fn = Polymorphic (call, upward) in
@@ -1074,7 +1076,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
       p
     in
     Hashtbl.add deferredfunc_tbl call fn;
-    ({ p with vars }, (call, kind, ftyp, alloca, upward)))
+    ({ p with vars }, (call, closed, ftyp, alloca, upward)))
   else
     let inline = abs.inline in
 
@@ -1082,7 +1084,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
       {
         params = List.map (cln_param recp) abs.func.tparams;
         ret = cln recp abs.func.ret;
-        kind;
+        closed;
       }
     in
     let pnames =
@@ -1100,7 +1102,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
       in
       (* TODO make it impossible to recursively call an inline function *)
       let value =
-        { no_var with fn = Forward_decl (call, ftyp, upward); alloc }
+        { no_var with fn = Forward_decl (call, ftyp, upward, closed); alloc }
       in
       let vars =
         if abs.is_rec then Vars.add username (Normal value) p.vars else p.vars
@@ -1115,7 +1117,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
       (* Touched variables can be moved with into once functions. These
          variables are freed at the call site and won't be availble in the
          malloc set for the body. We have to re-add them here. *)
-      let vars, mallocs = add_moved_touched vars mallocs kind in
+      let vars, mallocs = add_moved_touched vars mallocs closed in
 
       let remove_from_closure =
         if remove_from_closure then Sset.add username p.remove_from_closure
@@ -1183,7 +1185,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
         let funcs = Fset.add gen_func p.funcs in
         { p with vars; funcs }
     in
-    (p, (call, func.kind, ftyp, alloca, upward))
+    (p, (call, func.closed, ftyp, alloca, upward))
 
 and morph_lambda mk typ p func_loc id abs =
   (* TODO fix lambdas for nested modules *)
@@ -1216,7 +1218,7 @@ and morph_lambda mk typ p func_loc id abs =
   (* Add moved closed variables *)
   (* Create temp env with correct recursion stack. We need this to for inner
      recursive closure calls. *)
-  let kind = cln_kind recp abs.func.touched abs.func.kind in
+  let closed = closed_of_touched recp abs.func.touched in
 
   if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
     let fn = Polymorphic (name, upward) in
@@ -1228,7 +1230,7 @@ and morph_lambda mk typ p func_loc id abs =
     in
     Hashtbl.add deferredfunc_tbl name genfn;
     ( { p with vars; ret },
-      mk (Mlambda (name, kind, ftyp, alloca, upward)) ret,
+      mk (Mlambda (name, closed, ftyp, alloca, upward)) ret,
       { no_var with fn; alloc = Value alloca } ))
   else
     let recursive = Rnone in
@@ -1236,7 +1238,7 @@ and morph_lambda mk typ p func_loc id abs =
       {
         params = List.map (cln_param recp) abs.func.tparams;
         ret = cln recp abs.func.ret;
-        kind;
+        closed;
       }
     in
     let pnames =
@@ -1259,7 +1261,7 @@ and morph_lambda mk typ p func_loc id abs =
       (* Touched variables can be moved with into once functions. These
          variables are freed at the call site and won't be availble in the
          malloc set for the body. We have to re-add them here. *)
-      let vars, mallocs = add_moved_touched vars mallocs kind in
+      let vars, mallocs = add_moved_touched vars mallocs closed in
 
       { p with vars; ret = true; mallocs; toplvl = false; recursion_stack }
     in
@@ -1311,7 +1313,7 @@ and morph_lambda mk typ p func_loc id abs =
     Apptbl.add apptbl name p;
 
     ( { p with ret },
-      mk (Mlambda (name, func.kind, ftyp, alloca, upward)) ret,
+      mk (Mlambda (name, func.closed, ftyp, alloca, upward)) ret,
       { no_var with fn; alloc = Value alloca } )
 
 and morph_app mk p callee args ret_typ =

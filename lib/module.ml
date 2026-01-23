@@ -231,19 +231,6 @@ module Regeneralize = struct
             sub ps
         in
         let sub, r = map_type ~mname sub r in
-        let sub, k =
-          match k with
-          | Simple -> (sub, k)
-          | Closure cl ->
-              let sub, cl =
-                List.fold_left_map
-                  (fun sub c ->
-                    let sub, cltyp = map_type ~mname sub c.cltyp in
-                    (sub, { c with cltyp }))
-                  sub cl
-              in
-              (sub, Closure cl)
-        in
         (sub, Tfun (ps, r, k))
     | Ttuple ts ->
         let sub, ts = List.fold_left_map (map_type ~mname) sub ts in

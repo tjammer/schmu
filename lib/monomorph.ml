@@ -22,7 +22,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     (* TODO use a prefix *)
     | Concrete of To_gen_func.t * string * upward
     | Polymorphic of string * upward (* call name *)
-    | Forward_decl of string * typ * upward
+    | Forward_decl of string * typ * upward * closed list
     | Mutual_rec of string * typ * upward
     | Builtin of Builtin.t
     | Inline of (string * Mod_id.t) list * typ * monod_tree
@@ -66,10 +66,14 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
   let missing_polys_tbl = Hashtbl.create 64
   let poly_funcs_tbl = Hashtbl.create 64
   let deferredfunc_tbl = Hashtbl.create 64
-  let typ_of_abs abs = Tfun (abs.func.params, abs.func.ret, abs.func.kind)
 
-  let func_of_typ = function
-    | Tfun (params, ret, kind) -> { params; ret; kind }
+  let typ_of_abs abs =
+    let kind = match abs.func.closed with [] -> Simple | _ -> Closure in
+    Tfun (abs.func.params, abs.func.ret, kind)
+
+  let func_of_typ closed = function
+    | Tfun (params, ret, Simple) -> { params; ret; closed = [] }
+    | Tfun (params, ret, Closure) -> { params; ret; closed }
     | _ -> failwith "Internal Error: Not a function type"
 
   let rec find_function_expr vars = function
@@ -110,7 +114,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         print_endline (show_expr e);
         failwith "Unsupported expression for find_function"
 
-  let nominal_name name ~closure ~poly concrete =
+  let nominal_name name ~closed ~poly concrete =
     let open Printf in
     let rec aux ?(inner = true) ~poly = function
       | Tint -> "l"
@@ -122,21 +126,21 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       | Ti32 | Tu32 -> "i"
       | Tf32 -> "f"
       | Tpoly _ -> "g"
-      | Tfun (ps, r, k) -> (
+      | Tfun (ps, r, _) -> (
           let name = if inner then "" else name in
           match poly with
           | Tfun (pps, pr, _) -> (
               let k =
-                match k with
-                | Closure c when closure -> (
-                    match c with
-                    | [] -> ""
-                    | c ->
-                        "C"
-                        ^ String.concat ""
-                            (List.map (fun c -> aux ~poly:Tbool c.cltyp) c))
-                | Closure _ | Simple -> ""
+                if inner then ""
+                else
+                  match closed with
+                  | [] -> ""
+                  | c ->
+                      "C"
+                      ^ String.concat ""
+                          (List.map (fun c -> aux ~poly:Tbool c.cltyp) c)
               in
+
               try
                 let ps =
                   List.fold_left2
@@ -162,15 +166,14 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
                 failwith "Internal Error: param count does not match")
           | _ ->
               let k =
-                match k with
-                | Closure c when closure -> (
-                    match c with
-                    | [] -> ""
-                    | c ->
-                        "C"
-                        ^ String.concat ""
-                            (List.map (fun c -> aux ~poly:Tbool c.cltyp) c))
-                | Closure _ | Simple -> ""
+                if inner then ""
+                else
+                  match closed with
+                  | [] -> ""
+                  | c ->
+                      "C"
+                      ^ String.concat ""
+                          (List.map (fun c -> aux ~poly:Tbool c.cltyp) c)
               in
               let ps =
                 List.fold_left (fun acc p -> acc ^ (aux ~poly:Tbool) p.pt) "" ps
@@ -219,14 +222,14 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
   let is_actually_recursive p typ name =
     match (p.recursion_stack, typ) with
     | (call, _) :: _, _ when String.equal call name -> true
-    | _, Tfun (_, _, Closure _) ->
+    | _, Tfun (_, _, Closure) ->
         (* We are not actually recursive but in an inner function. Generate a
            non-mono call *)
         false
     | _ -> true
 
-  let get_mono_name name ~closure ~poly concrete =
-    let name = nominal_name name ~closure ~poly concrete in
+  let get_mono_name name ~closed ~poly concrete =
+    let name = nominal_name name ~closed ~poly concrete in
     if String.starts_with ~prefix:"__" name then name else "__" ^ name
 
   let rec subst_type ~concrete poly parent =
@@ -247,29 +250,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           let subst, kind =
             match (k1, k2) with
             | Simple, Simple -> (subst, Simple)
-            | Closure c1, Closure c2 ->
-                let s, c =
-                  List.fold_left_map
-                    (fun subst (l, r) ->
-                      let s, cltyp = inner subst (l.cltyp, r.cltyp) in
-                      (* Copied from [subst_kind] *)
-                      let is_function =
-                        match cltyp with Tfun _ -> true | _ -> false
-                      in
-                      let clname =
-                        if
-                          is_function && (not l.clparam)
-                          && is_type_polymorphic l.cltyp
-                          && not (is_type_polymorphic cltyp)
-                        then
-                          get_mono_name l.clname ~closure:true ~poly:l.cltyp
-                            cltyp
-                        else l.clname
-                      in
-                      (s, { l with cltyp; clname }))
-                    subst (List.combine c1 c2)
-                in
-                (s, Closure c)
+            | Closure, Closure -> (subst, Closure)
             | _ ->
                 failwith "Internal Error: Unexpected Simple-Closure combination"
           in
@@ -373,7 +354,6 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           match Vars.find_opt id vars with Some t -> t | None -> old)
       | Tfun (ps, r, kind) ->
           let ps = List.map (fun p -> { p with pt = subst p.pt }) ps in
-          let kind = subst_kind subst kind in
           Tfun (ps, subst r, kind)
       | Trecord (ps, Rec_folded, record) as t when is_type_polymorphic t ->
           let ps = List.map subst ps in
@@ -430,9 +410,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
 
     (subst, typ)
 
-  and subst_kind subst = function
-    | Simple -> Simple
-    | Closure cls ->
+  and subst_closed subst = function
+    | cls ->
         let cls =
           List.map
             (fun cl ->
@@ -445,13 +424,13 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
                   is_function && (not cl.clparam)
                   && is_type_polymorphic cl.cltyp
                   && not (is_type_polymorphic cltyp)
-                then get_mono_name cl.clname ~closure:true ~poly:cl.cltyp cltyp
+                then get_mono_name cl.clname ~closed:cls ~poly:cl.cltyp cltyp
                 else cl.clname
               in
               { cl with cltyp; clname })
             cls
         in
-        Closure cls
+        cls
 
   and subst_body p subst tree =
     let p = ref p in
@@ -514,16 +493,16 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           let lhs = sub lhs in
           let cont = sub cont in
           { tree with typ = cont.typ; expr = Mbind (id, lhs, cont) }
-      | Mlambda (name, kind, typ, alloca, upward) ->
-          let styp = subst typ and kind = subst_kind subst kind in
+      | Mlambda (name, closed, typ, alloca, upward) ->
+          let styp = subst typ and closed = subst_closed subst closed in
 
           (* We may have to monomorphize. For instance if the lambda returned from
              a polymorphic function *)
           let name = mono_callable name styp tree in
 
-          { tree with typ; expr = Mlambda (name, kind, styp, alloca, upward) }
-      | Mfunction (name, kind, typ, cont, alloca, upward) ->
-          let styp = subst typ and kind = subst_kind subst kind in
+          { tree with typ; expr = Mlambda (name, closed, styp, alloca, upward) }
+      | Mfunction (name, closed, typ, cont, alloca, upward) ->
+          let styp = subst typ and closed = subst_closed subst closed in
           (* We may have to monomorphize. For instance if the lambda returned from
              a polymorphic function *)
           let name = mono_callable name styp { tree with typ } in
@@ -531,7 +510,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           {
             tree with
             typ = cont.typ;
-            expr = Mfunction (name, kind, styp, cont, alloca, upward);
+            expr = Mfunction (name, closed, styp, cont, alloca, upward);
           }
       | Mapp { callee; args; alloca; id; ms } ->
           let ex = sub callee.ex in
@@ -563,7 +542,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               monomorphized = Sset.union !p.monomorphized p2.monomorphized;
             };
 
-          let func = func_of_typ callee.ex.typ in
+          let func = func_of_typ [] callee.ex.typ in
           {
             tree with
             typ = func.ret;
@@ -642,7 +621,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
 
   and monomorphize_call p expr parent_sub : morph_param * call_name =
     match find_function_expr p.vars expr.expr with
-    | Builtin b -> (p, Builtin (b, func_of_typ expr.typ))
+    | Builtin b -> (p, Builtin (b, func_of_typ [] expr.typ))
     | Inline (ps, typ, tree) ->
         (* Copied from Polymorphic below *)
         (* The parent substitution is threaded through to its children. This deals
@@ -654,7 +633,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         else let p, tree = subst_body p subst tree in
 
              (p, Inline (ps, tree))
-    | Forward_decl (name, typ, _) ->
+    | Forward_decl (name, typ, _, closed) ->
         (* Generate the correct call name. If its mono, we have to recalculate it.
            Closures are tricky, as the arguments are generally not closures, but
            the typ might. We try to subst the (potential) closure by using the
@@ -670,8 +649,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               match parent_sub with
               | Some sub ->
                   let concrete = sub typ in
-                  get_mono_name name ~closure:true ~poly:typ concrete
-              | None -> get_mono_name name ~closure:true ~poly:typ expr.typ
+                  get_mono_name name ~closed ~poly:typ concrete
+              | None -> get_mono_name name ~closed ~poly:typ expr.typ
             in
             (* We still need to use the un-monomorphized callname for marking recursion *)
             (p, Recursive { nonmono = name; call })
@@ -682,7 +661,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         else (p, Default)
     | Mutual_rec (name, typ, upward) ->
         if is_type_polymorphic typ then (
-          let call = get_mono_name name ~closure:true ~poly:typ expr.typ in
+          let call = get_mono_name name ~closed:[] ~poly:typ expr.typ in
           if not (Sset.mem call p.monomorphized) then
             (* The function doesn't exist yet, will it ever exist? *)
             if not (Hashtbl.mem missing_polys_tbl call) then
@@ -690,13 +669,16 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           (p, Mono (call, upward))
           (* Make the name concrete so the correct call name is used *))
         else (p, Concrete name)
-    | _ when is_type_polymorphic expr.typ -> (p, Default)
+    | _ when is_type_polymorphic expr.typ ->
+        Format.printf "expr is polymorphic %s@." (show_typ expr.typ);
+        (p, Default)
     | Concrete (func, username, _) ->
         (* If a named function gets a generated name, the call site has to be made aware *)
         if not (String.equal func.name.call username) then
           (p, Concrete func.name.call)
         else (p, Default)
     | Polymorphic (call, _) ->
+        print_endline "were polymopric";
         let p, func = get_poly_func p call in
         let typ = typ_of_abs func.abs in
         monomorphize p typ expr.typ func parent_sub
@@ -719,7 +701,13 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         | None -> failwith "Internal Error: Poly function not registered yet")
 
   and monomorphize p typ concrete func parent_sub =
-    let call = get_mono_name func.name.call ~closure:true ~poly:typ concrete in
+    let call =
+      get_mono_name func.name.call ~closed:func.abs.func.closed ~poly:typ
+        concrete
+    in
+
+    Format.printf "poly: %s\n%!concrete: %s\n%!mono name: %s@." (show_typ typ)
+      (show_typ concrete) call;
 
     if Sset.mem call p.monomorphized then
       (* The function exists, we don't do anything right now *)
@@ -735,8 +723,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       else
         let p, body = subst_body p subst func.abs.body in
 
-        let kind = subst_kind subst func.abs.func.kind in
-        let fnc = { (func_of_typ typ) with kind } in
+        let closed = subst_closed subst func.abs.func.closed in
+        let fnc = { (func_of_typ closed typ) with closed } in
         let name = { func.name with call } in
         let abs = { func.abs with func = fnc; body } in
         let monomorphized = true in

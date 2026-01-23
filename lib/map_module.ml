@@ -42,19 +42,6 @@ module Canonize = struct
             sub ps
         in
         let sub, r = canonize sub r in
-        let sub, k =
-          match k with
-          | Simple -> (sub, k)
-          | Closure cl ->
-              let sub, cl =
-                List.fold_left_map
-                  (fun sub c ->
-                    let sub, cltyp = canonize sub c.cltyp in
-                    (sub, { c with cltyp }))
-                  sub cl
-              in
-              (sub, Closure cl)
-        in
         (sub, Tfun (ps, r, k))
     | Ttuple ts ->
         let sub, ts = List.fold_left_map canonize sub ts in
@@ -199,22 +186,6 @@ module Make (C : Map_tree) = struct
         sub abs.func.tparams
     in
     let sub, ret = C.map_type ~mname sub abs.func.ret in
-    let sub, kind =
-      match abs.func.kind with
-      | Simple -> (sub, Simple)
-      | Closure l ->
-          let sub, l =
-            List.fold_left_map
-              (fun sub c ->
-                let sub, cltyp = C.map_type ~mname sub c.cltyp in
-                let clname, clmname =
-                  C.change_var ~mname c.clname c.clmname sub
-                in
-                (sub, { c with cltyp; clname; clmname }))
-              sub l
-          in
-          (sub, Closure l)
-    in
     let sub, touched =
       List.fold_left_map
         (fun sub t ->
@@ -222,7 +193,14 @@ module Make (C : Map_tree) = struct
           (sub, { t with ttyp }))
         sub abs.func.touched
     in
-    let func = { Typed_tree.tparams; ret; kind; touched } in
+    let func =
+      {
+        Typed_tree.tparams;
+        ret;
+        touched;
+        remove_from_closure = abs.func.remove_from_closure;
+      }
+    in
     let sub, body = (map_body mname nsub) sub abs.body in
     (sub, { abs with func; body })
 

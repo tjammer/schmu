@@ -17,20 +17,6 @@ let apply_pathsub ~base ~with_ typ =
     | Ttuple ts -> Ttuple (List.map aux ts)
     | Tfun (ps, r, kind) ->
         let ps = List.map (fun p -> { p with pt = aux p.pt }) ps in
-        let kind =
-          match kind with
-          | Simple -> kind
-          | Closure cls ->
-              let cls =
-                List.map
-                  (fun c ->
-                    (* The module name might als be part of the functor *)
-                    let clmname = Option.map subst c.clmname in
-                    { c with cltyp = aux c.cltyp; clmname })
-                  cls
-              in
-              Closure cls
-        in
         Tfun (ps, aux r, kind)
     | Tfixed_array (iv, t) -> Tfixed_array (iv, aux t)
     | Tvar { contents = Link t } -> aux t
