@@ -128,13 +128,11 @@ module Mtree = struct
 end
 
 include Mtree
-module Monomorph_impl = Monomorph.Make (Mtree)
+module Monomorph_impl = Monomorph2.Make (Mtree)
 open Monomorph_impl
 open Monomorph_impl.Mallocs_ipml
 
-(* Re-exports from monomorph *)
-let typ_of_abs = typ_of_abs
-let nominal_name = nominal_name "" ~closed:[] ~poly:(Tpoly "-")
+let nominal_name = ty_name
 
 let no_var =
   { fn = No_function; alloc = No_value; malloc = No_malloc; tailrec = false }
@@ -150,6 +148,10 @@ let extract_callname default p expr =
   | Polymorphic (call, _) -> call
   | Concrete (func, _, _) -> func.name.call
   | No_function -> default
+
+let typ_of_abs abs =
+  let kind = match abs.func.closed with [] -> Simple | _ -> Closure in
+  Tfun (abs.func.params, abs.func.ret, kind)
 
 let reconstr_module_username ~mname ~mainmod username =
   (* Values queried from an imported module have a special name so they don't
@@ -211,7 +213,7 @@ module Ss = Set.Make (String)
 
 let cleaned_tbl = Hashtbl.create 512
 
-let rec cln ss p t =
+let rec cln ss t =
   let hsh = Types.sexp_of_typ t in
   (* Memoize types based on sexp. Memoization brings huge gains, especially for
      complicated recursive types. On my machine, the polymorphic hash with sexp
@@ -222,7 +224,7 @@ let rec cln ss p t =
   | None ->
       let t =
         match t with
-        | Types.Tvar { contents = Link t } -> cln ss p t
+        | Types.Tvar { contents = Link t } -> cln ss t
         | Tconstr (Pid "int", _, _) -> Tint
         | Tconstr (Pid "bool", _, _) -> Tbool
         | Tconstr (Pid "unit", _, _) -> Tunit
@@ -239,11 +241,11 @@ let rec cln ss p t =
             let kind =
               match kind with Types.Simple -> Simple | Closure -> Closure
             in
-            Tfun (List.map (cln_param ss p) params, cln ss p ret, kind)
-        | Tconstr (Pid "raw_ptr", [ t ], _) -> Traw_ptr (cln ss p t)
-        | Tconstr (Pid "array", [ t ], _) -> Tarray (cln ss p t)
-        | Tconstr (Pid "rc", [ t ], _) -> Trc (Strong, cln ss p t)
-        | Tconstr (Pid "weak_rc", [ t ], _) -> Trc (Weak, cln ss p t)
+            Tfun (List.map (cln_param ss) params, cln ss ret, kind)
+        | Tconstr (Pid "raw_ptr", [ t ], _) -> Traw_ptr (cln ss t)
+        | Tconstr (Pid "array", [ t ], _) -> Tarray (cln ss t)
+        | Tconstr (Pid "rc", [ t ], _) -> Trc (Strong, cln ss t)
+        | Tconstr (Pid "weak_rc", [ t ], _) -> Trc (Weak, cln ss t)
         | Tfixed_array ({ contents = Unknown (i, _) | Generalized i }, t) ->
             (* That's a hack. We know the unknown number is a string of an int. This is
                due to an implementation detail in [gen_var] in inference. We need a
@@ -253,16 +255,15 @@ let rec cln ss p t =
                even segfault in codegen. If we don't substitute, it won't go unnoticed.
                Furthermore, fixed-size arrays with negative indices must recognized as
                polymorphic*)
-            Tfixed_array (-int_of_string i, cln ss p t)
-        | Tfixed_array ({ contents = Known i }, t) ->
-            Tfixed_array (i, cln ss p t)
+            Tfixed_array (-int_of_string i, cln ss t)
+        | Tfixed_array ({ contents = Known i }, t) -> Tfixed_array (i, cln ss t)
         | Tfixed_array ({ contents = Linked iv }, t) ->
-            cln ss p Types.(Tfixed_array (iv, t)) (* TODO *)
+            cln ss Types.(Tfixed_array (iv, t)) (* TODO *)
         | Ttuple ts ->
             Trecord
               ( [],
                 Rec_not
-                  (List.map (fun t -> { ftyp = cln ss p t; mut = false }) ts
+                  (List.map (fun t -> { ftyp = cln ss t; mut = false }) ts
                   |> Array.of_list),
                 None )
         | Tconstr (name, ops, _) -> (
@@ -271,10 +272,10 @@ let rec cln ss p t =
             match Hashtbl.find_opt (decls ()) name with
             | Some decl ->
                 let sub = map_params ~inst:ops ~params:decl.params in
-                let ps = List.map (cln ss p) ops in
+                let ps = List.map (cln ss) ops in
                 let nname = Path.type_name name in
                 let psname =
-                  nominal_name
+                  ty_name
                     (Trecord
                        ( [],
                          Rec_not
@@ -303,7 +304,7 @@ let rec cln ss p t =
                                 in
                                 ( sub,
                                   Cleaned_types.
-                                    { ftyp = cln downss p typ; mut = f.mut } ))
+                                    { ftyp = cln downss typ; mut = f.mut } ))
                               sub fields
                           in
                           Trecord (ps, Rec_not fields, Some nname))
@@ -325,7 +326,7 @@ let rec cln ss p t =
                                     let sub, typ =
                                       Inference.instantiate_sub sub typ
                                     in
-                                    let ctyp = Some (cln downss p typ)
+                                    let ctyp = Some (cln downss typ)
                                     and index = ct.index in
                                     ( sub,
                                       {
@@ -353,7 +354,7 @@ let rec cln ss p t =
                         if Smap.is_empty sub then typ
                         else Inference.instantiate_sub sub typ |> snd
                       in
-                      cln downss p typ
+                      cln downss typ
                   | Dabstract (Some dkind) -> cln_dkind dkind
                 in
                 cln_dkind decl.kind
@@ -372,7 +373,7 @@ and closed_of_touched ss p = function
         (fun (t : Typed_tree.touched) ->
           if not t.tcaptured then None
           else
-            let typ = cln ss p t.ttyp in
+            let typ = cln ss t.ttyp in
             let modded_name =
               match t.tmname with
               | Some mname ->
@@ -412,8 +413,8 @@ and closed_of_touched ss p = function
                 })
         vals
 
-and cln_param ss param p =
-  let pt = cln ss param Types.(p.pt) in
+and cln_param ss p =
+  let pt = cln ss Types.(p.pt) in
   let pmut, pmoved =
     match p.pattr with
     | Dset | Dmut -> (true, false)
@@ -422,9 +423,9 @@ and cln_param ss param p =
   in
   { pt; pmut; pmoved }
 
-let cln p typ = cln Ss.empty p typ
+let cln typ = cln Ss.empty typ
 let closed_of_touched p typ = closed_of_touched Ss.empty p typ
-let cln_param param p = cln_param Ss.empty param p
+let cln_param p = cln_param Ss.empty p
 
 let add_params vars mallocs pnames params =
   (* Add parameters to the env and create malloc ids if they have been moved *)
@@ -481,7 +482,7 @@ let set_upward = function
   | No_function | Builtin _ | Inline _ -> ()
 
 let rec_fs_to_env p (username, uniq, typ) =
-  let ftyp = cln p typ in
+  let ftyp = cln typ in
 
   let call = Module.unique_name ~mname:p.mname username uniq in
   let fn = Mutual_rec (call, ftyp, ref false) in
@@ -534,15 +535,13 @@ let rec equal_alloc a b =
 let rec morph_expr param (texpr : Typed_tree.typed_expr) =
   let make expr return =
     let (const : const_kind) = if texpr.attr.const then Const else Cnot in
-    { typ = cln param texpr.typ; expr; return; loc = texpr.loc; const }
+    { typ = cln texpr.typ; expr; return; loc = texpr.loc; const }
   in
   match texpr.expr with
-  | Typed_tree.Var (v, mname) ->
-      morph_var make param v mname (cln param texpr.typ)
+  | Typed_tree.Var (v, mname) -> morph_var make param v mname (cln texpr.typ)
   | Const (String s) -> morph_string make param s
-  | Const (Array a) -> morph_array make param a (cln param texpr.typ)
-  | Const (Fixed_array a) ->
-      morph_fixed_array make param a (cln param texpr.typ)
+  | Const (Array a) -> morph_array make param a (cln texpr.typ)
+  | Const (Fixed_array a) -> morph_fixed_array make param a (cln texpr.typ)
   | Const c -> (param, make (Mconst (morph_const c)) false, no_var)
   | Bop (bop, e1, e2) -> morph_bop make param bop e1 e2
   | Unop (unop, expr) -> morph_unop make param unop expr
@@ -577,7 +576,7 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
           const = const ocont;
         },
         func )
-  | Record labels -> morph_record make param labels (cln param texpr.typ)
+  | Record labels -> morph_record make param labels (cln texpr.typ)
   | Field (expr, index, _) -> morph_field make param expr index
   | Set (expr, value, moved) -> morph_set make param expr value moved
   | Sequence (expr, cont) -> morph_seq make param expr cont
@@ -600,11 +599,11 @@ let rec morph_expr param (texpr : Typed_tree.typed_expr) =
       morph_expr p cont
   | Lambda (id, abs) -> morph_lambda make texpr.typ param texpr.loc id abs
   | App { callee; args; borrow_call = _ } ->
-      morph_app make param callee args (cln param texpr.typ)
+      morph_app make param callee args (cln texpr.typ)
   | Ctor (variant, index, dataexpr) ->
-      morph_ctor make param variant index dataexpr (cln param texpr.typ)
+      morph_ctor make param variant index dataexpr (cln texpr.typ)
   | Variant_index expr -> morph_var_index make param expr
-  | Variant_data expr -> morph_var_data make param expr (cln param texpr.typ)
+  | Variant_data expr -> morph_var_data make param expr (cln texpr.typ)
   | Move e ->
       let p, e, func = morph_expr param e in
       (* Whenever a function is moved, we mark it as upward. Upward closures
@@ -630,10 +629,10 @@ and morph_var mk p v mname typ =
 
   let mono_id =
     match typ with
-    | Tfun _ when is_type_polymorphic typ ->
+    | Tfun _ when is_type_polymorphic_no_closure typ ->
         (* Save env for later monomorphization *)
         let id = new_id malloc_id in
-        Apptbl.add apptbl (string_of_int id) p;
+        Apptbl.add param_tbl (string_of_int id) p;
         Some id
     | _ -> None
   in
@@ -1027,21 +1026,13 @@ and prep_func p func_loc (usrname, uniq, abs) =
   in
 
   let kind = Typed_tree.kind_of_touched abs.func.touched in
-  let ftyp = Types.(Tfun (abs.func.tparams, abs.func.ret, kind)) |> cln recp in
+  let ftyp = Types.(Tfun (abs.func.tparams, abs.func.ret, kind)) |> cln in
 
   let remove_from_closure = abs.is_rec && abs.func.remove_from_closure in
 
   (* In this case, the function is not really monomorphized, but might be
      defined already in another module. Setting it 'monomorphized' will cause it
      to be linked as [Once_odr] in codegen. *)
-  let monomorphized =
-    if
-      (not (is_type_polymorphic ftyp))
-      && not (Path.share_base p.mname p.mainmodule)
-    then true
-    else false
-  in
-
   let alloca = ref (request p) in
   let alloc = Value alloca in
   let upward =
@@ -1052,12 +1043,22 @@ and prep_func p func_loc (usrname, uniq, abs) =
 
   (* Add moved closed variables *)
   let closed = closed_of_touched recp abs.func.touched in
+  (* assert ((not (Hashtbl.mem polyschemes_tbl call)) || not p.gen_poly_bodies); *)
+  let poly_params = collect_poly_params ftyp closed in
+  Format.printf "closure params of %s: [%s]@." username
+    (String.concat ", " (Sset.to_list poly_params));
+  Hashtbl.add polyschemes_tbl call (ftyp, poly_params);
+  let is_polymorphic = not (Sset.is_empty poly_params) in
+
+  let monomorphized =
+    if Sset.is_empty poly_params && not (Path.share_base p.mname p.mainmodule)
+    then true
+    else false
+  in
 
   Format.printf "ps: (%s) -> %s@."
     (String.concat ", " (List.map Types.show_param abs.func.tparams))
     (Types.show_typ abs.func.ret);
-  (* Format.printf "closed: %s@." *)
-  (*   (String.concat ", " (List.map show_closed closed)); *)
   Format.printf "pseudo-closed: %s @."
     (String.concat ", "
        (List.filter_map
@@ -1065,9 +1066,8 @@ and prep_func p func_loc (usrname, uniq, abs) =
             if touched.tcaptured then Some (Types.show_typ touched.ttyp)
             else None)
           abs.func.touched));
-  Format.printf "%s is poly %b@." usrname (is_type_polymorphic ftyp);
 
-  if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
+  if (not p.gen_poly_bodies) && is_polymorphic then (
     let fn = Polymorphic (call, upward) in
     let vars = Vars.add username (Normal { no_var with fn; alloc }) p.vars in
     let fn () =
@@ -1082,8 +1082,8 @@ and prep_func p func_loc (usrname, uniq, abs) =
 
     let func =
       {
-        params = List.map (cln_param recp) abs.func.tparams;
-        ret = cln recp abs.func.ret;
+        params = List.map cln_param abs.func.tparams;
+        ret = cln abs.func.ret;
         closed;
       }
     in
@@ -1154,11 +1154,6 @@ and prep_func p func_loc (usrname, uniq, abs) =
     let body = mk_free_after body frees in
     let recursive = pop_recursion_stack temp_p in
 
-    (* Collect functions from body *)
-    let p =
-      { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
-    in
-
     let abs = { func; pnames; body } in
     let name = { user = username; call } in
     let gen_func = { abs; name; recursive; upward; monomorphized; func_loc } in
@@ -1170,7 +1165,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
           Vars.add username (Normal { no_var with fn; alloc }) p.vars
         in
         { p with vars }
-      else if is_type_polymorphic ftyp then (
+      else if is_polymorphic then (
         let fn = Polymorphic (call, upward) in
         let vars =
           Vars.add username (Normal { no_var with fn; alloc }) p.vars
@@ -1182,8 +1177,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
         let vars =
           Vars.add username (Normal { no_var with fn; alloc }) p.vars
         in
-        let funcs = Fset.add gen_func p.funcs in
-        { p with vars; funcs }
+        { p with vars }
     in
     (p, (call, func.closed, ftyp, alloca, upward))
 
@@ -1196,18 +1190,7 @@ and morph_lambda mk typ p func_loc id abs =
     { p with recursion_stack }
   in
 
-  let ftyp = cln recp typ in
-
-  (* In this case, the function is not really monomorphized, but might be
-     defined already in another module. Setting it 'monomorphized' will cause it
-     to be linked as [Once_odr] in codegen. *)
-  let monomorphized =
-    if
-      (not (is_type_polymorphic ftyp))
-      && not (Path.share_base p.mname p.mainmodule)
-    then true
-    else false
-  in
+  let ftyp = cln typ in
 
   (* Function can be returned themselves. In that case, a closure object will be
      generated, so treat it the same as any local allocation *)
@@ -1219,8 +1202,20 @@ and morph_lambda mk typ p func_loc id abs =
   (* Create temp env with correct recursion stack. We need this to for inner
      recursive closure calls. *)
   let closed = closed_of_touched recp abs.func.touched in
+  let poly_params = collect_poly_params ftyp closed in
+  Hashtbl.add polyschemes_tbl name (ftyp, poly_params);
+  let is_polymorphic = not (Sset.is_empty poly_params) in
 
-  if (not p.gen_poly_bodies) && is_type_polymorphic ftyp then (
+  (* In this case, the function is not really monomorphized, but might be
+     defined already in another module. Setting it 'monomorphized' will cause it
+     to be linked as [Once_odr] in codegen. *)
+  let monomorphized =
+    if (not is_polymorphic) && not (Path.share_base p.mname p.mainmodule) then
+      true
+    else false
+  in
+
+  if (not p.gen_poly_bodies) && is_polymorphic then (
     let fn = Polymorphic (name, upward) in
     let vars = Vars.add name (Normal { no_var with fn }) p.vars in
     let genfn () =
@@ -1236,8 +1231,8 @@ and morph_lambda mk typ p func_loc id abs =
     let recursive = Rnone in
     let func =
       {
-        params = List.map (cln_param recp) abs.func.tparams;
-        ret = cln recp abs.func.ret;
+        params = List.map cln_param abs.func.tparams;
+        ret = cln abs.func.ret;
         closed;
       }
     in
@@ -1272,11 +1267,6 @@ and morph_lambda mk typ p func_loc id abs =
     if is_struct body.typ then set_alloca p var.alloc;
     let temp_p = leave_level temp_p in
 
-    (* Collect functions from body *)
-    let p =
-      { p with monomorphized = temp_p.monomorphized; funcs = temp_p.funcs }
-    in
-
     (* Remove parameters from malloc list. We need them temporarily for freeing in Set *)
     let tmp_mallocs =
       List.fold_left2
@@ -1298,19 +1288,17 @@ and morph_lambda mk typ p func_loc id abs =
 
     let p = { p with vars } in
     let p, fn =
-      if is_type_polymorphic ftyp then (
+      if is_polymorphic then (
         (* Add fun to env so we can query it later for monomorphization *)
         let fn = Polymorphic (name, upward) in
         let vars = Vars.add name (Normal { no_var with fn }) p.vars in
         Hashtbl.add poly_funcs_tbl name gen_func;
         ({ p with vars }, Polymorphic (name, upward)))
-      else
-        let funcs = Fset.add gen_func p.funcs in
-        ({ p with funcs }, Concrete (gen_func, name, upward))
+      else (p, Concrete (gen_func, name, upward))
     in
 
     (* Save fake env with call name for monomorphization *)
-    Apptbl.add apptbl name p;
+    Apptbl.add param_tbl name p;
 
     ( { p with ret },
       mk (Mlambda (name, func.closed, ftyp, alloca, upward)) ret,
@@ -1322,7 +1310,7 @@ and morph_app mk p callee args ret_typ =
 
   let ret = p.ret in
   let p, ex, _ = morph_expr { p with ret = false } callee in
-  let p, monomorph = monomorphize_call p ex None in
+  let monomorph = monomorphize_call p ex in
   let callee = { ex; monomorph; mut = false } in
 
   let tailrec, p =
@@ -1350,7 +1338,7 @@ and morph_app mk p callee args ret_typ =
       if tailrec then (Mallocs.remove var.malloc p.mallocs, ex)
       else (p.mallocs, ex)
     in
-    let p, monomorph = monomorphize_call { p with mallocs } ex None in
+    let monomorph = monomorphize_call { p with mallocs } ex in
     ( { p with ret },
       ex,
       monomorph,
@@ -1387,7 +1375,7 @@ and morph_app mk p callee args ret_typ =
     | _ -> (p, callee)
   in
 
-  Apptbl.add apptbl (string_of_int id) p;
+  Apptbl.add param_tbl (string_of_int id) p;
 
   let alloc, alloc_ref =
     if is_struct callee.ex.typ then
@@ -1604,8 +1592,6 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
     let () = assert (!malloc_id = 1) in
     {
       vars;
-      monomorphized = Sset.empty;
-      funcs = Fset.empty;
       ret = false;
       mallocs = Mallocs.empty Mfunc;
       toplvl = true;
@@ -1620,25 +1606,21 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
   let p, tree, _ = morph_toplvl param items in
 
   (* Add missing monomorphized functions from rec blocks *)
-  let p =
-    Hashtbl.fold
-      (fun call (p, concrete, parent_sub) realp ->
-        let p =
-          { p with funcs = realp.funcs; monomorphized = realp.monomorphized }
-        in
-        let p, _ =
-          let func = get_poly_func p call |> snd in
-          let typ = typ_of_abs func.abs in
-          monomorphize p typ concrete func parent_sub
-        in
-        {
-          realp with
-          funcs = Fset.union p.funcs realp.funcs;
-          monomorphized = Sset.union p.monomorphized realp.monomorphized;
-        })
-      missing_polys_tbl p
-  in
-
+  (* let p = *)
+  (*   Hashtbl.fold *)
+  (*     (fun call (p, concrete) realp -> *)
+  (*       let p, _ = *)
+  (*         let func = get_poly_func call in *)
+  (*         let typ = typ_of_abs func.abs in *)
+  (*         monomorphize p typ concrete func parent_sub *)
+  (*       in *)
+  (*       { *)
+  (*         realp with *)
+  (*         funcs = Fset.union p.funcs realp.funcs; *)
+  (*         monomorphized = Sset.union p.monomorphized realp.monomorphized; *)
+  (*       }) *)
+  (*     missing_polys_tbl p *)
+  (* in *)
   let frees =
     match Mallocs.pop p.mallocs |> fst with
     | [] -> Seq.empty
@@ -1661,7 +1643,7 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
             | None | Some (_, `C) -> true
             | Some (_, `Schmu) -> false
           in
-          Some { ext_name; ext_typ = cln p t; c_linkage; cname; closure })
+          Some { ext_name; ext_typ = cln t; c_linkage; cname; closure })
       externals
   in
 
@@ -1680,5 +1662,5 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
            (name, typ, toplvl))
   in
 
-  let funcs = Fset.to_seq p.funcs |> List.of_seq in
+  let funcs = Functbl.to_seq generate_funcs_tbl |> Seq.map fst |> List.of_seq in
   { constants; globals; externals; tree; funcs; frees }

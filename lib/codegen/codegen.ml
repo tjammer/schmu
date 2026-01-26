@@ -1484,7 +1484,7 @@ let def_globals globals =
   List.iter f globals
 
 let decl_external ~c_linkage ~closure cname = function
-  | Tfun _ as t when (not (is_type_polymorphic t)) && not closure ->
+  | Tfun _ as t when (not (is_type_polymorphic_no_closure t)) && not closure ->
       H.declare_function ~c_linkage cname t
   | typ ->
       let lltyp = T.get_lltype_def typ in

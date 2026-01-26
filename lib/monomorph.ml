@@ -114,6 +114,30 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         print_endline (show_expr e);
         failwith "Unsupported expression for find_function"
 
+  let is_type_polymorphic typ =
+    let rec inner acc = function
+      | Tpoly _ -> true
+      | Trecord (_, Rec_not fs, None) ->
+          Array.fold_left (fun acc f -> inner acc f.ftyp) acc fs
+      | Trecord (ps, _, _) | Tvariant (ps, _, _) -> List.fold_left inner acc ps
+      | Tfun (params, ret, kind) ->
+          let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
+          let acc =
+            match kind with
+            | Simple -> acc
+            | Closure ->
+                (* We might close over polymorphic types. Don't know *)
+                true
+          in
+          inner acc ret
+      | Tbool | Tunit | Tint | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Ti8 | Ti16
+      | Tu32 ->
+          acc
+      | Tfixed_array (i, _) when i < 0 -> true
+      | Traw_ptr t | Tarray t | Tfixed_array (_, t) | Trc (_, t) -> inner acc t
+    in
+    inner false typ
+
   let nominal_name name ~closed ~poly concrete =
     let open Printf in
     let rec aux ?(inner = true) ~poly = function

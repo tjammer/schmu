@@ -37,7 +37,7 @@ and closed = {
 
 and rc_kind = Strong | Weak
 
-val is_type_polymorphic : typ -> bool
+val is_type_polymorphic_no_closure : typ -> bool
 val string_of_type : typ -> string
 
 val is_struct : typ -> bool
@@ -55,3 +55,5 @@ val is_float : typ -> bool
 
 val is_signed : typ -> bool
 (** Only works for ints *)
+
+val extract_params : typ -> string list

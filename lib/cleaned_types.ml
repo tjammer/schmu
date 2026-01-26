@@ -37,7 +37,7 @@ and closed = {
 
 and rc_kind = Strong | Weak
 
-let is_type_polymorphic typ =
+let is_type_polymorphic_no_closure typ =
   let rec inner acc = function
     | Tpoly _ -> true
     | Trecord (_, Rec_not fs, None) ->
@@ -155,3 +155,25 @@ let is_int = function
 
 let is_float = function Tfloat | Tf32 -> true | _ -> false
 let is_signed = function Tint | Ti8 | Ti16 | Ti32 -> true | _ -> false
+
+let extract_params typ =
+  let rec aux acc = function
+    | Tint | Tbool | Tunit | Ti8 | Tu8 | Ti16 | Tu16 | Tfloat | Ti32 | Tu32
+    | Tf32 ->
+        acc
+    | Tpoly str -> if List.mem str acc then acc else str :: acc
+    | Tfun (ps, ret, _) ->
+        List.fold_left (fun acc p -> aux acc p.pt) (aux acc ret) ps
+    | Trecord (ts, _, _) | Tvariant (ts, _, _) -> List.fold_left aux acc ts
+    | Traw_ptr t | Tarray t -> aux acc t
+    | Tfixed_array (i, t) ->
+        let acc =
+          if i < 0 then
+            let id = "fa" ^ string_of_int i in
+            if List.mem id acc then acc else id :: acc
+          else acc
+        in
+        aux acc t
+    | Trc (_, t) -> aux acc t
+  in
+  aux [] typ
