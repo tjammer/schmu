@@ -88,6 +88,7 @@ module type S = sig
   val tail_decr_param : Llvm_types.param -> llvar -> int -> bool -> unit
   val tail_return : Llvm_types.param -> param list -> int -> unit
   val follow_field : llvar -> int -> llvar
+  val closures : (string, closed list * bool ref) Hashtbl.t
 end
 
 module Make
@@ -109,6 +110,7 @@ struct
   let string_tbl = Strtbl.create 64
   let src_tbl = Hashtbl.create 64
   let in_init = ref false
+  let closures : (string, closed list * bool ref) Hashtbl.t = Hashtbl.create 512
 
   let dummy_fn_value =
     (* When we need something in the env for a function which will only be called
@@ -348,7 +350,7 @@ struct
 
   let no_prealloc = Monomorph_tree.(ref (Request { id = -1; lvl = -1 }))
 
-  let gen_closure_obj param assoc func name allocref upward =
+  let rec gen_closure_obj param assoc func name allocref upward =
     let clsr_struct = get_prealloc !allocref param closure_t name in
 
     (* Add function ptr *)
@@ -367,9 +369,11 @@ struct
                 (* Copied from gen_var. Not all closures might be created yet *)
                 match (v.kind, v.typ) with
                 | Imm, Tfun (_, _, Closure) ->
-                    failwith "this case. Don't know the closure env"
-                    (* gen_closure_obj param assoc v "monoclstmp" no_prealloc *)
-                    (*   upward *)
+                    let assoc, _unused_upward =
+                      Hashtbl.find closures cl.clname
+                    in
+                    gen_closure_obj param assoc v "monoclstmp" no_prealloc
+                      upward
                 | _ -> v)
             | None ->
                 Llvm.dump_module the_module;
@@ -670,8 +674,8 @@ struct
         (* Monomorphized functions are not yet converted to closures *)
         match (func.kind, func.typ) with
         | Imm, Tfun (_, _, Closure) ->
-            failwith "monoclstmp again"
-            (* gen_closure_obj param assoc func "monoclstmp" no_prealloc !upward *)
+            let assoc, upward = Hashtbl.find closures name in
+            gen_closure_obj param assoc func "monoclstmp" no_prealloc !upward
         | _ -> func)
     | Concrete name -> Vars.find name param.vars
     | Recursive name -> Vars.find name.call param.vars

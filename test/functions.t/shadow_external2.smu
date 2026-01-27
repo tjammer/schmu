@@ -1,7 +1,3 @@
--- functor nested(m : hashtbl/key) {
---   module tbl = hashtbl/make(m)
--- }
-
 external schmu_addint : fun (int, int) -> int
 
 fun addint(a, b) {

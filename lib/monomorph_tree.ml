@@ -142,9 +142,12 @@ let extract_callname default p expr =
   | Builtin _ | Inline _ ->
       failwith "Internal error: Builtin or inline function captured in closure"
   | Mutual_rec _ -> failwith "TODO mutual rec"
-  | Forward_decl (name, typ, _, _) ->
+  | Forward_decl (name, typ, _) ->
       (* Indirectly recursive functions live in the closure env *)
-      if is_actually_recursive p typ name then name else default
+      if is_actually_recursive p typ name then name.call
+      else (
+        Fmt.pr "is not actually recursive %s, would be %s@." default name.call;
+        default)
   | Polymorphic (call, _) -> call
   | Concrete (func, _, _) -> func.name.call
   | No_function -> default
@@ -476,7 +479,7 @@ let set_tailrec p name =
 let set_upward = function
   | Concrete (_, _, upward)
   | Polymorphic (_, upward)
-  | Forward_decl (_, _, upward, _)
+  | Forward_decl (_, _, upward)
   | Mutual_rec (_, _, upward) ->
       upward := true
   | No_function | Builtin _ | Inline _ -> ()
@@ -1018,6 +1021,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
   let username =
     reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule usrname
   in
+  let name = { user = username; call } in
 
   let recursive = if abs.is_rec then Rnormal else Rnone in
   let recp =
@@ -1043,10 +1047,9 @@ and prep_func p func_loc (usrname, uniq, abs) =
 
   (* Add moved closed variables *)
   let closed = closed_of_touched recp abs.func.touched in
-  (* assert ((not (Hashtbl.mem polyschemes_tbl call)) || not p.gen_poly_bodies); *)
   let poly_params = collect_poly_params ftyp closed in
-  Format.printf "closure params of %s: [%s]@." username
-    (String.concat ", " (Sset.to_list poly_params));
+  (* Format.printf "closure params of %s: [%s]@." username *)
+  (*   (String.concat ", " (Sset.to_list poly_params)); *)
   Hashtbl.add polyschemes_tbl call (ftyp, poly_params);
   let is_polymorphic = not (Sset.is_empty poly_params) in
 
@@ -1055,17 +1058,6 @@ and prep_func p func_loc (usrname, uniq, abs) =
     then true
     else false
   in
-
-  Format.printf "ps: (%s) -> %s@."
-    (String.concat ", " (List.map Types.show_param abs.func.tparams))
-    (Types.show_typ abs.func.ret);
-  Format.printf "pseudo-closed: %s @."
-    (String.concat ", "
-       (List.filter_map
-          (fun (touched : Typed_tree.touched) ->
-            if touched.tcaptured then Some (Types.show_typ touched.ttyp)
-            else None)
-          abs.func.touched));
 
   if (not p.gen_poly_bodies) && is_polymorphic then (
     let fn = Polymorphic (call, upward) in
@@ -1102,7 +1094,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
       in
       (* TODO make it impossible to recursively call an inline function *)
       let value =
-        { no_var with fn = Forward_decl (call, ftyp, upward, closed); alloc }
+        { no_var with fn = Forward_decl (name, ftyp, upward); alloc }
       in
       let vars =
         if abs.is_rec then Vars.add username (Normal value) p.vars else p.vars
@@ -1155,7 +1147,6 @@ and prep_func p func_loc (usrname, uniq, abs) =
     let recursive = pop_recursion_stack temp_p in
 
     let abs = { func; pnames; body } in
-    let name = { user = username; call } in
     let gen_func = { abs; name; recursive; upward; monomorphized; func_loc } in
 
     let p =
@@ -1177,6 +1168,7 @@ and prep_func p func_loc (usrname, uniq, abs) =
         let vars =
           Vars.add username (Normal { no_var with fn; alloc }) p.vars
         in
+        Functbl.add generate_funcs_tbl gen_func ();
         { p with vars }
     in
     (p, (call, func.closed, ftyp, alloca, upward))
@@ -1294,7 +1286,9 @@ and morph_lambda mk typ p func_loc id abs =
         let vars = Vars.add name (Normal { no_var with fn }) p.vars in
         Hashtbl.add poly_funcs_tbl name gen_func;
         ({ p with vars }, Polymorphic (name, upward)))
-      else (p, Concrete (gen_func, name, upward))
+      else (
+        Functbl.add generate_funcs_tbl gen_func ();
+        (p, Concrete (gen_func, name, upward)))
     in
 
     (* Save fake env with call name for monomorphization *)

@@ -189,8 +189,11 @@ module Make (C : Map_tree) = struct
     let sub, touched =
       List.fold_left_map
         (fun sub t ->
+          (* For touched things, map both type and mname. We could refer to
+             something in a functor which now lives in a concrete module. *)
           let sub, ttyp = C.map_type ~mname sub Typed_tree.(t.ttyp) in
-          (sub, { t with ttyp }))
+          let _, tmname = C.change_var ~mname t.tname t.tmname sub in
+          (sub, { t with ttyp; tmname }))
         sub abs.func.touched
     in
     let func =

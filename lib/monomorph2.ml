@@ -23,11 +23,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     (* TODO use a prefix *)
     | Concrete of To_gen_func.t * string * upward
     | Polymorphic of string * upward (* call name *)
-    | Forward_decl of
-        string
-        * typ
-        * upward
-        * closed list (* TODO don't need closed list anymore *)
+    | Forward_decl of func_name * typ * upward
     | Mutual_rec of string * typ * upward
     | Builtin of Builtin.t
     | Inline of (string * Mod_id.t) list * typ * monod_tree
@@ -116,13 +112,13 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     let suffix =
       Sset.fold
         (fun id acc ->
-          Format.printf "looking for id %s@." id;
           let ty = Vars.find id subst in
           (match ty with Tpoly _ -> assert false | _ -> ());
           acc ^ ty_name ty)
         scheme ""
     in
-    name ^ "_" ^ suffix
+    let name = name ^ "_" ^ suffix in
+    if String.starts_with ~prefix:"__" name then name else "__" ^ name
 
   let collect_poly_params typ closed =
     let oftyp params t =
@@ -138,7 +134,6 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
             oftyp params t
         | Tfun _ ->
             (* Get it from our polyschemes tbl *)
-            print_endline c.clname;
             Sset.union params (Hashtbl.find polyschemes_tbl c.clname |> snd)
         | t -> oftyp params t)
       (oftyp Sset.empty typ) closed
@@ -182,31 +177,28 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         failwith "Unsupported expression for find_function"
 
   let is_actually_recursive p typ name =
-    match (p.recursion_stack, typ) with
-    | (call, _) :: _, _ when String.equal call name -> true
-    | _, Tfun (_, _, Closure) ->
-        (* We are not actually recursive but in an inner function. Generate a
-           non-mono call *)
-        false
-    | _ -> true
-
-  let extract_callname p expr =
-    match find_function_expr p.vars expr with
-    | Builtin _ | Inline _ ->
-        failwith
-          "Internal error: Builtin or inline function captured in closure"
-    | Mutual_rec _ -> failwith "TODO mutual rec"
-    | Forward_decl (name, typ, _, _) ->
-        (* Indirectly recursive functions live in the closure env *)
-        if is_actually_recursive p typ name then Some name else None
-    | Polymorphic (call, _) -> Some call
-    | Concrete (func, _, _) -> Some func.name.call
-    | No_function -> None
+    let rec aux stack =
+      (* Experiment: Find the correct recursive call name by walking the call
+         stack *)
+      match (stack, typ) with
+      | (call, _) :: _, _
+        when String.equal call name.call || String.equal call name.user ->
+          true
+      | _ :: tail, Tfun (_, _, Closure) ->
+          (* We are not actually recursive but in an inner function. Generate a
+             non-mono call *)
+          (* Try to walk the call stack *)
+          aux tail
+      | [], Tfun (_, _, Closure) -> false
+      | _ -> true
+    in
+    aux p.recursion_stack
 
   let subst_ty subst ty =
     let rec aux = function
       | Tpoly id ->
           (* subst was built from polyschemes, everything can be substituted *)
+          (* Fmt.pr "try to find %s@." id; *)
           Vars.find id subst
       | Tfun (ps, r, k) ->
           Tfun (List.map (fun p -> { p with pt = aux p.pt }) ps, aux r, k)
@@ -293,175 +285,12 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     | Tfun (params, ret, Closure) -> { params; ret; closed }
     | _ -> failwith "Internal Error: Not a function type"
 
-  let rec monomorph_call p expr subst : call_name =
-    match find_function_expr p.vars expr.expr with
-    | Builtin b -> Builtin (b, func_of_typ [] expr.typ)
-    | Inline _ -> failwith "unused"
-    | Forward_decl (callname, typ, _, _) ->
-        (* Generate the correct call name. If its mono, we have to recalculate it.
-           Closures are tricky, as the arguments are generally not closures, but
-           the typ might. We try to subst the (potential) closure by using the
-           subst if its available. *)
-        if is_actually_recursive p typ callname then
-          let scheme = Hashtbl.find polyschemes_tbl callname |> snd in
-          let call = construct_mono_name callname scheme subst in
-          Recursive { nonmono = callname; call }
-        else
-          (* The inner function which is indirectly recursive closes over this
-             one. Just get it from the env *)
-          Default
-    | Mutual_rec (callname, _, upward) ->
-        (* Is the scheme forward-declared as well? Probably not. Fix this later *)
-        let scheme = Hashtbl.find polyschemes_tbl callname |> snd in
-        let call = construct_mono_name callname scheme subst in
-        (* Could this not be Concrete? *)
-        (* The function doesn't exist yet, will it ever exist? *)
-        if not (Hashtbl.mem missing_polys_tbl call) then
-          Hashtbl.add missing_polys_tbl call (p, expr.typ);
-        Mono (call, upward)
-    | Concrete (func, _username, _) -> Concrete func.name.call
-    | Polymorphic (callname, _) ->
-        let func = get_poly_func callname in
-        do_monomorphize func subst
-    | No_function -> Default
-
-  and do_monomorphize func subst =
-    let typ, scheme = Hashtbl.find polyschemes_tbl func.name.call in
-    let callname = construct_mono_name func.name.call scheme subst in
-
-    if Hashtbl.mem monomorphed_tbl callname then Mono (callname, func.upward)
-    else
-      let typ = subst_ty subst typ in
-      let body = subst_body subst func.abs.body in
-      let closed = subst_closed subst func.abs.func.closed in
-      let fnc = { (func_of_typ closed typ) with closed } in
-      let name = { func.name with call = callname } in
-      let abs = { func.abs with func = fnc; body } in
-      let monomorphized = true in
-      Functbl.add generate_funcs_tbl { func with abs; name; monomorphized } ();
-      Hashtbl.add monomorphed_tbl callname ();
-      Mono (callname, func.upward)
-
-  and subst_body subst body =
-    let rec aux tree =
-      let t = { tree with typ = subst_ty subst tree.typ } in
-      match tree.expr with
-      | Mvar (_, _, None) -> t
-      | Mvar (id, _, Some mid) as var ->
-          let old_p =
-            match Hashtbl.find_opt param_tbl (string_of_int mid) with
-            | Some p -> p
-            | None -> failwith "Internal Error: No old param"
-          in
-          let expr =
-            match monomorph_call old_p t subst with
-            | Default | Builtin _ | Inline _ -> var
-            | Concrete name -> Mvar (name, Vnorm, None)
-            | Recursive r -> Mvar (id, Vrecursive r.call, None)
-            | Mono (name, upward) -> Mvar (name, Vmono !upward, None)
-          in
-          { t with expr }
-      | Mconst (Array (es, a, i)) ->
-          { t with expr = Mconst (Array (List.map aux es, a, i)) }
-      | Mconst (Fixed_array (es, a, i)) ->
-          { t with expr = Mconst (Fixed_array (List.map aux es, a, i)) }
-      | Mconst _ -> t
-      | Mbop (bop, l, r) -> { t with expr = Mbop (bop, aux l, aux r) }
-      | Munop (unop, e) -> { t with expr = Munop (unop, aux e) }
-      | Mif expr ->
-          let cond = aux expr.cond in
-          let e1 = aux expr.e1 in
-          let e2 = aux expr.e2 in
-          { t with expr = Mif { expr with cond; e1; e2 } }
-      | Mlet (id, expr, proj, gn, vid, cont) ->
-          let expr = aux expr in
-          let cont = aux cont in
-          { t with expr = Mlet (id, expr, proj, gn, vid, cont) }
-      | Mbind (id, lhs, cont) ->
-          let lhs = aux lhs in
-          let cont = aux cont in
-          { t with expr = Mbind (id, lhs, cont) }
-      | Mlambda (name, closed, typ, alloca, upward) ->
-          let typ = subst_ty subst typ and closed = subst_closed subst closed in
-          (* We may have to monomorphize. For instance if the lambda returned from
-               a polymorphic function *)
-          let old_p =
-            match Hashtbl.find_opt param_tbl name with
-            | Some p -> p
-            | None -> failwith "Internal Error: No param in lambda"
-          in
-          let name =
-            match monomorph_call old_p t subst with
-            | Mono (name, _) -> name
-            | _ -> name
-          in
-          { t with expr = Mlambda (name, closed, typ, alloca, upward) }
-      | Mfunction (name, closed, typ, cont, alloca, upward) ->
-          let typ = subst_ty subst typ and closed = subst_closed subst closed in
-          let old_p =
-            match Hashtbl.find_opt param_tbl name with
-            | Some p -> p
-            | None -> failwith "Internal Error: No param in function"
-          in
-          let name =
-            match monomorph_call old_p t subst with
-            | Mono (name, _) -> name
-            | _ -> name
-          in
-          let cont = aux cont in
-          { t with expr = Mfunction (name, closed, typ, cont, alloca, upward) }
-      | Mapp { callee; args; alloca; id; ms } ->
-          (* TODO there's room for saving here. Maybe the call is already mono? *)
-          let ex = aux callee.ex in
-
-          let old_p =
-            match Hashtbl.find_opt param_tbl (string_of_int id) with
-            | Some p -> p
-            | None -> failwith "Internal Error: No param in function"
-          in
-
-          let monomorph = monomorph_call old_p ex subst in
-          let callee = { callee with ex; monomorph } in
-
-          let args =
-            List.map
-              (fun (arg, a) ->
-                let ex = aux arg.ex in
-                let monomorph = monomorph_call old_p ex subst in
-                ({ arg with ex; monomorph }, a))
-              args
-          in
-
-          {
-            t with
-            typ = (* substituted return type *) callee.ex.typ;
-            expr = Mapp { callee; args; alloca; id; ms };
-          }
-      | Mrecord (labels, alloca, id) ->
-          let labels = List.map (fun (name, expr) -> (name, aux expr)) labels in
-          { t with expr = Mrecord (labels, alloca, id) }
-      | Mctor ((var, index, expr), alloca, id) ->
-          let expr = Mctor ((var, index, Option.map aux expr), alloca, id) in
-          { t with expr }
-      | Mfield (expr, index) -> { t with expr = Mfield (aux expr, index) }
-      | Mvar_index expr -> { t with expr = Mvar_index (aux expr) }
-      | Mvar_data (expr, mid) -> { t with expr = Mvar_data (aux expr, mid) }
-      | Mset (expr, value, moved) ->
-          { t with expr = Mset (aux expr, aux value, moved) }
-      | Mseq (expr, cont) -> { t with expr = Mseq (aux expr, aux cont) }
-      | Mfree_after (expr, fs) -> { t with expr = Mfree_after (aux expr, fs) }
-    in
-
-    aux body
-
   let build_subst ~poly ~typ =
     let rec inner subst = function
       | Tpoly id, t -> (
           match Vars.find_opt id subst with
           | Some _ -> (* Already in subst *) subst
-          | None ->
-              Format.printf "add subst: %s as %s@." id (show_typ t);
-              Vars.add id t subst)
+          | None -> Vars.add id t subst)
       | Tfun (ps1, r1, _), Tfun (ps2, r2, _) ->
           let subst =
             List.fold_left
@@ -545,18 +374,257 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     in
     inner Vars.empty (poly, typ)
 
+  let subst_scheme scheme subst =
+    Sset.filter
+      (fun id ->
+        match Vars.find_opt id subst with
+        | Some t -> (
+            (* Ensure our substituted type is not polymorphic itself *)
+            match extract_params t with
+            | [] ->
+                (* We throw out every concrete type *)
+                false
+            | _ -> true)
+        | None ->
+            (* Cannot find substitute for this parameter, don't filter *)
+            true)
+      scheme
+
+  let rec monomorph_call p expr subst : call_name =
+    match find_function_expr p.vars expr.expr with
+    | Builtin b -> Builtin (b, func_of_typ [] expr.typ)
+    | Inline _ -> failwith "unused"
+    | Forward_decl (name, typ, _) ->
+        (* Generate the correct call name. If its mono, we have to recalculate it.
+           Closures are tricky, as the arguments are generally not closures, but
+           the typ might. We try to subst the (potential) closure by using the
+           subst if its available. *)
+        if is_actually_recursive p typ name then
+          let scheme = Hashtbl.find polyschemes_tbl name.call |> snd in
+          if Sset.is_empty scheme then
+            (* Not monomorphized, use callname *)
+            Recursive { nonmono = name.call; call = name.call }
+          else
+            let call = construct_mono_name name.call scheme subst in
+            Recursive { nonmono = name.call; call }
+        else
+          (* The inner function which is indirectly recursive closes over this
+             one. Just get it from the env *)
+          failwith "still" (* Default *)
+    | Mutual_rec (callname, _, upward) ->
+        (* Is the scheme forward-declared as well? Probably not. Fix this later *)
+        let scheme = Hashtbl.find polyschemes_tbl callname |> snd in
+        let call = construct_mono_name callname scheme subst in
+        (* Could this not be Concrete? *)
+        (* The function doesn't exist yet, will it ever exist? *)
+        if not (Hashtbl.mem missing_polys_tbl call) then
+          Hashtbl.add missing_polys_tbl call (p, expr.typ);
+        Mono (call, upward)
+    | Concrete (func, _username, _) -> Concrete func.name.call
+    | Polymorphic (callname, _) ->
+        (* Our subst is formulated in terms of the parent call in
+           monomorphize_call. Build a new subst for this call (using the
+           concrete type) and merge it with the parent subst *)
+        let poly = Hashtbl.find polyschemes_tbl callname |> fst in
+        let child_subst = build_subst ~poly ~typ:expr.typ in
+        let subst =
+          Vars.merge
+            (fun _ l r ->
+              match (l, r) with
+              | Some _, None -> l
+              | None, Some _ -> r
+              | None, None -> None
+              | Some l, Some r ->
+                  assert (String.equal (string_of_type l) (string_of_type r));
+                  (* Prefer parent? *)
+                  Some l)
+            subst child_subst
+        in
+        (* Fmt.pr "new subst@."; *)
+        (* Vars.iter (fun id ty -> Fmt.pr "%s is %a@." id pp_typ ty) subst; *)
+        let func = get_poly_func callname in
+        (* Fmt.pr "got poly func@."; *)
+        (* Fmt.pr "new subst@."; *)
+        (* Vars.iter (fun id ty -> Fmt.pr "%s is %a@." id pp_typ ty) subst; *)
+        (* Fmt.pr "compare before dopoly: %a\n%!vs\n%a@." pp_typ poly pp_typ *)
+        (*   expr.typ; *)
+        do_monomorphize p func subst
+    | No_function -> Default
+
+  and do_monomorphize p func subst =
+    let typ, scheme = Hashtbl.find polyschemes_tbl func.name.call in
+    let callname = construct_mono_name func.name.call scheme subst in
+
+    if Hashtbl.mem monomorphed_tbl callname then Mono (callname, func.upward)
+    else
+      (* let () = Fmt.pr "subst for %s: %a@." callname pp_typ typ in *)
+      (* Vars.iter (fun id ty -> Fmt.pr "%s is %a@." id pp_typ ty) subst; *)
+      let typ = subst_ty subst typ in
+
+      (* Fmt.pr "body: %a@." pp_monod_tree func.abs.body; *)
+      let body = subst_body p subst func.abs.body in
+      let closed = subst_closed subst func.abs.func.closed in
+      let fnc = { (func_of_typ closed typ) with closed } in
+      let name = { func.name with call = callname } in
+      let abs = { func.abs with func = fnc; body } in
+      let monomorphized = true in
+      Functbl.add generate_funcs_tbl { func with abs; name; monomorphized } ();
+      Hashtbl.add monomorphed_tbl callname ();
+      Mono (callname, func.upward)
+
+  and subst_body p subst body =
+    let rec aux tree =
+      let t = { tree with typ = subst_ty subst tree.typ } in
+      match tree.expr with
+      | Mvar (_, _, None) -> t
+      | Mvar (id, _, Some mid) as var ->
+          let old_p =
+            match Hashtbl.find_opt param_tbl (string_of_int mid) with
+            | Some p -> p
+            | None -> failwith "Internal Error: No old param"
+          in
+          let expr =
+            (* Fmt.pr "in var@."; *)
+            match monomorph_call old_p t subst with
+            | Default | Builtin _ | Inline _ -> var
+            | Concrete name -> Mvar (name, Vnorm, None)
+            | Recursive r -> Mvar (id, Vrecursive r.call, None)
+            | Mono (name, upward) -> Mvar (name, Vmono !upward, None)
+          in
+          { t with expr }
+      | Mconst (Array (es, a, i)) ->
+          { t with expr = Mconst (Array (List.map aux es, a, i)) }
+      | Mconst (Fixed_array (es, a, i)) ->
+          { t with expr = Mconst (Fixed_array (List.map aux es, a, i)) }
+      | Mconst _ -> t
+      | Mbop (bop, l, r) -> { t with expr = Mbop (bop, aux l, aux r) }
+      | Munop (unop, e) -> { t with expr = Munop (unop, aux e) }
+      | Mif expr ->
+          let cond = aux expr.cond in
+          let e1 = aux expr.e1 in
+          let e2 = aux expr.e2 in
+          { t with expr = Mif { expr with cond; e1; e2 } }
+      | Mlet (id, expr, proj, gn, vid, cont) ->
+          let expr = aux expr in
+          let cont = aux cont in
+          { t with expr = Mlet (id, expr, proj, gn, vid, cont) }
+      | Mbind (id, lhs, cont) ->
+          let lhs = aux lhs in
+          let cont = aux cont in
+          { t with expr = Mbind (id, lhs, cont) }
+      | Mlambda (name, closed, typ, alloca, upward) ->
+          let typ = subst_ty subst typ and closed = subst_closed subst closed in
+          (* We may have to monomorphize. For instance if the lambda returned from
+               a polymorphic function *)
+          let old_p =
+            match Hashtbl.find_opt param_tbl name with
+            | Some p -> p
+            | None -> failwith "Internal Error: No param in lambda"
+          in
+          let name =
+            (* Fmt.pr "in lambda@."; *)
+            match monomorph_call old_p t subst with
+            | Mono (name, _) -> name
+            | _ -> name
+          in
+          { t with expr = Mlambda (name, closed, typ, alloca, upward) }
+      | Mfunction (name, closed, typ, cont, alloca, upward) ->
+          (* This function can define its own poly types which are not capture
+             by subst. In this case, we don't do anything and wait for it to be
+             called with a concrete type. *)
+          let scheme = Hashtbl.find polyschemes_tbl name |> snd in
+
+          if Sset.is_empty scheme then
+            (* This function is monomorphic, no need to do anything *)
+            let cont = aux cont in
+            {
+              t with
+              expr = Mfunction (name, closed, typ, cont, alloca, upward);
+            }
+          else
+            (* Check if we can monomorphize with current subst *)
+            let subst_scheme = subst_scheme scheme subst in
+            if Sset.is_empty subst_scheme then
+              let typ = subst_ty subst typ
+              and closed = subst_closed subst closed in
+
+              (* Treat it as a poly func *)
+              let func = get_poly_func name in
+              (* Fmt.pr "this case@."; *)
+              let name =
+                match do_monomorphize p func subst with
+                | Mono (call, _) -> call
+                | Concrete name -> name
+                | _ -> failwith "Internal Error: What else"
+              in
+              let cont = aux cont in
+              {
+                t with
+                expr = Mfunction (name, closed, typ, cont, alloca, upward);
+              }
+            else
+              (* Return as is *)
+              let cont = aux cont in
+              {
+                t with
+                expr = Mfunction (name, closed, typ, cont, alloca, upward);
+              }
+      | Mapp { callee; args; alloca; id; ms } ->
+          (* TODO there's room for saving here. Maybe the call is already mono? *)
+          let ex = aux callee.ex in
+
+          let old_p =
+            match Hashtbl.find_opt param_tbl (string_of_int id) with
+            | Some p -> p
+            | None ->
+                print_endline (show_expr callee.ex.expr);
+                failwith "Internal Error: No param in function"
+          in
+          (* Fmt.pr "in app@."; *)
+          let monomorph = monomorph_call old_p ex subst in
+          let callee = { callee with ex; monomorph } in
+
+          let args =
+            List.map
+              (fun (arg, a) ->
+                let ex = aux arg.ex in
+                (* Fmt.pr "in arg@."; *)
+                let monomorph = monomorph_call old_p ex subst in
+                ({ arg with ex; monomorph }, a))
+              args
+          in
+          { t with expr = Mapp { callee; args; alloca; id; ms } }
+      | Mrecord (labels, alloca, id) ->
+          let labels = List.map (fun (name, expr) -> (name, aux expr)) labels in
+          { t with expr = Mrecord (labels, alloca, id) }
+      | Mctor ((var, index, expr), alloca, id) ->
+          let expr = Mctor ((var, index, Option.map aux expr), alloca, id) in
+          { t with expr }
+      | Mfield (expr, index) -> { t with expr = Mfield (aux expr, index) }
+      | Mvar_index expr -> { t with expr = Mvar_index (aux expr) }
+      | Mvar_data (expr, mid) -> { t with expr = Mvar_data (aux expr, mid) }
+      | Mset (expr, value, moved) ->
+          { t with expr = Mset (aux expr, aux value, moved) }
+      | Mseq (expr, cont) -> { t with expr = Mseq (aux expr, aux cont) }
+      | Mfree_after (expr, fs) -> { t with expr = Mfree_after (aux expr, fs) }
+    in
+
+    aux body
+
   (* This is the entry point from monomorph_tree *)
   let monomorphize_call p ex =
     (* find callname, inlined from extract_callname *)
+    (* Fmt.pr "monoize call %a@." pp_monod_tree ex; *)
     let callname =
       match find_function_expr p.vars ex.expr with
       | Builtin b -> Some (`Builtin (b, func_of_typ [] ex.typ))
       | Inline _ -> None
       | No_function -> None
       | Mutual_rec _ -> failwith "TODO mutual rec"
-      | Forward_decl (name, typ, _, _) ->
+      | Forward_decl (name, typ, _) ->
           (* Indirectly recursive functions live in the closure env *)
-          if is_actually_recursive p typ name then Some (`Poly name) else None
+          if is_actually_recursive p typ name then Some (`Poly name.call)
+          else None
       | Polymorphic (call, _) -> Some (`Poly call)
       | Concrete (func, _, _) -> Some (`Concrete func.name.call)
     in
@@ -566,37 +634,17 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     | Some (`Builtin (b, f)) -> Builtin (b, f)
     | Some (`Poly callname) ->
         let poly, scheme = Hashtbl.find polyschemes_tbl callname in
-        Format.printf "scheme of %s: [%s]@." callname
-          (String.concat ", " (Sset.to_list scheme));
         let subst =
           (* Compare type of expression with polymorphic type  *)
           build_subst ~poly ~typ:ex.typ
         in
-        Format.printf "compare:\n%s\nvs\n%s\n@." (show_typ poly)
-          (show_typ ex.typ);
-        let subst_scheme =
-          Sset.filter
-            (fun id ->
-              match Vars.find_opt id subst with
-              | Some t -> (
-                  (* Ensure our substituted type is not polymorphic itself *)
-                  Format.printf "found for %s: %s@." id (show_typ t);
-                  match extract_params t with
-                  | [] ->
-                      (* We throw out every concrete type *)
-                      true
-                  | _ -> false)
-              | None ->
-                  (* I guess we're not monomorphizing right now *)
-                  true)
-            scheme
-        in
+        (* Fmt.pr "poly: %a\n%!vs\n%a@." pp_typ poly pp_typ ex.typ; *)
+        (* Vars.iter (fun id ty -> Fmt.pr "%s is %a@." id pp_typ ty) subst; *)
+        let subst_scheme = subst_scheme scheme subst in
+        (* let () = Fmt.pr "do %b@." (Sset.is_empty subst_scheme) in *)
         if Sset.is_empty subst_scheme then
           (* We found a concrete type, monomorph the body *)
-          let _ =
-            Format.printf "monomorphing %s with %s@." (show_typ poly)
-              (show_typ ex.typ)
-          in
+          (* let () = Fmt.pr "in monoize@." in *)
           monomorph_call p ex subst
         else Default
 end

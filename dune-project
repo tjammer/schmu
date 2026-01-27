@@ -35,6 +35,7 @@
    (>= v0.15.0))
   (ppx_sexp_conv
    (>= v0.15.0))
+  fmt
   (ocaml-lsp-server :with-dev-setup)
   (ocamlformat
    (and

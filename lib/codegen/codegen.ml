@@ -1634,6 +1634,9 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
           let typ = Monomorph_tree.typ_of_abs func.abs in
           let fnc = H.declare_function ~c_linkage:false func.name.call typ in
 
+          (* Add closure list to global table *)
+          Hashtbl.add H.closures func.name.call
+            (func.abs.func.closed, func.upward);
           (* Add to the normal variable environment *)
           Vars.add func.name.call fnc acc)
         Vars.empty funcs

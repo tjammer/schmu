@@ -12,7 +12,8 @@
   menhirLib
   sexplib0
   csexp
-  unix)
+  unix
+  fmt)
  (foreign_archives byval))
 
 (rule
