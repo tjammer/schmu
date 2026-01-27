@@ -155,7 +155,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         if is_polymorphic t then Some (Path.Pid "array#?", 1) else None
     | Tvar { contents = Link t } -> is_quantified t
     | Tfun _ as t -> (
-        let ts = get_generic_ids t in
+        let ts = get_generic_ids ~fixed:false t in
         match ts with [] -> None | ts -> Some (Path.Pid "fun", List.length ts))
     | _ -> None
   in
@@ -164,7 +164,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
     | Ast.Ty_id (loc, "array#?") ->
         if not in_list then
           raise (Error (loc, "Type array#? expects 1 type parameter"));
-        Tfixed_array (ref (Generalized "u"), Qvar "o")
+        Tfixed_array (ref (Generalized (gensym ())), Qvar "o")
     | Ty_id (loc, id) when String.starts_with ~prefix:"array#" id ->
         let size = String.sub id 6 (String.length id - 6) |> int_of_string in
         if not in_list then
@@ -201,7 +201,7 @@ let typeof_annot ?(typedef = false) ?(param = false) env loc annot =
         match is_quantified t with
         | Some (name, n) -> (
             try
-              match get_generic_ids t with
+              match get_generic_ids ~fixed:false t with
               | [] ->
                   let msg =
                     "Expected a parametrized type, not "
@@ -1602,17 +1602,19 @@ let rec catch_weak_vars env = function
 
 and catch_weak_body env sub abs =
   (* Allow the types present in the function signature *)
-  let ret = get_generic_ids abs.func.ret in
+  let ret = get_generic_ids ~fixed:true abs.func.ret in
   let l =
-    List.fold_left (fun s p -> get_generic_ids p.pt @ s) ret abs.func.tparams
+    List.fold_left
+      (fun s p -> get_generic_ids ~fixed:true p.pt @ s)
+      ret abs.func.tparams
   in
   let sub = Sset.union sub (Sset.of_list l) in
   catch_weak_expr env sub abs.body
 
 and catch_weak_expr env sub e =
   let _raise () =
-    (* print_endline (show_expr e.expr); *)
-    (* print_endline (show_typ e.typ); *)
+    print_endline (show_expr e.expr);
+    print_endline (show_typ e.typ);
     raise
       (Error
          ( e.loc,

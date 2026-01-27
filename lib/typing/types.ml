@@ -240,7 +240,8 @@ let rec is_weak ~sub = function
   | Tvar { contents = Unbound (id, _) } -> not (Sset.mem id sub)
   | Ttuple ts | Tconstr (_, ts, _) ->
       List.fold_left (fun b t -> is_weak ~sub t || b) false ts
-  | Tfixed_array ({ contents = Unknown _ }, _) -> true
+  | Tfixed_array ({ contents = Unknown (id, _) }, _) ->
+      not (Sset.mem ("fa" ^ id) sub)
   | Tfixed_array ({ contents = Linked l }, t) ->
       is_weak ~sub (Tfixed_array (l, t))
   | Tfixed_array (_, t) -> is_weak ~sub t
@@ -342,17 +343,24 @@ let rec subst_generic ~id typ = function
   | Tfixed_array (i, t) -> Tfixed_array (i, subst_generic ~id typ t)
   | t -> t
 
-let rec get_generic_ids = function
+let rec get_generic_ids ~fixed = function
   | Qvar id | Tvar { contents = Unbound (id, _) } -> [ id ]
-  | Tconstr (_, ts, _) | Ttuple ts -> List.map get_generic_ids ts |> List.concat
-  | Tvar { contents = Link t } -> get_generic_ids t
-  | Tfixed_array (_, t) -> get_generic_ids t
+  | Tconstr (_, ts, _) | Ttuple ts ->
+      List.map (get_generic_ids ~fixed) ts |> List.concat
+  | Tvar { contents = Link t } -> get_generic_ids ~fixed t
+  | Tfixed_array ({ contents = Linked size }, t) ->
+      get_generic_ids ~fixed (Tfixed_array (size, t))
+  | Tfixed_array ({ contents = Unknown (id, _) | Generalized id }, t) when fixed
+    ->
+      ("fa" ^ id) :: get_generic_ids ~fixed t
+  | Tfixed_array ({ contents = Known _ | Unknown _ | Generalized _ }, t) ->
+      get_generic_ids ~fixed t
   | Tfun (ps, ret, _) ->
       (* Use set to dedup *)
       let s =
         List.fold_left
-          (fun l p -> Sset.union l (Sset.of_list (get_generic_ids p.pt)))
-          (Sset.of_list (get_generic_ids ret))
+          (fun l p -> Sset.union l (Sset.of_list (get_generic_ids ~fixed p.pt)))
+          (Sset.of_list (get_generic_ids ~fixed ret))
           ps
       in
       Sset.to_seq s |> List.of_seq

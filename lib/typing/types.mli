@@ -97,7 +97,7 @@ val add_closure_copy : closed list -> string -> closed list option
 val is_clike_variant : ctor array -> bool
 val is_unbound : typ -> (string * int) option
 val subst_generic : id:string -> typ -> typ -> typ
-val get_generic_ids : typ -> string list
+val get_generic_ids : fixed:bool -> typ -> string list
 val map_params : inst:typ list -> params:typ list -> typ Smap.t
 val map_lazy : inst:typ list -> typ Smap.t -> typ -> typ list * typ Smap.t
 val typ_of_decl : type_decl -> Path.t -> typ

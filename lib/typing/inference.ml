@@ -87,11 +87,12 @@ let rec unify recurs t1 t2 =
         Tfixed_array (({ contents = Unknown (id, li) } as tv), r) ) ->
         (* We need to find the minimum level, like in the occurs check *)
         (if not (other == tv) then
-           match !other with
-           | Unknown (_, lvl) -> other := Unknown (id, min lvl li)
-           | _ ->
-               ();
-               tv := Linked other);
+           let () =
+             match !other with
+             | Unknown (_, lvl) -> other := Unknown (id, min lvl li)
+             | _ -> ()
+           in
+           tv := Linked other);
         unify recurs l r
     | ( Tfixed_array ({ contents = Known li }, l),
         Tfixed_array ({ contents = Known ri }, r) ) ->
@@ -134,10 +135,9 @@ let rec generalize = function
       Tfun (List.map gen t1, generalize t2, generalize_closure k)
   | Ttuple ts -> Ttuple (List.map generalize ts)
   | Tconstr (p, ps, ca) -> Tconstr (p, List.map generalize ps, ca)
-  | Tfixed_array (({ contents = Unknown (id, li) } as tv), l)
-    when li > !current_level ->
-      tv := Generalized id;
-      Tfixed_array (tv, generalize l)
+  | Tfixed_array ({ contents = Unknown (id, li) }, t) when li > !current_level
+    ->
+      Tfixed_array (ref (Generalized id), generalize t)
   | Tfixed_array ({ contents = Linked l }, t) ->
       generalize (Tfixed_array (l, t))
   | Tfixed_array (i, t) -> Tfixed_array (i, generalize t)

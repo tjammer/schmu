@@ -3,6 +3,7 @@ open Types
 type err = Ast.loc * string
 
 val reset : unit -> unit
+val gensym : unit -> string
 val newvar : unit -> typ
 val enter_level : unit -> unit
 val leave_level : unit -> unit
