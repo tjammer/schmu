@@ -142,12 +142,11 @@ let extract_callname default p expr =
   | Builtin _ | Inline _ ->
       failwith "Internal error: Builtin or inline function captured in closure"
   | Mutual_rec _ -> failwith "TODO mutual rec"
-  | Forward_decl (name, typ, _) ->
+  | Forward_decl (name, typ, _) -> (
       (* Indirectly recursive functions live in the closure env *)
-      if is_actually_recursive p typ name then name.call
-      else (
-        Fmt.pr "is not actually recursive %s, would be %s@." default name.call;
-        default)
+      match is_actually_recursive p typ name.call with
+      | Some _ -> name.call
+      | None -> default)
   | Polymorphic (call, _) -> call
   | Concrete (func, _, _) -> func.name.call
   | No_function -> default
@@ -1504,10 +1503,10 @@ let rec morph_toplvl param items =
             const = Cnot;
           },
           func )
-    | Tl_bind (id, expr) ->
+    | Tl_bind (id', expr) ->
         let id =
           reconstr_module_username ~mname:param.mname ~mainmod:param.mainmodule
-            id
+            id'
         in
         let p, e1, func = morph_expr { param with ret = false } expr in
         (* top level function aliases *)
@@ -1656,5 +1655,12 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
            (name, typ, toplvl))
   in
 
-  let funcs = Functbl.to_seq generate_funcs_tbl |> Seq.map fst |> List.of_seq in
+  let funcs =
+    Functbl.to_seq generate_funcs_tbl
+    |> Seq.map fst
+    |> List.of_seq
+       (* Sort to not break the unit tests after changing from map to hashtbl.
+          There's no deeper technical reason for sorting *)
+    |> List.sort To_gen_func.compare
+  in
   { constants; globals; externals; tree; funcs; frees }

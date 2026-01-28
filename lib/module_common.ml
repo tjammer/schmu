@@ -75,7 +75,12 @@ let is_polymorphic_func (f : Typed_tree.func) =
   is_polymorphic (Tfun (f.tparams, f.ret, kind))
 
 let type_of_func (func : Typed_tree.func) =
-  let kind = match func.touched with [] -> Simple | _ -> Closure in
+  let captured =
+    List.fold_left
+      (fun acc (t : Typed_tree.touched) -> acc || t.tcaptured)
+      false func.touched
+  in
+  let kind = if captured then Closure else Simple in
   Tfun (func.tparams, func.ret, kind)
 
 let make_fun loc ~mname name uniq (abs : Typed_tree.abstraction) =

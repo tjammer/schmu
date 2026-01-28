@@ -1012,23 +1012,6 @@ let rec fixuplocals = function
 let cond_move typ = if Types.contains_allocation typ then Dmove else Dnorm
 
 let get_closed_usage (touched : touched) =
-  (* let on_move = *)
-  (*   match kind with *)
-  (*   | Closure cls -> ( *)
-  (*       match *)
-  (*         List.find_opt (fun c -> String.equal c.clname touched.tname) cls *)
-  (*       with *)
-  (*       | Some c -> ( *)
-  (*           if c.clcopy then None *)
-  (*           else if c.clmut then Some c *)
-  (*           else *)
-  (*             (\* Move the closed variable into the closure *\) *)
-  (*             match cond_move c.cltyp with Dmove -> Some c | _ -> None) *)
-  (*       | None -> *)
-  (*           (\* Touched bit not closed? Let's read it *\) *)
-  (*           None) *)
-  (*   | Simple -> None *)
-  (* in *)
   let attr =
     match touched.tattr with Dmove -> cond_move touched.ttyp | attr -> attr
   in
