@@ -164,7 +164,18 @@ let extract_params typ =
     | Tpoly str -> if List.mem str acc then acc else str :: acc
     | Tfun (ps, ret, _) ->
         List.fold_left (fun acc p -> aux acc p.pt) (aux acc ret) ps
-    | Trecord (ts, _, _) | Tvariant (ts, _, _) -> List.fold_left aux acc ts
+    | Trecord (ts, (Rec_not fields | Rec_top fields), _) ->
+        (* It's not enough to just look at the type parameters, for instance in
+           tuples *)
+        let acc = List.fold_left aux acc ts in
+        Array.fold_left (fun acc f -> aux acc f.ftyp) acc fields
+    | Tvariant (ts, (Rec_not ctors | Rec_top ctors), _) ->
+        let acc = List.fold_left aux acc ts in
+        Array.fold_left
+          (fun acc ct -> match ct.ctyp with None -> acc | Some t -> aux acc t)
+          acc ctors
+    | Trecord (ts, Rec_folded, _) | Tvariant (ts, Rec_folded, _) ->
+        List.fold_left aux acc ts
     | Traw_ptr t | Tarray t -> aux acc t
     | Tfixed_array (i, t) ->
         let acc =

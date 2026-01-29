@@ -115,7 +115,7 @@ Nested records
   
   declare void @printi(i64 %0)
   
-  define linkonce_odr { i64, i64 } @__fun_schmu0_t.lrt.l(i64 %0, i64 %1) !dbg !2 {
+  define linkonce_odr { i64, i64 } @__fun_schmu0_t.l(i64 %0, i64 %1) !dbg !2 {
   entry:
     %x = alloca { i64, i64 }, align 8
     store i64 %0, ptr %x, align 8
@@ -145,7 +145,7 @@ Nested records
     %snd = getelementptr inbounds { i64, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
     %ret = alloca %t.l, align 8
-    %1 = tail call { i64, i64 } @__fun_schmu0_t.lrt.l(i64 %fst1, i64 %snd2), !dbg !10
+    %1 = tail call { i64, i64 } @__fun_schmu0_t.l(i64 %fst1, i64 %snd2), !dbg !10
     store { i64, i64 } %1, ptr %ret, align 8
     %2 = getelementptr inbounds %t.l, ptr %ret, i32 0, i32 1
     %3 = load i64, ptr %2, align 8
@@ -175,7 +175,7 @@ Pass generic record
   
   declare void @printi(i64 %0)
   
-  define linkonce_odr { i64, i16 } @__schmu_apply__t.brt.bt.brt.b(ptr %f, i64 %0, i16 %1) !dbg !2 {
+  define linkonce_odr { i64, i16 } @__schmu_apply_t.bt.b(ptr %f, i64 %0, i16 %1) !dbg !2 {
   entry:
     %x = alloca { i64, i16 }, align 8
     store i64 %0, ptr %x, align 8
@@ -190,7 +190,7 @@ Pass generic record
     ret { i64, i16 } %2
   }
   
-  define linkonce_odr void @__schmu_apply__t.lrt.lt.lrt.l(ptr noalias %0, ptr %f, ptr %x) !dbg !7 {
+  define linkonce_odr void @__schmu_apply_t.lt.l(ptr noalias %0, ptr %f, ptr %x) !dbg !7 {
   entry:
     %loadtmp = load ptr, ptr %f, align 8
     %envptr = getelementptr inbounds %closure, ptr %f, i32 0, i32 1
@@ -199,7 +199,7 @@ Pass generic record
     ret void
   }
   
-  define linkonce_odr { i64, i16 } @__schmu_pass_t.brt.b(i64 %0, i16 %1) !dbg !9 {
+  define linkonce_odr { i64, i16 } @__schmu_pass_b(i64 %0, i16 %1) !dbg !9 {
   entry:
     %x = alloca { i64, i16 }, align 8
     store i64 %0, ptr %x, align 8
@@ -222,7 +222,7 @@ Pass generic record
     ret { i64, i16 } %unbox
   }
   
-  define linkonce_odr void @__schmu_pass_t.lrt.l(ptr noalias %0, ptr %x) !dbg !10 {
+  define linkonce_odr void @__schmu_pass_l(ptr noalias %0, ptr %x) !dbg !10 {
   entry:
     %1 = alloca %t.l, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %x, i64 24, i1 false)
@@ -245,15 +245,15 @@ Pass generic record
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !11 {
   entry:
     %clstmp = alloca %closure, align 8
-    store ptr @__schmu_pass_t.lrt.l, ptr %clstmp, align 8
+    store ptr @__schmu_pass_l, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
     %ret = alloca %t.l, align 8
-    call void @__schmu_apply__t.lrt.lt.lrt.l(ptr %ret, ptr %clstmp, ptr @schmu_int_t), !dbg !12
+    call void @__schmu_apply_t.lt.l(ptr %ret, ptr %clstmp, ptr @schmu_int_t), !dbg !12
     %0 = load i64, ptr %ret, align 8
     call void @printi(i64 %0), !dbg !13
     %clstmp1 = alloca %closure, align 8
-    store ptr @__schmu_pass_t.brt.b, ptr %clstmp1, align 8
+    store ptr @__schmu_pass_b, ptr %clstmp1, align 8
     %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
     store ptr null, ptr %envptr3, align 8
     %boxconst = alloca %t.b, align 8
@@ -262,7 +262,7 @@ Pass generic record
     %snd = getelementptr inbounds { i64, i16 }, ptr %boxconst, i32 0, i32 1
     %snd5 = load i16, ptr %snd, align 2
     %ret6 = alloca %t.b, align 8
-    %1 = call { i64, i16 } @__schmu_apply__t.brt.bt.brt.b(ptr %clstmp1, i64 %fst4, i16 %snd5), !dbg !14
+    %1 = call { i64, i16 } @__schmu_apply_t.bt.b(ptr %clstmp1, i64 %fst4, i16 %snd5), !dbg !14
     store { i64, i16 } %1, ptr %ret6, align 8
     %2 = load i64, ptr %ret6, align 8
     call void @printi(i64 %2), !dbg !15
@@ -293,7 +293,7 @@ Access parametrized record fields
   
   declare void @printi(i64 %0)
   
-  define linkonce_odr void @__schmu_first_t.l(ptr %any) !dbg !2 {
+  define linkonce_odr void @__schmu_first_l(ptr %any) !dbg !2 {
   entry:
     %0 = getelementptr inbounds %t.l, ptr %any, i32 0, i32 1
     %1 = load i64, ptr %0, align 8
@@ -301,7 +301,7 @@ Access parametrized record fields
     ret void
   }
   
-  define linkonce_odr i64 @__schmu_gen_t.lrl(ptr %any) !dbg !7 {
+  define linkonce_odr i64 @__schmu_gen_l(ptr %any) !dbg !7 {
   entry:
     %0 = getelementptr inbounds %t.l, ptr %any, i32 0, i32 2
     %1 = alloca i64, align 8
@@ -310,7 +310,7 @@ Access parametrized record fields
     ret i64 %2
   }
   
-  define linkonce_odr void @__schmu_is_gen_first.l(i64 %0, i8 %1) !dbg !8 {
+  define linkonce_odr void @__schmu_is_l(i64 %0, i8 %1) !dbg !8 {
   entry:
     %any = alloca { i64, i8 }, align 8
     store i64 %0, ptr %any, align 8
@@ -321,7 +321,7 @@ Access parametrized record fields
     ret void
   }
   
-  define linkonce_odr i64 @__schmu_only_gen_first.lrl(i64 %0, i8 %1) !dbg !10 {
+  define linkonce_odr i64 @__schmu_only_l(i64 %0, i8 %1) !dbg !10 {
   entry:
     %any = alloca { i64, i8 }, align 8
     store i64 %0, ptr %any, align 8
@@ -332,7 +332,7 @@ Access parametrized record fields
     ret i64 %0
   }
   
-  define linkonce_odr void @__schmu_third_t.l(ptr %any) !dbg !11 {
+  define linkonce_odr void @__schmu_third_l(ptr %any) !dbg !11 {
   entry:
     %0 = getelementptr inbounds %t.l, ptr %any, i32 0, i32 3
     %1 = load i1, ptr %0, align 1
@@ -355,14 +355,14 @@ Access parametrized record fields
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !17 {
   entry:
-    tail call void @__schmu_first_t.l(ptr @schmu_int_t), !dbg !18
-    tail call void @__schmu_third_t.l(ptr @schmu_int_t), !dbg !19
-    %0 = tail call i64 @__schmu_gen_t.lrl(ptr @schmu_int_t), !dbg !20
+    tail call void @__schmu_first_l(ptr @schmu_int_t), !dbg !18
+    tail call void @__schmu_third_l(ptr @schmu_int_t), !dbg !19
+    %0 = tail call i64 @__schmu_gen_l(ptr @schmu_int_t), !dbg !20
     tail call void @printi(i64 %0), !dbg !21
     %snd = load i8, ptr getelementptr inbounds ({ i64, i8 }, ptr @schmu_f, i32 0, i32 1), align 1
-    %1 = tail call i64 @__schmu_only_gen_first.lrl(i64 420, i8 %snd), !dbg !22
+    %1 = tail call i64 @__schmu_only_l(i64 420, i8 %snd), !dbg !22
     tail call void @printi(i64 %1), !dbg !23
-    tail call void @__schmu_is_gen_first.l(i64 420, i8 %snd), !dbg !24
+    tail call void @__schmu_is_l(i64 420, i8 %snd), !dbg !24
     ret i64 0
   }
   
@@ -390,7 +390,7 @@ Make sure alignment of generic param works
   
   declare void @printi(i64 %0)
   
-  define linkonce_odr i64 @__schmu_gen_misaligned.lrl(ptr %any) !dbg !2 {
+  define linkonce_odr i64 @__schmu_gen_l(ptr %any) !dbg !2 {
   entry:
     %0 = getelementptr inbounds %misaligned.l, ptr %any, i32 0, i32 1
     %1 = alloca i64, align 8
@@ -401,7 +401,7 @@ Make sure alignment of generic param works
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !6 {
   entry:
-    %0 = tail call i64 @__schmu_gen_misaligned.lrl(ptr @schmu_m), !dbg !7
+    %0 = tail call i64 @__schmu_gen_l(ptr @schmu_m), !dbg !7
     tail call void @printi(i64 %0), !dbg !8
     ret i64 0
   }
@@ -440,7 +440,7 @@ Support function/closure fields
   
   declare void @fmt_fmt_stdout_create(ptr noalias %0)
   
-  define linkonce_odr void @__array_fixed_swap_items_A64.c(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
+  define linkonce_odr void @__array_fixed_swap_items_cA64.u(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
   entry:
     %eq = icmp eq i64 %i, %j
     %0 = xor i1 %eq, true
@@ -461,21 +461,21 @@ Support function/closure fields
     ret void
   }
   
-  define linkonce_odr void @__fmt_endl_fmt.formatter.t.uru(ptr %p) !dbg !7 {
+  define linkonce_odr void @__fmt_endl_u(ptr %p) !dbg !7 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
-    call void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %ret), !dbg !10
+    call void @__fmt_formatter_format_u(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
+    call void @__fmt_formatter_extract_u(ptr %ret), !dbg !10
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %fm) !dbg !11 {
+  define linkonce_odr void @__fmt_formatter_extract_u(ptr %fm) !dbg !11 {
   entry:
     tail call void @__free_except1_fmt.formatter.t.u(ptr %fm)
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
+  define linkonce_odr void @__fmt_formatter_format_u(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
   entry:
     %1 = alloca %fmt.formatter.t.u, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
@@ -487,7 +487,7 @@ Support function/closure fields
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
+  define linkonce_odr void @__fmt_int_base_u(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
   entry:
     %1 = alloca [64 x i8], align 1
     store [64 x i8] zeroinitializer, ptr %1, align 1
@@ -506,7 +506,7 @@ Support function/closure fields
     br i1 %andtmp, label %then, label %else, !dbg !15
   
   then:                                             ; preds = %cont
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
+    call void @__fmt_formatter_format_u(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
     br label %ifcont
   
   else:                                             ; preds = %cont
@@ -538,20 +538,20 @@ Support function/closure fields
     %envptr8 = getelementptr inbounds %closure, ptr %__fun_fmt2, i32 0, i32 1
     store ptr %clsr___fun_fmt2, ptr %envptr8, align 8
     call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !18
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
+    call void @__fmt_formatter_format_u(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
+  define linkonce_odr void @__fmt_int_u(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
   entry:
-    tail call void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
+    tail call void @__fmt_int_base_u(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
     ret void
   }
   
-  define linkonce_odr void @__fmt_stdout_println__ll(ptr %fmt, i64 %value) !dbg !22 {
+  define linkonce_odr void @__fmt_stdout_println_l(ptr %fmt, i64 %value) !dbg !22 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
     call void @fmt_fmt_stdout_create(ptr %ret), !dbg !23
@@ -560,7 +560,7 @@ Support function/closure fields
     %loadtmp1 = load ptr, ptr %envptr, align 8
     %ret2 = alloca %fmt.formatter.t.u, align 8
     call void %loadtmp(ptr %ret2, ptr %ret, i64 %value, ptr %loadtmp1), !dbg !24
-    call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret2), !dbg !25
+    call void @__fmt_endl_u(ptr %ret2), !dbg !25
     ret void
   }
   
@@ -572,7 +572,7 @@ Support function/closure fields
     %_fmt_length2 = load i64, ptr %_fmt_length, align 8
     %sub = sub i64 %_fmt_length2, %i
     %sub3 = sub i64 %sub, 1
-    tail call void @__array_fixed_swap_items_A64.c(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
+    tail call void @__array_fixed_swap_items_cA64.u(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
     ret void
   }
   
@@ -661,23 +661,23 @@ Support function/closure fields
     br i1 %lt, label %then, label %else, !dbg !37
   
   then:                                             ; preds = %rec
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @__fmt_stdout_println__ll(ptr %clstmp, i64 %2), !dbg !38
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %2), !dbg !38
     call void @schmu_advance(ptr %ret, ptr %0), !dbg !39
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %0, ptr align 8 %ret, i64 24, i1 false)
     br label %rec
   
   else:                                             ; preds = %rec
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp1, align 8
+    store ptr @__fmt_int_u, ptr %clstmp1, align 8
     %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
     store ptr null, ptr %envptr3, align 8
-    call void @__fmt_stdout_println__ll(ptr %clstmp1, i64 100), !dbg !40
+    call void @__fmt_stdout_println_l(ptr %clstmp1, i64 100), !dbg !40
     ret void
   }
   
-  define linkonce_odr void @__free__up.clru(ptr %0) {
+  define linkonce_odr void @__free_up.clru(ptr %0) {
   entry:
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     %env = load ptr, ptr %envptr, align 8
@@ -704,7 +704,7 @@ Support function/closure fields
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    tail call void @__free__up.clru(ptr %0)
+    tail call void @__free_up.clru(ptr %0)
     ret void
   }
   

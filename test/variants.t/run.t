@@ -118,7 +118,7 @@ Match option
   
   declare void @fmt_fmt_stdout_create(ptr noalias %0)
   
-  define linkonce_odr void @__array_fixed_swap_items_A64.c(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
+  define linkonce_odr void @__array_fixed_swap_items_cA64.u(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
   entry:
     %eq = icmp eq i64 %i, %j
     %0 = xor i1 %eq, true
@@ -139,21 +139,21 @@ Match option
     ret void
   }
   
-  define linkonce_odr void @__fmt_endl_fmt.formatter.t.uru(ptr %p) !dbg !7 {
+  define linkonce_odr void @__fmt_endl_u(ptr %p) !dbg !7 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
-    call void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %ret), !dbg !10
+    call void @__fmt_formatter_format_u(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
+    call void @__fmt_formatter_extract_u(ptr %ret), !dbg !10
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %fm) !dbg !11 {
+  define linkonce_odr void @__fmt_formatter_extract_u(ptr %fm) !dbg !11 {
   entry:
     tail call void @__free_except1_fmt.formatter.t.u(ptr %fm)
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
+  define linkonce_odr void @__fmt_formatter_format_u(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
   entry:
     %1 = alloca %fmt.formatter.t.u, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
@@ -165,7 +165,7 @@ Match option
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
+  define linkonce_odr void @__fmt_int_base_u(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
   entry:
     %1 = alloca [64 x i8], align 1
     store [64 x i8] zeroinitializer, ptr %1, align 1
@@ -184,7 +184,7 @@ Match option
     br i1 %andtmp, label %then, label %else, !dbg !15
   
   then:                                             ; preds = %cont
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
+    call void @__fmt_formatter_format_u(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
     br label %ifcont
   
   else:                                             ; preds = %cont
@@ -216,20 +216,20 @@ Match option
     %envptr8 = getelementptr inbounds %closure, ptr %__fun_fmt2, i32 0, i32 1
     store ptr %clsr___fun_fmt2, ptr %envptr8, align 8
     call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !18
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
+    call void @__fmt_formatter_format_u(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
+  define linkonce_odr void @__fmt_int_u(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
   entry:
-    tail call void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
+    tail call void @__fmt_int_base_u(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
     ret void
   }
   
-  define linkonce_odr void @__fmt_stdout_println__ll(ptr %fmt, i64 %value) !dbg !22 {
+  define linkonce_odr void @__fmt_stdout_println_l(ptr %fmt, i64 %value) !dbg !22 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
     call void @fmt_fmt_stdout_create(ptr %ret), !dbg !23
@@ -238,7 +238,7 @@ Match option
     %loadtmp1 = load ptr, ptr %envptr, align 8
     %ret2 = alloca %fmt.formatter.t.u, align 8
     call void %loadtmp(ptr %ret2, ptr %ret, i64 %value, ptr %loadtmp1), !dbg !24
-    call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret2), !dbg !25
+    call void @__fmt_endl_u(ptr %ret2), !dbg !25
     ret void
   }
   
@@ -250,11 +250,11 @@ Match option
     %_fmt_length2 = load i64, ptr %_fmt_length, align 8
     %sub = sub i64 %_fmt_length2, %i
     %sub3 = sub i64 %sub, 1
-    tail call void @__array_fixed_swap_items_A64.c(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
+    tail call void @__array_fixed_swap_items_cA64.u(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
     ret void
   }
   
-  define linkonce_odr i64 @__schmu_none_all_option.t.l(i32 %0, i64 %1) !dbg !28 {
+  define linkonce_odr i64 @__schmu_none_all_l(i32 %0, i64 %1) !dbg !28 {
   entry:
     %p = alloca { i32, i64 }, align 8
     store i32 %0, ptr %p, align 4
@@ -370,7 +370,7 @@ Match option
     ret i64 %iftmp
   }
   
-  define linkonce_odr void @__free__up.clru(ptr %0) {
+  define linkonce_odr void @__free_up.clru(ptr %0) {
   entry:
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     %env = load ptr, ptr %envptr, align 8
@@ -397,7 +397,7 @@ Match option
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    tail call void @__free__up.clru(ptr %0)
+    tail call void @__free_up.clru(ptr %0)
     ret void
   }
   
@@ -416,7 +416,7 @@ Match option
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !41 {
   entry:
     %clstmp = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
     %boxconst = alloca %option.t.l, align 8
@@ -425,9 +425,9 @@ Match option
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
     %0 = tail call i64 @schmu_match_opt(i32 %fst1, i64 %snd2), !dbg !42
-    call void @__fmt_stdout_println__ll(ptr %clstmp, i64 %0), !dbg !43
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %0), !dbg !43
     %clstmp3 = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp3, align 8
+    store ptr @__fmt_int_u, ptr %clstmp3, align 8
     %envptr5 = getelementptr inbounds %closure, ptr %clstmp3, i32 0, i32 1
     store ptr null, ptr %envptr5, align 8
     %boxconst6 = alloca %option.t.l, align 8
@@ -436,9 +436,9 @@ Match option
     %snd9 = getelementptr inbounds { i32, i64 }, ptr %boxconst6, i32 0, i32 1
     %snd10 = load i64, ptr %snd9, align 8
     %1 = call i64 @schmu_match_opt(i32 %fst8, i64 %snd10), !dbg !44
-    call void @__fmt_stdout_println__ll(ptr %clstmp3, i64 %1), !dbg !45
+    call void @__fmt_stdout_println_l(ptr %clstmp3, i64 %1), !dbg !45
     %clstmp11 = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp11, align 8
+    store ptr @__fmt_int_u, ptr %clstmp11, align 8
     %envptr13 = getelementptr inbounds %closure, ptr %clstmp11, i32 0, i32 1
     store ptr null, ptr %envptr13, align 8
     %boxconst14 = alloca %option.t.l, align 8
@@ -447,9 +447,9 @@ Match option
     %snd17 = getelementptr inbounds { i32, i64 }, ptr %boxconst14, i32 0, i32 1
     %snd18 = load i64, ptr %snd17, align 8
     %2 = call i64 @schmu_opt_match(i32 %fst16, i64 %snd18), !dbg !46
-    call void @__fmt_stdout_println__ll(ptr %clstmp11, i64 %2), !dbg !47
+    call void @__fmt_stdout_println_l(ptr %clstmp11, i64 %2), !dbg !47
     %clstmp19 = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp19, align 8
+    store ptr @__fmt_int_u, ptr %clstmp19, align 8
     %envptr21 = getelementptr inbounds %closure, ptr %clstmp19, i32 0, i32 1
     store ptr null, ptr %envptr21, align 8
     %boxconst22 = alloca %option.t.l, align 8
@@ -458,9 +458,9 @@ Match option
     %snd25 = getelementptr inbounds { i32, i64 }, ptr %boxconst22, i32 0, i32 1
     %snd26 = load i64, ptr %snd25, align 8
     %3 = call i64 @schmu_opt_match(i32 %fst24, i64 %snd26), !dbg !48
-    call void @__fmt_stdout_println__ll(ptr %clstmp19, i64 %3), !dbg !49
+    call void @__fmt_stdout_println_l(ptr %clstmp19, i64 %3), !dbg !49
     %clstmp27 = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp27, align 8
+    store ptr @__fmt_int_u, ptr %clstmp27, align 8
     %envptr29 = getelementptr inbounds %closure, ptr %clstmp27, i32 0, i32 1
     store ptr null, ptr %envptr29, align 8
     %boxconst30 = alloca %option.t.l, align 8
@@ -469,9 +469,9 @@ Match option
     %snd33 = getelementptr inbounds { i32, i64 }, ptr %boxconst30, i32 0, i32 1
     %snd34 = load i64, ptr %snd33, align 8
     %4 = call i64 @schmu_some_all(i32 %fst32, i64 %snd34), !dbg !50
-    call void @__fmt_stdout_println__ll(ptr %clstmp27, i64 %4), !dbg !51
+    call void @__fmt_stdout_println_l(ptr %clstmp27, i64 %4), !dbg !51
     %clstmp35 = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp35, align 8
+    store ptr @__fmt_int_u, ptr %clstmp35, align 8
     %envptr37 = getelementptr inbounds %closure, ptr %clstmp35, i32 0, i32 1
     store ptr null, ptr %envptr37, align 8
     %boxconst38 = alloca %option.t.l, align 8
@@ -480,9 +480,9 @@ Match option
     %snd41 = getelementptr inbounds { i32, i64 }, ptr %boxconst38, i32 0, i32 1
     %snd42 = load i64, ptr %snd41, align 8
     %5 = call i64 @schmu_some_all(i32 %fst40, i64 %snd42), !dbg !52
-    call void @__fmt_stdout_println__ll(ptr %clstmp35, i64 %5), !dbg !53
+    call void @__fmt_stdout_println_l(ptr %clstmp35, i64 %5), !dbg !53
     %clstmp43 = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp43, align 8
+    store ptr @__fmt_int_u, ptr %clstmp43, align 8
     %envptr45 = getelementptr inbounds %closure, ptr %clstmp43, i32 0, i32 1
     store ptr null, ptr %envptr45, align 8
     %boxconst46 = alloca %option.t.l, align 8
@@ -490,14 +490,14 @@ Match option
     %fst48 = load i32, ptr %boxconst46, align 4
     %snd49 = getelementptr inbounds { i32, i64 }, ptr %boxconst46, i32 0, i32 1
     %snd50 = load i64, ptr %snd49, align 8
-    %6 = call i64 @__schmu_none_all_option.t.l(i32 %fst48, i64 %snd50), !dbg !54
-    call void @__fmt_stdout_println__ll(ptr %clstmp43, i64 %6), !dbg !55
+    %6 = call i64 @__schmu_none_all_l(i32 %fst48, i64 %snd50), !dbg !54
+    call void @__fmt_stdout_println_l(ptr %clstmp43, i64 %6), !dbg !55
     %clstmp51 = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp51, align 8
+    store ptr @__fmt_int_u, ptr %clstmp51, align 8
     %envptr53 = getelementptr inbounds %closure, ptr %clstmp51, i32 0, i32 1
     store ptr null, ptr %envptr53, align 8
-    %7 = call i64 @__schmu_none_all_option.t.l(i32 0, i64 undef), !dbg !56
-    call void @__fmt_stdout_println__ll(ptr %clstmp51, i64 %7), !dbg !57
+    %7 = call i64 @__schmu_none_all_l(i32 0, i64 undef), !dbg !56
+    call void @__fmt_stdout_println_l(ptr %clstmp51, i64 %7), !dbg !57
     ret i64 0
   }
   
@@ -539,7 +539,7 @@ Nested pattern matching
   
   declare void @fmt_fmt_stdout_create(ptr noalias %0)
   
-  define linkonce_odr void @__array_fixed_swap_items_A64.c(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
+  define linkonce_odr void @__array_fixed_swap_items_cA64.u(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
   entry:
     %eq = icmp eq i64 %i, %j
     %0 = xor i1 %eq, true
@@ -560,21 +560,21 @@ Nested pattern matching
     ret void
   }
   
-  define linkonce_odr void @__fmt_endl_fmt.formatter.t.uru(ptr %p) !dbg !7 {
+  define linkonce_odr void @__fmt_endl_u(ptr %p) !dbg !7 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
-    call void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %ret), !dbg !10
+    call void @__fmt_formatter_format_u(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
+    call void @__fmt_formatter_extract_u(ptr %ret), !dbg !10
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %fm) !dbg !11 {
+  define linkonce_odr void @__fmt_formatter_extract_u(ptr %fm) !dbg !11 {
   entry:
     tail call void @__free_except1_fmt.formatter.t.u(ptr %fm)
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
+  define linkonce_odr void @__fmt_formatter_format_u(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
   entry:
     %1 = alloca %fmt.formatter.t.u, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
@@ -586,7 +586,7 @@ Nested pattern matching
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
+  define linkonce_odr void @__fmt_int_base_u(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
   entry:
     %1 = alloca [64 x i8], align 1
     store [64 x i8] zeroinitializer, ptr %1, align 1
@@ -605,7 +605,7 @@ Nested pattern matching
     br i1 %andtmp, label %then, label %else, !dbg !15
   
   then:                                             ; preds = %cont
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
+    call void @__fmt_formatter_format_u(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
     br label %ifcont
   
   else:                                             ; preds = %cont
@@ -637,20 +637,20 @@ Nested pattern matching
     %envptr8 = getelementptr inbounds %closure, ptr %__fun_fmt2, i32 0, i32 1
     store ptr %clsr___fun_fmt2, ptr %envptr8, align 8
     call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !18
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
+    call void @__fmt_formatter_format_u(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
+  define linkonce_odr void @__fmt_int_u(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
   entry:
-    tail call void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
+    tail call void @__fmt_int_base_u(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
     ret void
   }
   
-  define linkonce_odr void @__fmt_stdout_println__ll(ptr %fmt, i64 %value) !dbg !22 {
+  define linkonce_odr void @__fmt_stdout_println_l(ptr %fmt, i64 %value) !dbg !22 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
     call void @fmt_fmt_stdout_create(ptr %ret), !dbg !23
@@ -659,7 +659,7 @@ Nested pattern matching
     %loadtmp1 = load ptr, ptr %envptr, align 8
     %ret2 = alloca %fmt.formatter.t.u, align 8
     call void %loadtmp(ptr %ret2, ptr %ret, i64 %value, ptr %loadtmp1), !dbg !24
-    call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret2), !dbg !25
+    call void @__fmt_endl_u(ptr %ret2), !dbg !25
     ret void
   }
   
@@ -671,7 +671,7 @@ Nested pattern matching
     %_fmt_length2 = load i64, ptr %_fmt_length, align 8
     %sub = sub i64 %_fmt_length2, %i
     %sub3 = sub i64 %sub, 1
-    tail call void @__array_fixed_swap_items_A64.c(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
+    tail call void @__array_fixed_swap_items_cA64.u(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
     ret void
   }
   
@@ -755,7 +755,7 @@ Nested pattern matching
     ret i64 %iftmp16
   }
   
-  define linkonce_odr void @__free__up.clru(ptr %0) {
+  define linkonce_odr void @__free_up.clru(ptr %0) {
   entry:
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     %env = load ptr, ptr %envptr, align 8
@@ -782,7 +782,7 @@ Nested pattern matching
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    tail call void @__free__up.clru(ptr %0)
+    tail call void @__free_up.clru(ptr %0)
     ret void
   }
   
@@ -801,37 +801,37 @@ Nested pattern matching
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !37 {
   entry:
     %clstmp = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
     %boxconst = alloca %option.t.test, align 8
     store %option.t.test { i32 1, %test { i32 0, double 3.000000e+00 } }, ptr %boxconst, align 8
     %0 = call i64 @schmu_doo(ptr %boxconst), !dbg !38
-    call void @__fmt_stdout_println__ll(ptr %clstmp, i64 %0), !dbg !39
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %0), !dbg !39
     %clstmp1 = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp1, align 8
+    store ptr @__fmt_int_u, ptr %clstmp1, align 8
     %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
     store ptr null, ptr %envptr3, align 8
     %boxconst4 = alloca %option.t.test, align 8
     store %option.t.test { i32 1, %test { i32 1, double 9.881310e-324 } }, ptr %boxconst4, align 8
     %1 = call i64 @schmu_doo(ptr %boxconst4), !dbg !40
-    call void @__fmt_stdout_println__ll(ptr %clstmp1, i64 %1), !dbg !41
+    call void @__fmt_stdout_println_l(ptr %clstmp1, i64 %1), !dbg !41
     %clstmp5 = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp5, align 8
+    store ptr @__fmt_int_u, ptr %clstmp5, align 8
     %envptr7 = getelementptr inbounds %closure, ptr %clstmp5, i32 0, i32 1
     store ptr null, ptr %envptr7, align 8
     %boxconst8 = alloca %option.t.test, align 8
     store %option.t.test { i32 1, %test { i32 2, double undef } }, ptr %boxconst8, align 8
     %2 = call i64 @schmu_doo(ptr %boxconst8), !dbg !42
-    call void @__fmt_stdout_println__ll(ptr %clstmp5, i64 %2), !dbg !43
+    call void @__fmt_stdout_println_l(ptr %clstmp5, i64 %2), !dbg !43
     %clstmp9 = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp9, align 8
+    store ptr @__fmt_int_u, ptr %clstmp9, align 8
     %envptr11 = getelementptr inbounds %closure, ptr %clstmp9, i32 0, i32 1
     store ptr null, ptr %envptr11, align 8
     %boxconst12 = alloca %option.t.test, align 8
     store %option.t.test { i32 0, %test undef }, ptr %boxconst12, align 8
     %3 = call i64 @schmu_doo(ptr %boxconst12), !dbg !44
-    call void @__fmt_stdout_println__ll(ptr %clstmp9, i64 %3), !dbg !45
+    call void @__fmt_stdout_println_l(ptr %clstmp9, i64 %3), !dbg !45
     ret i64 0
   }
   
@@ -870,7 +870,7 @@ Match multiple columns
   
   declare void @fmt_fmt_stdout_create(ptr noalias %0)
   
-  define linkonce_odr void @__array_fixed_swap_items_A64.c(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
+  define linkonce_odr void @__array_fixed_swap_items_cA64.u(ptr noalias %arr, i64 %i, i64 %j) !dbg !2 {
   entry:
     %eq = icmp eq i64 %i, %j
     %0 = xor i1 %eq, true
@@ -891,21 +891,21 @@ Match multiple columns
     ret void
   }
   
-  define linkonce_odr void @__fmt_endl_fmt.formatter.t.uru(ptr %p) !dbg !7 {
+  define linkonce_odr void @__fmt_endl_u(ptr %p) !dbg !7 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
-    call void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %ret), !dbg !10
+    call void @__fmt_formatter_format_u(ptr %ret, ptr %p, ptr @fmt_newline, i64 1), !dbg !9
+    call void @__fmt_formatter_extract_u(ptr %ret), !dbg !10
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_extract_fmt.formatter.t.uru(ptr %fm) !dbg !11 {
+  define linkonce_odr void @__fmt_formatter_extract_u(ptr %fm) !dbg !11 {
   entry:
     tail call void @__free_except1_fmt.formatter.t.u(ptr %fm)
     ret void
   }
   
-  define linkonce_odr void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
+  define linkonce_odr void @__fmt_formatter_format_u(ptr noalias %0, ptr %fm, ptr %ptr, i64 %len) !dbg !12 {
   entry:
     %1 = alloca %fmt.formatter.t.u, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %fm, i64 16, i1 false)
@@ -917,7 +917,7 @@ Match multiple columns
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
+  define linkonce_odr void @__fmt_int_base_u(ptr noalias %0, ptr %p, i64 %value, i64 %base) !dbg !14 {
   entry:
     %1 = alloca [64 x i8], align 1
     store [64 x i8] zeroinitializer, ptr %1, align 1
@@ -936,7 +936,7 @@ Match multiple columns
     br i1 %andtmp, label %then, label %else, !dbg !15
   
   then:                                             ; preds = %cont
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
+    call void @__fmt_formatter_format_u(ptr %0, ptr %p, ptr %1, i64 1), !dbg !16
     br label %ifcont
   
   else:                                             ; preds = %cont
@@ -968,20 +968,20 @@ Match multiple columns
     %envptr8 = getelementptr inbounds %closure, ptr %__fun_fmt2, i32 0, i32 1
     store ptr %clsr___fun_fmt2, ptr %envptr8, align 8
     call void @prelude_iter_range(i64 0, i64 %div, ptr %__fun_fmt2), !dbg !18
-    call void @__fmt_formatter_format_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
+    call void @__fmt_formatter_format_u(ptr %0, ptr %p, ptr %1, i64 %add), !dbg !19
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
     ret void
   }
   
-  define linkonce_odr void @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
+  define linkonce_odr void @__fmt_int_u(ptr noalias %0, ptr %p, i64 %i) !dbg !20 {
   entry:
-    tail call void @__fmt_int_base_fmt.formatter.t.urfmt.formatter.t.u(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
+    tail call void @__fmt_int_base_u(ptr %0, ptr %p, i64 %i, i64 10), !dbg !21
     ret void
   }
   
-  define linkonce_odr void @__fmt_stdout_println__ll(ptr %fmt, i64 %value) !dbg !22 {
+  define linkonce_odr void @__fmt_stdout_println_l(ptr %fmt, i64 %value) !dbg !22 {
   entry:
     %ret = alloca %fmt.formatter.t.u, align 8
     call void @fmt_fmt_stdout_create(ptr %ret), !dbg !23
@@ -990,7 +990,7 @@ Match multiple columns
     %loadtmp1 = load ptr, ptr %envptr, align 8
     %ret2 = alloca %fmt.formatter.t.u, align 8
     call void %loadtmp(ptr %ret2, ptr %ret, i64 %value, ptr %loadtmp1), !dbg !24
-    call void @__fmt_endl_fmt.formatter.t.uru(ptr %ret2), !dbg !25
+    call void @__fmt_endl_u(ptr %ret2), !dbg !25
     ret void
   }
   
@@ -1002,7 +1002,7 @@ Match multiple columns
     %_fmt_length2 = load i64, ptr %_fmt_length, align 8
     %sub = sub i64 %_fmt_length2, %i
     %sub3 = sub i64 %sub, 1
-    tail call void @__array_fixed_swap_items_A64.c(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
+    tail call void @__array_fixed_swap_items_cA64.u(ptr %_fmt_arr1, i64 %i, i64 %sub3), !dbg !27
     ret void
   }
   
@@ -1065,7 +1065,7 @@ Match multiple columns
     %snd2 = getelementptr inbounds { i32, i64 }, ptr %b, i32 0, i32 1
     store i64 %3, ptr %snd2, align 8
     %clstmp = alloca %closure, align 8
-    store ptr @__fmt_int_fmt.formatter.t.urfmt.formatter.t.u, ptr %clstmp, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
     %4 = alloca %tp.option.t.loption.t.l, align 8
@@ -1106,11 +1106,11 @@ Match multiple columns
   
   ifcont17:                                         ; preds = %then12, %else8, %then6, %else
     %iftmp18 = phi i64 [ %add, %then6 ], [ %7, %else ], [ %8, %then12 ], [ 0, %else8 ]
-    call void @__fmt_stdout_println__ll(ptr %clstmp, i64 %iftmp18), !dbg !37
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %iftmp18), !dbg !37
     ret void
   }
   
-  define linkonce_odr void @__free__up.clru(ptr %0) {
+  define linkonce_odr void @__free_up.clru(ptr %0) {
   entry:
     %envptr = getelementptr inbounds %closure, ptr %0, i32 0, i32 1
     %env = load ptr, ptr %envptr, align 8
@@ -1137,7 +1137,7 @@ Match multiple columns
   
   define linkonce_odr void @__free_except1_fmt.formatter.t.u(ptr %0) {
   entry:
-    tail call void @__free__up.clru(ptr %0)
+    tail call void @__free_up.clru(ptr %0)
     ret void
   }
   
@@ -1369,7 +1369,7 @@ of) the return value
     ret void
   }
   
-  define linkonce_odr void @__schmu_geti__roption.t.a.cra.c(ptr noalias %0, ptr %f) !dbg !6 {
+  define linkonce_odr void @__schmu_geti_a.c(ptr noalias %0, ptr %f) !dbg !6 {
   entry:
     %1 = alloca %closure, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %1, ptr align 1 %f, i64 16, i1 false)
@@ -1483,7 +1483,7 @@ of) the return value
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
     %ret = alloca { ptr, i64, i64 }, align 8
-    call void @__schmu_geti__roption.t.a.cra.c(ptr %ret, ptr %clstmp), !dbg !14
+    call void @__schmu_geti_a.c(ptr %ret, ptr %clstmp), !dbg !14
     call void @__free_a.c(ptr %ret)
     ret i64 0
   }
