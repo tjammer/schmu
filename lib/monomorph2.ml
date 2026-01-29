@@ -618,7 +618,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           (* Indirectly recursive functions live in the closure env *)
           match is_actually_recursive p typ name.call with
           | Some true -> Some (`Recursive name.call)
-          | None | Some false -> None)
+          | Some false -> Some (`Poly name.call)
+          | None -> None)
       | Polymorphic (call, _) -> Some (`Poly call)
       | Concrete (func, _, _) -> Some (`Concrete func.name.call)
     in
@@ -628,20 +629,27 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     | Some (`Builtin (b, f)) -> Builtin (b, f)
     | Some ((`Poly callname | `Recursive callname) as kind) -> (
         let poly, scheme = Hashtbl.find polyschemes_tbl callname in
-        let subst =
-          (* Compare type of expression with polymorphic type  *)
-          build_subst ~poly ~typ:ex.typ
-        in
-        let subst_scheme = subst_scheme scheme subst in
-        if Sset.is_empty subst_scheme then
-          (* We found a concrete type, monomorph the body *)
-          monomorph_call p ex subst
-        else
-          match kind with
-          | `Recursive _ ->
-              (* We have to set Recursive for recursive calls even though it
-                 could be that the correct monomorphized callname is not yet
-                 available. Still, it's used for marking tail recursion. *)
-              Recursive { nonmono = callname; call = callname }
-          | _ -> Default)
+        match kind with
+        | `Poly _ when Sset.is_empty scheme ->
+            (* For our second case in recursive above we don't
+               know if the poly is actually polymorphic. Could
+               be monomorphic as well*)
+            Concrete callname
+        | _ -> (
+            let subst =
+              (* Compare type of expression with polymorphic type  *)
+              build_subst ~poly ~typ:ex.typ
+            in
+            let subst_scheme = subst_scheme scheme subst in
+            if Sset.is_empty subst_scheme then
+              (* We found a concrete type, monomorph the body *)
+              monomorph_call p ex subst
+            else
+              match kind with
+              | `Recursive _ ->
+                  (* We have to set Recursive for recursive calls even though it
+                     could be that the correct monomorphized callname is not yet
+                     available. Still, it's used for marking tail recursion. *)
+                  Recursive { nonmono = callname; call = callname }
+              | _ -> Default))
 end
