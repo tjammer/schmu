@@ -1033,9 +1033,6 @@ and prep_func p func_loc (usrname, uniq, abs) =
 
   let remove_from_closure = abs.is_rec && abs.func.remove_from_closure in
 
-  (* In this case, the function is not really monomorphized, but might be
-     defined already in another module. Setting it 'monomorphized' will cause it
-     to be linked as [Once_odr] in codegen. *)
   let alloca = ref (request p) in
   let alloc = Value alloca in
   let upward =
@@ -1052,6 +1049,9 @@ and prep_func p func_loc (usrname, uniq, abs) =
   Hashtbl.add polyschemes_tbl call (ftyp, poly_params);
   let is_polymorphic = not (Sset.is_empty poly_params) in
 
+  (* In this case, the function is not really monomorphized, but might be
+     defined already in another module. Setting it 'monomorphized' will cause it
+     to be linked as [Once_odr] in codegen. *)
   let monomorphized =
     if Sset.is_empty poly_params && not (Path.share_base p.mname p.mainmodule)
     then true
@@ -1331,7 +1331,8 @@ and morph_app mk p callee args ret_typ =
       if tailrec then (Mallocs.remove var.malloc p.mallocs, ex)
       else (p.mallocs, ex)
     in
-    let monomorph = monomorphize_call { p with mallocs } ex in
+    let p = { p with mallocs } in
+    let monomorph = monomorphize_call p ex in
     ( { p with ret },
       ex,
       monomorph,

@@ -971,8 +971,10 @@ end = struct
     (* Remove self from touched *)
     let touched =
       if is_rec then
-        List.filter
-          (fun t -> if String.equal t.tname name then false else true)
+        List.map
+          (fun t ->
+            if String.equal t.tname name then { t with tcaptured = false }
+            else t)
           touched
       else touched
     in

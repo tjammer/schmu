@@ -482,9 +482,9 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           let expr =
             match monomorph_call old_p t subst with
             | Default | Builtin _ | Inline _ -> var
-            | Concrete name -> Mvar (name, Vnorm, None)
+            | Concrete name -> Mvar (name, Vnorm, Some mid)
             | Recursive r -> Mvar (id, Vrecursive r.call, Some mid)
-            | Mono (name, upward) -> Mvar (name, Vmono !upward, None)
+            | Mono (name, upward) -> Mvar (name, Vmono !upward, Some mid)
           in
           { t with expr }
       | Mconst (Array (es, a, i)) ->
