@@ -652,20 +652,16 @@ struct
 
         (vars, Some { rec_; entry })
 
-  let pass_function param llvar kind =
-    match kind with
-    | Simple ->
-        (* If a function is passed into [func] we convert it to a closure
-           and pass nullptr to env*)
-        gen_closure_obj param [] llvar "clstmp" no_prealloc false
-    | Closure ->
-        (* This closure is a struct and has an env *)
-        llvar
-
   let func_to_closure vars llvar =
     match (llvar.kind, llvar.typ) with
-    | Imm, Tfun (_, _, kind) -> pass_function vars llvar kind
-    | _ -> llvar
+    | Imm, Tfun _ ->
+        (* If a function is passed into [func] we convert it to a closure
+           and pass nullptr to env*)
+        gen_closure_obj vars [] llvar "clstmp" no_prealloc false
+    | _ ->
+        (* This closure is a struct and has an env. Or it's not a closure at
+           all *)
+        llvar
 
   (* Get monomorphized function *)
   let get_mono_func func param = function

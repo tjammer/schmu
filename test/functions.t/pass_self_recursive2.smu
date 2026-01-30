@@ -1,0 +1,30 @@
+fun someone() { Some(1) }
+
+fun rec geti(f) {
+  match someone() {
+    None -> {
+      println("[!] Please enter a valid number.")
+      geti(f)
+    }
+    Some(i) -> match f(i) {
+      Some(thing) -> thing
+      None -> geti(f)
+    }
+  }
+}
+
+fun rec show_menu() {
+  geti(fun i {
+    match i {
+      1 -> Some(1)
+      2 -> {
+        Some(show_menu())
+      }
+      _ -> {
+        println("[!] Invalid option. Please choose 1 or 2.")
+        None
+      }
+    }
+  })
+}
+ignore(show_menu())

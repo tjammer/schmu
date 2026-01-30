@@ -1,0 +1,32 @@
+fun rec rec_func(geti) {
+  geti(fun i {
+    fmt/(print1("receiving {}\n", int, i))
+    match i {
+      1 -> {
+        println("returning some 1")
+        Some(1)
+      }
+      _ -> {
+        rec_func(geti)  -- Recursive call within closure
+        Some(3)
+      }
+    }
+  })
+}
+
+let mut cnt = 0
+
+fun rec geti(f) {
+  let i = copy(cnt)
+  mut cnt = cnt + 1
+  fmt/(println(int, i))
+  match f(i) {
+    Some(i) -> fmt/(print1("returning {}\n", int, i))
+    None -> {
+      println("recurse in geti")
+      geti(f)
+    }
+  }
+}
+
+rec_func(geti)
