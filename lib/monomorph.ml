@@ -10,10 +10,12 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
   module To_gen_func = struct
     type t = to_gen_func
 
+    let equal a b = String.equal a.name.call b.name.call
+    let hash s = String.hash s.name.call
     let compare a b = String.compare a.name.call b.name.call
   end
 
-  module Fset = Set.Make (To_gen_func)
+  module Functbl = Hashtbl.Make (To_gen_func)
   module Sset = Set.Make (String)
 
   type upward = bool ref
@@ -22,7 +24,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     (* TODO use a prefix *)
     | Concrete of To_gen_func.t * string * upward
     | Polymorphic of string * upward (* call name *)
-    | Forward_decl of string * typ * upward * closed list
+    | Forward_decl of func_name * typ * upward
     | Mutual_rec of string * typ * upward
     | Builtin of Builtin.t
     | Inline of (string * Mod_id.t) list * typ * monod_tree
@@ -45,8 +47,6 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
 
   type morph_param = {
     vars : var Vars.t;
-    monomorphized : Sset.t;
-    funcs : Fset.t; (* to generate in codegen *)
     ret : bool;
     (* Marks an expression where an if is the last piece which returns a record.
        Needed for tail call elim *)
@@ -62,19 +62,89 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     remove_from_closure : Sset.t;
   }
 
-  let apptbl = Apptbl.create 64
-  let missing_polys_tbl = Hashtbl.create 64
-  let poly_funcs_tbl = Hashtbl.create 64
-  let deferredfunc_tbl = Hashtbl.create 64
+  (* Global tables *)
+  let param_tbl : (string, morph_param) Hashtbl.t = Apptbl.create 512
+  let missing_polys_tbl = Hashtbl.create 512
+  let poly_funcs_tbl : (string, to_gen_func) Hashtbl.t = Hashtbl.create 512
 
-  let typ_of_abs abs =
-    let kind = match abs.func.closed with [] -> Simple | _ -> Closure in
-    Tfun (abs.func.params, abs.func.ret, kind)
+  (* Keeps polymorphic function which haven't been traversed. We don't want to
+     traverse everything up front *)
+  let deferredfunc_tbl : (string, unit -> morph_param) Hashtbl.t =
+    Hashtbl.create 512
 
-  let func_of_typ closed = function
-    | Tfun (params, ret, Simple) -> { params; ret; closed = [] }
-    | Tfun (params, ret, Closure) -> { params; ret; closed }
-    | _ -> failwith "Internal Error: Not a function type"
+  let polyschemes_tbl : (string, typ * Sset.t) Hashtbl.t = Hashtbl.create 512
+  let monomorphed_tbl : (string, unit) Hashtbl.t = Hashtbl.create 512
+  let generate_funcs_tbl : unit Functbl.t = Functbl.create 512
+
+  let ty_name ty =
+    let open Printf in
+    let rec aux = function
+      | Tint -> "l"
+      | Tbool -> "b"
+      | Tunit -> "u"
+      | Tu8 | Ti8 -> "c"
+      | Tu16 | Ti16 -> "s"
+      | Tfloat -> "d"
+      | Ti32 | Tu32 -> "i"
+      | Tf32 -> "f"
+      | Tpoly _ -> "g"
+      | Tfun (ps, r, _) ->
+          let ps = String.concat "" (List.map (fun p -> aux p.pt) ps) in
+          let r = sprintf "r%s" (aux r) in
+          sprintf "%s%s" ps r
+      | Trecord (ps, _, Some n) | Tvariant (ps, _, n) -> (
+          match ps with
+          | [] -> n
+          | ps -> sprintf "%s.%s" n (String.concat "" (List.map aux ps)))
+      | Trecord (_, (Rec_not fs | Rec_top fs), None) ->
+          "tp."
+          ^ String.concat ""
+              (Array.map (fun f -> aux f.ftyp) fs |> Array.to_list)
+      | Trecord (_, Rec_folded, None) -> failwith "unreachable"
+      | Traw_ptr t -> sprintf "p.%s" (aux t)
+      | Tarray t -> sprintf "a.%s" (aux t)
+      | Trc (Strong, t) -> sprintf "R.%s" (aux t)
+      | Trc (Weak, t) -> sprintf "w.%s" (aux t)
+      | Tfixed_array (i, t) -> sprintf "A%i.%s" i (aux t)
+    in
+    aux ty
+
+  let rec subst_until_mono id subst =
+    match Vars.find id subst with
+    | Tpoly id -> subst_until_mono id subst
+    | t -> t
+
+  let construct_mono_name name scheme subst =
+    if Sset.is_empty scheme then name
+    else
+      let suffix =
+        Sset.fold
+          (fun id acc ->
+            let ty = subst_until_mono id subst in
+            (match ty with Tpoly _ -> assert false | _ -> ());
+            acc ^ ty_name ty)
+          scheme ""
+      in
+      let name = name ^ "_" ^ suffix in
+      if String.starts_with ~prefix:"__" name then name else "__" ^ name
+
+  let collect_poly_params typ closed =
+    let oftyp params t =
+      let strings = extract_params t in
+      List.fold_left (fun acc s -> Sset.add s acc) params strings
+    in
+
+    List.fold_left
+      (fun params c ->
+        match c.cltyp with
+        | Tfun _ as t when c.clparam ->
+            (* Params don't hove known closures *)
+            oftyp params t
+        | Tfun _ ->
+            (* Get it from our polyschemes tbl *)
+            Sset.union params (Hashtbl.find polyschemes_tbl c.clname |> snd)
+        | t -> oftyp params t)
+      (oftyp Sset.empty typ) closed
 
   let rec find_function_expr vars = function
     | Mvar (_, Vglobal id, _) -> (
@@ -114,645 +184,493 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         print_endline (show_expr e);
         failwith "Unsupported expression for find_function"
 
-  let is_type_polymorphic typ =
-    let rec inner acc = function
-      | Tpoly _ -> true
-      | Trecord (_, Rec_not fs, None) ->
-          Array.fold_left (fun acc f -> inner acc f.ftyp) acc fs
-      | Trecord (ps, _, _) | Tvariant (ps, _, _) -> List.fold_left inner acc ps
-      | Tfun (params, ret, kind) ->
-          let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
-          let acc =
-            match kind with
-            | Simple -> acc
-            | Closure ->
-                (* We might close over polymorphic types. Don't know *)
-                true
-          in
-          inner acc ret
-      | Tbool | Tunit | Tint | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Ti8 | Ti16
-      | Tu32 ->
-          acc
-      | Tfixed_array (i, _) when i < 0 -> true
-      | Traw_ptr t | Tarray t | Tfixed_array (_, t) | Trc (_, t) -> inner acc t
-    in
-    inner false typ
-
-  let nominal_name name ~closed ~poly concrete =
-    let open Printf in
-    let rec aux ?(inner = true) ~poly = function
-      | Tint -> "l"
-      | Tbool -> "b"
-      | Tunit -> "u"
-      | Tu8 | Ti8 -> "c"
-      | Tu16 | Ti16 -> "s"
-      | Tfloat -> "d"
-      | Ti32 | Tu32 -> "i"
-      | Tf32 -> "f"
-      | Tpoly _ -> "g"
-      | Tfun (ps, r, _) -> (
-          let name = if inner then "" else name in
-          match poly with
-          | Tfun (pps, pr, _) -> (
-              let k =
-                if inner then ""
-                else
-                  match closed with
-                  | [] -> ""
-                  | c ->
-                      "C"
-                      ^ String.concat ""
-                          (List.map (fun c -> aux ~poly:Tbool c.cltyp) c)
-              in
-
-              try
-                let ps =
-                  List.fold_left2
-                    (fun acc poly concrete ->
-                      if is_type_polymorphic poly.pt then
-                        acc ^ (aux ~poly:poly.pt) concrete.pt
-                      else acc)
-                    "" pps ps
-                in
-                let r =
-                  if is_type_polymorphic pr then
-                    sprintf "r%s" ((aux ~poly:pr) r)
-                  else ""
-                in
-                (* Only put '_' between name and rest if there is a rest *)
-                if
-                  String.length k == 0
-                  && String.length ps == 0
-                  && String.length r == 0
-                then name
-                else sprintf "%s_%s%s%s" name ps r k
-              with Invalid_argument _ ->
-                failwith "Internal Error: param count does not match")
-          | _ ->
-              let k =
-                if inner then ""
-                else
-                  match closed with
-                  | [] -> ""
-                  | c ->
-                      "C"
-                      ^ String.concat ""
-                          (List.map (fun c -> aux ~poly:Tbool c.cltyp) c)
-              in
-              let ps =
-                List.fold_left (fun acc p -> acc ^ (aux ~poly:Tbool) p.pt) "" ps
-              in
-              let r = sprintf "r%s" (aux ~poly:Tbool r) in
-              sprintf "%s_%s%s%s" name ps r k)
-      | Trecord (ps, _, Some n) | Tvariant (ps, _, n) -> (
-          match ps with
-          | [] -> n
-          | ps ->
-              sprintf "%s.%s" n
-                (String.concat "" (List.map (aux ~poly:Tbool) ps)))
-      | Trecord (_, (Rec_not fs | Rec_top fs), None) ->
-          "tp."
-          ^ String.concat ""
-              (Array.map (fun f -> aux ~poly:Tbool f.ftyp) fs |> Array.to_list)
-      | Trecord (_, Rec_folded, None) -> failwith "unreachable"
-      | Traw_ptr t ->
-          sprintf "p.%s"
-            (match poly with
-            | Traw_ptr poly -> aux ~poly t
-            | _ -> (aux ~poly:Tbool) t)
-      | Tarray t ->
-          sprintf "a.%s"
-            (match poly with
-            | Tarray poly -> aux ~poly t
-            | _ -> (aux ~poly:Tbool) t)
-      | Trc (Strong, t) ->
-          sprintf "R.%s"
-            (match poly with
-            | Trc (Strong, poly) -> aux ~poly t
-            | _ -> (aux ~poly:Tbool) t)
-      | Trc (Weak, t) ->
-          sprintf "w.%s"
-            (match poly with
-            | Trc (Weak, poly) -> aux ~poly t
-            | _ -> (aux ~poly:Tbool) t)
-      | Tfixed_array (i, t) ->
-          sprintf "A%i.%s" i
-            (match poly with
-            | Tfixed_array (_, poly) -> aux ~poly t
-            | _ -> (aux ~poly:Tbool) t)
-    in
-    aux ~inner:false ~poly concrete
-
   let is_actually_recursive p typ name =
-    match (p.recursion_stack, typ) with
-    | (call, _) :: _, _ when String.equal call name -> true
-    | _, Tfun (_, _, Closure) ->
-        (* We are not actually recursive but in an inner function. Generate a
-           non-mono call *)
-        false
-    | _ -> true
+    let rec aux first stack =
+      match (stack, typ) with
+      | (call, _) :: _, _ when String.equal call name -> Some first
+      | _ :: tail, Tfun (_, _, Closure) ->
+          (* We are not actually recursive but in an inner function. Generate a
+             non-recursive call *)
+          aux false tail
+      | _ when first -> Some first
+      | _ -> None
+    in
+    aux true p.recursion_stack
 
-  let get_mono_name name ~closed ~poly concrete =
-    let name = nominal_name name ~closed ~poly concrete in
-    if String.starts_with ~prefix:"__" name then name else "__" ^ name
+  let subst_ty subst ty =
+    let rec aux = function
+      | Tpoly id ->
+          (* subst was built from polyschemes, everything can be substituted *)
+          subst_until_mono id subst
+      | Tfun (ps, r, k) ->
+          Tfun (List.map (fun p -> { p with pt = aux p.pt }) ps, aux r, k)
+      | Trecord (ps, ((Rec_not l | Rec_top l) as kind), record) ->
+          let l = Array.map (fun l -> { l with ftyp = aux l.ftyp }) l in
+          let ps = List.map aux ps in
+          let kind =
+            match kind with
+            | Rec_not _ -> Rec_not l
+            | Rec_top _ -> Rec_top l
+            | Rec_folded -> failwith "unreachable"
+          in
+          Trecord (ps, kind, record)
+      | Trecord (ps, Rec_folded, record) ->
+          Trecord (List.map aux ps, Rec_folded, record)
+      | Tvariant (ps, ((Rec_not cs | Rec_top cs) as kind), variant) ->
+          let cs =
+            Array.map (fun cs -> { cs with ctyp = Option.map aux cs.ctyp }) cs
+          in
+          let ps = List.map aux ps in
+          let kind =
+            match kind with
+            | Rec_not _ -> Rec_not cs
+            | Rec_top _ -> Rec_top cs
+            | Rec_folded -> failwith "unreachable"
+          in
+          Tvariant (ps, kind, variant)
+      | Tvariant (ps, Rec_folded, variant) ->
+          Tvariant (List.map aux ps, Rec_folded, variant)
+      | Traw_ptr t -> Traw_ptr (aux t)
+      | Tarray t -> Tarray (aux t)
+      | Trc (k, t) -> Trc (k, aux t)
+      | Tfixed_array (i, t) ->
+          let i =
+            if i < 0 then
+              let id = "fa" ^ string_of_int i in
+              match Vars.find id subst with
+              | Tfixed_array (i, _) -> i
+              | _ -> failwith "Internal Error: What else? in subst"
+            else i
+          in
+          Tfixed_array (i, aux t)
+      | ( Tint | Tbool | Tunit | Ti8 | Tu8 | Ti16 | Tu16 | Tfloat | Ti32 | Tu32
+        | Tf32 ) as t ->
+          t
+    in
+    aux ty
 
-  let rec subst_type ~concrete poly parent =
+  let build_subst ~poly ~typ =
     let rec inner subst = function
       | Tpoly id, t -> (
           match Vars.find_opt id subst with
-          | Some _ -> (* Already in tbl*) (subst, t)
-          | None -> (Vars.add id t subst, t))
-      | Tfun (ps1, r1, k1), Tfun (ps2, r2, k2) ->
-          let subst, ps =
-            List.fold_left_map
+          | Some _ -> (* Already in subst *) subst
+          | None -> Vars.add id t subst)
+      | Tfun (ps1, r1, _), Tfun (ps2, r2, _) ->
+          let subst =
+            List.fold_left
               (fun subst (l, r) ->
-                let s, pt = inner subst (l.pt, r.pt) in
-                (s, { l with pt }))
+                let s = inner subst (l.pt, r.pt) in
+                s)
               subst (List.combine ps1 ps2)
           in
-          let subst, r = inner subst (r1, r2) in
-          let subst, kind =
-            match (k1, k2) with
-            | Simple, Simple -> (subst, Simple)
-            | Closure, Closure -> (subst, Closure)
-            | _ ->
-                failwith "Internal Error: Unexpected Simple-Closure combination"
-          in
-          (subst, Tfun (ps, r, kind))
-      | ( (Trecord (i, ((Rec_not l1 | Rec_top l1) as kind), record) as l),
-          Trecord (j, (Rec_not l2 | Rec_top l2), _) )
-        when is_type_polymorphic l ->
-          let labels = Array.copy l1 in
+          let subst = inner subst (r1, r2) in
+          subst
+      | ( Trecord (i, (Rec_not l1 | Rec_top l1), _),
+          Trecord (j, (Rec_not l2 | Rec_top l2), _) ) ->
           let f (subst, i) (label : Cleaned_types.field) =
-            let subst, ftyp = inner subst (label.ftyp, l2.(i).ftyp) in
-            labels.(i) <- Cleaned_types.{ (labels.(i)) with ftyp };
+            let subst = inner subst (label.ftyp, l2.(i).ftyp) in
             (subst, i + 1)
           in
           let subst, _ = Array.fold_left f (subst, 0) l1 in
-          let subst, ps =
-            List.fold_left_map
+          let subst =
+            List.fold_left
               (fun subst (l, r) -> inner subst (l, r))
               subst (List.combine i j)
           in
-          let kind =
-            match kind with
-            | Rec_not _ -> Rec_not labels
-            | Rec_top _ -> Rec_top labels
-            | Rec_folded -> failwith "unreachable"
-          in
-
-          (subst, Trecord (ps, kind, record))
-      | (Trecord (i, Rec_folded, record) as t), Trecord (j, Rec_folded, _)
-        when is_type_polymorphic t ->
-          let subst, ps =
-            List.fold_left_map
+          subst
+      | Trecord (i, Rec_folded, _), Trecord (j, Rec_folded, _) ->
+          let subst =
+            List.fold_left
               (fun subst (l, r) -> inner subst (l, r))
               subst (List.combine i j)
           in
-          (subst, Trecord (ps, Rec_folded, record))
-      | ( (Tvariant (i, ((Rec_not l1 | Rec_top l1) as kind), variant) as l),
-          Tvariant (j, (Rec_not l2 | Rec_top l2), _) )
-        when is_type_polymorphic l ->
-          let ctors = Array.copy l1 in
+          subst
+      | ( Tvariant (i, (Rec_not l1 | Rec_top l1), _),
+          Tvariant (j, (Rec_not l2 | Rec_top l2), _) ) ->
           let f (subst, i) (ctor : Cleaned_types.ctor) =
-            let subst, ctyp =
+            let subst =
               match (ctor.ctyp, l2.(i).ctyp) with
               | Some l, Some r ->
-                  let subst, t = (inner subst) (l, r) in
-                  (subst, Some t)
-              | _ -> (subst, None)
+                  let subst = (inner subst) (l, r) in
+                  subst
+              | _ -> subst
             in
-            ctors.(i) <- Cleaned_types.{ (ctors.(i)) with ctyp };
             (subst, i + 1)
           in
           let subst, _ = Array.fold_left f (subst, 0) l1 in
-          let subst, ps =
-            List.fold_left_map
+          let subst =
+            List.fold_left
               (fun subst (l, r) -> inner subst (l, r))
               subst (List.combine i j)
           in
-          let kind =
-            match kind with
-            | Rec_not _ -> Rec_not ctors
-            | Rec_top _ -> Rec_top ctors
-            | Rec_folded -> failwith "unreachable"
-          in
-          (subst, Tvariant (ps, kind, variant))
-      | (Tvariant (i, Rec_folded, variant) as t), Tvariant (j, Rec_folded, _)
-        when is_type_polymorphic t ->
-          let subst, ps =
-            List.fold_left_map
+          subst
+      | Tvariant (i, Rec_folded, _), Tvariant (j, Rec_folded, _) ->
+          let subst =
+            List.fold_left
               (fun subst (l, r) -> inner subst (l, r))
               subst (List.combine i j)
           in
-          (subst, Tvariant (ps, Rec_folded, variant))
+          subst
       | Traw_ptr l, Traw_ptr r ->
-          let subst, t = inner subst (l, r) in
-          (subst, Traw_ptr t)
+          let subst = inner subst (l, r) in
+          subst
       | Tarray l, Tarray r ->
-          let subst, t = inner subst (l, r) in
-          (subst, Tarray t)
+          let subst = inner subst (l, r) in
+          subst
       | Trc (kl, l), Trc (kr, r) when kl = kr ->
-          let subst, t = inner subst (l, r) in
-          (subst, Trc (kl, t))
+          let subst = inner subst (l, r) in
+          subst
       | Tfixed_array (i, l), Tfixed_array (j, r) ->
-          let i, subst =
+          let subst =
             if i < 0 then
               let id = "fa" ^ string_of_int i in
               match Vars.find_opt id subst with
-              | Some (Tfixed_array (i, _)) -> (i, subst)
+              | Some (Tfixed_array _) -> subst
               | Some _ -> failwith "Internal Error: What else? in monomorph"
               | None ->
                   let t = Tfixed_array (j, Tunit) in
-                  (j, Vars.add id t subst)
-            else (i, subst)
+                  Vars.add id t subst
+            else subst
           in
-          let subst, t = inner subst (l, r) in
-          (subst, Tfixed_array (i, t))
-      | t, _ -> (subst, t)
+          let subst = inner subst (l, r) in
+          subst
+      | _, _ -> subst
     in
-    let vars, typ = inner Vars.empty (poly, concrete) in
+    inner Vars.empty (poly, typ)
 
-    let rec subst = function
-      | Tpoly id as old -> (
-          match Vars.find_opt id vars with Some t -> t | None -> old)
-      | Tfun (ps, r, kind) ->
-          let ps = List.map (fun p -> { p with pt = subst p.pt }) ps in
-          Tfun (ps, subst r, kind)
-      | Trecord (ps, Rec_folded, record) as t when is_type_polymorphic t ->
-          let ps = List.map subst ps in
-          Trecord (ps, Rec_folded, record)
-      | Trecord (ps, ((Rec_not fields | Rec_top fields) as recurs), record) as t
-        when is_type_polymorphic t ->
-          let ps = List.map subst ps in
-          let f field = Cleaned_types.{ field with ftyp = subst field.ftyp } in
-          let fields = Array.map f fields in
-          let recurs =
-            match recurs with
-            | Rec_top _ -> Rec_top fields
-            | Rec_not _ -> Rec_not fields
-            | _ -> failwith "unreachable"
-          in
-          Trecord (ps, recurs, record)
-      | Tvariant (ps, Rec_folded, variant) as t when is_type_polymorphic t ->
-          let ps = List.map subst ps in
-          Tvariant (ps, Rec_folded, variant)
-      | Tvariant (ps, ((Rec_not ctors | Rec_top ctors) as recurs), variant) as t
-        when is_type_polymorphic t ->
-          let ps = List.map subst ps in
-          let f ctor =
-            Cleaned_types.{ ctor with ctyp = Option.map subst ctor.ctyp }
-          in
-          let ctors = Array.map f ctors in
-          let recurs =
-            match recurs with
-            | Rec_top _ -> Rec_top ctors
-            | Rec_not _ -> Rec_not ctors
-            | _ -> failwith "unreachable"
-          in
-          Tvariant (ps, recurs, variant)
-      | Traw_ptr t -> Traw_ptr (subst t)
-      | Tarray t -> Tarray (subst t)
-      | Trc (k, t) -> Trc (k, subst t)
-      | Tfixed_array (i, t) ->
-          let i =
-            match Vars.find_opt ("fa" ^ string_of_int i) vars with
-            | Some (Tfixed_array (i, _)) -> i
-            | Some _ -> failwith "Internal Error: What else? in monomorph"
-            | None -> i
-          in
-          Tfixed_array (i, subst t)
-      | t -> t
-    in
-
-    (* We might have to substitute other types (in closures) from an outer scope *)
-    let subst, typ =
-      match parent with
-      | Some sub -> ((fun t -> sub t |> subst), sub typ |> subst)
-      | None -> (subst, subst typ)
-    in
-
-    (subst, typ)
-
-  and subst_closed subst = function
-    | cls ->
-        let cls =
-          List.map
-            (fun cl ->
-              let cltyp = subst cl.cltyp in
-              let is_function =
-                match cltyp with Tfun _ -> true | _ -> false
-              in
-              let clname =
-                if
-                  is_function && (not cl.clparam)
-                  && is_type_polymorphic cl.cltyp
-                  && not (is_type_polymorphic cltyp)
-                then get_mono_name cl.clname ~closed:cls ~poly:cl.cltyp cltyp
-                else cl.clname
-              in
-              { cl with cltyp; clname })
-            cls
-        in
-        cls
-
-  and subst_body p subst tree =
-    let p = ref p in
-
-    let rec inner tree =
-      let sub t = { (inner t) with typ = subst t.typ } in
-      match tree.expr with
-      | Mvar (_, _, None) -> { tree with typ = subst tree.typ }
-      | Mvar (id, _, Some mid) as var ->
-          let ex = { tree with typ = subst tree.typ } in
-          (* We use the parameters at function creation time to deal with scope *)
-          let old_p =
-            match Apptbl.find_opt apptbl (string_of_int mid) with
-            | Some old ->
-                { old with funcs = !p.funcs; monomorphized = !p.monomorphized }
-            | None -> failwith "Internal Error: No old param"
-          in
-
-          let p2, monomorph = monomorphize_call old_p ex (Some subst) in
-
-          p :=
-            {
-              !p with
-              funcs = Fset.union !p.funcs p2.funcs;
-              monomorphized = Sset.union !p.monomorphized p2.monomorphized;
-            };
-
-          let expr =
-            match monomorph with
-            | Default | Builtin _ | Inline _ -> var
-            | Concrete name -> Mvar (name, Vnorm, Some mid)
-            | Recursive r ->
-                (* TODO could this be Vnorm? *)
-                Mvar (id, Vrecursive r.call, Some mid)
-            | Mono (name, upwardr) -> Mvar (name, Vmono !upwardr, Some mid)
-          in
-
-          { ex with expr }
-      | Mconst (Array (es, a, i)) ->
-          { tree with expr = Mconst (Array (List.map sub es, a, i)) }
-      | Mconst (Fixed_array (es, a, i)) ->
-          { tree with expr = Mconst (Fixed_array (List.map sub es, a, i)) }
-      | Mconst _ -> tree
-      | Mbop (bop, l, r) -> { tree with expr = Mbop (bop, sub l, sub r) }
-      | Munop (unop, e) -> { tree with expr = Munop (unop, sub e) }
-      | Mif expr ->
-          let cond = sub expr.cond in
-          let e1 = sub expr.e1 in
-          let e2 = sub expr.e2 in
-          { tree with typ = e1.typ; expr = Mif { expr with cond; e1; e2 } }
-      | Mlet (id, expr, proj, gn, vid, cont) ->
-          let expr = sub expr in
-          let cont = sub cont in
-          {
-            tree with
-            typ = cont.typ;
-            expr = Mlet (id, expr, proj, gn, vid, cont);
-          }
-      | Mbind (id, lhs, cont) ->
-          let lhs = sub lhs in
-          let cont = sub cont in
-          { tree with typ = cont.typ; expr = Mbind (id, lhs, cont) }
-      | Mlambda (name, closed, typ, alloca, upward) ->
-          let styp = subst typ and closed = subst_closed subst closed in
-
-          (* We may have to monomorphize. For instance if the lambda returned from
-             a polymorphic function *)
-          let name = mono_callable name styp tree in
-
-          { tree with typ; expr = Mlambda (name, closed, styp, alloca, upward) }
-      | Mfunction (name, closed, typ, cont, alloca, upward) ->
-          let styp = subst typ and closed = subst_closed subst closed in
-          (* We may have to monomorphize. For instance if the lambda returned from
-             a polymorphic function *)
-          let name = mono_callable name styp { tree with typ } in
-          let cont = { (inner cont) with typ = subst cont.typ } in
-          {
-            tree with
-            typ = cont.typ;
-            expr = Mfunction (name, closed, styp, cont, alloca, upward);
-          }
-      | Mapp { callee; args; alloca; id; ms } ->
-          let ex = sub callee.ex in
-
-          (* We use the parameters at function creation time to deal with scope *)
-          let old_p =
-            match Apptbl.find_opt apptbl (string_of_int id) with
-            | Some old ->
-                { old with funcs = !p.funcs; monomorphized = !p.monomorphized }
-            | None -> failwith "Internal Error: No old param"
-          in
-
-          let p2, monomorph = monomorphize_call old_p ex (Some subst) in
-
-          let callee = { callee with ex; monomorph } in
-
-          let p2, args =
-            List.fold_left_map
-              (fun p2 (arg, a) ->
-                let ex = sub arg.ex in
-                let p2, monomorph = monomorphize_call p2 ex (Some subst) in
-                (p2, ({ arg with ex; monomorph }, a)))
-              p2 args
-          in
-          p :=
-            {
-              !p with
-              funcs = Fset.union !p.funcs p2.funcs;
-              monomorphized = Sset.union !p.monomorphized p2.monomorphized;
-            };
-
-          let func = func_of_typ [] callee.ex.typ in
-          {
-            tree with
-            typ = func.ret;
-            expr = Mapp { callee; args; alloca; id; ms };
-          }
-      | Mrecord (labels, alloca, id) ->
-          let labels = List.map (fun (name, expr) -> (name, sub expr)) labels in
-          {
-            tree with
-            typ = subst tree.typ;
-            expr = Mrecord (labels, alloca, id);
-          }
-      | Mctor ((var, index, expr), alloca, id) ->
-          let expr = Mctor ((var, index, Option.map sub expr), alloca, id) in
-          { tree with typ = subst tree.typ; expr }
-      | Mfield (expr, index) ->
-          { tree with typ = subst tree.typ; expr = Mfield (sub expr, index) }
-      | Mvar_index expr ->
-          { tree with typ = subst tree.typ; expr = Mvar_index (sub expr) }
-      | Mvar_data (expr, mid) ->
-          { tree with typ = subst tree.typ; expr = Mvar_data (sub expr, mid) }
-      | Mset (expr, value, moved) ->
-          let expr = Mset (sub expr, sub value, moved) in
-          { tree with typ = subst tree.typ; expr }
-      | Mseq (expr, cont) ->
-          let expr = sub expr in
-          let cont = sub cont in
-          { tree with typ = cont.typ; expr = Mseq (expr, cont) }
-      | Mfree_after (e, fs) ->
-          let e = sub e in
-          { tree with expr = Mfree_after (e, fs) }
-    and mono_callable name typ tree =
-      if is_type_polymorphic tree.typ then (
-        match Apptbl.find_opt apptbl name with
-        | Some old ->
-            let old =
-              { old with funcs = !p.funcs; monomorphized = !p.monomorphized }
-            in
-            let p2, monomorph =
-              monomorphize_call old { tree with typ } (Some subst)
-            in
-            let name =
-              match monomorph with Mono (name, _) -> name | _ -> name
-            in
-            p :=
-              {
-                !p with
-                funcs = Fset.union !p.funcs p2.funcs;
-                monomorphized = Sset.union !p.monomorphized p2.monomorphized;
-              };
-            name
+  let subst_scheme scheme subst =
+    Sset.filter
+      (fun id ->
+        match Vars.find_opt id subst with
+        | Some t -> (
+            (* Ensure our substituted type is not polymorphic itself *)
+            match extract_params t with
+            | [] ->
+                (* We throw out every concrete type *)
+                false
+            | _ -> true)
         | None ->
-            (* Partly copied from [monomorphize_call] *)
-            if is_type_polymorphic typ then name
-            else
-              let p2, monomorph =
-                let p, func = get_poly_func !p name in
-                monomorphize p tree.typ typ func (Some subst)
-              in
+            (* Cannot find substitute for this parameter, don't filter *)
+            true)
+      scheme
 
-              let name =
-                match monomorph with Mono (name, _) -> name | _ -> name
-              in
-              p :=
-                {
-                  !p with
-                  funcs = Fset.union !p.funcs p2.funcs;
-                  monomorphized = Sset.union !p.monomorphized p2.monomorphized;
-                };
-
-              (* It's concrete, all good *) name)
-      else name
-    in
-
-    (!p, inner tree)
-
-  and monomorphize_call p expr parent_sub : morph_param * call_name =
-    match find_function_expr p.vars expr.expr with
-    | Builtin b -> (p, Builtin (b, func_of_typ [] expr.typ))
-    | Inline (ps, typ, tree) ->
-        (* Copied from Polymorphic below *)
-        (* The parent substitution is threaded through to its children. This deals
-           with nested closures *)
-        let subst, typ = subst_type ~concrete:expr.typ typ parent_sub in
-
-        (* If the type is still polymorphic, we cannot generate it *)
-        if is_type_polymorphic typ then (p, Default)
-        else let p, tree = subst_body p subst tree in
-
-             (p, Inline (ps, tree))
-    | Forward_decl (name, typ, _, closed) ->
-        (* Generate the correct call name. If its mono, we have to recalculate it.
-           Closures are tricky, as the arguments are generally not closures, but
-           the typ might. We try to subst the (potential) closure by using the
-           parent_sub if its available *)
-        let actually_recursive = is_actually_recursive p typ name in
-
-        if actually_recursive then
-          if is_type_polymorphic typ then
-            (* Instead of directly generating the mono name from concrete type and
-               expr, we substitute the poly type and use the substituted one. This
-               helps with some closures *)
-            let call =
-              match parent_sub with
-              | Some sub ->
-                  let concrete = sub typ in
-                  get_mono_name name ~closed ~poly:typ concrete
-              | None -> get_mono_name name ~closed ~poly:typ expr.typ
+  let merge_subst subst child_subst =
+    Vars.merge
+      (fun _ l r ->
+        match (l, r) with
+        | Some _, None -> l
+        | None, Some _ -> r
+        | None, None -> None
+        | Some l, Some r ->
+            let t =
+              match (l, r) with
+              | Tpoly _, Tpoly _ -> (* Prefer child? *) r
+              | Tpoly _, t -> t
+              | t, Tpoly _ -> t
+              | l, r ->
+                  assert (String.equal (string_of_type l) (string_of_type r));
+                  r
             in
-            (* We still need to use the un-monomorphized callname for marking recursion *)
-            (p, Recursive { nonmono = name; call })
-            (* Make the name concrete so the correct call name is used *)
-          else (p, Recursive { nonmono = name; call = name })
-            (* The inner function which is indirectly recursive closes over this
-               one. Just get it from the env *)
-        else (p, Default)
-    | Mutual_rec (name, typ, upward) ->
-        if is_type_polymorphic typ then (
-          let call = get_mono_name name ~closed:[] ~poly:typ expr.typ in
-          if not (Sset.mem call p.monomorphized) then
-            (* The function doesn't exist yet, will it ever exist? *)
-            if not (Hashtbl.mem missing_polys_tbl call) then
-              Hashtbl.add missing_polys_tbl name (p, expr.typ, parent_sub);
-          (p, Mono (call, upward))
-          (* Make the name concrete so the correct call name is used *))
-        else (p, Concrete name)
-    | _ when is_type_polymorphic expr.typ ->
-        Format.printf "expr is polymorphic %s@." (show_typ expr.typ);
-        (p, Default)
-    | Concrete (func, username, _) ->
-        (* If a named function gets a generated name, the call site has to be made aware *)
-        if not (String.equal func.name.call username) then
-          (p, Concrete func.name.call)
-        else (p, Default)
-    | Polymorphic (call, _) ->
-        print_endline "were polymopric";
-        let p, func = get_poly_func p call in
-        let typ = typ_of_abs func.abs in
-        monomorphize p typ expr.typ func parent_sub
-    | No_function -> (p, Default)
+            Some t)
+      subst child_subst
 
-  and get_poly_func p callname =
+  let subst_closed subst cls =
+    List.fold_left_map
+      (fun subst cl ->
+        let is_function = match cl.cltyp with Tfun _ -> true | _ -> false in
+        let subst, clname =
+          if is_function && not cl.clparam then
+            let poly, scheme = Hashtbl.find polyschemes_tbl cl.clname in
+            if Sset.is_empty scheme then (subst, cl.clname)
+            else
+              (* For some reason, the cltyp can be more specific than the type
+                 scheme. To deal with this, we enrich out subst with the one from
+                 the poly scheme and return it for subsequent substitutions to be
+                 used. *)
+              let child_subst = build_subst ~poly ~typ:cl.cltyp in
+              let subst = merge_subst subst child_subst in
+              (subst, construct_mono_name cl.clname scheme subst)
+          else (subst, cl.clname)
+        in
+        let cltyp = subst_ty subst cl.cltyp in
+        (subst, { cl with cltyp; clname }))
+      subst cls
+
+  let get_poly_func callname =
     match Hashtbl.find_opt poly_funcs_tbl callname with
-    | Some func -> (p, func)
+    | Some func -> func
     | None -> (
         match Hashtbl.find_opt deferredfunc_tbl callname with
         | Some make_func ->
             (* Which param do we want to use? The original *)
-            let np = make_func () in
+            let _ = make_func () in
             (* Should exist now *)
             let func = Hashtbl.find poly_funcs_tbl callname in
-            let funcs = Fset.union np.funcs p.funcs
-            and monomorphized = Sset.union np.monomorphized p.monomorphized in
-            let p = { p with funcs; monomorphized } in
-            (p, func)
+            func
         | None -> failwith "Internal Error: Poly function not registered yet")
 
-  and monomorphize p typ concrete func parent_sub =
-    let call =
-      get_mono_name func.name.call ~closed:func.abs.func.closed ~poly:typ
-        concrete
+  let func_of_typ closed = function
+    | Tfun (params, ret, Simple) -> { params; ret; closed = [] }
+    | Tfun (params, ret, Closure) -> { params; ret; closed }
+    | _ -> failwith "Internal Error: Not a function type"
+
+  let rec monomorph_call p expr subst : call_name =
+    match find_function_expr p.vars expr.expr with
+    | Builtin b -> Builtin (b, func_of_typ [] expr.typ)
+    | Inline _ -> failwith "unused"
+    | Forward_decl (name, typ, _) -> (
+        (* Generate the correct call name. If its mono, we have to recalculate it.
+           Closures are tricky, as the arguments are generally not closures, but
+           the typ might. We try to subst the (potential) closure by using the
+           subst if its available. *)
+        match is_actually_recursive p typ name.call with
+        | Some true ->
+            let scheme = Hashtbl.find polyschemes_tbl name.call |> snd in
+            if Sset.is_empty scheme then
+              (* Not monomorphized, use callname *)
+              Recursive { nonmono = name.call; call = name.call }
+            else
+              let call = construct_mono_name name.call scheme subst in
+              Recursive { nonmono = name.call; call }
+        | Some false ->
+            let scheme = Hashtbl.find polyschemes_tbl name.call |> snd in
+            let call = construct_mono_name name.call scheme subst in
+            Mono (call, ref false)
+        | None ->
+            (* The inner function which is indirectly recursive closes over this
+               one. Just get it from the env *)
+            failwith "still" (* Default *))
+    | Mutual_rec (callname, _, upward) ->
+        (* Is the scheme forward-declared as well? Probably not. Fix this later *)
+        let poly, scheme = Hashtbl.find polyschemes_tbl callname in
+        if Sset.is_empty scheme then Concrete callname
+        else
+          (* Treat it like a poly func, only with deferred function
+             generation *)
+          let child_subst = build_subst ~poly ~typ:expr.typ in
+          let subst = merge_subst subst child_subst in
+          (* The function doesn't exist yet, will it ever exist? *)
+          if not (Hashtbl.mem missing_polys_tbl callname) then
+            Hashtbl.add missing_polys_tbl callname (p, subst);
+          let call = construct_mono_name callname scheme subst in
+          Mono (call, upward)
+    | Concrete (func, _username, _) -> Concrete func.name.call
+    | Polymorphic (callname, _) ->
+        (* Our subst is formulated in terms of the parent call in
+           monomorphize_call. Build a new subst for this call (using the
+           concrete type) and merge it with the parent subst *)
+        let poly = Hashtbl.find polyschemes_tbl callname |> fst in
+        let child_subst = build_subst ~poly ~typ:expr.typ in
+        let subst = merge_subst subst child_subst in
+        let func = get_poly_func callname in
+        do_monomorphize p func subst
+    | No_function -> Default
+
+  and do_monomorphize p func subst =
+    let typ, scheme = Hashtbl.find polyschemes_tbl func.name.call in
+    let callname = construct_mono_name func.name.call scheme subst in
+
+    if Hashtbl.mem monomorphed_tbl callname then Mono (callname, func.upward)
+    else
+      let typ = subst_ty subst typ in
+
+      let subst, closed = subst_closed subst func.abs.func.closed in
+      let body = subst_body p subst func.abs.body in
+      let fnc = { (func_of_typ closed typ) with closed } in
+      let name = { func.name with call = callname } in
+      let abs = { func.abs with func = fnc; body } in
+      let monomorphized = true in
+      Functbl.add generate_funcs_tbl { func with abs; name; monomorphized } ();
+      Hashtbl.add monomorphed_tbl callname ();
+      Mono (callname, func.upward)
+
+  and subst_body p subst body =
+    let rec aux tree =
+      let t = { tree with typ = subst_ty subst tree.typ } in
+      match tree.expr with
+      | Mvar (_, _, None) -> t
+      | Mvar (id, _, Some mid) as var ->
+          (* TODO here check the type *)
+          let old_p =
+            match Hashtbl.find_opt param_tbl (string_of_int mid) with
+            | Some p -> p
+            | None -> failwith "Internal Error: No old param"
+          in
+          let expr =
+            match monomorph_call old_p t subst with
+            | Default | Builtin _ | Inline _ -> var
+            | Concrete name -> Mvar (name, Vnorm, None)
+            | Recursive r -> Mvar (id, Vrecursive r.call, Some mid)
+            | Mono (name, upward) -> Mvar (name, Vmono !upward, None)
+          in
+          { t with expr }
+      | Mconst (Array (es, a, i)) ->
+          { t with expr = Mconst (Array (List.map aux es, a, i)) }
+      | Mconst (Fixed_array (es, a, i)) ->
+          { t with expr = Mconst (Fixed_array (List.map aux es, a, i)) }
+      | Mconst _ -> t
+      | Mbop (bop, l, r) -> { t with expr = Mbop (bop, aux l, aux r) }
+      | Munop (unop, e) -> { t with expr = Munop (unop, aux e) }
+      | Mif expr ->
+          let cond = aux expr.cond in
+          let e1 = aux expr.e1 in
+          let e2 = aux expr.e2 in
+          { t with expr = Mif { expr with cond; e1; e2 } }
+      | Mlet (id, expr, proj, gn, vid, cont) ->
+          let expr = aux expr in
+          let cont = aux cont in
+          { t with expr = Mlet (id, expr, proj, gn, vid, cont) }
+      | Mbind (id, lhs, cont) ->
+          let lhs = aux lhs in
+          let cont = aux cont in
+          { t with expr = Mbind (id, lhs, cont) }
+      | Mlambda (name, closed, typ, alloca, upward) ->
+          let typ = subst_ty subst typ
+          and subst, closed = subst_closed subst closed in
+          (* We may have to monomorphize. For instance if the lambda returned from
+               a polymorphic function *)
+          let old_p =
+            match Hashtbl.find_opt param_tbl name with
+            | Some p -> p
+            | None -> failwith "Internal Error: No param in lambda"
+          in
+          let name =
+            match monomorph_call old_p t subst with
+            | Mono (name, _) -> name
+            | Concrete name -> name
+            | _ -> name
+          in
+          { t with expr = Mlambda (name, closed, typ, alloca, upward) }
+      | Mfunction (name, closed, typ, cont, alloca, upward) ->
+          (* This function can define its own poly types which are not capture
+             by subst. In this case, we don't do anything and wait for it to be
+             called with a concrete type. *)
+          let scheme = Hashtbl.find polyschemes_tbl name |> snd in
+
+          if Sset.is_empty scheme then
+            (* This function is monomorphic, no need to do anything *)
+            let cont = aux cont in
+            {
+              t with
+              expr = Mfunction (name, closed, typ, cont, alloca, upward);
+            }
+          else
+            (* Check if we can monomorphize with current subst *)
+            let subst_scheme = subst_scheme scheme subst in
+            if Sset.is_empty subst_scheme then
+              let typ = subst_ty subst typ
+              and subst, closed = subst_closed subst closed in
+              (* Treat it as a poly func *)
+              let func = get_poly_func name in
+
+              let name =
+                match do_monomorphize p func subst with
+                | Mono (call, _) -> call
+                | Concrete name -> name
+                | _ -> failwith "Internal Error: What else"
+              in
+              let cont = aux cont in
+              {
+                t with
+                expr = Mfunction (name, closed, typ, cont, alloca, upward);
+              }
+            else
+              (* Return as is *)
+              let cont = aux cont in
+              {
+                t with
+                expr = Mfunction (name, closed, typ, cont, alloca, upward);
+              }
+      | Mapp { callee; args; alloca; id; ms } ->
+          (* TODO there's room for saving here. Maybe the call is already mono? *)
+          let ex = aux callee.ex in
+
+          let old_p =
+            match Hashtbl.find_opt param_tbl (string_of_int id) with
+            | Some p -> p
+            | None ->
+                print_endline (show_expr callee.ex.expr);
+                failwith "Internal Error: No param in function"
+          in
+
+          let monomorph = monomorph_call old_p ex subst in
+          let callee = { callee with ex; monomorph } in
+
+          let args =
+            List.map
+              (fun (arg, a) ->
+                let ex = aux arg.ex in
+
+                let monomorph = monomorph_call old_p ex subst in
+                ({ arg with ex; monomorph }, a))
+              args
+          in
+          { t with expr = Mapp { callee; args; alloca; id; ms } }
+      | Mrecord (labels, alloca, id) ->
+          let labels = List.map (fun (name, expr) -> (name, aux expr)) labels in
+          { t with expr = Mrecord (labels, alloca, id) }
+      | Mctor ((var, index, expr), alloca, id) ->
+          let expr = Mctor ((var, index, Option.map aux expr), alloca, id) in
+          { t with expr }
+      | Mfield (expr, index) -> { t with expr = Mfield (aux expr, index) }
+      | Mvar_index expr -> { t with expr = Mvar_index (aux expr) }
+      | Mvar_data (expr, mid) -> { t with expr = Mvar_data (aux expr, mid) }
+      | Mset (expr, value, moved) ->
+          { t with expr = Mset (aux expr, aux value, moved) }
+      | Mseq (expr, cont) -> { t with expr = Mseq (aux expr, aux cont) }
+      | Mfree_after (expr, fs) -> { t with expr = Mfree_after (aux expr, fs) }
     in
 
-    Format.printf "poly: %s\n%!concrete: %s\n%!mono name: %s@." (show_typ typ)
-      (show_typ concrete) call;
+    aux body
 
-    if Sset.mem call p.monomorphized then
-      (* The function exists, we don't do anything right now *)
-      (p, Mono (call, func.upward))
-    else
-      (* We generate the function *)
-      (* The parent substitution is threaded through to its children. This deals
-         with nested closures *)
-      let subst, typ = subst_type ~concrete typ parent_sub in
-
-      (* If the type is still polymorphic, we cannot generate it *)
-      if is_type_polymorphic typ then (p, Default)
-      else
-        let p, body = subst_body p subst func.abs.body in
-
-        let closed = subst_closed subst func.abs.func.closed in
-        let fnc = { (func_of_typ closed typ) with closed } in
-        let name = { func.name with call } in
-        let abs = { func.abs with func = fnc; body } in
-        let monomorphized = true in
-        let funcs = Fset.add { func with abs; name; monomorphized } p.funcs in
-        let monomorphized = Sset.add call p.monomorphized in
-        ({ p with funcs; monomorphized }, Mono (call, func.upward))
+  (* This is the entry point from monomorph_tree *)
+  let monomorphize_call p ex =
+    (* find callname, inlined from extract_callname *)
+    let callname =
+      match find_function_expr p.vars ex.expr with
+      | Builtin b -> Some (`Builtin (b, func_of_typ [] ex.typ))
+      | Inline _ -> None
+      | No_function -> None
+      | Mutual_rec (name, _, _) ->
+          (* Might not really be poly, but that's checked in the poly case
+             below. Will become concrete or poly. *)
+          Some (`Poly name)
+      | Forward_decl (name, typ, _) -> (
+          (* Indirectly recursive functions live in the closure env *)
+          match is_actually_recursive p typ name.call with
+          | Some true -> Some (`Recursive name.call)
+          | Some false -> Some (`Poly name.call)
+          | None -> None)
+      | Polymorphic (call, _) -> Some (`Poly call)
+      | Concrete (func, _, _) -> Some (`Concrete func.name.call)
+    in
+    match callname with
+    | None -> Default
+    | Some (`Concrete callname) -> Concrete callname
+    | Some (`Builtin (b, f)) -> Builtin (b, f)
+    | Some ((`Poly callname | `Recursive callname) as kind) -> (
+        let poly, scheme = Hashtbl.find polyschemes_tbl callname in
+        match kind with
+        | `Poly _ when Sset.is_empty scheme ->
+            (* For our second case in recursive above we don't
+               know if the poly is actually polymorphic. Could
+               be monomorphic as well*)
+            Concrete callname
+        | _ -> (
+            let subst =
+              (* Compare type of expression with polymorphic type  *)
+              build_subst ~poly ~typ:ex.typ
+            in
+            let subst_scheme = subst_scheme scheme subst in
+            if Sset.is_empty subst_scheme then
+              (* We found a concrete type, monomorph the body *)
+              monomorph_call p ex subst
+            else
+              match kind with
+              | `Recursive _ ->
+                  (* We have to set Recursive for recursive calls even though it
+                     could be that the correct monomorphized callname is not yet
+                     available. Still, it's used for marking tail recursion. *)
+                  Recursive { nonmono = callname; call = callname }
+              | _ -> Default))
 end

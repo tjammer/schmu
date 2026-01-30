@@ -128,7 +128,7 @@ module Mtree = struct
 end
 
 include Mtree
-module Monomorph_impl = Monomorph2.Make (Mtree)
+module Monomorph_impl = Monomorph.Make (Mtree)
 open Monomorph_impl
 open Monomorph_impl.Mallocs_ipml
 
