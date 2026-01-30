@@ -483,10 +483,13 @@ let set_upward = function
       upward := true
   | No_function | Builtin _ | Inline _ -> ()
 
-let rec_fs_to_env p (username, uniq, typ) =
+let rec_fs_to_env p (username, uniq, typ, touched) =
   let ftyp = cln typ in
-
+  let closed = closed_of_touched p touched in
+  let poly_params = collect_poly_params ftyp closed in
   let call = Module.unique_name ~mname:p.mname username uniq in
+  Hashtbl.add polyschemes_tbl call (ftyp, poly_params);
+
   let fn = Mutual_rec (call, ftyp, ref false) in
   let username =
     reconstr_module_username ~mname:p.mname ~mainmod:p.mainmodule username
@@ -1044,8 +1047,6 @@ and prep_func p func_loc (usrname, uniq, abs) =
   (* Add moved closed variables *)
   let closed = closed_of_touched recp abs.func.touched in
   let poly_params = collect_poly_params ftyp closed in
-  (* Format.printf "closure params of %s: [%s]@." username *)
-  (*   (String.concat ", " (Sset.to_list poly_params)); *)
   Hashtbl.add polyschemes_tbl call (ftyp, poly_params);
   let is_polymorphic = not (Sset.is_empty poly_params) in
 
@@ -1600,21 +1601,13 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
   let p, tree, _ = morph_toplvl param items in
 
   (* Add missing monomorphized functions from rec blocks *)
-  (* let p = *)
-  (*   Hashtbl.fold *)
-  (*     (fun call (p, concrete) realp -> *)
-  (*       let p, _ = *)
-  (*         let func = get_poly_func call in *)
-  (*         let typ = typ_of_abs func.abs in *)
-  (*         monomorphize p typ concrete func parent_sub *)
-  (*       in *)
-  (*       { *)
-  (*         realp with *)
-  (*         funcs = Fset.union p.funcs realp.funcs; *)
-  (*         monomorphized = Sset.union p.monomorphized realp.monomorphized; *)
-  (*       }) *)
-  (*     missing_polys_tbl p *)
-  (* in *)
+  let () =
+    Hashtbl.iter
+      (fun call (p, subst) ->
+        let func = get_poly_func call in
+        do_monomorphize p func subst |> ignore)
+      missing_polys_tbl
+  in
   let frees =
     match Mallocs.pop p.mallocs |> fst with
     | [] -> Seq.empty

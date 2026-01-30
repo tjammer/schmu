@@ -988,7 +988,7 @@ a second function. Instead, the closure struct was being created again and the c
   
   declare void @printi(i64 %0)
   
-  define linkonce_odr i64 @__schmu_apply2_t.lllt.l(i64 %0, ptr %f, ptr %env) !dbg !2 {
+  define linkonce_odr i64 @__schmu_apply2_llt.lt.l(i64 %0, ptr %f, ptr %env) !dbg !2 {
   entry:
     %x = alloca i64, align 8
     store i64 %0, ptr %x, align 8
@@ -1057,7 +1057,7 @@ a second function. Instead, the closure struct was being created again and the c
     %envptr9 = getelementptr inbounds %closure, ptr %clstmp7, i32 0, i32 1
     store ptr null, ptr %envptr9, align 8
     %ret10 = alloca %t.l, align 8
-    %1 = call i64 @__schmu_apply2_t.lllt.l(i64 15, ptr %clstmp4, ptr %clstmp7), !dbg !15
+    %1 = call i64 @__schmu_apply2_llt.lt.l(i64 15, ptr %clstmp4, ptr %clstmp7), !dbg !15
     store i64 %1, ptr %ret10, align 8
     store i64 %1, ptr @schmu_b, align 8
     call void @printi(i64 %1), !dbg !16

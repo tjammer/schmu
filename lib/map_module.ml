@@ -121,9 +121,10 @@ module Make (C : Map_tree) = struct
     | Mutual_rec_decls (fs, cont) ->
         let sub, fs =
           List.fold_left_map
-            (fun sub (n, u, t) ->
+            (fun sub (n, u, t, touched) ->
               let sub, t = C.map_type ~mname sub t in
-              (sub, (n, u, t)))
+              let sub, touched = map_touched mname sub touched in
+              (sub, (n, u, t, touched)))
             sub fs
         in
         let sub, cont = (map_body mname nsub) sub cont in
@@ -186,16 +187,7 @@ module Make (C : Map_tree) = struct
         sub abs.func.tparams
     in
     let sub, ret = C.map_type ~mname sub abs.func.ret in
-    let sub, touched =
-      List.fold_left_map
-        (fun sub t ->
-          (* For touched things, map both type and mname. We could refer to
-             something in a functor which now lives in a concrete module. *)
-          let sub, ttyp = C.map_type ~mname sub Typed_tree.(t.ttyp) in
-          let _, tmname = C.change_var ~mname t.tname t.tmname sub in
-          (sub, { t with ttyp; tmname }))
-        sub abs.func.touched
-    in
+    let sub, touched = map_touched mname sub abs.func.touched in
     let func =
       {
         Typed_tree.tparams;
@@ -206,6 +198,16 @@ module Make (C : Map_tree) = struct
     in
     let sub, body = (map_body mname nsub) sub abs.body in
     (sub, { abs with func; body })
+
+  and map_touched mname sub touched =
+    List.fold_left_map
+      (fun sub t ->
+        (* For touched things, map both type and mname. We could refer to
+           something in a functor which now lives in a concrete module. *)
+        let sub, ttyp = C.map_type ~mname sub Typed_tree.(t.ttyp) in
+        let _, tmname = C.change_var ~mname t.tname t.tmname sub in
+        (sub, { t with ttyp; tmname }))
+      sub touched
 
   and map_tl_items mname nsub sub items =
     let (_, sub), items =
@@ -233,9 +235,10 @@ module Make (C : Map_tree) = struct
     | Tl_mutual_rec_decls decls ->
         let sub, decls =
           List.fold_left_map
-            (fun sub (n, u, t) ->
+            (fun sub (n, u, t, touched) ->
               let sub, t = C.map_type ~mname sub t in
-              (sub, (n, u, t)))
+              let sub, touched = map_touched mname sub touched in
+              (sub, (n, u, t, touched)))
             sub decls
         in
         ((nsub, sub), Tl_mutual_rec_decls decls)
@@ -280,9 +283,10 @@ module Make (C : Map_tree) = struct
     | Mmutual_rec (l, decls) ->
         let (a, nsub), decls =
           List.fold_left_map
-            (fun (sub, nsub) (l, n, u, t) ->
-              let a, t = C.map_type ~mname sub t in
-              ((a, nsub), (l, n, u, t)))
+            (fun (sub, nsub) (l, n, u, t, touched) ->
+              let sub, t = C.map_type ~mname sub t in
+              let sub, touched = map_touched mname sub touched in
+              ((sub, nsub), (l, n, u, t, touched)))
             (sub, nsub) decls
         in
         ((a, nsub), Mmutual_rec (l, decls))

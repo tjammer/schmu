@@ -1441,7 +1441,7 @@ end = struct
                 let t = Env.find_val loc (Path.Pid n) env in
                 let decls, cont = aux tl in
                 let expr = Function (n, u, abs, cont) in
-                ( (n, u, t.typ) :: decls,
+                ( (n, u, t.typ, abs.func.touched) :: decls,
                   { typ = cont.typ; expr; attr = cont.attr; loc } )
             | [] -> ([], cont)
           in
@@ -2303,7 +2303,8 @@ and convert_prog env items modul =
               let abs = { abs with func } in
 
               let decls, fitems, env = aux env tl in
-              ((n, u, t.typ) :: decls, (l, n, u, abs) :: fitems, env)
+              let touched = abs.func.touched in
+              ((n, u, t.typ, touched) :: decls, (l, n, u, abs) :: fitems, env)
           | [] -> ([], [], env)
         in
         let decls, fitems, env = aux env (List.rev funcs) in

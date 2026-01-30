@@ -83,7 +83,8 @@ let add_rec_block loc ~mname funs m =
     List.filter_map
       (fun (loc, name, uniq, (abs : Typed_tree.abstraction)) ->
         let typ = type_of_func abs.func in
-        if is_polymorphic typ then Some (loc, name, uniq, typ) else None)
+        if is_polymorphic typ then Some (loc, name, uniq, typ, abs.func.touched)
+        else None)
       funs
   in
   let i = Mmutual_rec (loc, m's) :: m.i in
@@ -297,12 +298,21 @@ let rec map_item ~mname sub = function
   | Mmutual_rec (l, decls) ->
       let sub, decls =
         List.fold_left_map
-          (fun sub (l, n, u, t) ->
+          (fun sub (l, n, u, t, touched) ->
             let sub, t = Regeneralize.map_type ~mname sub t in
-            (sub, (l, n, u, t)))
+            let sub, touched =
+              List.fold_left_map
+                (fun sub (t : Env.touched) ->
+                  let sub, ttyp = Regeneralize.map_type ~mname sub t.ttyp in
+                  (sub, { t with ttyp }))
+                sub touched
+            in
+            (sub, (l, n, u, t, touched)))
           sub decls
       in
-      let mname_decls = List.map (fun (_, n, u, t) -> (n, u, t)) decls in
+      let mname_decls =
+        List.map (fun (_, n, u, t, touched) -> (n, u, t, touched)) decls
+      in
       let item = (mname, Typed_tree.Tl_mutual_rec_decls mname_decls) in
       poly_funcs := item :: !poly_funcs;
       (sub, Mmutual_rec (l, decls))
@@ -413,7 +423,7 @@ let rec add_to_env env foreign (mname, m) =
                   |> add_callname ~key:n.user (cname n.user n.call))
             | Mmutual_rec (_, ds) ->
                 List.fold_left
-                  (fun env (l, name, _, typ) ->
+                  (fun env (l, name, _, typ, _) ->
                     Env.(add_value name { def_val with typ } l env))
                   env ds
             | Malias (loc, n, tree) ->

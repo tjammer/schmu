@@ -23,7 +23,8 @@ type expr =
   | Bind of string * dattr * typed_expr * typed_expr
   | Lambda of int * abstraction
   | Function of string * int option * abstraction * typed_expr
-  | Mutual_rec_decls of (string * int option * typ) list * typed_expr
+  | Mutual_rec_decls of
+      (string * int option * typ * touched list) list * typed_expr
   | App of {
       callee : typed_expr;
       args : arg list;
@@ -79,7 +80,7 @@ and toplevel_item =
   | Tl_bind of string * typed_expr
   | Tl_function of loc * string * int option * abstraction
   | Tl_expr of typed_expr
-  | Tl_mutual_rec_decls of (string * int option * typ) list
+  | Tl_mutual_rec_decls of (string * int option * typ * touched list) list
   | Tl_module of (Path.t * toplevel_item) list
   | Tl_module_alias of (loc * string) * Path.t
 

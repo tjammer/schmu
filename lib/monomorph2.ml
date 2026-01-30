@@ -109,17 +109,24 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     in
     aux ty
 
+  let rec subst_until_mono id subst =
+    match Vars.find id subst with
+    | Tpoly id -> subst_until_mono id subst
+    | t -> t
+
   let construct_mono_name name scheme subst =
-    let suffix =
-      Sset.fold
-        (fun id acc ->
-          let ty = Vars.find id subst in
-          (match ty with Tpoly _ -> assert false | _ -> ());
-          acc ^ ty_name ty)
-        scheme ""
-    in
-    let name = name ^ "_" ^ suffix in
-    if String.starts_with ~prefix:"__" name then name else "__" ^ name
+    if Sset.is_empty scheme then name
+    else
+      let suffix =
+        Sset.fold
+          (fun id acc ->
+            let ty = subst_until_mono id subst in
+            (match ty with Tpoly _ -> assert false | _ -> ());
+            acc ^ ty_name ty)
+          scheme ""
+      in
+      let name = name ^ "_" ^ suffix in
+      if String.starts_with ~prefix:"__" name then name else "__" ^ name
 
   let collect_poly_params typ closed =
     let oftyp params t =
@@ -190,11 +197,6 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     in
     aux true p.recursion_stack
 
-  let rec subst_until_mono id subst =
-    match Vars.find id subst with
-    | Tpoly id -> subst_until_mono id subst
-    | t -> t
-
   let subst_ty subst ty =
     let rec aux = function
       | Tpoly id ->
@@ -246,44 +248,6 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           t
     in
     aux ty
-
-  let subst_closed subst = function
-    | cls ->
-        let cls =
-          List.map
-            (fun cl ->
-              let is_function =
-                match cl.cltyp with Tfun _ -> true | _ -> false
-              in
-              let clname =
-                if is_function && not cl.clparam then
-                  let scheme = Hashtbl.find polyschemes_tbl cl.clname |> snd in
-                  construct_mono_name cl.clname scheme subst
-                else cl.clname
-              in
-              let cltyp = subst_ty subst cl.cltyp in
-              { cl with cltyp; clname })
-            cls
-        in
-        cls
-
-  let get_poly_func callname =
-    match Hashtbl.find_opt poly_funcs_tbl callname with
-    | Some func -> func
-    | None -> (
-        match Hashtbl.find_opt deferredfunc_tbl callname with
-        | Some make_func ->
-            (* Which param do we want to use? The original *)
-            let _ = make_func () in
-            (* Should exist now *)
-            let func = Hashtbl.find poly_funcs_tbl callname in
-            func
-        | None -> failwith "Internal Error: Poly function not registered yet")
-
-  let func_of_typ closed = function
-    | Tfun (params, ret, Simple) -> { params; ret; closed = [] }
-    | Tfun (params, ret, Closure) -> { params; ret; closed }
-    | _ -> failwith "Internal Error: Not a function type"
 
   let build_subst ~poly ~typ =
     let rec inner subst = function
@@ -390,6 +354,66 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
             true)
       scheme
 
+  let merge_subst subst child_subst =
+    Vars.merge
+      (fun _ l r ->
+        match (l, r) with
+        | Some _, None -> l
+        | None, Some _ -> r
+        | None, None -> None
+        | Some l, Some r ->
+            let t =
+              match (l, r) with
+              | Tpoly _, Tpoly _ -> (* Prefer child? *) r
+              | Tpoly _, t -> t
+              | t, Tpoly _ -> t
+              | l, r ->
+                  assert (String.equal (string_of_type l) (string_of_type r));
+                  r
+            in
+            Some t)
+      subst child_subst
+
+  let subst_closed subst cls =
+    List.fold_left_map
+      (fun subst cl ->
+        let is_function = match cl.cltyp with Tfun _ -> true | _ -> false in
+        let subst, clname =
+          if is_function && not cl.clparam then
+            let poly, scheme = Hashtbl.find polyschemes_tbl cl.clname in
+            if Sset.is_empty scheme then (subst, cl.clname)
+            else
+              (* For some reason, the cltyp can be more specific than the type
+                 scheme. To deal with this, we enrich out subst with the one from
+                 the poly scheme and return it for subsequent substitutions to be
+                 used. *)
+              let child_subst = build_subst ~poly ~typ:cl.cltyp in
+              let subst = merge_subst subst child_subst in
+              (subst, construct_mono_name cl.clname scheme subst)
+          else (subst, cl.clname)
+        in
+        let cltyp = subst_ty subst cl.cltyp in
+        (subst, { cl with cltyp; clname }))
+      subst cls
+
+  let get_poly_func callname =
+    match Hashtbl.find_opt poly_funcs_tbl callname with
+    | Some func -> func
+    | None -> (
+        match Hashtbl.find_opt deferredfunc_tbl callname with
+        | Some make_func ->
+            (* Which param do we want to use? The original *)
+            let _ = make_func () in
+            (* Should exist now *)
+            let func = Hashtbl.find poly_funcs_tbl callname in
+            func
+        | None -> failwith "Internal Error: Poly function not registered yet")
+
+  let func_of_typ closed = function
+    | Tfun (params, ret, Simple) -> { params; ret; closed = [] }
+    | Tfun (params, ret, Closure) -> { params; ret; closed }
+    | _ -> failwith "Internal Error: Not a function type"
+
   let rec monomorph_call p expr subst : call_name =
     match find_function_expr p.vars expr.expr with
     | Builtin b -> Builtin (b, func_of_typ [] expr.typ)
@@ -418,13 +442,18 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
             failwith "still" (* Default *))
     | Mutual_rec (callname, _, upward) ->
         (* Is the scheme forward-declared as well? Probably not. Fix this later *)
-        let scheme = Hashtbl.find polyschemes_tbl callname |> snd in
-        let call = construct_mono_name callname scheme subst in
-        (* Could this not be Concrete? *)
-        (* The function doesn't exist yet, will it ever exist? *)
-        if not (Hashtbl.mem missing_polys_tbl call) then
-          Hashtbl.add missing_polys_tbl call (p, expr.typ);
-        Mono (call, upward)
+        let poly, scheme = Hashtbl.find polyschemes_tbl callname in
+        if Sset.is_empty scheme then Concrete callname
+        else
+          (* Treat it like a poly func, only with deferred function
+             generation *)
+          let child_subst = build_subst ~poly ~typ:expr.typ in
+          let subst = merge_subst subst child_subst in
+          (* The function doesn't exist yet, will it ever exist? *)
+          if not (Hashtbl.mem missing_polys_tbl callname) then
+            Hashtbl.add missing_polys_tbl callname (p, subst);
+          let call = construct_mono_name callname scheme subst in
+          Mono (call, upward)
     | Concrete (func, _username, _) -> Concrete func.name.call
     | Polymorphic (callname, _) ->
         (* Our subst is formulated in terms of the parent call in
@@ -432,19 +461,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
            concrete type) and merge it with the parent subst *)
         let poly = Hashtbl.find polyschemes_tbl callname |> fst in
         let child_subst = build_subst ~poly ~typ:expr.typ in
-        let subst =
-          Vars.merge
-            (fun _ l r ->
-              match (l, r) with
-              | Some _, None -> l
-              | None, Some _ -> r
-              | None, None -> None
-              | Some l, Some r ->
-                  assert (String.equal (string_of_type l) (string_of_type r));
-                  (* Prefer parent? *)
-                  Some l)
-            subst child_subst
-        in
+        let subst = merge_subst subst child_subst in
         let func = get_poly_func callname in
         do_monomorphize p func subst
     | No_function -> Default
@@ -457,8 +474,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     else
       let typ = subst_ty subst typ in
 
+      let subst, closed = subst_closed subst func.abs.func.closed in
       let body = subst_body p subst func.abs.body in
-      let closed = subst_closed subst func.abs.func.closed in
       let fnc = { (func_of_typ closed typ) with closed } in
       let name = { func.name with call = callname } in
       let abs = { func.abs with func = fnc; body } in
@@ -508,7 +525,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           let cont = aux cont in
           { t with expr = Mbind (id, lhs, cont) }
       | Mlambda (name, closed, typ, alloca, upward) ->
-          let typ = subst_ty subst typ and closed = subst_closed subst closed in
+          let typ = subst_ty subst typ
+          and subst, closed = subst_closed subst closed in
           (* We may have to monomorphize. For instance if the lambda returned from
                a polymorphic function *)
           let old_p =
@@ -541,7 +559,7 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
             let subst_scheme = subst_scheme scheme subst in
             if Sset.is_empty subst_scheme then
               let typ = subst_ty subst typ
-              and closed = subst_closed subst closed in
+              and subst, closed = subst_closed subst closed in
               (* Treat it as a poly func *)
               let func = get_poly_func name in
 
@@ -613,7 +631,10 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       | Builtin b -> Some (`Builtin (b, func_of_typ [] ex.typ))
       | Inline _ -> None
       | No_function -> None
-      | Mutual_rec _ -> failwith "TODO mutual rec"
+      | Mutual_rec (name, _, _) ->
+          (* Might not really be poly, but that's checked in the poly case
+             below. Will become concrete or poly. *)
+          Some (`Poly name)
       | Forward_decl (name, typ, _) -> (
           (* Indirectly recursive functions live in the closure env *)
           match is_actually_recursive p typ name.call with
