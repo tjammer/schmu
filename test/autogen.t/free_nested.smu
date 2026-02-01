@@ -1,0 +1,64 @@
+module iter {
+  type item['a] = 'a
+  type container['a] = array['a]
+  type state = int
+
+  fun next(arr, mov state, cont) {
+    if state < array/length(arr) {
+      cont(arr.[state])
+      Some(state + 1)
+    }
+    else { None }
+  }
+
+  fun begin() { 0 }
+}
+
+type iterthing['state, 'arr, 'item, 'ret] = {
+  state : 'state,
+  next : fun ('arr, mov 'state, fun ('item) -> 'ret) -> option['state]}
+
+fun rec iter(arr, mov it, -- : iterthing[int, array[int], int, unit]
+             f) {
+  match it.next(arr, mov it.state, f) {
+    None -> ()
+    Some(state) -> iter(arr, { it with state }, f)
+  }
+}
+
+fun filtit(mov it, mov f) {
+  fun tmp(arr, mov ({ state, next }, f), cont) {
+    match next(arr, mov state, fun i { if f(i) { cont(i) } else { () } }) {
+      None -> None
+      Some(state) -> Some(({ state, next }, f))
+    }
+  }
+  {
+    state = (it, f),
+    next = tmp
+  }
+}
+
+fun rangeit((), mov (i, end), cont) {
+  if i < end {
+    cont(i)
+    Some(i + 1, end)
+  }
+  else { None }
+}
+
+fun rangit(mov i) {
+  { state = (0, i), next = copy(rangeit) }
+}
+
+{
+  let fit =
+  rangit(10)
+  |> filtit(fun i { mod(i, 2) == 0 })
+  |> filtit(fun i { mod(i, 3) == 0 })
+  |> filtit(fun i { mod(i, 3) == 0 })
+  |> filtit(fun i { mod(i, 3) == 0 })
+  |> filtit(fun i { mod(i, 3) == 0 })
+
+  iter((), fit, fun i { fmt/println(fmt/int, i) })
+}

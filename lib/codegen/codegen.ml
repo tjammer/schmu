@@ -1391,14 +1391,14 @@ end = struct
     let open Malloc_types in
     let expr = gen_expr param expr in
     let get_path path init =
-      List.fold_right
-        (fun index expr ->
+      List.fold_left
+        (fun expr index ->
           match index with
           | -1 ->
               (* Special case for rc get *)
               R.get expr
           | _ -> follow_field expr index)
-        path init
+        init path
     in
     (match fs with
     | Except fs ->

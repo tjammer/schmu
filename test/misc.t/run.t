@@ -2199,3 +2199,6 @@ Regression test for miscompile
                                                                         ^^^^^
   
   $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./miscompile_variant_parents
+
+Unit closures from stateful iter experiment
+  $ schmu unit_closure_fixup.smu

@@ -72,6 +72,11 @@ module Make (A : Abi_intf.S) = struct
   and typeof_closure agg =
     Trecord ([], Rec_not (prepend_closure_env agg |> Array.of_list), None)
 
+  and partition_unit_closure agg =
+    List.partition
+      (fun cl -> match cl.cltyp with Tunit -> true | _ -> false)
+      agg
+
   and typeof_funclike = function
     (* Returns a LLVM function type to use far calling a closure *)
     | Tfun (ps, ret, kind) ->
@@ -172,9 +177,4 @@ module Make (A : Abi_intf.S) = struct
     | None ->
         (* Add struct to struct tbl *)
         to_named_typedefs name t
-
-  let is_only_units cls =
-    List.fold_left
-      (fun acc cl -> match cl.cltyp with Tunit -> acc | _ -> false)
-      true cls
 end

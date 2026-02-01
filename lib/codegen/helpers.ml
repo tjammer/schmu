@@ -351,6 +351,7 @@ struct
   let no_prealloc = Monomorph_tree.(ref (Request { id = -1; lvl = -1 }))
 
   let rec gen_closure_obj param assoc func name allocref upward =
+    let _, assoc = partition_unit_closure assoc in
     let clsr_struct = get_prealloc !allocref param closure_t name in
 
     (* Add function ptr *)
@@ -360,49 +361,42 @@ struct
     ignore (Llvm.build_store func.value fun_ptr builder);
 
     let store_closed_var lltyp clsr_ptr i cl =
-      match cl.cltyp with
-      | Tunit -> i
-      | _ ->
-          let src =
-            match Vars.find_opt cl.clname param.vars with
-            | Some v -> (
-                (* Copied from gen_var. Not all closures might be created yet *)
-                match (v.kind, v.typ) with
-                | Imm, Tfun (_, _, Closure) ->
-                    let assoc, _unused_upward =
-                      Hashtbl.find closures cl.clname
-                    in
-                    gen_closure_obj param assoc v "monoclstmp" no_prealloc
-                      upward
-                | _ -> v)
-            | None ->
-                Llvm.dump_module the_module;
-                failwith
-                  ("Internal Error: Cannot find closed variable: " ^ cl.clname)
-          in
-          let dst = Llvm.build_struct_gep lltyp clsr_ptr i cl.clname builder in
-          let src =
-            if upward && cl.clcopy then
-              Auto.copy { no_param with alloca = Some dst } allocref src
-            else src
-          in
-          if is_struct cl.cltyp && cl.clmut && not upward then
-            ignore (Llvm.build_store src.value dst builder)
-          else if is_struct cl.cltyp then
-            (* For records, we just memcpy *)
-            let size = sizeof_typ cl.cltyp |> Llvm.const_int int_t in
-            memcpy ~src ~dst ~size
-          else if cl.clmut && not upward then
-            ignore (Llvm.build_store src.value dst builder)
-          else ignore (Llvm.build_store (bring_default src) dst builder);
-          i + 1
+      let src =
+        match Vars.find_opt cl.clname param.vars with
+        | Some v -> (
+            (* Copied from gen_var. Not all closures might be created yet *)
+            match (v.kind, v.typ) with
+            | Imm, Tfun (_, _, Closure) ->
+                let assoc, _unused_upward = Hashtbl.find closures cl.clname in
+                gen_closure_obj param assoc v "monoclstmp" no_prealloc upward
+            | _ -> v)
+        | None ->
+            Llvm.dump_module the_module;
+            failwith
+              ("Internal Error: Cannot find closed variable: " ^ cl.clname)
+      in
+      let dst = Llvm.build_struct_gep lltyp clsr_ptr i cl.clname builder in
+      let src =
+        if upward && cl.clcopy then
+          Auto.copy { no_param with alloca = Some dst } allocref src
+        else src
+      in
+      if is_struct cl.cltyp && cl.clmut && not upward then
+        ignore (Llvm.build_store src.value dst builder)
+      else if is_struct cl.cltyp then
+        (* For records, we just memcpy *)
+        let size = sizeof_typ cl.cltyp |> Llvm.const_int int_t in
+        memcpy ~src ~dst ~size
+      else if cl.clmut && not upward then
+        ignore (Llvm.build_store src.value dst builder)
+      else ignore (Llvm.build_store (bring_default src) dst builder);
+      i + 1
     in
 
     (* Add closed over vars. If the environment is empty, we pass nullptr *)
     let clsr_ptr =
       match assoc with
       | [] -> Llvm.const_pointer_null ptr_t
-      | assoc when is_only_units assoc -> Llvm.const_pointer_null ptr_t
       | assoc ->
           let assoc_type = lltypeof_closure assoc upward in
           let clsr_ptr =
@@ -452,20 +446,15 @@ struct
   let add_closure vars func closed free_tbl upward =
     match closed with
     | [] -> vars
-    | assoc when is_only_units assoc ->
-        List.fold_left
-          (fun vars cl -> Vars.add cl.clname dummy_fn_value vars)
-          vars assoc
     | assoc ->
+        let units, assoc = partition_unit_closure assoc in
         let closure_index = (Llvm.params func.value |> Array.length) - 1 in
         let clsr_param = (Llvm.params func.value).(closure_index) in
         let clsr_type = lltypeof_closure assoc upward in
 
         let add_closure (env, i) cl =
           match cl.cltyp with
-          | Tunit ->
-              (* Unit types are not part of the closure struct *)
-              (Vars.add cl.clname dummy_fn_value env, i)
+          | Tunit -> (Vars.add cl.clname dummy_fn_value env, i)
           | _ ->
               let item_ptr =
                 Llvm.build_struct_gep clsr_type clsr_param i cl.clname builder
@@ -480,7 +469,14 @@ struct
               (Vars.add cl.clname item env, i + 1)
         in
         (* [2] as starting index, because [0] is ref count, and [1] is dtor *)
-        let env, _ = List.fold_left add_closure (vars, 2) assoc in
+        let env =
+          List.fold_left
+            (fun env cl ->
+              (* Unit types are not part of the closure struct *)
+              Vars.add cl.clname dummy_fn_value env)
+            vars units
+        in
+        let env, _ = List.fold_left add_closure (env, 2) assoc in
         env
 
   let store_or_copy ~src ~dst =

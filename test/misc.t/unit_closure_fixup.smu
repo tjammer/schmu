@@ -1,0 +1,92 @@
+module iter {
+  type item['a] = 'a
+  type container['a] = array['a]
+  type state = int
+
+  fun next(arr, mut state, cont) {
+    if state < array/length(arr) {
+      cont(Some(bor arr.[state]))
+      mut state = state + 1
+    }
+    else { () }
+  }
+
+  fun begin() { 0 }
+}
+
+type iterthing['state, 'arr, 'item, 'ret] = {
+  mut state : 'state,
+  next : fun ('arr, mut 'state, fun ('item) -> 'ret) -> unit}
+
+fun iter(arr, mov it, -- : iterthing[int, array[int], int, unit]
+             f) {
+  let mut it = mov it
+  fun rec aux() {
+    let mut cont = false
+    it.next(arr, mut it.state, fun i {
+      match i {
+        Some(i) -> {
+          f(i)
+          mut cont = true
+        }
+        None -> ()
+      }
+    })
+    if cont { aux() }
+  }
+  aux()
+}
+
+fun arrit() {
+  { state = iter/begin(), next = copy(iter/next) }
+}
+iter([0, 1, 2], arrit(), fun i { fmt/println(fmt/int, i) })
+
+fun filtit(mov it, mov f) {
+  fun tmp(arr, mut (mut s, f), cont) {
+    fun rec aux() {
+      let mut conti = false
+      s.next(arr, mut s.state, fun i {
+        match i {
+          Some(i) -> {
+            mut conti = true
+            if f(i) {
+              cont(Some(bor i))
+            }
+          }
+          None -> { () }
+        }
+      })
+      if conti { aux() }
+    }
+    aux()
+  }
+  {
+    state = (it, f),
+    next = tmp
+  }
+}
+
+fun rangeit((), mut (mut i, end), cont) {
+  if i < end {
+    cont(Some(i))
+    mut i = i + 1
+  }
+  else { () }
+}
+
+fun rangit(mov i) {
+  { state = (0, i), next = copy(rangeit) }
+}
+
+{
+  let fit =
+  rangit(100_000_000)
+  |> filtit(fun i { mod(i, 2) == 0 })
+  |> filtit(fun i { mod(i, 3) == 0 })
+  |> filtit(fun i { mod(i, 3) == 0 })
+  |> filtit(fun i { mod(i, 3) == 0 })
+  |> filtit(fun i { mod(i, 3) == 0 })
+
+  iter((), fit, fun i { fmt/println(fmt/int, i) })
+}

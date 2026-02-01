@@ -1352,3 +1352,9 @@ Correctly copy array
 Correctly copy rc
   $ schmu rc.smu
   $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./rc
+
+Regression from stateful iter experiment. Free deeply nested records and variants
+  $ schmu free_nested.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./free_nested
+  0
+  6
