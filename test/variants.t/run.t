@@ -1498,3 +1498,10 @@ of) the return value
   
   !5 = !{}
   $ schmu return_no_overlapping_copy.smu > /dev/null 2>&1
+
+Unbox small nested variants to the correct i64
+  $ schmu unbox_regression.smu
+  $ ./unbox_regression
+  a
+  b
+  c

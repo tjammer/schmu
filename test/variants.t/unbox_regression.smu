@@ -1,0 +1,21 @@
+type t = A | B | C
+
+fun pp_t(mov p, t) {
+  let ch = match t {
+    A -> 'a'
+    B -> 'b'
+    C -> 'c'
+  }
+  fmt/char(p, ch)
+}
+
+fun optt(mov p, opt) {
+  match opt {
+    None -> fmt/str(p, "none")
+    Some(i) -> pp_t(p, i)
+  }
+}
+
+fmt/println(optt, Some(A))
+fmt/println(optt, Some(B))
+fmt/println(optt, Some(C))
