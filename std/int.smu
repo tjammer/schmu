@@ -20,6 +20,9 @@ signature {
   val gt_unsigned : fun (t, t) -> bool
   val le_unsigned : fun (t, t) -> bool
   val ge_unsigned : fun (t, t) -> bool
+
+  val max : fun (t, t) -> t
+  val min : fun (t, t) -> t
 }
 
 let + = __addi
@@ -63,4 +66,14 @@ let equal = (==)
 
 fun compare(l, r) {
   l - r
+}
+
+fun max(l, r) {
+  if l > r { l }
+  else { r }
+}
+
+fun min(l, r) {
+  if l < r { l }
+  else { r }
 }
