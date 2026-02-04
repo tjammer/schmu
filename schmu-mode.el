@@ -171,6 +171,13 @@
         (indent-line-to indent-col)
       (save-excursion (indent-line-to indent-col)))))
 
+(defun schmu-indent-whole-buffer ()
+  "Indent the entire buffer without affecting point or mark."
+  (interactive)
+  (save-excursion
+    (save-restriction
+      (indent-region (point-min) (point-max)))))
+
 ;;;###autoload
 (define-derived-mode schmu-mode prog-mode "Schmu"
   "Major mode for editing Schmu."
@@ -196,7 +203,9 @@
               (append schmu-electric-indent-chars
                       (and (boundp 'electric-indent-chars)
                            electric-indent-chars)))
-  (setq-local indent-line-function 'schmu-mode-indent-line))
+  (setq-local indent-line-function 'schmu-mode-indent-line)
+
+  (add-hook 'before-save-hook #'schmu-indent-whole-buffer nil t))
 
 ;;;###autoload
 (add-to-list 'auto-mode-alist '("\\.smu\\'" . schmu-mode))
