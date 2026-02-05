@@ -159,7 +159,7 @@ fun float(mov p, f) {
       let num_digits = decimal_length(dec.digits)
       let decimal_point = num_digits + dec.exponent
       let use_fixed = decimal_point >= min_fixed_decs
-        and decimal_point <= max_fixed_decs
+      and decimal_point <= max_fixed_decs
 
       if use_fixed {
         let arr, len = format_fixed(
