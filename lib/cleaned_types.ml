@@ -43,15 +43,8 @@ let is_type_polymorphic_no_closure typ =
     | Trecord (_, Rec_not fs, None) ->
         Array.fold_left (fun acc f -> inner acc f.ftyp) acc fs
     | Trecord (ps, _, _) | Tvariant (ps, _, _) -> List.fold_left inner acc ps
-    | Tfun (params, ret, kind) ->
+    | Tfun (params, ret, _) ->
         let acc = List.fold_left (fun b p -> inner b p.pt) acc params in
-        let acc =
-          match kind with
-          | Simple -> acc
-          | Closure ->
-              (* We might close over polymorphic types. Don't know *)
-              true
-        in
         inner acc ret
     | Tbool | Tunit | Tint | Tu8 | Tu16 | Tfloat | Ti32 | Tf32 | Ti8 | Ti16
     | Tu32 ->

@@ -1,6 +1,6 @@
 type either = Left | Right
 
-fun add_ints(a, b) {
+fun add_ints(a, f : fun () -> int) {
   let c = 10
-  a + b
+  a + f()
 }

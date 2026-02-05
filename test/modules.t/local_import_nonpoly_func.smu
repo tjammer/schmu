@@ -1,17 +1,20 @@
 import nonpoly_func
 
+fun five() { 5 }
+fun minfive() { -5 }
+
 fun doo(a) {
   -- TODO use modules for patterns
   nonpoly_func/(match a {
-    Left -> add_ints(0, 5)
-    Right -> add_ints(0, -5)
+    Left -> add_ints(0, five)
+    Right -> add_ints(0, minfive)
   })
 }
 fun do2(a) {
   use nonpoly_func
   match a {
-    Left -> add_ints(0, 5)
-    Right -> add_ints(0, -5)
+    Left -> add_ints(0, five)
+    Right -> add_ints(0, minfive)
   }
 }
 doo(nonpoly_func/Left)|>> fmt/(println(int))
