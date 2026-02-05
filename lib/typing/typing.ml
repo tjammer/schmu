@@ -1235,7 +1235,7 @@ end = struct
     (* We can assume pred evaluates to bool and both branches need to evaluate
        to the some type *)
     let type_cond = convert env cond in
-    unify (loc, "In condition") type_cond.typ tbool env;
+    unify (loc, "In condition") tbool type_cond.typ env;
     let type_e1 = convert env e1 in
     let type_e2 =
       (* We unify in the pattern match to have different messages and unification order *)
