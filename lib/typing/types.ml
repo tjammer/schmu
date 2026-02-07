@@ -200,15 +200,25 @@ let fold_builtins f init =
       tweak_rc (Qvar "0");
     ]
 
-let is_builtin = function
-  | Tconstr
-      ( Pid
-          ( "int" | "bool" | "unit" | "float" | "u8" | "u16" | "i32" | "f32"
-          | "i8" | "i16" | "u32" | "array" | "raw_ptr" | "rc" | "weak_rc" ),
-        _,
-        _ ) ->
+let is_builtin_path = function
+  | Path.Pid
+      ( "int" | "bool" | "unit" | "float" | "u8" | "u16" | "i32" | "f32" | "i8"
+      | "i16" | "u32" | "array" | "raw_ptr" | "rc" | "weak_rc" ) ->
       true
   | _ -> false
+
+let is_builtin = function
+  | Tconstr (p, _, _) when is_builtin_path p -> true
+  | _ -> false
+
+let get_builtin p =
+  if is_builtin_path p then
+    (* Find the correct builtin. We fold over all builtins so we don't have to
+       type out all the cases. This could obviously be improved. *)
+    fold_builtins
+      (fun acc name decl -> if Path.equal (Pid name) p then Some decl else acc)
+      None
+  else None
 
 let is_polymorphic typ =
   let rec inner acc = function

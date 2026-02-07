@@ -695,6 +695,17 @@ let find_type_opt loc key env =
     ~found:(fun _ f -> f)
     loc key env
 
+let find_type_absolute_opt loc key env =
+  (* An opened module could shadow a builtin type. Since builtin types don't
+     have as specific path we need to search for them first *)
+  match get_builtin key with
+  | Some decl -> Some (decl, key)
+  | None ->
+      find_general
+        ~find:(fun key scope -> Map.find_opt key scope.types)
+        ~found:(fun _ f -> f)
+        loc key env
+
 let find_type loc key env =
   match find_type_opt loc key env with
   | Some decl -> decl

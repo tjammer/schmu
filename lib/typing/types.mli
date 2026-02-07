@@ -79,6 +79,7 @@ val fold_builtins : ('a -> string -> type_decl -> 'a) -> 'a -> 'a
 (** Fold over all special builtin types to add them to the typing env *)
 
 val is_builtin : typ -> bool
+val get_builtin : Path.t -> type_decl option
 val is_polymorphic : typ -> bool
 val is_unit : typ -> bool
 val is_weak : sub:Sset.t -> typ -> bool

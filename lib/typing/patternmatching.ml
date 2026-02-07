@@ -369,7 +369,7 @@ module Exhaustiveness = struct
   let ctorset_of_variant loc env typ =
     match repr typ with
     | Tconstr (path, inst, _) -> (
-        match Env.find_type_opt loc path env with
+        match Env.find_type_absolute_opt loc path env with
         | Some (decl, _) -> (
             let sub = map_params ~inst ~params:decl.params in
             match decl.kind with

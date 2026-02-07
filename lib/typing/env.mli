@@ -97,6 +97,11 @@ val query_val_opt :
 val open_mutation : t -> unit
 val close_mutation : t -> unit
 val find_type_opt : Ast.loc -> Path.t -> t -> (type_decl * Path.t) option
+
+val find_type_absolute_opt :
+  Ast.loc -> Path.t -> t -> (type_decl * Path.t) option
+(** Like [find_type_opt], but will correctly handle builtins *)
+
 val find_type : Ast.loc -> Path.t -> t -> type_decl * Path.t
 val find_type_same_module : string -> t -> (type_decl * Path.t) option
 val find_module_opt : ?query:bool -> Ast.loc -> Path.t -> t -> Path.t option
