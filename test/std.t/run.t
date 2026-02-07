@@ -12,6 +12,10 @@ Test hashtbl
   some v: 10
   ## mut array
   ## project mut
+  00
+  11
+  22
+  33
 
 String module test
   $ schmu string.smu

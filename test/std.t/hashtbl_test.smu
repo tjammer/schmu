@@ -125,3 +125,20 @@ fun project_mut() {
   assert(keytbl/mem(tbl, A1) |> not)
 }
 project_mut()
+
+-- regression test from schmorder issue. The size of the old data array is not
+-- resetting correctly inside grow. Doesn't really reproduce. Still surfaced
+-- another mono issue
+{
+  let mut tbl = stbl/create(2)
+  stbl/insert(mut tbl, copy("0"), copy("0"))
+  stbl/insert(mut tbl, copy("1"), copy("1"))
+  stbl/insert(mut tbl, copy("2"), copy("2"))
+  stbl/insert(mut tbl, copy("3"), copy("3"))
+
+  -- now read all data. Some of it used to point to already freed memory
+  stbl/iter(tbl) |> iter/iter(fun ((stra, strb)) {
+    print(stra)
+    println(strb)
+  })
+}

@@ -153,22 +153,21 @@ functor make (m : key) {
   fun rec fixup(mut data, old) {
     let next = next_wrapped(old, array/length(data))
     match mut data.[next] {
-      Some(mut item) ->
-        if not(item.pathlen == 0) {
-          mut item.pathlen = item.pathlen - 1
-          -- swap with old slot, inline
-          let oldtmp = mov data.[old]
-          mut data.[old] = data.[next]
-          mut data.[next] = oldtmp
-          fixup(mut data, next)
-        }
+      Some(mut item) -> if not(item.pathlen == 0) {
+        mut item.pathlen = item.pathlen - 1
+        -- swap with old slot, inline
+        let oldtmp = mov data.[old]
+        mut data.[old] = data.[next]
+        mut data.[next] = oldtmp
+        fixup(mut data, next)
+      }
       None -> ()
     }
   }
 
   fun rec find_index(i, tbl, key, pathlen) {
     match tbl.data.[i] {
-      Some(item) ->
+      Some(item) -> {
         if m/equal(key, item.key) { Some(i) }
         else {
           if pathlen > item.pathlen { None }
@@ -177,6 +176,7 @@ functor make (m : key) {
             find_index(next, tbl, key, pathlen + 1)
           }
         }
+      }
       None -> None
     }
   }
@@ -199,7 +199,10 @@ functor make (m : key) {
     match find_index(hash, tbl, key, 0) {
       Some(i) -> match tbl.data.[i] {
         Some(item) -> fn(Some(bor item.value))
-        None -> fn(None)
+        None -> {
+          assert(false)
+          fn(None)
+        }
       }
       None -> fn(None)
     }
@@ -225,24 +228,20 @@ functor make (m : key) {
           ret
         }
         None -> {
+          assert(false)
           let mut tmp = None
-          let ret = fn(mut tmp)
-          match tmp {
-            None -> ()
-            Some(value) -> insert(mut tbl, copy(key), value)
-          }
-          ret
+          fn(mut tmp)
         }
       }
       None -> {
-          let mut tmp = None
-          let ret = fn(mut tmp)
-          match tmp {
-            None -> ()
-            Some(value) -> insert(mut tbl, copy(key), value)
-          }
-          ret
+        let mut tmp = None
+        let ret = fn(mut tmp)
+        match tmp {
+          None -> ()
+          Some(value) -> insert(mut tbl, copy(key), value)
         }
+        ret
+      }
     }
   }
 

@@ -450,9 +450,11 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
           let child_subst = build_subst ~poly ~typ:expr.typ in
           let subst = merge_subst subst child_subst in
           (* The function doesn't exist yet, will it ever exist? *)
-          if not (Hashtbl.mem missing_polys_tbl callname) then
-            Hashtbl.add missing_polys_tbl callname (p, subst);
           let call = construct_mono_name callname scheme subst in
+          if not (Hashtbl.mem missing_polys_tbl call) then
+            (* Original unmonomorphized callname is need for getting the poly
+               function *)
+            Hashtbl.add missing_polys_tbl call (callname, p, subst);
           Mono (call, upward)
     | Concrete (func, _username, _) -> Concrete func.name.call
     | Polymorphic (callname, _) ->

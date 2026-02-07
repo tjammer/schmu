@@ -1603,7 +1603,7 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
   (* Add missing monomorphized functions from rec blocks *)
   let () =
     Hashtbl.iter
-      (fun call (p, subst) ->
+      (fun _ (call, p, subst) ->
         let func = get_poly_func call in
         do_monomorphize p func subst |> ignore)
       missing_polys_tbl
