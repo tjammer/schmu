@@ -237,39 +237,31 @@ functor make_printer(m : concrete_formatter) {
 
     type slice = { start : int, len : int }
     type iter_kind = Str(slice) | Fmt(int)
-    type escape = Escape | No_escape
 
     fun iter_fmt(str, cont) {
       let length = string/len(str)
-      fun rec aux(start, len, num_fmts, escape) {
+      fun rec aux(start, len, num_fmts) {
         if (start + len) < length {
           -- we have not reached the end of the format string yet
           match string/get(str, start + len) {
             -- use numeric char literals to deal with parenthesis detection in emacs
             123u8 -> {
               -- '{'
-              match escape {
-                No_escape -> {
-                  -- peek at next char
-                  if (start + len + 1) < length
-                  and char_equal(string/get(str, start + len + 1), 125u8) {
-                    -- print the string up to here
-                    assert(cont(Str({ start, len })))
-                    -- then print the formatted item
-                    assert(cont(Fmt(num_fmts)))
-                    aux(start + len + 2, 0, num_fmts + 1, No_escape)
-                  }
-                  else {
-                    assert(cont(Str({ start, len = len + 1 })))
-                  }
-                }
-                Escape -> {
-                  -- continue
-                  aux(start, len + 1, num_fmts, escape)
-                }
+              -- peek at next char
+              if (start + len + 1) < length
+              and char_equal(string/get(str, start + len + 1), 125u8) {
+                -- print the string up to here
+                assert(cont(Str({ start, len })))
+                -- then print the formatted item
+                assert(cont(Fmt(num_fmts)))
+                aux(start + len + 2, 0, num_fmts + 1)
+              }
+              else {
+                -- continue normally, it's just a curly parenthesis
+                aux(start, len + 1, num_fmts)
               }
             }
-            _ -> aux(start, len + 1, num_fmts, escape)
+            _ -> aux(start, len + 1, num_fmts)
           }
         }
         -- we have reached the end
@@ -277,7 +269,7 @@ functor make_printer(m : concrete_formatter) {
           assert(cont(Str({ start, len })))
         }
       }
-      aux(0, 0, 0, No_escape)
+      aux(0, 0, 0)
       false
     }
   }

@@ -29,3 +29,6 @@ println(float, 12345.6789)
 println(float, -12345.6789)
 println(float, 0.000001234)
 println(float, 123456000.0)
+
+-- just print curlies
+print1("{ {} }", int, 12)
