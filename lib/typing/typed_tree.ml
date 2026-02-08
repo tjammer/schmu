@@ -91,6 +91,9 @@ and touched = Env.touched = {
   tattr_loc : loc option;
   tmname : Path.t option;
   tusage : mode;
+  tmut : bool;
+      (* A closed item can be mutable even if we only read it. For codegen, we
+         need to track the mutability because mutable items are pointers. *)
   tcopy : bool;
   tcaptured : bool;
   tparam : bool;

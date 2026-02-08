@@ -130,15 +130,33 @@ project_mut()
 -- resetting correctly inside grow. Doesn't really reproduce. Still surfaced
 -- another mono issue
 {
+  -- minimum hashtbl size will still be 16, hardcoded in hashtbl impl
   let mut tbl = stbl/create(2)
+  -- add at least 16 items
   stbl/insert(mut tbl, copy("0"), copy("0"))
   stbl/insert(mut tbl, copy("1"), copy("1"))
   stbl/insert(mut tbl, copy("2"), copy("2"))
   stbl/insert(mut tbl, copy("3"), copy("3"))
+  stbl/insert(mut tbl, copy("4"), copy("3"))
+  stbl/insert(mut tbl, copy("5"), copy("3"))
+  stbl/insert(mut tbl, copy("6"), copy("3"))
+  stbl/insert(mut tbl, copy("7"), copy("3"))
+  stbl/insert(mut tbl, copy("8"), copy("3"))
+  stbl/insert(mut tbl, copy("9"), copy("3"))
+  stbl/insert(mut tbl, copy("10"), copy("3"))
+  stbl/insert(mut tbl, copy("10"), copy("4"))
+  stbl/insert(mut tbl, copy("11"), copy("4"))
+  stbl/insert(mut tbl, copy("12"), copy("3"))
+  stbl/insert(mut tbl, copy("13"), copy("3"))
+  stbl/insert(mut tbl, copy("14"), copy("3"))
+  stbl/insert(mut tbl, copy("15"), copy("3"))
+  stbl/insert(mut tbl, copy("16"), copy("3"))
+  stbl/insert(mut tbl, copy("17"), copy("3"))
 
   -- now read all data. Some of it used to point to already freed memory
   stbl/iter(tbl) |> iter/iter(fun ((stra, strb)) {
-    print(stra)
-    println(strb)
+    -- read items, but don't print
+    string/len(stra) |> ignore
+    string/len(strb) |> ignore
   })
 }

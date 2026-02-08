@@ -24,6 +24,7 @@ and touched = {
   tattr_loc : Ast.loc option;
   tmname : Path.t option;
   tusage : mode; (* Set by borrowing pass. [Many] before *)
+  tmut : bool;
   tcopy : bool;
   tcaptured : bool;
   tparam : bool;

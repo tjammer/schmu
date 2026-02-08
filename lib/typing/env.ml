@@ -93,6 +93,7 @@ and touched = {
   tattr_loc : Ast.loc option;
   tmname : Path.t option;
   tusage : mode;
+  tmut : bool;
   tcopy : bool;
   tcaptured : bool;
   tparam : bool;
@@ -486,6 +487,7 @@ let close_thing is_same modpath env =
                        tattr_loc = None;
                        tmname = mname;
                        tusage = Many;
+                       tmut = clmut;
                        tcopy = false (* Will be changed in typing *);
                        tcaptured;
                        tparam = param;

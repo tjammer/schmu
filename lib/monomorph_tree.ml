@@ -399,11 +399,7 @@ and closed_of_touched ss p = function
                       Some mid
                     else None
                 | _ -> None
-              and clmut =
-                match t.tattr with
-                | Dmut | Dset -> true
-                | Dnorm | Dmove -> false
-              in
+              and clmut = t.tmut in
               Some
                 {
                   clname;
