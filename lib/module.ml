@@ -442,9 +442,13 @@ let rec add_to_env env foreign (mname, m) =
                 | Some cached ->
                     Env.add_module ~key (envmodule_of_cached mname cached) env)
             | Mapplied_functor (loc, key, p, m) -> (
-                match register_applied_functor env loc key p m with
-                | Ok env -> env
-                | Error () -> raise (Error (loc, "Cannot apply functor")))
+                match Hashtbl.find_opt module_cache p with
+                | None -> (
+                    match register_applied_functor env loc key p m with
+                    | Ok env -> env
+                    | Error () -> raise (Error (loc, "Cannot apply functor")))
+                | Some cached ->
+                    Env.add_module ~key (envmodule_of_cached p cached) env)
             | Mfunctor (loc, key, ps, items, m) -> (
                 let mname = Path.append key mname in
                 match register_functor env loc mname ps items m with
@@ -485,10 +489,14 @@ let rec add_to_env env foreign (mname, m) =
                   Hashtbl.add tbl name decl
             | Mapplied_functor (loc, key, p, m) -> (
                 (* [register_applied_functor] adds the types to the decl table
-                   so they are readable later on *)
-                match register_applied_functor env loc key p m with
-                | Ok _ -> ()
-                | Error () -> raise (Error (loc, "Cannot apply functor")))
+                   so they are readable later on. Only do it for the
+                   side-effects *)
+                match Hashtbl.find_opt module_cache p with
+                | None -> (
+                    match register_applied_functor env loc key p m with
+                    | Ok _ -> ()
+                    | Error () -> raise (Error (loc, "Cannot apply functor")))
+                | Some cached -> ignore (envmodule_of_cached p cached))
             | Mlocal_module (loc, key, m) -> (
                 let mname = Path.append key mname in
                 match Hashtbl.find_opt module_cache mname with

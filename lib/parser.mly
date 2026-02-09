@@ -192,7 +192,7 @@ module_decl:
 
 signature_expr:
   | Lcurly; items = sig_items; Rcurly { Sdefinition items }
-  | path = path_with_loc { Salias (path, []) }  
+  | path = path_with_loc { Salias (path, []) }
   | Lcurly; path = path_with_loc; With; subst = separated_nonempty_list(Comma, sgn_subst); Rcurly
     { Salias (path, subst) }
 

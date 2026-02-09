@@ -3101,3 +3101,8 @@ Use correct module name on nested -o parameter
   $ schmu -m ../redefine_symbol_functor.smu -o deeper/redefine_symbol_functor.o
   $ cat deeper/redefine_symbol_functor.smi | grep -q -v deeper
   $ schmu -s deeper ../use_redefine_symbol_functor.smu
+  $ cd ..
+
+Use functor in local module
+  $ schmu functor_in_local.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./functor_in_local

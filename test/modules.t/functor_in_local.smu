@@ -1,0 +1,8 @@
+module inner {
+  module tbl = hashtbl/make(string)
+  {
+    let mut tbl = tbl/create(0)
+    tbl/insert(mut tbl, "heello" |> copy, 12)
+    tbl/mem(tbl, "heello") |> assert
+  }
+}
