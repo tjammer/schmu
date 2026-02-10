@@ -201,6 +201,13 @@ fun raw_ptr(mov p, ptr : raw_ptr['a]) {
   str(p, "0x") |> int_base(addr, 16)
 }
 
+fun concat(mov p, (items, sep, pp)) {
+  array/iter(items) |> iter/foldi(p, fun (i, mov p, item) {
+    let p = mov if not(i == 0) { str(p, sep) } else { p }
+    pp(mov p, item)
+  })
+}
+
 module type concrete_formatter {
   type return
   val create : fun () -> formatter/t[return]

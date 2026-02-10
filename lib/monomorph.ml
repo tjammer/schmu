@@ -608,9 +608,21 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               args
           in
           { t with expr = Mapp { callee; args; alloca; id; ms } }
-      | Mrecord (labels, alloca, id) ->
-          let labels = List.map (fun (name, expr) -> (name, aux expr)) labels in
-          { t with expr = Mrecord (labels, alloca, id) }
+      | Mrecord (labels, alloca, id, monoid) ->
+          let old_p =
+            match Hashtbl.find_opt param_tbl (string_of_int monoid) with
+            | Some p -> p
+            | None -> failwith "Internal Error: No param in function"
+          in
+          let labels =
+            List.map
+              (fun (name, expr, _) ->
+                let ex = aux expr in
+                let monomorph = monomorph_call old_p ex subst in
+                (name, aux expr, monomorph))
+              labels
+          in
+          { t with expr = Mrecord (labels, alloca, id, monoid) }
       | Mctor ((var, index, expr), alloca, id) ->
           let expr = Mctor ((var, index, Option.map aux expr), alloca, id) in
           { t with expr }

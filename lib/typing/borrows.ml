@@ -1311,7 +1311,7 @@ let rec check_expr st ac part tyex =
               (* Use [ac] to track moves of immediate records *)
               let _, _, trees = Trst.borrow id e.loc st.mname ac part trees in
               let borrow = { id; part; oncall = None; cond_borrow = false } in
-              let _, b, trees =
+              let e, b, trees =
                 check_expr { st with trees } (Dnorm, Many) [] e
               in
 

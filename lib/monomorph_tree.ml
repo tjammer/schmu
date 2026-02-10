@@ -22,7 +22,11 @@ module Mtree = struct
         id : int;
         ms : malloc_list;
       }
-    | Mrecord of (string * monod_tree) list * alloca * malloc_list
+    | Mrecord of
+        (string * monod_tree * call_name) list
+        * alloca
+        * malloc_list
+        * int (* for monomorphization *)
     | Mfield of (monod_tree * int)
     | Mset of (monod_tree * monod_tree * bool)
     | Mseq of (monod_tree * monod_tree)
@@ -922,11 +926,15 @@ and morph_record mk p tlabels typ =
   (* ret = false is threaded through p *)
   let p = enter_level p in
 
+  let id = new_id malloc_id in
+  Apptbl.add param_tbl (string_of_int id) p;
+
   (* Collect mallocs in initializer *)
   let f param (_bor, id, e) =
     let p, e, var = morph_expr param e in
+    let m = monomorphize_call p e in
     if is_struct e.typ then set_alloca p var.alloc;
-    (p, (id, e))
+    (p, (id, e, m))
   in
   let p, labels = List.fold_left_map f p tlabels in
   let p = leave_level p in
@@ -950,7 +958,7 @@ and morph_record mk p tlabels typ =
 
   let alloca = ref (request p) in
   ( { p with ret; mallocs },
-    mk (Mrecord (labels, alloca, ms)) ret,
+    mk (Mrecord (labels, alloca, ms, id)) ret,
     { no_var with fn = No_function; alloc = Value alloca; malloc } )
 
 and morph_field mk p expr index =

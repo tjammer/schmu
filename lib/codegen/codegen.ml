@@ -218,7 +218,7 @@ end = struct
         | _ -> List.iter (fun id -> Strtbl.replace free_tbl id value) ms);
         fin value
     | Mif expr -> gen_if param expr
-    | Mrecord (labels, allocref, id) ->
+    | Mrecord (labels, allocref, id, _) ->
         gen_record param typed_expr.typ labels allocref id typed_expr.const
           typed_expr.return
         |> fin
@@ -1226,15 +1226,16 @@ end = struct
           let record = get_prealloc !allocref param lltyp "" in
 
           List.fold_left
-            (fun i (name, expr) ->
+            (fun i (name, expr, monomorph) ->
               match Monomorph_tree.(expr.typ) with
               | Tunit ->
                   gen_expr param expr |> ignore;
                   i
               | _ ->
                   let ptr = Llvm.build_struct_gep lltyp record i name builder in
+                  let value = gen_expr { param with alloca = Some ptr } expr in
                   let value =
-                    gen_expr { param with alloca = Some ptr } expr
+                    get_mono_func value param monomorph
                     |> (* Const records will stay const, no allocation done to lift
                           it to Ptr. Thus, it stays Const*)
                     bring_default_var |> func_to_closure param
@@ -1249,7 +1250,7 @@ end = struct
              re-generating the constants, there are immediate literals.
              We have to take care that some global constants are pointers now *)
           let value =
-            let f (_, expr) =
+            let f (_, expr, _) =
               match Monomorph_tree.(expr.typ) with
               | Tunit ->
                   (* The expression is const, so cannot have side-effects. No

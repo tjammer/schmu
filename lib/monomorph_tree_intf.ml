@@ -23,7 +23,11 @@ module type S = sig
         id : int; (* Internal id for nested monomorphization *)
         ms : malloc_list;
       }
-    | Mrecord of (string * monod_tree) list * alloca * malloc_list
+    | Mrecord of
+        (string * monod_tree * call_name) list
+        * alloca
+        * malloc_list
+        * int (* for monomorphization *)
     | Mfield of (monod_tree * int)
     | Mset of (monod_tree * monod_tree * bool (* is moved *))
     | Mseq of (monod_tree * monod_tree)

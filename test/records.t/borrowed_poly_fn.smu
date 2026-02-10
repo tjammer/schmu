@@ -1,0 +1,10 @@
+fun pp_concat(mov p, (items, sep, pp)) {
+  use fmt
+  array/iter(items) |> iter/foldi(p, fun (i, mov p, item) {
+    let p = mov if not(i == 0) { str(p, sep) } else { p }
+    pp(mov p, item)
+  })
+}
+
+let arr = ["1" |> copy, "2" |> copy]
+fmt/(print1("[{}]\n", pp_concat, (bor arr, bor ", ", bor fmt/str)))

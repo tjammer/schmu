@@ -31,4 +31,8 @@ println(float, 0.000001234)
 println(float, 123456000.0)
 
 -- just print curlies
-print1("{ {} }", int, 12)
+print1("{ {} }\n", int, 12)
+
+-- concat
+let arr = [copy("1"), copy("2")]
+fmt/(print1("[{}]\n", concat, (bor arr, bor ", ", bor fmt/str)))

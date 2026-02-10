@@ -986,3 +986,8 @@ Free nested records
 Free missing record fields
   $ schmu free_missing_fields.smu
   $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./free_missing_fields
+
+Borrow poly functions in tuples
+  $ schmu borrowed_poly_fn.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./borrowed_poly_fn
+  [1, 2]
