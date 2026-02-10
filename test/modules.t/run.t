@@ -3106,3 +3106,12 @@ Use correct module name on nested -o parameter
 Use functor in local module
   $ schmu functor_in_local.smu
   $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./functor_in_local
+
+Return value from module
+  $ schmu -m return_value.smu
+  return_value.smu:1.1-3: error: Module top level cannot return value, found int
+  
+  1 | 12
+      ^^
+  
+  [1]

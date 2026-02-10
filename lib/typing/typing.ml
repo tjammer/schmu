@@ -1920,6 +1920,12 @@ let rec convert_module env loc mname prog check_ret =
   (* Program must evaluate to either int or unit *)
   (if check_ret then
      match repr prog.last_type with
+     | Tconstr (Pid "int", _, _) when is_module (Env.modpath env) ->
+         let msg =
+           Fmt.str "Module top level cannot return value, found %s"
+             (string_of_type (Env.modpath prog.env) prog.last_type)
+         in
+         raise (Error (!last_loc, msg))
      | Tconstr (Pid ("int" | "unit"), _, _) -> ()
      | _ ->
          let msg =
@@ -2367,7 +2373,7 @@ let to_typed ?(check_ret = true) ~mname msg_fn ~start_loc:loc ~std prog =
 
   let externals, items, m = convert_module env loc mname prog check_ret in
 
-  (* Add polymorphic functions from useed modules *)
+  (* Add polymorphic functions from used modules *)
   let items = List.map (fun item -> (mname, item)) items in
   let items = List.rev !Module.poly_funcs @ items in
 
