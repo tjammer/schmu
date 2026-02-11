@@ -5172,3 +5172,7 @@ Propgate local owns
   $ schmu propagate_local_owns.smu
   $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./propagate_local_owns
   0
+
+Hashtbl find_mut use case where we delete a value
+  $ schmu find_mut_delete_case.smu
+  $ valgrind-wrapper -q --leak-check=yes --show-reachable=yes ./find_mut_delete_case

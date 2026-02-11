@@ -97,6 +97,7 @@ module Mtree = struct
   and fmt = Fstr of string | Fexpr of monod_tree
   and copy_kind = Cglobal of string | Cnormal of bool
   and malloc_list = Mod_id.t list
+  and mlist = malloc_id list
   and free_list = Except of malloc_id list | Only of malloc_id list
   and let_kind = Lowned | Lborrow
   and const_kind = Const | Cnot (* | Constexpr *)
@@ -200,20 +201,28 @@ let rec set_alloca p = function
       set_alloca p b
   | Value _ | No_value -> ()
 
-let create_mid p =
+let create_mid _p =
   let id = new_id malloc_id in
-  Mod_id.{ path = p.mname; id }
+  (* Mod_id.{ path = p.mname; id } *)
+  id
 
-let mb_malloc parent path ids typ =
+let mb_malloc parent _path ids typ =
   if contains_allocation typ then
     let mid = new_id malloc_id in
-    let mid = Mod_id.{ path; id = mid } in
     let id = Malloc.Single { mid; typ; parent } in
     let mallocs = Mallocs.add id ids in
     (Some mid, id, mallocs)
   else (None, No_malloc, ids)
 
 let malloc_id_of_param mid p = { Mid.mid; typ = p.pt; parent = None }
+
+(* This is used for array_gets. Use both the array expr and the index expr *)
+let index_of_expr fst snd =
+  match snd with
+  | Typed_tree.(Const (Int i)) ->
+      Mpath.Arr (Int64.to_int i land Hashtbl.hash fst)
+  | Var (s, _) -> Mpath.Arr (String.hash s land Hashtbl.hash fst)
+  | expr -> Mpath.Arr (Hashtbl.hash expr land Hashtbl.hash fst)
 
 module Ss = Set.Make (String)
 
@@ -787,7 +796,10 @@ and morph_if mk p cond owning e1 e2 =
   let amoved = Mallocs.diff_func oldmallocs amallocs in
   let bmoved = Mallocs.diff_func oldmallocs bmallocs in
 
-  let mallocs = oldmallocs in
+  (* Merge theme to catch reentered values *)
+  let mallocs =
+    Mallocs.merge_a_b amallocs bmallocs |> Mallocs.merge_old oldmallocs
+  in
   (* Free what can be freed *)
   let e1, e2, malloc, mallocs =
     (* Mallocs which were moved in one branch need to be freed in the other *)
@@ -835,11 +847,16 @@ and morph_if mk p cond owning e1 e2 =
               else frees_a
           | None -> frees_a
         in
-        { e1 with expr = Mfree_after (e1, Only frees) }
+        match frees with
+        | [] -> e1
+        | frees -> { e1 with expr = Mfree_after (e1, Only frees) }
     in
     let e2 =
       if b.tailrec then e2
-      else { e2 with expr = Mfree_after (e2, Only frees_b) }
+      else
+        match frees_b with
+        | [] -> e2
+        | frees_b -> { e2 with expr = Mfree_after (e2, Only frees_b) }
     in
 
     if owning && contains_allocation e1.typ then
@@ -947,7 +964,7 @@ and morph_record mk p tlabels typ =
     List.fold_left
       (fun (i, mallocs) (bor, _, _) ->
         if bor then
-          let m = malloc_add_index i malloc in
+          let m = malloc_add_index (Mpath.I i) malloc in
           (i + 1, Mallocs.remove m mallocs)
         else (i + 1, mallocs))
       (0, mallocs) tlabels
@@ -964,7 +981,7 @@ and morph_record mk p tlabels typ =
 and morph_field mk p expr index =
   let ret = p.ret in
   let p, e, func = morph_expr { p with ret = false } expr in
-  let malloc = malloc_add_index index func.malloc in
+  let malloc = malloc_add_index (Mpath.I index) func.malloc in
   (* Field should not inherit alloca of its parent. Otherwise codegen might use
      a nested type as its parent *)
   ( { p with ret },
@@ -1302,12 +1319,12 @@ and morph_lambda mk typ p func_loc id abs =
       mk (Mlambda (name, func.closed, ftyp, alloca, upward)) ret,
       { no_var with fn; alloc = Value alloca } )
 
-and morph_app mk p callee args ret_typ =
+and morph_app mk p ocallee args ret_typ =
   (* Save env for later monomorphization *)
   let id = new_id malloc_id in
 
   let ret = p.ret in
-  let p, ex, _ = morph_expr { p with ret = false } callee in
+  let p, ex, _ = morph_expr { p with ret = false } ocallee in
   let monomorph = monomorphize_call p ex in
   let callee = { ex; monomorph; mut = false } in
 
@@ -1320,6 +1337,8 @@ and morph_app mk p callee args ret_typ =
   in
 
   let fst_arg_malloc = ref None in
+  let fst_arg_expr = ref None in
+  let snd_arg_expr = ref None in
 
   let f p (arg, attr) =
     let ret = p.ret in
@@ -1328,6 +1347,12 @@ and morph_app mk p callee args ret_typ =
     (match !fst_arg_malloc with
     | Some _ -> ()
     | None -> fst_arg_malloc := Some var.malloc);
+    (match !fst_arg_expr with
+    | Some _ -> (
+        match !snd_arg_expr with
+        | Some _ -> ()
+        | None -> snd_arg_expr := Some arg.expr)
+    | None -> fst_arg_expr := Some arg.expr);
 
     let is_moved =
       match attr with Typed_tree.Dmove -> true | Dset | Dmut | Dnorm -> false
@@ -1386,20 +1411,33 @@ and morph_app mk p callee args ret_typ =
     else (No_value, ref (request p))
   in
 
-  let malloc, mallocs =
-    (* array-get does not return a temporary. If its value is returned in a
-       function, increase value's refcount so that it's really a temporary *)
+  let malloc, mallocs, skip =
+    (* The borrow checker ensures that moving from an array is set later, so
+       that no move occurs from our perspective *)
     match callee.monomorph with
-    | Builtin ((Array_get | Fixed_array_get | Unsafe_ptr_get), _) ->
-        (Malloc.No_malloc, p.mallocs)
+    | Builtin ((Array_get | Fixed_array_get), _) ->
+        let malloc =
+          malloc_add_index
+            (index_of_expr (Option.get !fst_arg_expr) (Option.get !snd_arg_expr))
+            (Option.get !fst_arg_malloc)
+        in
+        (* The malloc ids from array_get are only used in this pass to generate
+           correct partial frees. We don't want to overwrite the real array
+           malloc with this partial one. *)
+        let skip_malloc_ids = true in
+        (malloc, p.mallocs, skip_malloc_ids)
+        (* ignore index_of_expr; *)
+        (* (Malloc.No_malloc, p.mallocs) *)
+    | Builtin (Unsafe_ptr_get, _) -> (Malloc.No_malloc, p.mallocs, false)
     | Builtin (Unsafe_rc_get, _) ->
-        let malloc = malloc_add_index (-1) (Option.get !fst_arg_malloc) in
-        (malloc, p.mallocs)
+        let malloc = malloc_add_index Mpath.Rc (Option.get !fst_arg_malloc) in
+        (malloc, p.mallocs, false)
     | _ ->
         let _, malloc, mallocs = mb_malloc None p.mname p.mallocs ret_typ in
-        (malloc, mallocs)
+        (malloc, mallocs, false)
   in
 
+  ignore skip;
   let ms = m_to_list malloc in
 
   let app = Mapp { callee; args; alloca = alloc_ref; id; ms } in

@@ -34,7 +34,7 @@ struct
     | _ -> ts
 
   let path_name pset =
-    let show_path path = String.concat "-" (List.map string_of_int path) in
+    let show_path path = String.concat "-" (List.map Mpath.show_index path) in
     String.concat "." (Pset.to_seq pset |> Seq.map show_path |> List.of_seq)
 
   let name typ = function
@@ -102,7 +102,7 @@ struct
         Array.iteri
           (fun i f ->
             if contains_allocation f.ftyp then
-              match pop_index_pset pset i with
+              match pop_index_pset pset (Mpath.I i) with
               | Not_excl ->
                   make_fn Free { pseudovar with typ = f.ftyp; kind = Ptr }
                   |> ignore;
@@ -619,7 +619,7 @@ struct
         Array.iteri
           (fun i f ->
             if contains_allocation f.ftyp then
-              match pop_index_pset pset i with
+              match pop_index_pset pset (Mpath.I i) with
               | Not_excl ->
                   (* Copy from [free_impl] *)
                   let v = follow_field v i in

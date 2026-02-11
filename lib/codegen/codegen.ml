@@ -1395,17 +1395,20 @@ end = struct
       List.fold_left
         (fun expr index ->
           match index with
-          | -1 ->
+          | Mpath.Rc ->
               (* Special case for rc get *)
               R.get expr
-          | _ -> follow_field expr index)
+          | Mpath.I index -> follow_field expr index
+          | Arr i ->
+              (* failwith (string_of_int i) *)
+              Hashtbl.find free_tbl (-i))
         init path
     in
     (match fs with
     | Except fs ->
         List.iter
           (fun i ->
-            (* Printf.printf "freeing except %i with paths %s, is %b\n" i.id *)
+            (* Fmt.pr "freeing except %a with paths %s, is %b\n" Mod_id.pp i.id *)
             (*   (show_pset i.paths) *)
             (*   (Option.is_some (Hashtbl.find_opt free_tbl i.id)); *)
             Option.iter
@@ -1415,7 +1418,7 @@ end = struct
     | Only fs ->
         List.iter
           (fun i ->
-            (* Printf.printf "freeing only %i with paths %s\n" i.id *)
+            (* Fmt.pr "freeing only %a with paths %s@." Mod_id.pp i.id *)
             (*   (show_pset i.paths); *)
             Option.iter
               (fun init ->

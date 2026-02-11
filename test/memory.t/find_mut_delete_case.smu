@@ -1,0 +1,49 @@
+-- example 1
+module stbl = hashtbl/make(string)
+
+let mut tbl = stbl/create(0)
+stbl/insert(mut tbl, copy("thing"), [copy("a")])
+{
+  let mut parents <- stbl/find_mut(mut tbl, "thing")
+  match parents {
+    None -> []
+    Some(pars) -> {
+      -- first, move out of oldparents
+      let tmp = mov pars
+      mut parents = None
+      tmp
+    }
+  }
+}
+|> ignore
+
+assert(stbl/length(tbl) == 0)
+
+-- example 2
+fun infun(mut var) {
+  match var {
+    None -> copy("")
+    Some(thing) -> {
+      let tmp = mov thing
+      mut var = None
+      tmp
+    }
+  }
+}
+let mut var = Some(copy("thing"))
+infun(mut var) |> ignore
+
+type thing = { fst : string, snd : string }
+let mut arr = [Some({ fst = copy("thing"), snd = copy("t2") })]
+
+fun makenone(mut tmp) { mut tmp = None }
+
+-- example 3
+match mut arr.[0] {
+  Some(item) -> {
+    let mut tmp = Some(item.snd)
+    makenone(mut tmp)
+    mut arr.[0] = None
+  }
+  None -> failwith("no")
+}

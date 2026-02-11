@@ -215,7 +215,7 @@ functor make (m : key) {
     match find_index(hash, tbl, key, 0) {
       Some(i) -> match mut tbl.data.[i] {
         Some(mut item) -> {
-          let mut tmp = Some(item.value)
+          let mut tmp = mov Some(item.value)
           let ret = fn(mut tmp)
           -- our value could have been deleted or changed
           match tmp {

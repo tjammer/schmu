@@ -1,12 +1,32 @@
 module Mpath = struct
-  type t = int list [@@deriving show]
+  type index = I of int | Arr of int | Rc
+  and t = index list [@@deriving show]
+
+  let compare_index a b =
+    match (a, b) with
+    | I a, I b -> Int.compare a b
+    | Arr a, Arr b -> Int.compare a b
+    | Rc, Rc -> 0
+    | I _, Arr _ -> 1
+    | Rc, Arr _ -> 1
+    | Arr _, I _ -> -1
+    | Arr _, Rc -> -1
+    | I _, Rc -> 1
+    | Rc, I _ -> -1
+
+  let equal_index a b = Int.equal (compare_index a b) 0
+
+  let show_index = function
+    | I i -> string_of_int i
+    | Rc -> "r"
+    | Arr i -> Fmt.str "a%i" i
 
   let rec compare a b =
     match (a, b) with
-    | i :: _, [] | [], i :: _ -> i
+    | i :: _, [] | [], i :: _ -> ( match i with Arr i | I i -> i | Rc -> -1)
     | [], [] -> 0
     | a :: atl, b :: btl ->
-        let cmp = Int.compare a b in
+        let cmp = compare_index a b in
         if cmp = 0 then compare atl btl else cmp
 
   let () = ignore pp
@@ -73,8 +93,8 @@ let pop_index_pset pset index =
     Pset.fold
       (fun path (found, popped) ->
         match path with
-        | [ i ] when Int.equal i index -> (true, popped)
-        | i :: tl when Int.equal i index -> (true, Pset.add tl popped)
+        | [ i ] when Mpath.equal_index i index -> (true, popped)
+        | i :: tl when Mpath.equal_index i index -> (true, Pset.add tl popped)
         | [] -> failwith "Internal Error: Empty path"
         | _ -> (found, popped))
       pset (false, Pset.empty)

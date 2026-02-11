@@ -16,6 +16,7 @@ signature {
   val compare : fun (t, t) -> int
   val append : fun (mut t, t) -> unit
   val concat : fun (t, array[t]) -> t
+  -- substr(str, start, end)
   val substr : fun (t, int, int) -> t
   -- find(str, start, pattern) returns an option to the index where the pattern
   -- was first found in str from start
@@ -116,7 +117,8 @@ fun make_skips(pattern) {
   let len = array/length(pattern)
   let mut skips = #256[len]
   array/iter(pattern) |> iter/iteri(fun(i, c) {
-    if not(i == len - 1) { -- ignore last char
+    if not(i == len - 1) {
+      -- ignore last char
       mut skips#[int_of_u8(c)] = len - 1 - i
     }
   })
@@ -134,9 +136,9 @@ fun boyer_moore_horspool(str, start, pattern) {
     let last_windowchar = str.[istr + patlen1]
     if (istr + len(pattern)) <= len(str) {
       if char_equal(last_patchar, last_windowchar)
-         and (memcmp(array/data(pattern),
-           __unsafe_ptr_at(strptr, istr), patlen1)
-          |> int_of_i32) == 0 {
+      and (memcmp(array/data(pattern),
+                  __unsafe_ptr_at(strptr, istr), patlen1)
+           |> int_of_i32) == 0 {
         Some(istr)
       } else {
         let skip = skips#[int_of_u8(last_windowchar)]

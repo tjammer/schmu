@@ -14,11 +14,18 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     | Malloc.No_malloc -> []
     | Single i -> [ i.mid ]
     | Param _ -> []
-    | Path (m, [ -1 ]) ->
+    | Path (m, [ Rc ]) ->
         (* Special case for rc/get *)
         m_to_list m
-    | Path (m, -1 :: tl) -> m_to_list (Path (m, tl))
-    | Path _ -> failwith "Internal Error: Path not supported here"
+    | Path (m, Rc :: tl) -> m_to_list (Path (m, tl))
+    | Path (_m, Arr i :: _) ->
+        (* Special case for array_get. There's only one allocation we are
+           returning *)
+        [ -i ]
+    | Path (m, I _ :: tl) -> m_to_list (Path (m, tl))
+    | Path _ as malloc ->
+        Fmt.pr "%a@." Malloc.pp malloc;
+        failwith "Internal Error: Path not supported here"
 
   type pmap = Pset.t Imap.t
 
@@ -88,14 +95,14 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               Array.fold_left
                 (fun (i, exh, pset) f ->
                   if contains_allocation f.ftyp then
-                    match pop_index_pset frees i with
+                    match pop_index_pset frees (Mpath.I i) with
                     | Not_excl -> (i + 1, false, pset)
-                    | Excl -> (i + 1, exh && true, Pset.add [ i ] pset)
+                    | Excl -> (i + 1, exh && true, Pset.add [ Mpath.I i ] pset)
                     | Followup frees ->
                         let nexcluded, npset = is_excluded frees f.ftyp in
                         let npset =
                           if nexcluded then pset
-                          else Pset.map (fun l -> i :: l) npset
+                          else Pset.map (fun l -> Mpath.I i :: l) npset
                         in
                         (i + 1, exh && nexcluded, npset)
                   else (i + 1, exh, pset))
@@ -104,14 +111,14 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
             (excluded, pset)
         | Trc (Strong, t) ->
             if contains_allocation t then
-              match pop_index_pset frees (-1) with
+              match pop_index_pset frees Mpath.Rc with
               | Not_excl -> (false, Pset.empty)
-              | Excl -> (false, Pset.singleton [ -1 ])
+              | Excl -> (false, Pset.singleton [ Mpath.Rc ])
               | Followup frees ->
                   let nexcluded, npset = is_excluded frees t in
                   let npset =
                     if nexcluded then Pset.empty
-                    else Pset.map (fun l -> -1 :: l) npset
+                    else Pset.map (fun l -> Mpath.Rc :: l) npset
                   in
                   (nexcluded, npset)
             else (true, Pset.empty)
@@ -142,6 +149,8 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
     val remove_local : Malloc.t -> t -> t
     val empty_func : monod_tree -> t -> t * monod_tree
     val diff_func : t -> t -> Pset.t Imap.t
+    val merge_a_b : t -> t -> t
+    val merge_old : t -> t -> t
   end = struct
     open Malloc
 
@@ -240,7 +249,37 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       | No_malloc, _ -> ms
       | Path _, _ -> failwith "Internal Error: Trying to add pathed malloc"
 
+    let rec without_path = function
+      | (Single _ | Param _ | No_malloc) as m -> m
+      | Path (m, _) -> without_path m
+
+    (* For these two remove functions, removing means setting an empty set. *)
+    let rec remove_temp a ms =
+      match (a, ms) with
+      | Single i, (scope, ms) :: tl ->
+          (scope, Imap.add i Pset.empty ms) :: remove_temp a tl
+      | Single _, [] -> []
+      | _ -> failwith "what else"
+
+    let rec remove_children par ms =
+      match ms with
+      | (scope, ms) :: tl ->
+          let ms =
+            Imap.filter_map
+              (fun mid thing ->
+                match mid.parent with
+                | Some p -> (
+                    match mid_of_malloc p with
+                    | Some p when Mid.compare p par = 0 -> Some Pset.empty
+                    | Some _ | None -> Some thing)
+                | None -> Some thing)
+              ms
+          in
+          (scope, ms) :: remove_children par tl
+      | [] -> []
+
     let reenter a ms =
+      let rm_children = ref None in
       let rec aux a ms =
         match (a, ms) with
         | _, [] -> []
@@ -268,15 +307,50 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         | Single a, (Mfunc, ms) :: tl -> (Mfunc, Imap.add a Pset.empty ms) :: tl
         | No_malloc, _ -> ms
         | Path ((Single i | Param i), p), (scope, ms) :: tl ->
-            let found, ms =
+            (* For some reason, mallocs end up at multiple scopes. We really
+               need to rewrite this system *)
+            let reentered_whole, rm, ms =
               match Imap.find_opt i ms with
-              | Some pset -> (true, Imap.add i (Pset.remove p pset) ms)
-              | None -> (false, ms)
+              | Some pset ->
+                  let reentered = Pset.remove p pset in
+                  (* Some pathed mallocs with parent only end up here due to
+                     temporarily moving out of the parent. In this case, we need
+                     to remove this malloc alltogether. One way to detect such
+                     cases is when the parent is still available here. If this
+                     malloc were owning, the parent would have been removed. *)
+                  let ms = Imap.add i reentered ms in
+                  let rm =
+                    match i.parent with
+                    | Some par ->
+                        Pset.is_empty reentered
+                        && mem (without_path par) ((scope, ms) :: tl)
+                    | None -> false
+                  in
+                  (Pset.is_empty reentered, rm, ms)
+              | None -> (false, false, ms)
             in
-            if found then (scope, ms) :: tl else (scope, ms) :: aux a tl
+            let (scope, ms), tl =
+              if rm then
+                ( remove_temp (Single i) [ (scope, ms) ] |> List.hd,
+                  remove_temp (Single i) tl )
+              else ((scope, ms), tl)
+            in
+            let tl =
+              if reentered_whole then
+                (* If this malloc is complete again, we can reenter the
+                   parent path as well. *)
+                match i.parent with Some m -> aux m tl | None -> tl
+              else tl
+            in
+            (if reentered_whole then
+               match !rm_children with
+               | Some _ -> ()
+               | None -> rm_children := Some i);
+            (scope, ms) :: aux a tl
         | Path _, _ -> failwith "Internal Error: Unexpected path"
       in
-      aux a ms
+      let ms = aux a ms in
+      match !rm_children with Some a -> remove_children a ms | None -> ms
 
     let remove a ms =
       let rec aux a path ms =
@@ -362,5 +436,54 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
         | _ -> failwith "Internal Error: Mismatch in scope"
       in
       aux Imap.empty a b
+
+    let mapinter a b =
+      Imap.merge
+        (fun _ a b ->
+          match (a, b) with
+          | Some a, Some b -> Some (Pset.inter a b)
+          | Some a, None -> Some a
+          | None, Some b -> Some b
+          | None, None -> None)
+        a b
+
+    let merge_a_b a b =
+      let rec aux acc a b =
+        match (a, b) with
+        (* We can stop at function *)
+        | (Mfunc, a) :: atl, (Mfunc, b) :: _ ->
+            List.rev ((Mfunc, mapinter a b) :: acc) @ atl
+        | (scope, a) :: atl, (_, b) :: btl ->
+            aux ((scope, mapinter a b) :: acc) atl btl
+        | [], [] -> List.rev acc
+        | _ -> failwith "how can this happen?!"
+      in
+      aux [] a b
+
+    let mapold a old =
+      Imap.merge
+        (fun _ a old ->
+          match (a, old) with
+          | Some _, Some b ->
+              (* Fmt.pr "pset a %s@." (show_pset a); *)
+              (* Fmt.pr "pset b %s@." (show_pset b); *)
+              Some b
+          | Some a, None -> Some a
+          | None, Some _ -> None
+          | None, None -> None)
+        a old
+
+    let merge_old a old =
+      let rec aux acc a old =
+        match (a, old) with
+        (* We can stop at function *)
+        | (Mfunc, a) :: atl, (Mfunc, b) :: _ ->
+            List.rev ((Mfunc, mapold a b) :: acc) @ atl
+        | (scope, a) :: atl, (_, b) :: btl ->
+            aux ((scope, mapinter a b) :: acc) atl btl
+        | [], [] -> List.rev acc
+        | _ -> failwith "how can this happen?!"
+      in
+      aux [] a old
   end
 end
