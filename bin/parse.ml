@@ -16,16 +16,18 @@ let loc_of_lexing lexbuf =
   Pp_loc.Position.(of_lexing lexbuf.lex_start_p, of_lexing lexbuf.lex_curr_p)
 
 let parse_fast file =
-  let src, lexbuf = L.read file in
+  if not (Sys.file_exists file) then Error `No_file
+  else
+    let src, lexbuf = L.read file in
 
-  try Ok (Parser.prog Semicolons.read lexbuf) with
-  | Lexer.SyntaxError msg ->
-      let loc = loc_of_lexing lexbuf in
-      let pp, pos = pp_position lexbuf file in
-      Error
-        (`Lex
-          (Format.asprintf "%s:%s: error: %s\n%!%a" file pos msg pp [ loc ]))
-  | Parser.Error -> Error (`Parse src)
+    try Ok (Parser.prog Semicolons.read lexbuf) with
+    | Lexer.SyntaxError msg ->
+        let loc = loc_of_lexing lexbuf in
+        let pp, pos = pp_position lexbuf file in
+        Error
+          (`Lex
+            (Format.asprintf "%s:%s: error: %s\n%!%a" file pos msg pp [ loc ]))
+    | Parser.Error -> Error (`Parse src)
 
 (* The following couple of functions are copied from the menhir example
    'calc-syntax-errors/calc.ml' or slightly adapted *)
@@ -96,5 +98,6 @@ let generate_error file src =
 let parse file =
   match parse_fast file with
   | Ok ast -> Ok ast
+  | Error `No_file -> Error (Fmt.str "Cannot find file %s" file)
   | Error (`Lex msg) -> Error msg
   | Error (`Parse src) -> generate_error file src
