@@ -48,6 +48,7 @@
   array.smi
   iter.smi
   libc.smi
+  option.smi
   prelude.smi
   schubfach.smi
   string.smi

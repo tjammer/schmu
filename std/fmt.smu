@@ -1,6 +1,7 @@
 import array
 import iter
 import libc
+import option
 import prelude
 import schubfach
 import string
@@ -206,6 +207,13 @@ fun concat(mov p, (items, sep, pp)) {
     let p = mov if not(i == 0) { str(p, sep) } else { p }
     pp(mov p, item)
   })
+}
+
+fun opt(mov p, (opt, pp)) {
+  match opt {
+    option/None -> p
+    Some(thing) -> pp(mov p, thing)
+  }
 }
 
 module type concrete_formatter {
