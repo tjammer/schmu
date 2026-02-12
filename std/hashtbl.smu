@@ -35,7 +35,7 @@ functor make (m : key) {
   type key = m/t
   type item['a] = {key : m/t, mut value : 'a, mut pathlen : int}
   type slot['a] = option/t[item['a]]
-  type t['a] = {mut data : array[slot['a]], mut nitems : int}
+  type t['a] = { mut data : array[slot['a]], mut nitems : int }
 
   fun create(size) {
     -- If the default size ever changes, ensure to update the hashtbl test in
@@ -256,7 +256,9 @@ functor make (m : key) {
   }
 
   fun clear(mut tbl) {
-    array/clear(mut tbl.data)
+    -- array/clear does really clear everything, what we want is to set
+    -- everything to None
+    array/map_inplace(mut tbl.data, fun (mut item) { mut item = None })
     mut tbl.nitems = 0
   }
 
