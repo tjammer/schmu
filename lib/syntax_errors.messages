@@ -226,14 +226,6 @@ prog: Type Ident Equal Ident Rpar
 
 Expecting square brackets for parameterized type
 
-prog: Main With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Main Lcurly With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
 prog: Signature With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -718,11 +710,11 @@ prog: False Hash Lbrack False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Pipe_last With
+prog: False Pipe With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
-prog: False Pipe_last False Wildcard
+prog: False Pipe False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -751,14 +743,6 @@ prog: False Dot Lbrack With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: False Dot Lbrack False Wildcard
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Pipe With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: False Pipe False Wildcard
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
@@ -1066,6 +1050,14 @@ prog: Module Ident Lcurly With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Main With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
+prog: Main Lcurly With
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Import With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -1146,6 +1138,10 @@ prog: Functor Ident Colon With
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
+prog: Main Lcurly Ident Eof
+
+<YOUR SYNTAX ERROR MESSAGE HERE>
+
 prog: Module Ident Lcurly Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
@@ -1167,10 +1163,6 @@ prog: Module Ident Equal Ident Lpar Ident With
 <YOUR SYNTAX ERROR MESSAGE HERE>
 
 prog: Module Ident Equal Ident Lpar Ident Comma With
-
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
-prog: Main Lcurly Ident Eof
 
 <YOUR SYNTAX ERROR MESSAGE HERE>
 

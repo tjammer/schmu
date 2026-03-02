@@ -7,7 +7,7 @@ range(0, 10)
   print1("{}\n", int, i)
   acc + i
 })
-|>> fmt/(println(int))
+|> fmt/fun i { println(int, i) }
 
 let found = range(0, 10) |> any(fun x {
   fmt/(println(int, x))

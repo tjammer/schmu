@@ -198,7 +198,17 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 -5
   }
   
-  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !31 {
+  define void @__fun_schmu2(i64 %i) !dbg !31 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %i), !dbg !32
+    ret void
+  }
+  
+  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !33 {
   entry:
     %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
     %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
@@ -220,10 +230,10 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
-    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !32
+    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !34
     store i8 %5, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
-    br i1 %ne, label %then, label %else, !dbg !33
+    br i1 %ne, label %then, label %else, !dbg !35
   
   then:                                             ; preds = %rec
     store i64 %div, ptr %1, align 8
@@ -233,8 +243,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   else:                                             ; preds = %rec
     %lt = icmp slt i64 %4, 0
-    %6 = add i64 %lsr.iv, -1, !dbg !34
-    br i1 %lt, label %then4, label %ifcont, !dbg !34
+    %6 = add i64 %lsr.iv, -1, !dbg !36
+    br i1 %lt, label %then4, label %ifcont, !dbg !36
   
   then4:                                            ; preds = %else
     %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
@@ -246,19 +256,19 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @schmu_doo(i32 %0) !dbg !35 {
+  define i64 @schmu_doo(i32 %0) !dbg !37 {
   entry:
     %a = alloca i32, align 4
     store i32 %0, ptr %a, align 4
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %then, label %else, !dbg !36
+    br i1 %eq, label %then, label %else, !dbg !38
   
   then:                                             ; preds = %entry
     %clstmp = alloca %closure, align 8
     store ptr @__fun_schmu0, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    %1 = call i64 @nonpoly_func_add_ints(i64 0, ptr %clstmp), !dbg !37
+    %1 = call i64 @nonpoly_func_add_ints(i64 0, ptr %clstmp), !dbg !39
     br label %ifcont
   
   else:                                             ; preds = %entry
@@ -266,7 +276,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     store ptr @__fun_schmu1, ptr %clstmp1, align 8
     %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
     store ptr null, ptr %envptr3, align 8
-    %2 = call i64 @nonpoly_func_add_ints(i64 0, ptr %clstmp1), !dbg !38
+    %2 = call i64 @nonpoly_func_add_ints(i64 0, ptr %clstmp1), !dbg !40
     br label %ifcont
   
   ifcont:                                           ; preds = %else, %then
@@ -317,14 +327,10 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare ptr @malloc(i64 %0)
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !39 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !41 {
   entry:
-    %clstmp = alloca %closure, align 8
-    store ptr @__fmt_int_u, ptr %clstmp, align 8
-    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
-    store ptr null, ptr %envptr, align 8
-    %0 = tail call i64 @schmu_doo(i32 0), !dbg !40
-    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %0), !dbg !41
+    %0 = tail call i64 @schmu_doo(i32 0), !dbg !42
+    tail call void @__fun_schmu2(i64 %0), !dbg !43
     ret i64 0
   }
   
@@ -494,7 +500,27 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
   
-  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !28 {
+  define void @__fun_schmu0(i64 %i) !dbg !28 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %i), !dbg !30
+    ret void
+  }
+  
+  define void @__fun_schmu1(i64 %i) !dbg !31 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %i), !dbg !32
+    ret void
+  }
+  
+  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !33 {
   entry:
     %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
     %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
@@ -516,10 +542,10 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
-    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !29
+    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !34
     store i8 %5, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
-    br i1 %ne, label %then, label %else, !dbg !30
+    br i1 %ne, label %then, label %else, !dbg !35
   
   then:                                             ; preds = %rec
     store i64 %div, ptr %1, align 8
@@ -529,8 +555,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   else:                                             ; preds = %rec
     %lt = icmp slt i64 %4, 0
-    %6 = add i64 %lsr.iv, -1, !dbg !31
-    br i1 %lt, label %then4, label %ifcont, !dbg !31
+    %6 = add i64 %lsr.iv, -1, !dbg !36
+    br i1 %lt, label %then4, label %ifcont, !dbg !36
   
   then4:                                            ; preds = %else
     %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
@@ -542,35 +568,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @schmu_do2(i32 %0) !dbg !32 {
-  entry:
-    %a = alloca i32, align 4
-    store i32 %0, ptr %a, align 4
-    %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %then, label %else, !dbg !34
-  
-  then:                                             ; preds = %entry
-    %clstmp = alloca %closure, align 8
-    store ptr @schmu_five, ptr %clstmp, align 8
-    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
-    store ptr null, ptr %envptr, align 8
-    %1 = call i64 @nonpoly_func_add_ints(i64 0, ptr %clstmp), !dbg !35
-    br label %ifcont
-  
-  else:                                             ; preds = %entry
-    %clstmp1 = alloca %closure, align 8
-    store ptr @schmu_minfive, ptr %clstmp1, align 8
-    %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
-    store ptr null, ptr %envptr3, align 8
-    %2 = call i64 @nonpoly_func_add_ints(i64 0, ptr %clstmp1), !dbg !36
-    br label %ifcont
-  
-  ifcont:                                           ; preds = %else, %then
-    %iftmp = phi i64 [ %1, %then ], [ %2, %else ]
-    ret i64 %iftmp
-  }
-  
-  define i64 @schmu_doo(i32 %0) !dbg !37 {
+  define i64 @schmu_do2(i32 %0) !dbg !37 {
   entry:
     %a = alloca i32, align 4
     store i32 %0, ptr %a, align 4
@@ -598,12 +596,40 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define i64 @schmu_five() !dbg !41 {
+  define i64 @schmu_doo(i32 %0) !dbg !41 {
+  entry:
+    %a = alloca i32, align 4
+    store i32 %0, ptr %a, align 4
+    %eq = icmp eq i32 %0, 0
+    br i1 %eq, label %then, label %else, !dbg !42
+  
+  then:                                             ; preds = %entry
+    %clstmp = alloca %closure, align 8
+    store ptr @schmu_five, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    %1 = call i64 @nonpoly_func_add_ints(i64 0, ptr %clstmp), !dbg !43
+    br label %ifcont
+  
+  else:                                             ; preds = %entry
+    %clstmp1 = alloca %closure, align 8
+    store ptr @schmu_minfive, ptr %clstmp1, align 8
+    %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
+    store ptr null, ptr %envptr3, align 8
+    %2 = call i64 @nonpoly_func_add_ints(i64 0, ptr %clstmp1), !dbg !44
+    br label %ifcont
+  
+  ifcont:                                           ; preds = %else, %then
+    %iftmp = phi i64 [ %1, %then ], [ %2, %else ]
+    ret i64 %iftmp
+  }
+  
+  define i64 @schmu_five() !dbg !45 {
   entry:
     ret i64 5
   }
   
-  define i64 @schmu_minfive() !dbg !42 {
+  define i64 @schmu_minfive() !dbg !46 {
   entry:
     ret i64 -5
   }
@@ -651,20 +677,12 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare ptr @malloc(i64 %0)
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !43 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !47 {
   entry:
-    %clstmp = alloca %closure, align 8
-    store ptr @__fmt_int_u, ptr %clstmp, align 8
-    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
-    store ptr null, ptr %envptr, align 8
-    %0 = tail call i64 @schmu_doo(i32 0), !dbg !44
-    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %0), !dbg !45
-    %clstmp1 = alloca %closure, align 8
-    store ptr @__fmt_int_u, ptr %clstmp1, align 8
-    %envptr3 = getelementptr inbounds %closure, ptr %clstmp1, i32 0, i32 1
-    store ptr null, ptr %envptr3, align 8
-    %1 = call i64 @schmu_do2(i32 0), !dbg !46
-    call void @__fmt_stdout_println_l(ptr %clstmp1, i64 %1), !dbg !47
+    %0 = tail call i64 @schmu_doo(i32 0), !dbg !48
+    tail call void @__fun_schmu0(i64 %0), !dbg !49
+    %1 = tail call i64 @schmu_do2(i32 0), !dbg !50
+    tail call void @__fun_schmu1(i64 %1), !dbg !51
     ret i64 0
   }
   
@@ -981,14 +999,44 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
   
-  define linkonce_odr i64 @__poly_func_classify_d(i32 %0, double %1) !dbg !28 {
+  define void @__fun_schmu0(i64 %i) !dbg !28 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %i), !dbg !30
+    ret void
+  }
+  
+  define void @__fun_schmu1(i64 %i) !dbg !31 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %i), !dbg !32
+    ret void
+  }
+  
+  define void @__fun_schmu2(i64 %i) !dbg !33 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %i), !dbg !34
+    ret void
+  }
+  
+  define linkonce_odr i64 @__poly_func_classify_d(i32 %0, double %1) !dbg !35 {
   entry:
     %thing = alloca { i32, double }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, double }, ptr %thing, i32 0, i32 1
     store double %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else, !dbg !30
+    br i1 %eq, label %ifcont, label %else, !dbg !37
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -998,14 +1046,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__poly_func_classify_l(i32 %0, i64 %1) !dbg !31 {
+  define linkonce_odr i64 @__poly_func_classify_l(i32 %0, i64 %1) !dbg !38 {
   entry:
     %thing = alloca { i32, i64 }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %thing, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else, !dbg !32
+    br i1 %eq, label %ifcont, label %else, !dbg !39
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -1015,7 +1063,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !33 {
+  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !40 {
   entry:
     %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
     %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
@@ -1037,10 +1085,10 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
-    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !34
+    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !41
     store i8 %5, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
-    br i1 %ne, label %then, label %else, !dbg !35
+    br i1 %ne, label %then, label %else, !dbg !42
   
   then:                                             ; preds = %rec
     store i64 %div, ptr %1, align 8
@@ -1050,8 +1098,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   else:                                             ; preds = %rec
     %lt = icmp slt i64 %4, 0
-    %6 = add i64 %lsr.iv, -1, !dbg !36
-    br i1 %lt, label %then4, label %ifcont, !dbg !36
+    %6 = add i64 %lsr.iv, -1, !dbg !43
+    br i1 %lt, label %then4, label %ifcont, !dbg !43
   
   then4:                                            ; preds = %else
     %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
@@ -1106,36 +1154,24 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare ptr @malloc(i64 %0)
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !37 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !44 {
   entry:
-    %clstmp = alloca %closure, align 8
-    store ptr @__fmt_int_u, ptr %clstmp, align 8
-    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
-    store ptr null, ptr %envptr, align 8
     %boxconst = alloca %poly_func.option.l, align 8
     store %poly_func.option.l { i32 0, i64 3 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
-    %0 = tail call i64 @__poly_func_classify_l(i32 %fst1, i64 %snd2), !dbg !39
-    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %0), !dbg !40
-    %clstmp3 = alloca %closure, align 8
-    store ptr @__fmt_int_u, ptr %clstmp3, align 8
-    %envptr5 = getelementptr inbounds %closure, ptr %clstmp3, i32 0, i32 1
-    store ptr null, ptr %envptr5, align 8
-    %boxconst6 = alloca %poly_func.option.d, align 8
-    store %poly_func.option.d { i32 0, double 3.000000e+00 }, ptr %boxconst6, align 8
-    %fst8 = load i32, ptr %boxconst6, align 4
-    %snd9 = getelementptr inbounds { i32, double }, ptr %boxconst6, i32 0, i32 1
-    %snd10 = load double, ptr %snd9, align 8
-    %1 = call i64 @__poly_func_classify_d(i32 %fst8, double %snd10), !dbg !41
-    call void @__fmt_stdout_println_l(ptr %clstmp3, i64 %1), !dbg !42
-    %clstmp11 = alloca %closure, align 8
-    store ptr @__fmt_int_u, ptr %clstmp11, align 8
-    %envptr13 = getelementptr inbounds %closure, ptr %clstmp11, i32 0, i32 1
-    store ptr null, ptr %envptr13, align 8
-    %2 = call i64 @__poly_func_classify_d(i32 1, double undef), !dbg !43
-    call void @__fmt_stdout_println_l(ptr %clstmp11, i64 %2), !dbg !44
+    %0 = tail call i64 @__poly_func_classify_l(i32 %fst1, i64 %snd2), !dbg !45
+    tail call void @__fun_schmu0(i64 %0), !dbg !46
+    %boxconst3 = alloca %poly_func.option.d, align 8
+    store %poly_func.option.d { i32 0, double 3.000000e+00 }, ptr %boxconst3, align 8
+    %fst5 = load i32, ptr %boxconst3, align 4
+    %snd6 = getelementptr inbounds { i32, double }, ptr %boxconst3, i32 0, i32 1
+    %snd7 = load double, ptr %snd6, align 8
+    %1 = tail call i64 @__poly_func_classify_d(i32 %fst5, double %snd7), !dbg !47
+    tail call void @__fun_schmu1(i64 %1), !dbg !48
+    %2 = tail call i64 @__poly_func_classify_d(i32 1, double undef), !dbg !49
+    tail call void @__fun_schmu2(i64 %2), !dbg !50
     ret i64 0
   }
   
@@ -1308,14 +1344,44 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret void
   }
   
-  define linkonce_odr i64 @__poly_func_classify_d(i32 %0, double %1) !dbg !28 {
+  define void @__fun_schmu0(i64 %i) !dbg !28 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %i), !dbg !30
+    ret void
+  }
+  
+  define void @__fun_schmu1(i64 %i) !dbg !31 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %i), !dbg !32
+    ret void
+  }
+  
+  define void @__fun_schmu2(i64 %i) !dbg !33 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_int_u, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %i), !dbg !34
+    ret void
+  }
+  
+  define linkonce_odr i64 @__poly_func_classify_d(i32 %0, double %1) !dbg !35 {
   entry:
     %thing = alloca { i32, double }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, double }, ptr %thing, i32 0, i32 1
     store double %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else, !dbg !30
+    br i1 %eq, label %ifcont, label %else, !dbg !37
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -1325,14 +1391,14 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @__poly_func_classify_l(i32 %0, i64 %1) !dbg !31 {
+  define linkonce_odr i64 @__poly_func_classify_l(i32 %0, i64 %1) !dbg !38 {
   entry:
     %thing = alloca { i32, i64 }, align 8
     store i32 %0, ptr %thing, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %thing, i32 0, i32 1
     store i64 %1, ptr %snd, align 8
     %eq = icmp eq i32 %0, 0
-    br i1 %eq, label %ifcont, label %else, !dbg !32
+    br i1 %eq, label %ifcont, label %else, !dbg !39
   
   else:                                             ; preds = %entry
     br label %ifcont
@@ -1342,7 +1408,7 @@ Simplest module with 1 type and 1 nonpolymorphic function
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !33 {
+  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !40 {
   entry:
     %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
     %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
@@ -1364,10 +1430,10 @@ Simplest module with 1 type and 1 nonpolymorphic function
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
-    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !34
+    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !41
     store i8 %5, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
-    br i1 %ne, label %then, label %else, !dbg !35
+    br i1 %ne, label %then, label %else, !dbg !42
   
   then:                                             ; preds = %rec
     store i64 %div, ptr %1, align 8
@@ -1377,8 +1443,8 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   else:                                             ; preds = %rec
     %lt = icmp slt i64 %4, 0
-    %6 = add i64 %lsr.iv, -1, !dbg !36
-    br i1 %lt, label %then4, label %ifcont, !dbg !36
+    %6 = add i64 %lsr.iv, -1, !dbg !43
+    br i1 %lt, label %then4, label %ifcont, !dbg !43
   
   then4:                                            ; preds = %else
     %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
@@ -1433,36 +1499,24 @@ Simplest module with 1 type and 1 nonpolymorphic function
   
   declare ptr @malloc(i64 %0)
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !37 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !44 {
   entry:
-    %clstmp = alloca %closure, align 8
-    store ptr @__fmt_int_u, ptr %clstmp, align 8
-    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
-    store ptr null, ptr %envptr, align 8
     %boxconst = alloca %poly_func.option.l, align 8
     store %poly_func.option.l { i32 0, i64 3 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
-    %0 = tail call i64 @__poly_func_classify_l(i32 %fst1, i64 %snd2), !dbg !39
-    call void @__fmt_stdout_println_l(ptr %clstmp, i64 %0), !dbg !40
-    %clstmp3 = alloca %closure, align 8
-    store ptr @__fmt_int_u, ptr %clstmp3, align 8
-    %envptr5 = getelementptr inbounds %closure, ptr %clstmp3, i32 0, i32 1
-    store ptr null, ptr %envptr5, align 8
-    %boxconst6 = alloca %poly_func.option.d, align 8
-    store %poly_func.option.d { i32 0, double 3.000000e+00 }, ptr %boxconst6, align 8
-    %fst8 = load i32, ptr %boxconst6, align 4
-    %snd9 = getelementptr inbounds { i32, double }, ptr %boxconst6, i32 0, i32 1
-    %snd10 = load double, ptr %snd9, align 8
-    %1 = call i64 @__poly_func_classify_d(i32 %fst8, double %snd10), !dbg !41
-    call void @__fmt_stdout_println_l(ptr %clstmp3, i64 %1), !dbg !42
-    %clstmp11 = alloca %closure, align 8
-    store ptr @__fmt_int_u, ptr %clstmp11, align 8
-    %envptr13 = getelementptr inbounds %closure, ptr %clstmp11, i32 0, i32 1
-    store ptr null, ptr %envptr13, align 8
-    %2 = call i64 @__poly_func_classify_d(i32 1, double undef), !dbg !43
-    call void @__fmt_stdout_println_l(ptr %clstmp11, i64 %2), !dbg !44
+    %0 = tail call i64 @__poly_func_classify_l(i32 %fst1, i64 %snd2), !dbg !45
+    tail call void @__fun_schmu0(i64 %0), !dbg !46
+    %boxconst3 = alloca %poly_func.option.d, align 8
+    store %poly_func.option.d { i32 0, double 3.000000e+00 }, ptr %boxconst3, align 8
+    %fst5 = load i32, ptr %boxconst3, align 4
+    %snd6 = getelementptr inbounds { i32, double }, ptr %boxconst3, i32 0, i32 1
+    %snd7 = load double, ptr %snd6, align 8
+    %1 = tail call i64 @__poly_func_classify_d(i32 %fst5, double %snd7), !dbg !47
+    tail call void @__fun_schmu1(i64 %1), !dbg !48
+    %2 = tail call i64 @__poly_func_classify_d(i32 1, double undef), !dbg !49
+    tail call void @__fun_schmu2(i64 %2), !dbg !50
     ret i64 0
   }
   

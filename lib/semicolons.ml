@@ -15,8 +15,8 @@ let default next state =
   next
 
 let continues_expr = function
-  | Parser.Dot | Else | Or | And | Hbar | Pipe | Pipe_last | Mult_op _
-  | Cmp_op _ | Eq_op _ | Plus_op _ ->
+  | Parser.Dot | Else | Or | And | Hbar | Pipe | Mult_op _ | Cmp_op _ | Eq_op _
+  | Plus_op _ ->
       true
   | _ -> false
 

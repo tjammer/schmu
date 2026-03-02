@@ -183,7 +183,6 @@ rule read =
   | "->"     { Right_arrow }
   | "<-"     { Left_arrow }
   | "|>"     { Pipe }
-  | "|>>"    { Pipe_last }
   | "--"     { line_comment lexbuf }
   | eq_op    { Eq_op (Lexing.lexeme lexbuf) }
   | cmp_op   { Cmp_op (Lexing.lexeme lexbuf) }

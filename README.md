@@ -25,7 +25,7 @@ fun rec fib(n) {
 
 -- and print it
 use fmt
-fib(number) |>> println(int)
+println(int, fib(number))
 ```
 
 More examples can be found in the skeleton `std` library or the `test` directory.

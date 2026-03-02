@@ -2,7 +2,7 @@ import poly_func
 
 use poly_func
 
-classify(Some(3)) |>> fmt/(println(int))
-classify(Some(3.0)) |>> fmt/(println(int))
+classify(Some(3)) |> fmt/fun i { println(int, i) }
+classify(Some(3.0)) |> fmt/fun i { println(int, i) }
 let none : option[float] = None
-classify(none) |>> fmt/(println(int))
+classify(none) |> fmt/fun i { println(int, i) }

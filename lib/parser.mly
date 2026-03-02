@@ -42,7 +42,6 @@
 %token Right_arrow
 %token Left_arrow
 %token Pipe
-%token Pipe_last
 %token With
 %token Hbar
 %token Match
@@ -71,7 +70,7 @@
 
 %nonassoc Ctor
 
-%left Pipe Pipe_last
+%left Pipe
 %left And Or
 %left Eq_op
 %left Cmp_op
@@ -330,7 +329,6 @@ expr_no_ident:
 
 %inline pipe:
   | Pipe { false }
-  | Pipe_last { true }
 
 expr:
   | ident = ident { Var ident }

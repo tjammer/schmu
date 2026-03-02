@@ -12,4 +12,4 @@ fun rec a(k, x1, x2, x3, x4, x5) {
 }
 
 use fmt
-a(10, fun () {1}, fun () {-1}, fun () {-1}, fun () {1}, fun () {0}) |>> println(int)
+a(10, fun () {1}, fun () {-1}, fun () {-1}, fun () {1}, fun () {0}) |> fun i {println(int, i)}

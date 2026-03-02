@@ -17,5 +17,5 @@ fun do2(a) {
     Right -> add_ints(0, minfive)
   }
 }
-doo(nonpoly_func/Left)|>> fmt/(println(int))
-do2(nonpoly_func/Left)|>> fmt/(println(int))
+doo(nonpoly_func/Left)|> fmt/fun i { println(int, i) }
+do2(nonpoly_func/Left)|> fmt/fun i { println(int, i) }

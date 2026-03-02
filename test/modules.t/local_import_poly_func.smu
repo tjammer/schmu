@@ -1,6 +1,6 @@
 import poly_func
 
-poly_func/classify(Some(3)) |>> fmt/(println(int))
-poly_func/classify(Some(3.0)) |>> fmt/(println(int))
+poly_func/classify(Some(3)) |> fmt/fun i { println(int, i) }
+poly_func/classify(Some(3.0)) |> fmt/fun i { println(int, i) }
 let none : poly_func/option[float] = None
-poly_func/(classify(none)) |>> fmt/(println(int))
+poly_func/(classify(none)) |> fmt/fun i { println(int, i) }

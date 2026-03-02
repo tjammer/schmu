@@ -853,7 +853,17 @@ Piping for ctors and field accessors
     ret i64 %iftmp
   }
   
-  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !43 {
+  define void @__fun_schmu2(i8 %i) !dbg !43 {
+  entry:
+    %clstmp = alloca %closure, align 8
+    store ptr @__fmt_u8_u, ptr %clstmp, align 8
+    %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
+    store ptr null, ptr %envptr, align 8
+    call void @__fmt_stdout_println_c(ptr %clstmp, i8 %i), !dbg !44
+    ret void
+  }
+  
+  define linkonce_odr i64 @fmt_aux(i64 %value, i64 %index, ptr %0) !dbg !45 {
   entry:
     %_fmt_arr = getelementptr inbounds { ptr, ptr, ptr, i64 }, ptr %0, i32 0, i32 2
     %_fmt_arr1 = load ptr, ptr %_fmt_arr, align 8
@@ -875,10 +885,10 @@ Piping for ctors and field accessors
     %mul = mul i64 %div, %base2
     %sub = sub i64 %4, %mul
     %add = add i64 35, %sub
-    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !44
+    %5 = tail call i8 @string_get(ptr @fmt_int_digits, i64 %add), !dbg !46
     store i8 %5, ptr %scevgep10, align 1
     %ne = icmp ne i64 %div, 0
-    br i1 %ne, label %then, label %else, !dbg !45
+    br i1 %ne, label %then, label %else, !dbg !47
   
   then:                                             ; preds = %rec
     store i64 %div, ptr %1, align 8
@@ -888,8 +898,8 @@ Piping for ctors and field accessors
   
   else:                                             ; preds = %rec
     %lt = icmp slt i64 %4, 0
-    %6 = add i64 %lsr.iv, -1, !dbg !46
-    br i1 %lt, label %then4, label %ifcont, !dbg !46
+    %6 = add i64 %lsr.iv, -1, !dbg !48
+    br i1 %lt, label %then4, label %ifcont, !dbg !48
   
   then4:                                            ; preds = %else
     %scevgep = getelementptr i8, ptr %_fmt_arr1, i64 %lsr.iv
@@ -944,30 +954,26 @@ Piping for ctors and field accessors
   
   declare ptr @malloc(i64 %0)
   
-  define i64 @main(i64 %__argc, ptr %__argv) !dbg !47 {
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !49 {
   entry:
-    %0 = tail call i64 @__fun_schmu0(i64 1), !dbg !48
-    tail call void @Printi(i64 %0), !dbg !49
+    %0 = tail call i64 @__fun_schmu0(i64 1), !dbg !50
+    tail call void @Printi(i64 %0), !dbg !51
     %boxconst = alloca %option.t.l, align 8
     store %option.t.l { i32 1, i64 1 }, ptr %boxconst, align 8
     %fst1 = load i32, ptr %boxconst, align 4
     %snd = getelementptr inbounds { i32, i64 }, ptr %boxconst, i32 0, i32 1
     %snd2 = load i64, ptr %snd, align 8
-    %1 = tail call i64 @__fun_schmu1(i32 %fst1, i64 %snd2), !dbg !50
-    tail call void @Printi(i64 %1), !dbg !51
-    tail call void @Printi(i64 1), !dbg !52
+    %1 = tail call i64 @__fun_schmu1(i32 %fst1, i64 %snd2), !dbg !52
+    tail call void @Printi(i64 %1), !dbg !53
+    tail call void @Printi(i64 1), !dbg !54
     %boxconst3 = alloca { ptr, i64, i64 }, align 8
     store { ptr, i64, i64 } { ptr @1, i64 0, i64 -1 }, ptr %boxconst3, align 8
-    call void @string_println(ptr %boxconst3), !dbg !53
+    call void @string_println(ptr %boxconst3), !dbg !55
     %clstmp = alloca %closure, align 8
     store ptr @__fmt_int_u, ptr %clstmp, align 8
     %envptr = getelementptr inbounds %closure, ptr %clstmp, i32 0, i32 1
     store ptr null, ptr %envptr, align 8
-    call void @__fmt_stdout_println_l(ptr %clstmp, i64 10), !dbg !54
-    %clstmp4 = alloca %closure, align 8
-    store ptr @__fmt_u8_u, ptr %clstmp4, align 8
-    %envptr6 = getelementptr inbounds %closure, ptr %clstmp4, i32 0, i32 1
-    store ptr null, ptr %envptr6, align 8
+    call void @__fmt_stdout_println_l(ptr %clstmp, i64 10), !dbg !56
     %arr = alloca { ptr, i64, i64 }, align 8
     %len = getelementptr inbounds { ptr, i64, i64 }, ptr %arr, i32 0, i32 1
     store i64 3, ptr %len, align 8
@@ -981,9 +987,9 @@ Piping for ctors and field accessors
     %"2" = getelementptr i8, ptr %2, i64 2
     store i8 99, ptr %"2", align 1
     %ret = alloca { ptr, i64, i64 }, align 8
-    call void @string_of_array(ptr %ret, ptr %arr), !dbg !55
-    %3 = call i8 @string_get(ptr %ret, i64 1), !dbg !56
-    call void @__fmt_stdout_println_c(ptr %clstmp4, i8 %3), !dbg !57
+    call void @string_of_array(ptr %ret, ptr %arr), !dbg !57
+    %3 = call i8 @string_get(ptr %ret, i64 1), !dbg !58
+    call void @__fun_schmu2(i8 %3), !dbg !59
     call void @__free_a.c(ptr %ret)
     ret i64 0
   }
