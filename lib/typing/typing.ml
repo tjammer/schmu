@@ -1048,12 +1048,12 @@ end = struct
              raise (Error (nameloc, "Unused rec flag")));
 
         (match ret_annot with
-        | Some (ret, loc) ->
-            let qtyp = Tfun (qparams, ret, kind) |> generalize in
-            check_annot env loc typ qtyp
-        | None ->
-            let qtyp = Tfun (qparams, ret, kind) |> generalize in
-            check_annot env loc typ qtyp)
+          | Some (ret, loc) ->
+              let qtyp = Tfun (qparams, ret, kind) |> generalize in
+              check_annot env loc typ qtyp
+          | None ->
+              let qtyp = Tfun (qparams, ret, kind) |> generalize in
+              check_annot env loc typ qtyp)
         |> ignore;
 
         let func = { tparams; ret; touched; remove_from_closure } in
@@ -1287,7 +1287,10 @@ end = struct
        let msg = Printf.sprintf "Cannot mutate non-mutable binding" in
        raise (Error (eloc, msg)));
     unify (loc, "In mutation") toset.typ valexpr.typ env;
-    let moved = Snot_moved (* will be set in excl pass *) in
+    let moved =
+      Snot_moved
+      (* will be set in excl pass *)
+    in
     { typ = tunit; expr = Set (toset, valexpr, moved); attr = no_attr; loc }
 
   and convert_pipe env loc ctx e1 e2 inverse =
@@ -2071,34 +2074,33 @@ and convert_prog env items modul =
         match Module.functor_data env floc ftor with
         | Ok (mname, params, body, modul) ->
             let param_arg_map = ref Module_type.Pmap.empty in
-            begin
-              try
-                List.iter2
-                  (fun (aloc, arg) param ->
-                    let key = Path.append (fst param) mname in
-                    match Env.find_module_opt floc arg env with
-                    | Some mname -> (
-                        match Module.of_located env mname with
-                        | Ok m ->
-                            param_arg_map :=
-                              Module_type.Pmap.add key mname !param_arg_map;
-                            let mtype =
-                              Module_type.adjust_for_checking ~base:key
-                                ~with_:mname (snd param)
-                            in
-                            Module.validate_intf env (Some aloc) ~mname mtype m
-                        | Error s -> raise (Error (aloc, s)))
-                    | None ->
-                        raise
-                          (Error (aloc, "Cannot find module " ^ Path.show arg)))
-                  args params
-              with Invalid_argument _ ->
-                let msg =
-                  Printf.sprintf
-                    "Wrong arity for functor %s: Expecting %i but got %i"
-                    (Path.show ftor) (List.length params) (List.length args)
-                in
-                raise (Error (loc, msg))
+            begin try
+              List.iter2
+                (fun (aloc, arg) param ->
+                  let key = Path.append (fst param) mname in
+                  match Env.find_module_opt floc arg env with
+                  | Some mname -> (
+                      match Module.of_located env mname with
+                      | Ok m ->
+                          param_arg_map :=
+                            Module_type.Pmap.add key mname !param_arg_map;
+                          let mtype =
+                            Module_type.adjust_for_checking ~base:key
+                              ~with_:mname (snd param)
+                          in
+                          Module.validate_intf env (Some aloc) ~mname mtype m
+                      | Error s -> raise (Error (aloc, s)))
+                  | None ->
+                      raise
+                        (Error (aloc, "Cannot find module " ^ Path.show arg)))
+                args params
+            with Invalid_argument _ ->
+              let msg =
+                Printf.sprintf
+                  "Wrong arity for functor %s: Expecting %i but got %i"
+                  (Path.show ftor) (List.length params) (List.length args)
+              in
+              raise (Error (loc, msg))
             end;
 
             let applied_name = Path.append id (Env.modpath env) in

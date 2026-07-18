@@ -377,18 +377,18 @@ module Exhaustiveness = struct
                 Record
                   (Array.to_list fields
                   |> List.map (fun f ->
-                         let _, ftyp = instantiate_sub sub f.ftyp in
-                         { f with ftyp }))
+                      let _, ftyp = instantiate_sub sub f.ftyp in
+                      { f with ftyp }))
             | Dvariant (_, ctors) ->
                 Ctors
                   (Array.to_list ctors
                   |> List.map (fun ct ->
-                         let ctyp =
-                           match ct.ctyp with
-                           | Some typ -> Some (instantiate_sub sub typ |> snd)
-                           | None -> None
-                         in
-                         { ct with ctyp }))
+                      let ctyp =
+                        match ct.ctyp with
+                        | Some typ -> Some (instantiate_sub sub typ |> snd)
+                        | None -> None
+                      in
+                      { ct with ctyp }))
             | Dabstract _ | Dalias _ -> Inf)
         | None -> Inf)
     | Ttuple ts ->
@@ -741,8 +741,8 @@ module Make (C : Core) (R : Recs) = struct
     let mn = Env.modpath env in
     let rfields =
       (match repr t with
-      | Tconstr (path, ps, _) -> fields_of_record loc path (Some ps) env
-      | _ -> Result.Error ())
+        | Tconstr (path, ps, _) -> fields_of_record loc path (Some ps) env
+        | _ -> Result.Error ())
       |> function
       | Ok fields -> fields
       | Error () ->
@@ -766,8 +766,9 @@ module Make (C : Core) (R : Recs) = struct
         else
           let field = rfields.(i) in
           if String.equal field.fname name then
-            if (* Make sure we use each field only once *)
-               Set.mem name !fset
+            if
+              (* Make sure we use each field only once *)
+              Set.mem name !fset
             then (
               fset := Set.remove name !fset;
               (field, i))
@@ -932,8 +933,8 @@ module Make (C : Core) (R : Recs) = struct
         unify (loc, "Tuple pattern has unexpected type:") ptyp (Ttuple ts) env;
         cartesian_product pats
         |> List.map (fun fields ->
-               let pat = Tp_record (loc, fields, dattr) in
-               (path, { ptyp; pat }))
+            let pat = Tp_record (loc, fields, dattr) in
+            (path, { ptyp; pat }))
     | Precord (loc, pats, dattr) ->
         let annot = make_annot (path_typ loc env path) in
         let trail, pats, labelset = get_labelset pats in
@@ -971,8 +972,8 @@ module Make (C : Core) (R : Recs) = struct
         in
         cartesian_product fields
         |> List.map (fun fields ->
-               let pat = Tp_record (loc, fields, dattr) in
-               (path, { ptyp; pat }))
+            let pat = Tp_record (loc, fields, dattr) in
+            (path, { ptyp; pat }))
     | Plit_int (loc, i) ->
         unify
           (loc, "Int pattern has unexpected type:")
@@ -1020,12 +1021,10 @@ module Make (C : Core) (R : Recs) = struct
           in
           type_pattern env (path, p)
           |> List.map (fun pat ->
-                 incr exp_rows;
-                 let loc = loc_of_pat (snd pat).pat in
-                 used_rows :=
-                   Row_set.add Row.{ loc; cnt = !exp_rows } !used_rows;
-                 ( [ pat ],
-                   { loc; ret_expr; row = !exp_rows; ret_env = env; guard } )))
+              incr exp_rows;
+              let loc = loc_of_pat (snd pat).pat in
+              used_rows := Row_set.add Row.{ loc; cnt = !exp_rows } !used_rows;
+              ([ pat ], { loc; ret_expr; row = !exp_rows; ret_env = env; guard })))
         cases
     in
     let typed_cases = List.concat typed_cases in

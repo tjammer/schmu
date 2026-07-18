@@ -26,7 +26,7 @@ let parse_fast file =
         let pp, pos = pp_position lexbuf file in
         Error
           (`Lex
-            (Format.asprintf "%s:%s: error: %s\n%!%a" file pos msg pp [ loc ]))
+             (Format.asprintf "%s:%s: error: %s\n%!%a" file pos msg pp [ loc ]))
     | Parser.Error -> Error (`Parse src)
 
 (* The following couple of functions are copied from the menhir example

@@ -574,7 +574,8 @@ struct
           | _ -> f
         in
         ( Vars.add Monomorph_tree.(fname.call) f vars
-          |> (* We also add the user name. This is needed for polymorphic nested functions.
+          |>
+          (* We also add the user name. This is needed for polymorphic nested functions.
                 At the monomorphization stage, the codegen isn't rewritten to it's call name.
              *)
           Vars.add Monomorph_tree.(fname.user) f

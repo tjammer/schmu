@@ -12,9 +12,9 @@ module Make (A : Abi_intf.S) = struct
 
   let struct_name t = Monomorph_tree.nominal_name t
 
-  (** For functions, when passed as parameter, we convert it to a closure ptr
-   to later cast to the correct types. At the application, we need to
-   get the correct type though to cast it back. *)
+  (** For functions, when passed as parameter, we convert it to a closure ptr to
+      later cast to the correct types. At the application, we need to get the
+      correct type though to cast it back. *)
   let rec get_lltype_def = function
     | Tint -> int_t
     | Tbool -> bool_t

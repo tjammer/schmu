@@ -639,8 +639,10 @@ let query_val_opt loc pkey ~instantiate env =
       | Stoplevel _ | Sfunc _ | Scont _ -> false
     in
     if lvl > 0 then add lvl (key, v) env.values
-    else if (* Add values in modules to scope list *)
-            in_module then add 1 (key, v) env.values;
+    else if
+      (* Add values in modules to scope list *)
+      in_module
+    then add 1 (key, v) env.values;
     (* Mark value used, if it's not imported *)
     mark_used usage kind env.in_mut;
     Some { typ; const; global; mut; mname; param }
@@ -982,7 +984,7 @@ let use_module env loc name =
         mark_module_used scope;
         cached_module)
       loc name env
-    |> (function Some m -> m | None -> rs (Path.show name))
+    |> ( function Some m -> m | None -> rs (Path.show name) )
     |> get_module env loc |> snd
     |> fun scope -> fix_scope_loc scope loc
   in

@@ -41,20 +41,20 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
   let mlist_of_pmap ~in_set m =
     Imap.to_rev_seq m
     |> Seq.filter_map (fun ((id : Mid.t), paths) ->
-           (* If the malloc comes from a borrowed parameter, we don't add it to
+        (* If the malloc comes from a borrowed parameter, we don't add it to
               the list of mallocs. This list is later on used for freeing
               allocs. Since there are paths and parent relationships, we need to
               recursively check if something is an argument. *)
-           (* If we are [in_set], we have to free, because we set right after.
+        (* If we are [in_set], we have to free, because we set right after.
               In this case, we don't skip arguments. *)
-           if is_arg_mid id && not in_set then None
-           else Some { id = id.mid; mtyp = id.typ; paths })
+        if is_arg_mid id && not in_set then None
+        else Some { id = id.mid; mtyp = id.typ; paths })
     |> List.of_seq
 
   let show_pmap m =
     Imap.to_seq m
     |> Seq.map (fun ((i : Mid.t), set) ->
-           Format.asprintf "%a: (%s)" Mod_id.pp i.mid (show_pset set))
+        Format.asprintf "%a: (%s)" Mod_id.pp i.mid (show_pset set))
     |> List.of_seq |> String.concat "\n"
 
   let mapdiff ?(flip = true) a b =
@@ -160,10 +160,10 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
       let print pmap =
         Imap.to_seq pmap
         |> Seq.map (fun (mid, set) ->
-               Mid.show mid ^ ": {"
-               ^ (Pset.to_seq set |> Seq.map Mpath.show |> List.of_seq
-                |> String.concat " and ")
-               ^ "}")
+            Mid.show mid ^ ": {"
+            ^ (Pset.to_seq set |> Seq.map Mpath.show |> List.of_seq
+             |> String.concat " and ")
+            ^ "}")
         |> List.of_seq |> String.concat "\n"
       in
       "["
@@ -339,7 +339,9 @@ module Make (Mtree : Monomorph_tree_intf.S) = struct
               if reentered_whole then
                 (* If this malloc is complete again, we can reenter the
                    parent path as well. *)
-                match i.parent with Some m -> aux m tl | None -> tl
+                match i.parent with
+                | Some m -> aux m tl
+                | None -> tl
               else tl
             in
             (if reentered_whole then

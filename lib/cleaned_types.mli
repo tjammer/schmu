@@ -41,7 +41,8 @@ val is_type_polymorphic_no_closure : typ -> bool
 val string_of_type : typ -> string
 
 val is_struct : typ -> bool
-(** [is_struct typ] returns whether the type is implemented as a struct in codegen  *)
+(** [is_struct typ] returns whether the type is implemented as a struct in
+    codegen *)
 
 val is_aggregate : typ -> bool
 val contains_allocation : typ -> bool

@@ -1681,14 +1681,14 @@ let monomorphize ~mname { Typed_tree.externals; items; decls } =
     Hashtbl.to_seq constant_tbl
     |> List.of_seq |> List.sort sort_const
     |> List.map (fun (name, (id, tree, toplvl)) ->
-           ignore id;
-           (name, tree, toplvl))
+        ignore id;
+        (name, tree, toplvl))
   in
   let globals =
     Hashtbl.to_seq global_tbl |> List.of_seq |> List.sort sort_const
     |> List.map (fun (name, (id, typ, toplvl)) ->
-           ignore id;
-           (name, typ, toplvl))
+        ignore id;
+        (name, typ, toplvl))
   in
 
   let funcs =

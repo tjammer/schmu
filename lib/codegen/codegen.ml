@@ -1236,7 +1236,8 @@ end = struct
                   let value = gen_expr { param with alloca = Some ptr } expr in
                   let value =
                     get_mono_func value param monomorph
-                    |> (* Const records will stay const, no allocation done to lift
+                    |>
+                    (* Const records will stay const, no allocation done to lift
                           it to Ptr. Thus, it stays Const*)
                     bring_default_var |> func_to_closure param
                   in

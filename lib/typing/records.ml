@@ -126,13 +126,13 @@ module Make (C : Core) = struct
       | Tconstr (path, ps, ca) as t when not (is_builtin t) ->
           let ls =
             (match fields_of_record loc path (Some ps) env with
-            | Ok labels -> labels
-            | Error () ->
-                raise
-                  (Error
-                     ( loc,
-                       "Not a record type: "
-                       ^ string_of_type (Env.modpath env) t )))
+              | Ok labels -> labels
+              | Error () ->
+                  raise
+                    (Error
+                       ( loc,
+                         "Not a record type: "
+                         ^ string_of_type (Env.modpath env) t )))
             |> Array.map (fun f -> { f with ftyp = instantiate f.ftyp })
           in
           let labels_expr =
@@ -222,7 +222,10 @@ module Make (C : Core) = struct
               (* There are some old fields. *)
               all_new := false;
               let expr = Ast.Field (loc, record_arg, field.fname)
-              and bor = false (* No field updates for borrowed fields *) in
+              and bor =
+                false
+                (* No field updates for borrowed fields *)
+              in
               (bor, (loc, field.fname), expr))
         fields
     in
@@ -291,9 +294,9 @@ module Make (C : Core) = struct
               record_t expr.typ env;
             let labels =
               (match repr record_t with
-              | Tconstr (_, ps, _) ->
-                  fields_of_record loc typename (Some ps) env
-              | _ -> failwith "Internal Error: Does this happen?")
+                | Tconstr (_, ps, _) ->
+                    fields_of_record loc typename (Some ps) env
+                | _ -> failwith "Internal Error: Does this happen?")
               |> Result.get_ok
             in
             (labels.(index), expr, index)

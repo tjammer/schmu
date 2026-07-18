@@ -124,13 +124,13 @@ let string_of_type_raw get_name typ mname =
     | Ttuple ts ->
         let lst = List.map string_of_type ts in
         Printf.sprintf "(%s)" (String.concat ", " lst)
-    | Tconstr (name, ps, _) -> begin
-        match ps with
+    | Tconstr (name, ps, _) ->
+        begin match ps with
         | [] -> Path.(rm_name mname name |> show)
         | l ->
             let arg = String.concat ", " (List.map string_of_type l) in
             Printf.sprintf "%s[%s]" Path.(rm_name mname name |> show) arg
-      end
+        end
     | Qvar str | Tvar { contents = Unbound (str, _) } -> get_name str
     | Tfixed_array ({ contents = sz }, t) ->
         let rec size = function
@@ -155,7 +155,8 @@ let string_of_type_get_name subst =
         if code > acc then code else acc)
       tbl
       (Char.code 'a' |> fun i -> i - 1)
-    |> (* Pick next letter *)
+    |>
+    (* Pick next letter *)
     ( + ) 1 |> Char.chr |> String.make 1
   in
 

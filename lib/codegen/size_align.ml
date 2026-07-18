@@ -5,7 +5,8 @@ type size_pr = { size : int; align : int }
 let alignup ~size ~upto =
   let modulo = size mod upto in
   if Int.equal modulo 0 then (* We are aligned *)
-    size else size + (upto - modulo)
+    size
+  else size + (upto - modulo)
 
 let add_size_align ~upto ~sz { size; align } =
   let size = alignup ~size ~upto + sz in
