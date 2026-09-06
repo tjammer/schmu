@@ -175,19 +175,19 @@ Pass generic record
   
   declare void @printi(i64 %0)
   
-  define linkonce_odr { i64, i16 } @__schmu_apply_t.bt.b(ptr %f, i64 %0, i16 %1) !dbg !2 {
+  define linkonce_odr { i64, i64 } @__schmu_apply_t.bt.b(ptr %f, i64 %0, i64 %1) !dbg !2 {
   entry:
-    %x = alloca { i64, i16 }, align 8
+    %x = alloca { i64, i64 }, align 8
     store i64 %0, ptr %x, align 8
-    %snd = getelementptr inbounds { i64, i16 }, ptr %x, i32 0, i32 1
-    store i16 %1, ptr %snd, align 2
+    %snd = getelementptr inbounds { i64, i64 }, ptr %x, i32 0, i32 1
+    store i64 %1, ptr %snd, align 8
     %loadtmp = load ptr, ptr %f, align 8
     %envptr = getelementptr inbounds %closure, ptr %f, i32 0, i32 1
     %loadtmp5 = load ptr, ptr %envptr, align 8
     %ret = alloca %t.b, align 8
-    %2 = tail call { i64, i16 } %loadtmp(i64 %0, i16 %1, ptr %loadtmp5), !dbg !6
-    store { i64, i16 } %2, ptr %ret, align 8
-    ret { i64, i16 } %2
+    %2 = tail call { i64, i64 } %loadtmp(i64 %0, i64 %1, ptr %loadtmp5), !dbg !6
+    store { i64, i64 } %2, ptr %ret, align 8
+    ret { i64, i64 } %2
   }
   
   define linkonce_odr void @__schmu_apply_t.lt.l(ptr noalias %0, ptr %f, ptr %x) !dbg !7 {
@@ -199,12 +199,12 @@ Pass generic record
     ret void
   }
   
-  define linkonce_odr { i64, i16 } @__schmu_pass_b(i64 %0, i16 %1) !dbg !9 {
+  define linkonce_odr { i64, i64 } @__schmu_pass_b(i64 %0, i64 %1) !dbg !9 {
   entry:
-    %x = alloca { i64, i16 }, align 8
+    %x = alloca { i64, i64 }, align 8
     store i64 %0, ptr %x, align 8
-    %snd = getelementptr inbounds { i64, i16 }, ptr %x, i32 0, i32 1
-    store i16 %1, ptr %snd, align 2
+    %snd = getelementptr inbounds { i64, i64 }, ptr %x, i32 0, i32 1
+    store i64 %1, ptr %snd, align 8
     %2 = alloca %t.b, align 8
     call void @llvm.memcpy.p0.p0.i64(ptr align 8 %2, ptr align 8 %x, i64 16, i1 false)
     %3 = alloca %t.b, align 8
@@ -218,8 +218,8 @@ Pass generic record
     %7 = getelementptr inbounds %t.b, ptr %2, i32 0, i32 2
     %8 = load i1, ptr %7, align 1
     store i1 %8, ptr %third, align 1
-    %unbox = load { i64, i16 }, ptr %3, align 8
-    ret { i64, i16 } %unbox
+    %unbox = load { i64, i64 }, ptr %3, align 8
+    ret { i64, i64 } %unbox
   }
   
   define linkonce_odr void @__schmu_pass_l(ptr noalias %0, ptr %x) !dbg !10 {
@@ -259,11 +259,11 @@ Pass generic record
     %boxconst = alloca %t.b, align 8
     store %t.b { i64 234, i1 false, i1 true }, ptr %boxconst, align 8
     %fst4 = load i64, ptr %boxconst, align 8
-    %snd = getelementptr inbounds { i64, i16 }, ptr %boxconst, i32 0, i32 1
-    %snd5 = load i16, ptr %snd, align 2
+    %snd = getelementptr inbounds { i64, i64 }, ptr %boxconst, i32 0, i32 1
+    %snd5 = load i64, ptr %snd, align 8
     %ret6 = alloca %t.b, align 8
-    %1 = call { i64, i16 } @__schmu_apply_t.bt.b(ptr %clstmp1, i64 %fst4, i16 %snd5), !dbg !14
-    store { i64, i16 } %1, ptr %ret6, align 8
+    %1 = call { i64, i64 } @__schmu_apply_t.bt.b(ptr %clstmp1, i64 %fst4, i64 %snd5), !dbg !14
+    store { i64, i64 } %1, ptr %ret6, align 8
     %2 = load i64, ptr %ret6, align 8
     call void @printi(i64 %2), !dbg !15
     ret i64 0

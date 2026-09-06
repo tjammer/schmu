@@ -25,6 +25,25 @@ external subf3s : fun (f3s) ->  f3s
 external load_shader : fun (string/cstr, string/cstr) -> shader
 external set_shader_value : fun (shader, i32, v4) -> unit
 
+type pad_next = {a : u16, b : u8, c : int}
+type pad_tail = {a : float, b : i16, c : i8}
+type pad_tail2 = {a : float, b : u8, c : u8}
+type single_tail = {a : float, b : u8}
+type single_word = {a : u8, b : i16}
+external subpad_next : fun (pad_next) -> pad_next
+external subpad_tail : fun (pad_tail) -> pad_tail
+external subpad_tail2 : fun (pad_tail2) -> pad_tail2
+external subsingle_tail : fun (single_tail) -> single_tail
+external subsingle_word : fun (single_word) -> single_word
+
+external spill4 : fun (i2, i2, i2, i2) -> i2
+external spill_sse : fun (v2, v2, v2, v2, float) -> unit
+external spill_mixed : fun (i2, i2, i2, v2) -> unit
+external spill_mid : fun (int, i2, i2, i2) -> unit
+
+external spill_one_word : fun (i2, i2, i2, i1) -> unit
+external spill_one_sse : fun (i2, i2, i2, v1) -> unit
+
 ignore (subv2 ({z = 1.0, y = 10.0}))
 ignore (subi2 ({x = 1, y = 10 }))
 ignore (subv1 ({z = 1.0}))
@@ -38,4 +57,16 @@ ignore (subf2s ({fx = 2.0f32, fy = 3.0f32}))
 ignore (subf3s ({fx = 2.0f32, fy = 3.0f32, fz = 5.0f32}))
 load_shader("a" |> cstr, "b" |> cstr) |> ignore
 set_shader_value({id = 0i32, locs = __unsafe_ptr_reinterpret(__unsafe_nullptr())},
-  0i32, {x = 1.0, y = 10.0, z = 100.0, w = 1000.0})
+                 0i32, {x = 1.0, y = 10.0, z = 100.0, w = 1000.0})
+ignore (subpad_next ({a = u16_of_int(1), b = 1u8, c = 1}))
+ignore (subpad_tail ({a = 1.0, b = i16_of_int(1), c = i8_of_int(1)}))
+ignore (subpad_tail2 ({a = 1.0, b = 1u8, c = 1u8}))
+ignore (subsingle_tail ({a = 1.0, b = 1u8}))
+ignore (subsingle_word ({a = 1u8, b = i16_of_int(1)}))
+ignore (spill4 ({x = 1, y = 2}, {x = 3, y = 4}, {x = 5, y = 6}, {x = 7, y = 8}))
+spill_sse({z = 1.0, y = 2.0}, {z = 3.0, y = 4.0}, {z = 5.0, y = 6.0},
+          {z = 7.0, y = 8.0}, 9.0)
+spill_mixed({x = 1, y = 2}, {x = 3, y = 4}, {x = 5, y = 6}, {z = 1.0, y = 2.0})
+spill_mid(1, {x = 2, y = 3}, {x = 4, y = 5}, {x = 6, y = 7})
+spill_one_word({x = 1, y = 2}, {x = 3, y = 4}, {x = 5, y = 6}, {x = 7})
+spill_one_sse({x = 1, y = 2}, {x = 3, y = 4}, {x = 5, y = 6}, {z = 7.0})

@@ -1,0 +1,38 @@
+type v2 = {z : float, y : float}
+type i2 = {x : int, y : int}
+type i1 = {x : int}
+type v1 = {z : float}
+type v3 = {x : float, y : float, z : float}
+type i3 = {w : int, y : int, z : int}
+type f2s = {fx : f32, fy : f32}
+type f3s = {fx : f32, fy : f32, fz : f32}
+type f5s = {fx : f32, fy : f32, fz : f32, fw : f32, fv : f32}
+type mixed = {x : int, y : i16}
+type c2 = {a : i8, b : i8}
+type ic4 = {a : i32}
+
+external subv2 : fun (v2) ->  v2
+external subi2 : fun (i2) ->  i2
+external subv1 : fun (v1) ->  v1
+external subi1 : fun (i1) ->  i1
+external subv3 : fun (v3) ->  v3
+external subi3 : fun (i3) ->  i3
+external subf2s : fun (f2s) ->  f2s
+external subf3s : fun (f3s) ->  f3s
+external subf5s : fun (f5s) ->  f5s
+external submixed : fun (mixed) ->  mixed
+external subc2 : fun (c2) ->  c2
+external subic4 : fun (ic4) ->  ic4
+
+ignore (subv2 ({z = 1.0, y = 10.0}))
+ignore (subi2 ({x = 1, y = 10 }))
+ignore (subv1 ({z = 1.0}))
+ignore (subi1 ({x = 1 }))
+ignore (subv3 ({x = 1.0, y = 10.0, z = 100.0 }))
+ignore (subi3 ({w = 1, y = 10, z = 100 }))
+ignore (subf2s ({fx = 2.0f32, fy = 3.0f32}))
+ignore (subf3s ({fx = 2.0f32, fy = 3.0f32, fz = 5.0f32}))
+ignore (subf5s ({fx = 1.0f32, fy = 2.0f32, fz = 3.0f32, fw = 4.0f32, fv = 5.0f32}))
+ignore (submixed ({x = 1, y = i16_of_int(2)}))
+ignore (subc2 ({a = i8_of_int(1), b = i8_of_int(2)}))
+ignore (subic4 ({a = 1i32}))

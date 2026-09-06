@@ -3,6 +3,7 @@ module Make (A : Abi_intf.S) = struct
   open Llvm_types
   open Size_align
   open A
+  open Abi_intf
   module Strtbl = Hashtbl
 
   let struct_tbl = Strtbl.create 32
@@ -41,7 +42,7 @@ module Make (A : Abi_intf.S) = struct
     | (Trecord _ | Tvariant _ | Tfixed_array _ | Trc _) as t -> (
         match pkind_of_typ mut t with
         | Boxed -> ptr_t
-        | Unboxed size -> lltype_unboxed size)
+        | Unboxed size -> lltype_unboxed size t)
 
   (* LLVM type of closure struct and records *)
   and typeof_aggregate agg =
@@ -92,11 +93,11 @@ module Make (A : Abi_intf.S) = struct
     let noaliases = ref [] in
     let prefix, ret_t =
       if is_struct ret then
-        match pkind_of_typ false ret with
+        match rkind_of_typ false ret with
         | Boxed ->
             noaliases := [ 0 ];
             (Seq.return (get_lltype_param false ret), unit_t)
-        | Unboxed size -> (Seq.empty, lltype_unboxed size)
+        | Unboxed size -> (Seq.empty, lltype_unboxed size ret)
       else (Seq.empty, get_lltype_param false ret)
     in
 
@@ -111,28 +112,33 @@ module Make (A : Abi_intf.S) = struct
     let start_idx = if Seq.is_empty prefix then 0 else 1 in
     let byvals = ref [] in
     let i = ref start_idx in
+    let kinds =
+      classify_params ~sret:(not (Seq.is_empty prefix)) params
+      |> List.map (fun (_, kind, _, _) -> kind)
+    in
     let params_t =
       (* For the params, we want to produce the param type.
          There is a special case for records which are splint into two words. *)
-      List.fold_left
-        (fun ps p ->
+      List.fold_left2
+        (fun ps p pkind ->
           let typ = p.pt in
           match typ with
           | Tunit -> ps
           | _ -> (
               if p.pmut then noaliases := !i :: !noaliases;
               incr i;
-              match pkind_of_typ p.pmut typ with
+              match pkind with
               | Unboxed (Two_params (fst, snd)) ->
                   (* Two parameters so we have to increase the param count. *)
                   incr i;
                   (* snd before fst b/c we rev later *)
                   lltype_unbox snd :: lltype_unbox fst :: ps
               | Boxed when is_aggregate typ ->
-                  if not p.pmut then byvals := (!i, typ) :: !byvals;
-                  get_lltype_param p.pmut typ :: ps
+                  if (not p.pmut) && byval_aggregate () then
+                    byvals := (!i, typ) :: !byvals;
+                  ptr_t :: ps
               | _ -> get_lltype_param p.pmut typ :: ps))
-        [] params
+        [] params kinds
       |> List.rev |> List.to_seq
       |> fun seq -> prefix ++ seq ++ suffix |> Array.of_seq
     in

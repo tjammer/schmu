@@ -848,7 +848,7 @@ Functions can be generic. In this test, we generate 'apply' only once and use it
     %envptr9 = getelementptr inbounds %closure, ptr %clstmp7, i32 0, i32 1
     store ptr null, ptr %envptr9, align 8
     %ret10 = alloca %t.b, align 8
-    %3 = call i8 @__schmu_apply_t.bt.b(i8 bitcast (i1 true to i8), ptr %clstmp7), !dbg !32
+    %3 = call i8 @__schmu_apply_t.bt.b(i8 1, ptr %clstmp7), !dbg !32
     store i8 %3, ptr %ret10, align 1
     %4 = trunc i8 %3 to i1
     call void @schmu_print_bool(i1 %4), !dbg !33

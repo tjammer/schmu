@@ -5,6 +5,11 @@ module type S = sig
   val dummy_fn_value : llvar
   val declare_function : c_linkage:bool -> string -> typ -> llvar
 
+  (* Add the [sret] attribute to a struct-return slot at a call site (needed
+     for indirect calls through a function pointer, which have no callee
+     declaration to inherit it from) *)
+  val add_callsite_sret : Llvm.llvalue -> int -> Llvm.lltype -> unit
+
   val add_closure :
     llvar Vars.t ->
     llvar ->
@@ -48,6 +53,13 @@ module type S = sig
 
   val box_const : Llvm_types.param -> llvar -> llvar
   val pass_value : bool -> llvar -> Llvm.llvalue * Llvm.llvalue option
+
+  val pass_value_kind :
+    Abi_intf.aggregate_param_kind ->
+    bool ->
+    llvar ->
+    Llvm.llvalue * Llvm.llvalue option
+
   val func_to_closure : Llvm_types.param -> llvar -> llvar
   val get_closure_item : closed -> Llvm.llvalue -> bool -> llvar
 
@@ -59,7 +71,6 @@ module type S = sig
     Llvm.llvalue
 
   val default_kind : typ -> value_kind
-  val get_index : int -> bool -> typ -> int
   val name_of_alloc_param : int -> string
   val name_of_alloc_cookie : int -> string
   val tailrec_store : src:llvar -> dst:Llvm.llvalue -> unit
@@ -100,12 +111,19 @@ struct
   open Cleaned_types
   open Llvm_types
   open Size_align
+  open Abi_intf
   open T
   open A
   module Strtbl = Hashtbl
 
   external add_byval : Llvm.llvalue -> int -> Llvm.lltype -> unit
     = "LlvmAddByvalAttr"
+
+  external add_sret : Llvm.llvalue -> int -> Llvm.lltype -> unit
+    = "LlvmAddSretAttr"
+
+  external add_callsite_sret : Llvm.llvalue -> int -> Llvm.lltype -> unit
+    = "LlvmAddCallSretAttr"
 
   let string_tbl = Strtbl.create 64
   let src_tbl = Hashtbl.create 64
@@ -140,14 +158,17 @@ struct
     { v with value = bring_default v; kind }
 
   (* Checks the param kind before calling [unbox_record] *)
-  let pass_value mut value =
+  let pass_value_kind kind mut value =
     (* From record to int *)
     if is_struct value.typ then
-      match pkind_of_typ mut value.typ with
+      match kind with
       | Unboxed kind -> unbox_record ~kind ~ret:false value
       | Boxed -> (value.value, None)
     else if mut then (value.value, None)
     else (bring_default value, None)
+
+  let pass_value mut value =
+    pass_value_kind (pkind_of_typ mut value.typ) mut value
 
   (* Given two ptr types (most likely to structs), copy src to dst *)
   let memcpy ~dst ~src ~size =
@@ -276,6 +297,18 @@ struct
           typeof_func ~decl:true (params, ret, kind)
         in
         let value = Llvm.declare_function name ft the_module in
+        (* A large struct returned via a hidden pointer needs the [sret]
+           attribute on arm64 so the pointer is passed in the indirect-result
+           register. Apply it to declarations and definitions alike so callers
+           and callees agree on the convention *)
+        (match ret with
+        | t when is_struct t && sret_attribute () -> (
+            match rkind_of_typ false t with
+            (* The hidden return pointer is the first parameter (index 0);
+               [add_sret] expects one plus that index *)
+            | Boxed -> add_sret value 1 (get_lltype_def t)
+            | Unboxed _ -> ())
+        | _ -> ());
         if c_linkage then
           List.iter
             (fun (i, typ) -> add_byval value i (get_lltype_def typ))
@@ -498,42 +531,39 @@ struct
   let name_of_alloc_param i = "__" ^ string_of_int i ^ "_alloc"
   let name_of_alloc_cookie i = "__" ^ string_of_int i ^ "_alloc_cookie"
 
-  (* We need to handle the index the same way as [get_value] below *)
-  let get_index i mut typ =
-    match pkind_of_typ mut typ with Unboxed (Two_params _) -> i + 1 | _ -> i
-
   (* This adds the function parameters to the env.
      In case the function is tailrecursive, it allocas each parameter in
      the entry block and creates a recursion block which starts off by loading
      each parameter. *)
   let add_params param f fname names params start_index recursive free_tbl =
     let vars = param.vars in
+    let kinds = classify_params ~sret:(start_index = 1) params in
     (* We specially treat the case where a record is passed as two params *)
-    let get_value i mut typ =
-      match pkind_of_typ mut typ with
+    let get_value kind i mut typ =
+      match kind with
       | Unboxed (Two_params _) ->
           let v1 = (Llvm.params f.value).(i) in
           let v2 = (Llvm.params f.value).(i + 1) in
-          (maybe_box_record ~snd_val:(Some v2) mut typ v1, i + 1)
-      | _ -> (Llvm.param f.value i |> maybe_box_record mut typ, i)
+          (maybe_box_record_kind kind ~snd_val:(Some v2) mut typ v1, i + 1)
+      | _ -> (Llvm.param f.value i |> maybe_box_record_kind kind mut typ, i)
     in
 
     let add_simple vars =
       (* We simply add to env, no special handling for tailrecursion *)
       List.fold_left2
-        (fun (env, i) (name, id) p ->
+        (fun (env, i) (name, id) (p, pkind, _, _) ->
           let typ = p.pt in
           match typ with
           | Tunit -> (Vars.add name dummy_fn_value env, i)
           | _ ->
-              let value, i = get_value i p.pmut typ in
+              let value, i = get_value pkind i p.pmut typ in
               let kind = if p.pmut then Ptr else default_kind typ in
               let param = { value; typ; lltyp = get_lltype_def typ; kind } in
               Llvm.set_value_name name value;
               (* Add mallocs to free tbl so we can find them for freeing *)
               Hashtbl.replace free_tbl id param;
               (Vars.add name param env, i + 1))
-        (vars, start_index) names params
+        (vars, start_index) names kinds
       |> fst
     in
 
@@ -588,12 +618,12 @@ struct
            real parameters *)
         let vars =
           List.fold_left2
-            (fun (env, i) (name, _) p ->
+            (fun (env, i) (name, _) (p, pkind, _, _) ->
               let typ = p.pt in
               match typ with
               | Tunit -> (env, i)
               | _ ->
-                  let value, i = get_value i p.pmut typ in
+                  let value, i = get_value pkind i p.pmut typ in
                   Llvm.set_value_name name value;
                   let kind = if p.pmut then Ptr else default_kind typ in
                   let value =
@@ -616,7 +646,7 @@ struct
                     else env
                   in
                   (env, i + 1))
-            (vars, start_index) names params
+            (vars, start_index) names kinds
           |> fst
         in
         (* Recursion block*)
@@ -630,21 +660,22 @@ struct
 
         let vars, _ =
           List.fold_left2
-            (fun (env, i) (name, _) p ->
+            (fun (env, i) (name, _) (p, _, idx, width) ->
               let typ = p.pt in
               match typ with
               | Tunit -> (Vars.add name dummy_fn_value env, i)
               | _ ->
-                  let i = get_index i p.pmut typ in
-                  let llvar = Vars.find (name_of_alloc_param i) env in
+                  let llvar =
+                    Vars.find (name_of_alloc_param (idx + width - 1)) env
+                  in
                   let value =
                     if p.pmut then
                       (* Mutable values point to another pointer *)
                       Llvm.build_load ptr_t llvar.value name builder
                     else llvar.value
                   in
-                  (Vars.add name { llvar with value } env, i + 1))
-            (vars, start_index) names params
+                  (Vars.add name { llvar with value } env, i + width))
+            (vars, start_index) names kinds
         in
 
         (vars, Some { rec_; entry })
@@ -683,7 +714,7 @@ struct
         Llvm.build_ret_void builder
     | Tpoly _ -> failwith "Internal Error: Generic return"
     | t when is_struct t -> (
-        match pkind_of_typ false t with
+        match rkind_of_typ false t with
         | Boxed -> (* Default record case *) Llvm.build_ret_void builder
         | Unboxed kind ->
             let unboxed, _ = unbox_record ~kind ~ret:true ret in
@@ -737,17 +768,16 @@ struct
       Llvm.position_at_end cont_bb builder)
 
   let tail_return param params start_index =
-    let f i p =
+    let kinds = classify_params ~sret:(start_index = 1) params in
+    let f (p, _, idx, width) =
       match p.pt with
-      | Tunit -> i
+      | Tunit -> ()
       | _ ->
-          let i = get_index i p.pmut p.pt in
-          let alloca = Vars.find (name_of_alloc_param i) param.vars in
-
-          if not p.pmoved then tail_decr_param param alloca i p.pmut;
-          i + 1
+          let key = idx + width - 1 in
+          let alloca = Vars.find (name_of_alloc_param key) param.vars in
+          if not p.pmoved then tail_decr_param param alloca key p.pmut
     in
-    ignore (List.fold_left f start_index params)
+    List.iter f kinds
 
   let var_index var =
     let value =

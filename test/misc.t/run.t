@@ -87,13 +87,18 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   %v4 = type { double, double, double, double }
   %mixed4 = type { double, double, double, i64 }
   %trailv2 = type { i64, i64, double, double }
-  %v2 = type { double, double }
   %i2 = type { i64, i64 }
+  %v2 = type { double, double }
   %v1 = type { double }
   %i1 = type { i64 }
   %f2s = type { float, float }
   %f3s = type { float, float, float }
   %shader = type { i32, ptr }
+  %pad_next = type { i16, i8, i64 }
+  %pad_tail = type { double, i16, i8 }
+  %pad_tail2 = type { double, i8, i8 }
+  %single_tail = type { double, i8 }
+  %single_word = type { i8, i16 }
   
   @0 = private unnamed_addr constant [2 x i8] c"a\00"
   @1 = private unnamed_addr constant [2 x i8] c"b\00"
@@ -125,6 +130,28 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   declare { i32, i64 } @load_shader(ptr %0, ptr %1)
   
   declare void @set_shader_value(i32 %0, i64 %1, i32 %2, ptr byval(%v4) %3)
+  
+  declare { i64, i64 } @subpad_next(i64 %0, i64 %1)
+  
+  declare { double, i64 } @subpad_tail(double %0, i64 %1)
+  
+  declare { double, i64 } @subpad_tail2(double %0, i64 %1)
+  
+  declare { double, i8 } @subsingle_tail(double %0, i8 %1)
+  
+  declare i32 @subsingle_word(i32 %0)
+  
+  declare { i64, i64 } @spill4(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5, ptr byval(%i2) %6)
+  
+  declare void @spill_sse(double %0, double %1, double %2, double %3, double %4, double %5, double %6, double %7, double %8)
+  
+  declare void @spill_mixed(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5, double %6, double %7)
+  
+  declare void @spill_mid(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, ptr byval(%i2) %5)
+  
+  declare void @spill_one_word(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5, i64 %6)
+  
+  declare void @spill_one_sse(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5, double %6)
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
@@ -197,6 +224,276 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %boxconst35 = alloca %v4, align 8
     store %v4 { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02, double 1.000000e+03 }, ptr %boxconst35, align 8
     call void @set_shader_value(i32 0, i64 0, i32 0, ptr %boxconst35), !dbg !20
+    %10 = alloca %pad_next, align 8
+    store i16 1, ptr %10, align 2
+    %b = getelementptr inbounds %pad_next, ptr %10, i32 0, i32 1
+    store i8 1, ptr %b, align 1
+    %c = getelementptr inbounds %pad_next, ptr %10, i32 0, i32 2
+    store i64 1, ptr %c, align 8
+    %fst37 = load i64, ptr %10, align 8
+    %ret40 = alloca %pad_next, align 8
+    %11 = call { i64, i64 } @subpad_next(i64 %fst37, i64 1), !dbg !21
+    store { i64, i64 } %11, ptr %ret40, align 8
+    %12 = alloca %pad_tail, align 8
+    store double 1.000000e+00, ptr %12, align 8
+    %b42 = getelementptr inbounds %pad_tail, ptr %12, i32 0, i32 1
+    store i16 1, ptr %b42, align 2
+    %c43 = getelementptr inbounds %pad_tail, ptr %12, i32 0, i32 2
+    store i8 1, ptr %c43, align 1
+    %snd47 = load i64, ptr %b42, align 8
+    %ret48 = alloca %pad_tail, align 8
+    %13 = call { double, i64 } @subpad_tail(double 1.000000e+00, i64 %snd47), !dbg !22
+    store { double, i64 } %13, ptr %ret48, align 8
+    %boxconst49 = alloca %pad_tail2, align 8
+    store %pad_tail2 { double 1.000000e+00, i8 1, i8 1 }, ptr %boxconst49, align 8
+    %fst51 = load double, ptr %boxconst49, align 8
+    %snd52 = getelementptr inbounds { double, i64 }, ptr %boxconst49, i32 0, i32 1
+    %snd53 = load i64, ptr %snd52, align 8
+    %ret54 = alloca %pad_tail2, align 8
+    %14 = call { double, i64 } @subpad_tail2(double %fst51, i64 %snd53), !dbg !23
+    store { double, i64 } %14, ptr %ret54, align 8
+    %boxconst55 = alloca %single_tail, align 8
+    store %single_tail { double 1.000000e+00, i8 1 }, ptr %boxconst55, align 8
+    %fst57 = load double, ptr %boxconst55, align 8
+    %snd58 = getelementptr inbounds { double, i8 }, ptr %boxconst55, i32 0, i32 1
+    %snd59 = load i8, ptr %snd58, align 1
+    %ret60 = alloca %single_tail, align 8
+    %15 = call { double, i8 } @subsingle_tail(double %fst57, i8 %snd59), !dbg !24
+    store { double, i8 } %15, ptr %ret60, align 8
+    %16 = alloca %single_word, align 8
+    store i8 1, ptr %16, align 1
+    %b62 = getelementptr inbounds %single_word, ptr %16, i32 0, i32 1
+    store i16 1, ptr %b62, align 2
+    %unbox = load i32, ptr %16, align 4
+    %ret63 = alloca %single_word, align 8
+    %17 = call i32 @subsingle_word(i32 %unbox), !dbg !25
+    store i32 %17, ptr %ret63, align 4
+    %boxconst64 = alloca %i2, align 8
+    store %i2 { i64 1, i64 2 }, ptr %boxconst64, align 8
+    %fst66 = load i64, ptr %boxconst64, align 8
+    %snd67 = getelementptr inbounds { i64, i64 }, ptr %boxconst64, i32 0, i32 1
+    %snd68 = load i64, ptr %snd67, align 8
+    %boxconst69 = alloca %i2, align 8
+    store %i2 { i64 3, i64 4 }, ptr %boxconst69, align 8
+    %fst71 = load i64, ptr %boxconst69, align 8
+    %snd72 = getelementptr inbounds { i64, i64 }, ptr %boxconst69, i32 0, i32 1
+    %snd73 = load i64, ptr %snd72, align 8
+    %boxconst74 = alloca %i2, align 8
+    store %i2 { i64 5, i64 6 }, ptr %boxconst74, align 8
+    %fst76 = load i64, ptr %boxconst74, align 8
+    %snd77 = getelementptr inbounds { i64, i64 }, ptr %boxconst74, i32 0, i32 1
+    %snd78 = load i64, ptr %snd77, align 8
+    %boxconst79 = alloca %i2, align 8
+    store %i2 { i64 7, i64 8 }, ptr %boxconst79, align 8
+    %ret80 = alloca %i2, align 8
+    %18 = call { i64, i64 } @spill4(i64 %fst66, i64 %snd68, i64 %fst71, i64 %snd73, i64 %fst76, i64 %snd78, ptr %boxconst79), !dbg !26
+    store { i64, i64 } %18, ptr %ret80, align 8
+    %boxconst81 = alloca %v2, align 8
+    store %v2 { double 1.000000e+00, double 2.000000e+00 }, ptr %boxconst81, align 8
+    %fst83 = load double, ptr %boxconst81, align 8
+    %snd84 = getelementptr inbounds { double, double }, ptr %boxconst81, i32 0, i32 1
+    %snd85 = load double, ptr %snd84, align 8
+    %boxconst86 = alloca %v2, align 8
+    store %v2 { double 3.000000e+00, double 4.000000e+00 }, ptr %boxconst86, align 8
+    %fst88 = load double, ptr %boxconst86, align 8
+    %snd89 = getelementptr inbounds { double, double }, ptr %boxconst86, i32 0, i32 1
+    %snd90 = load double, ptr %snd89, align 8
+    %boxconst91 = alloca %v2, align 8
+    store %v2 { double 5.000000e+00, double 6.000000e+00 }, ptr %boxconst91, align 8
+    %fst93 = load double, ptr %boxconst91, align 8
+    %snd94 = getelementptr inbounds { double, double }, ptr %boxconst91, i32 0, i32 1
+    %snd95 = load double, ptr %snd94, align 8
+    %boxconst96 = alloca %v2, align 8
+    store %v2 { double 7.000000e+00, double 8.000000e+00 }, ptr %boxconst96, align 8
+    %fst98 = load double, ptr %boxconst96, align 8
+    %snd99 = getelementptr inbounds { double, double }, ptr %boxconst96, i32 0, i32 1
+    %snd100 = load double, ptr %snd99, align 8
+    call void @spill_sse(double %fst83, double %snd85, double %fst88, double %snd90, double %fst93, double %snd95, double %fst98, double %snd100, double 9.000000e+00), !dbg !27
+    %boxconst101 = alloca %i2, align 8
+    store %i2 { i64 1, i64 2 }, ptr %boxconst101, align 8
+    %fst103 = load i64, ptr %boxconst101, align 8
+    %snd104 = getelementptr inbounds { i64, i64 }, ptr %boxconst101, i32 0, i32 1
+    %snd105 = load i64, ptr %snd104, align 8
+    %boxconst106 = alloca %i2, align 8
+    store %i2 { i64 3, i64 4 }, ptr %boxconst106, align 8
+    %fst108 = load i64, ptr %boxconst106, align 8
+    %snd109 = getelementptr inbounds { i64, i64 }, ptr %boxconst106, i32 0, i32 1
+    %snd110 = load i64, ptr %snd109, align 8
+    %boxconst111 = alloca %i2, align 8
+    store %i2 { i64 5, i64 6 }, ptr %boxconst111, align 8
+    %fst113 = load i64, ptr %boxconst111, align 8
+    %snd114 = getelementptr inbounds { i64, i64 }, ptr %boxconst111, i32 0, i32 1
+    %snd115 = load i64, ptr %snd114, align 8
+    %boxconst116 = alloca %v2, align 8
+    store %v2 { double 1.000000e+00, double 2.000000e+00 }, ptr %boxconst116, align 8
+    %fst118 = load double, ptr %boxconst116, align 8
+    %snd119 = getelementptr inbounds { double, double }, ptr %boxconst116, i32 0, i32 1
+    %snd120 = load double, ptr %snd119, align 8
+    call void @spill_mixed(i64 %fst103, i64 %snd105, i64 %fst108, i64 %snd110, i64 %fst113, i64 %snd115, double %fst118, double %snd120), !dbg !28
+    %boxconst121 = alloca %i2, align 8
+    store %i2 { i64 2, i64 3 }, ptr %boxconst121, align 8
+    %fst123 = load i64, ptr %boxconst121, align 8
+    %snd124 = getelementptr inbounds { i64, i64 }, ptr %boxconst121, i32 0, i32 1
+    %snd125 = load i64, ptr %snd124, align 8
+    %boxconst126 = alloca %i2, align 8
+    store %i2 { i64 4, i64 5 }, ptr %boxconst126, align 8
+    %fst128 = load i64, ptr %boxconst126, align 8
+    %snd129 = getelementptr inbounds { i64, i64 }, ptr %boxconst126, i32 0, i32 1
+    %snd130 = load i64, ptr %snd129, align 8
+    %boxconst131 = alloca %i2, align 8
+    store %i2 { i64 6, i64 7 }, ptr %boxconst131, align 8
+    call void @spill_mid(i64 1, i64 %fst123, i64 %snd125, i64 %fst128, i64 %snd130, ptr %boxconst131), !dbg !29
+    %boxconst132 = alloca %i2, align 8
+    store %i2 { i64 1, i64 2 }, ptr %boxconst132, align 8
+    %fst134 = load i64, ptr %boxconst132, align 8
+    %snd135 = getelementptr inbounds { i64, i64 }, ptr %boxconst132, i32 0, i32 1
+    %snd136 = load i64, ptr %snd135, align 8
+    %boxconst137 = alloca %i2, align 8
+    store %i2 { i64 3, i64 4 }, ptr %boxconst137, align 8
+    %fst139 = load i64, ptr %boxconst137, align 8
+    %snd140 = getelementptr inbounds { i64, i64 }, ptr %boxconst137, i32 0, i32 1
+    %snd141 = load i64, ptr %snd140, align 8
+    %boxconst142 = alloca %i2, align 8
+    store %i2 { i64 5, i64 6 }, ptr %boxconst142, align 8
+    %fst144 = load i64, ptr %boxconst142, align 8
+    %snd145 = getelementptr inbounds { i64, i64 }, ptr %boxconst142, i32 0, i32 1
+    %snd146 = load i64, ptr %snd145, align 8
+    call void @spill_one_word(i64 %fst134, i64 %snd136, i64 %fst139, i64 %snd141, i64 %fst144, i64 %snd146, i64 7), !dbg !30
+    %boxconst147 = alloca %i2, align 8
+    store %i2 { i64 1, i64 2 }, ptr %boxconst147, align 8
+    %fst149 = load i64, ptr %boxconst147, align 8
+    %snd150 = getelementptr inbounds { i64, i64 }, ptr %boxconst147, i32 0, i32 1
+    %snd151 = load i64, ptr %snd150, align 8
+    %boxconst152 = alloca %i2, align 8
+    store %i2 { i64 3, i64 4 }, ptr %boxconst152, align 8
+    %fst154 = load i64, ptr %boxconst152, align 8
+    %snd155 = getelementptr inbounds { i64, i64 }, ptr %boxconst152, i32 0, i32 1
+    %snd156 = load i64, ptr %snd155, align 8
+    %boxconst157 = alloca %i2, align 8
+    store %i2 { i64 5, i64 6 }, ptr %boxconst157, align 8
+    %fst159 = load i64, ptr %boxconst157, align 8
+    %snd160 = getelementptr inbounds { i64, i64 }, ptr %boxconst157, i32 0, i32 1
+    %snd161 = load i64, ptr %snd160, align 8
+    call void @spill_one_sse(i64 %fst149, i64 %snd151, i64 %fst154, i64 %snd156, i64 %fst159, i64 %snd161, double 7.000000e+00), !dbg !31
+    ret i64 0
+  }
+  
+  !llvm.dbg.cu = !{!0}
+  
+  !5 = !{}
+
+Test arm64-apple-macosx ABI (parts of it, anyway)
+  $ schmu --dump-llvm -c --target arm64-apple-macosx11 -c abi_arm64.smu 2>&1 | grep -v !DI
+  ; ModuleID = 'context'
+  source_filename = "context"
+  target datalayout = "e-m:o-i64:64-i128:128-n32:64-S128-Fn32"
+  
+  %v2 = type { double, double }
+  %v1 = type { double }
+  %v3 = type { double, double, double }
+  %i3 = type { i64, i64, i64 }
+  %f2s = type { float, float }
+  %f3s = type { float, float, float }
+  %f5s = type { float, float, float, float, float }
+  %i2 = type { i64, i64 }
+  %i1 = type { i64 }
+  %mixed = type { i64, i16 }
+  %c2 = type { i8, i8 }
+  %ic4 = type { i32 }
+  
+  declare %v2 @subv2([2 x double] %0)
+  
+  declare [2 x i64] @subi2([2 x i64] %0)
+  
+  declare %v1 @subv1([1 x double] %0)
+  
+  declare i64 @subi1(i64 %0)
+  
+  declare %v3 @subv3([3 x double] %0)
+  
+  declare void @subi3(ptr noalias sret(%i3) %0, ptr %1)
+  
+  declare %f2s @subf2s([2 x float] %0)
+  
+  declare %f3s @subf3s([3 x float] %0)
+  
+  declare void @subf5s(ptr noalias sret(%f5s) %0, ptr %1)
+  
+  declare [2 x i64] @submixed([2 x i64] %0)
+  
+  declare i16 @subc2(i64 %0)
+  
+  declare i32 @subic4(i64 %0)
+  
+  define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
+  entry:
+    %0 = alloca %v2, align 8
+    store %v2 { double 1.000000e+00, double 1.000000e+01 }, ptr %0, align 8
+    %1 = load [2 x double], ptr %0, align 8
+    %ret = alloca %v2, align 8
+    %2 = tail call %v2 @subv2([2 x double] %1), !dbg !6
+    store %v2 %2, ptr %ret, align 8
+    %3 = alloca %i2, align 8
+    store %i2 { i64 1, i64 10 }, ptr %3, align 8
+    %4 = load [2 x i64], ptr %3, align 8
+    %ret1 = alloca %i2, align 8
+    %5 = tail call [2 x i64] @subi2([2 x i64] %4), !dbg !7
+    store [2 x i64] %5, ptr %ret1, align 8
+    %6 = alloca %v1, align 8
+    store %v1 { double 1.000000e+00 }, ptr %6, align 8
+    %7 = load [1 x double], ptr %6, align 8
+    %ret2 = alloca %v1, align 8
+    %8 = tail call %v1 @subv1([1 x double] %7), !dbg !8
+    store %v1 %8, ptr %ret2, align 8
+    %ret3 = alloca %i1, align 8
+    %9 = tail call i64 @subi1(i64 1), !dbg !9
+    store i64 %9, ptr %ret3, align 8
+    %10 = alloca %v3, align 8
+    store %v3 { double 1.000000e+00, double 1.000000e+01, double 1.000000e+02 }, ptr %10, align 8
+    %11 = load [3 x double], ptr %10, align 8
+    %ret4 = alloca %v3, align 8
+    %12 = tail call %v3 @subv3([3 x double] %11), !dbg !10
+    store %v3 %12, ptr %ret4, align 8
+    %boxconst = alloca %i3, align 8
+    store %i3 { i64 1, i64 10, i64 100 }, ptr %boxconst, align 8
+    %ret5 = alloca %i3, align 8
+    call void @subi3(ptr sret(%i3) %ret5, ptr %boxconst), !dbg !11
+    %13 = alloca %f2s, align 8
+    store %f2s { float 2.000000e+00, float 3.000000e+00 }, ptr %13, align 4
+    %14 = load [2 x float], ptr %13, align 4
+    %ret6 = alloca %f2s, align 8
+    %15 = call %f2s @subf2s([2 x float] %14), !dbg !12
+    store %f2s %15, ptr %ret6, align 4
+    %16 = alloca %f3s, align 8
+    store %f3s { float 2.000000e+00, float 3.000000e+00, float 5.000000e+00 }, ptr %16, align 4
+    %17 = load [3 x float], ptr %16, align 4
+    %ret7 = alloca %f3s, align 8
+    %18 = call %f3s @subf3s([3 x float] %17), !dbg !13
+    store %f3s %18, ptr %ret7, align 4
+    %boxconst8 = alloca %f5s, align 8
+    store %f5s { float 1.000000e+00, float 2.000000e+00, float 3.000000e+00, float 4.000000e+00, float 5.000000e+00 }, ptr %boxconst8, align 4
+    %ret9 = alloca %f5s, align 8
+    call void @subf5s(ptr sret(%f5s) %ret9, ptr %boxconst8), !dbg !14
+    %19 = alloca %mixed, align 8
+    store i64 1, ptr %19, align 8
+    %y = getelementptr inbounds %mixed, ptr %19, i32 0, i32 1
+    store i16 2, ptr %y, align 2
+    %unbox = load [2 x i64], ptr %19, align 8
+    %ret10 = alloca %mixed, align 8
+    %20 = call [2 x i64] @submixed([2 x i64] %unbox), !dbg !15
+    store [2 x i64] %20, ptr %ret10, align 8
+    %21 = alloca %c2, align 8
+    store i8 1, ptr %21, align 1
+    %b = getelementptr inbounds %c2, ptr %21, i32 0, i32 1
+    store i8 2, ptr %b, align 1
+    %unbox11 = load i16, ptr %21, align 2
+    %unbox12 = zext i16 %unbox11 to i64
+    %ret13 = alloca %c2, align 8
+    %22 = call i16 @subc2(i64 %unbox12), !dbg !16
+    store i16 %22, ptr %ret13, align 2
+    %ret14 = alloca %ic4, align 8
+    %23 = call i32 @subic4(i64 1), !dbg !17
+    store i32 %23, ptr %ret14, align 4
     ret i64 0
   }
   

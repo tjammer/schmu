@@ -1,6 +1,7 @@
 open Cleaned_types
 open Llvm_types
 open Size_align
+open Abi_intf
 module Vars = Map.Make (String)
 module Set = Set.Make (String)
 module Strtbl = Hashtbl
@@ -60,7 +61,7 @@ end = struct
         let start_index, alloca =
           match ret_t with
           | t when is_struct t -> (
-              match pkind_of_typ false t with
+              match rkind_of_typ false t with
               | Boxed ->
                   (* Whenever the return type is boxed, we add the prealloc to the environment *)
                   (* The call site has to decide if the prealloc is used or not *)
@@ -92,7 +93,7 @@ end = struct
           match ret.typ with
           | Tpoly _ -> ()
           | t when is_struct t -> (
-              match pkind_of_typ false t with
+              match rkind_of_typ false t with
               | Boxed ->
                   (* Since we only have POD records, we can safely memcpy here *)
                   let dst = Llvm.(params func.value).(0) in
@@ -431,9 +432,9 @@ end = struct
     let loc = callee.ex.loc in
     let func = get_mono_func func param callee.monomorph in
 
-    let ret, kind =
+    let fparams, ret, kind =
       match func.typ with
-      | Tfun (_, ret, kind) -> (ret, kind)
+      | Tfun (params, ret, kind) -> (params, ret, kind)
       | Tunit ->
           print_endline (Monomorph_tree.show_expr callee.ex.expr);
           print_endline (Monomorph_tree.show_call_name callee.monomorph);
@@ -443,9 +444,19 @@ end = struct
       | _ -> failwith "Internal Error: Not a func in gen app"
     in
 
+    let arg_kinds =
+      let sret =
+        match ret with
+        | t when is_struct t -> (
+            match rkind_of_typ false t with Boxed -> true | Unboxed _ -> false)
+        | _ -> false
+      in
+      classify_params ~sret fparams |> List.map (fun (_, kind, _, _) -> kind)
+    in
+
     let args =
-      List.fold_left
-        (fun args (oarg, _) ->
+      List.fold_left2
+        (fun args (oarg, _) pkind ->
           let arg' = gen_expr param Monomorph_tree.(oarg.ex) in
           let arg' = { arg' with typ = Monomorph_tree.(oarg.ex.typ) } in
 
@@ -453,7 +464,7 @@ end = struct
              a pointer. This isn't pretty, but will do for now. For the single
              param, unboxed case we can skip boxing *)
           let arg =
-            match (pkind_of_typ oarg.mut arg'.typ, arg'.kind) with
+            match (pkind, arg'.kind) with
             (* The [Two_params] case is tricky to do using only consts, so
                we box and use the standard runtime version *)
             | (Boxed, Const | Unboxed (Two_params _), Const)
@@ -465,7 +476,7 @@ end = struct
           match arg.typ with
           | Tunit -> args
           | _ -> (
-              match pass_value oarg.mut arg with
+              match pass_value_kind pkind oarg.mut arg with
               | fst, Some snd ->
                   (* We can skip [func_to_closure] in this case *)
                   (* snd before fst, b/c we rev at the end *)
@@ -473,7 +484,7 @@ end = struct
               | value, None ->
                   let arg = { arg with value } in
                   (func_to_closure param arg).value :: args))
-        [] args
+        [] args arg_kinds
       |> List.rev |> List.to_seq
     in
 
@@ -513,7 +524,7 @@ end = struct
       let lltyp = get_lltype_def ret_t in
       match ret_t with
       | t when is_struct t -> (
-          match pkind_of_typ false t with
+          match rkind_of_typ false t with
           | Boxed ->
               let retval = get_prealloc !allocref param lltyp "ret" in
               let ret' = Seq.return retval in
@@ -521,7 +532,9 @@ end = struct
               let call = Llvm.build_call ft funcval args "" builder in
               Debug.instr_set_debug_loc call (Some (di_loc param loc));
               ignore loc;
-              ignore call;
+              (* Indirect calls (closures, function pointers) have no callee
+                 declaration to inherit [sret] from, so set it on the call *)
+              if sret_attribute () then add_callsite_sret call 1 lltyp;
               (retval, lltyp, default_kind t)
           | Unboxed size ->
               (* Boxed representation *)
@@ -558,19 +571,21 @@ end = struct
     (* We evaluate, there might be side-effects *)
     let func = gen_expr param callee.ex in
 
-    let start_index, ret =
+    let fparams, start_index, ret =
       match func.typ with
-      | Tfun (_, r, _) when is_struct r -> (
-          match pkind_of_typ false r with
-          | Boxed -> (1, r)
-          | Unboxed size -> (0, type_unboxed size))
-      | Tfun (_, ret, _) -> (0, ret)
+      | Tfun (params, r, _) when is_struct r -> (
+          match rkind_of_typ false r with
+          | Boxed -> (params, 1, r)
+          | Unboxed size -> (params, 0, type_unboxed size))
+      | Tfun (params, ret, _) -> (params, 0, ret)
       | Tunit ->
           failwith "Internal Error: Probably cannot find monomorphized function"
       | _ -> failwith "Internal Error: Not a func in gen app tailrec"
     in
 
-    let calculate_arg i (oarg, is_arg) =
+    let arg_kinds = classify_params ~sret:(start_index = 1) fparams in
+
+    let calculate_arg i (oarg, is_arg) (_, _, idx, width) =
       let arg' = gen_expr param Monomorph_tree.(oarg.ex) in
       let arg = get_mono_func arg' param oarg.monomorph in
       match arg.typ with
@@ -578,9 +593,9 @@ end = struct
       | _ ->
           let llvar = func_to_closure param arg in
 
-          let i = get_index i oarg.mut arg.typ in
-          let alloca = Vars.find (name_of_alloc_param i) param.vars in
-          (i + 1, Some (i, oarg.mut, alloca, llvar, is_arg))
+          let key = idx + width - 1 in
+          let alloca = Vars.find (name_of_alloc_param key) param.vars in
+          (i + 1, Some (key, oarg.mut, alloca, llvar, is_arg))
     in
 
     let store_arg (i, mut, alloca, value, is_arg) =
@@ -593,7 +608,8 @@ end = struct
     in
 
     let margs =
-      List.fold_left_map calculate_arg start_index args
+      List.combine args arg_kinds
+      |> List.fold_left_map (fun i (a, k) -> calculate_arg i a k) start_index
       |> snd |> List.filter_map Fun.id
     in
     List.iter store_arg margs;
@@ -1615,6 +1631,8 @@ let generate ~target ~outname ~release ~modul ~args ~start_loc
   let reloc_mode = Llvm_target.RelocMode.PIC in
   let machine = TargetMachine.create ~triple target ~reloc_mode in
   let layout = DataLayout.as_string (TargetMachine.data_layout machine) in
+
+  A.set_pool (A.pool_of_triple triple);
 
   Llvm.set_data_layout layout the_module;
 
