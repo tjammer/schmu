@@ -44,6 +44,20 @@ external spill_mid : fun (int, i2, i2, i2) -> unit
 external spill_one_word : fun (i2, i2, i2, i1) -> unit
 external spill_one_sse : fun (i2, i2, i2, v1) -> unit
 
+type turn = Left
+type input = { wheel : float, turn : option[turn] }
+external subinput : fun (input) -> input
+
+type inner = { a : i16, b : i8 }
+type outer = { w : float, x : inner }
+type pad_after_nested = { w : float, x : inner, y : i8, z : u16, v : u8 }
+external subouter : fun (outer) -> outer
+external subpad_after_nested : fun (pad_after_nested) -> pad_after_nested
+
+type f1 = { a : f32 }
+type nested_fv = { x : f1, y : f32 }
+external subnested_fv : fun (nested_fv, i8, f1) -> nested_fv
+
 ignore (subv2 ({z = 1.0, y = 10.0}))
 ignore (subi2 ({x = 1, y = 10 }))
 ignore (subv1 ({z = 1.0}))
@@ -70,3 +84,8 @@ spill_mixed({x = 1, y = 2}, {x = 3, y = 4}, {x = 5, y = 6}, {z = 1.0, y = 2.0})
 spill_mid(1, {x = 2, y = 3}, {x = 4, y = 5}, {x = 6, y = 7})
 spill_one_word({x = 1, y = 2}, {x = 3, y = 4}, {x = 5, y = 6}, {x = 7})
 spill_one_sse({x = 1, y = 2}, {x = 3, y = 4}, {x = 5, y = 6}, {z = 7.0})
+ignore (subinput ({wheel = 1.0, turn = Some (Left)}))
+ignore (subouter ({w = 1.0, x = {a = i16_of_int(1), b = i8_of_int(2)}}))
+ignore (subpad_after_nested ({w = 1.0, x = {a = i16_of_int(1), b = i8_of_int(2)},
+                              y = i8_of_int(3), z = u16_of_int(4), v = 5u8}))
+ignore (subnested_fv ({x = {a = 1.0f32}, y = 2.0f32}, i8_of_int(1), {a = 3.0f32}))

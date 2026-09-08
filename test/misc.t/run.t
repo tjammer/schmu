@@ -88,6 +88,8 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   %mixed4 = type { double, double, double, i64 }
   %trailv2 = type { i64, i64, double, double }
   %i2 = type { i64, i64 }
+  %pad_after_nested = type { double, %inner, i8, i16, i8 }
+  %inner = type { i16, i8 }
   %v2 = type { double, double }
   %v1 = type { double }
   %i1 = type { i64 }
@@ -99,6 +101,12 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   %pad_tail2 = type { double, i8, i8 }
   %single_tail = type { double, i8 }
   %single_word = type { i8, i16 }
+  %input = type { double, %option.t.turn }
+  %option.t.turn = type { i32, %turn }
+  %turn = type { i32 }
+  %outer = type { double, %inner }
+  %nested_fv = type { %f1, float }
+  %f1 = type { float }
   
   @0 = private unnamed_addr constant [2 x i8] c"a\00"
   @1 = private unnamed_addr constant [2 x i8] c"b\00"
@@ -152,6 +160,14 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
   declare void @spill_one_word(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5, i64 %6)
   
   declare void @spill_one_sse(i64 %0, i64 %1, i64 %2, i64 %3, i64 %4, i64 %5, double %6)
+  
+  declare { double, i64 } @subinput(double %0, i64 %1)
+  
+  declare { double, i64 } @subouter(double %0, i64 %1)
+  
+  declare void @subpad_after_nested(ptr noalias %0, ptr byval(%pad_after_nested) %1)
+  
+  declare <2 x float> @subnested_fv(<2 x float> %0, i8 %1, float %2)
   
   define i64 @main(i64 %__argc, ptr %__argv) !dbg !2 {
   entry:
@@ -375,6 +391,44 @@ Test x86_64-linux-gnu ABI (parts of it, anyway)
     %snd160 = getelementptr inbounds { i64, i64 }, ptr %boxconst157, i32 0, i32 1
     %snd161 = load i64, ptr %snd160, align 8
     call void @spill_one_sse(i64 %fst149, i64 %snd151, i64 %fst154, i64 %snd156, i64 %fst159, i64 %snd161, double 7.000000e+00), !dbg !31
+    %boxconst162 = alloca %input, align 8
+    store %input { double 1.000000e+00, %option.t.turn { i32 1, %turn zeroinitializer } }, ptr %boxconst162, align 8
+    %fst164 = load double, ptr %boxconst162, align 8
+    %snd165 = getelementptr inbounds { double, i64 }, ptr %boxconst162, i32 0, i32 1
+    %snd166 = load i64, ptr %snd165, align 8
+    %ret167 = alloca %input, align 8
+    %19 = call { double, i64 } @subinput(double %fst164, i64 %snd166), !dbg !32
+    store { double, i64 } %19, ptr %ret167, align 8
+    %20 = alloca %outer, align 8
+    store double 1.000000e+00, ptr %20, align 8
+    %x = getelementptr inbounds %outer, ptr %20, i32 0, i32 1
+    store i16 1, ptr %x, align 2
+    %b169 = getelementptr inbounds %inner, ptr %x, i32 0, i32 1
+    store i8 2, ptr %b169, align 1
+    %snd173 = load i64, ptr %x, align 8
+    %ret174 = alloca %outer, align 8
+    %21 = call { double, i64 } @subouter(double 1.000000e+00, i64 %snd173), !dbg !33
+    store { double, i64 } %21, ptr %ret174, align 8
+    %22 = alloca %pad_after_nested, align 8
+    store double 1.000000e+00, ptr %22, align 8
+    %x176 = getelementptr inbounds %pad_after_nested, ptr %22, i32 0, i32 1
+    store i16 1, ptr %x176, align 2
+    %b178 = getelementptr inbounds %inner, ptr %x176, i32 0, i32 1
+    store i8 2, ptr %b178, align 1
+    %y = getelementptr inbounds %pad_after_nested, ptr %22, i32 0, i32 2
+    store i8 3, ptr %y, align 1
+    %z = getelementptr inbounds %pad_after_nested, ptr %22, i32 0, i32 3
+    store i16 4, ptr %z, align 2
+    %v = getelementptr inbounds %pad_after_nested, ptr %22, i32 0, i32 4
+    store i8 5, ptr %v, align 1
+    %ret179 = alloca %pad_after_nested, align 8
+    call void @subpad_after_nested(ptr %ret179, ptr %22), !dbg !34
+    %23 = alloca %nested_fv, align 8
+    store %nested_fv { %f1 { float 1.000000e+00 }, float 2.000000e+00 }, ptr %23, align 4
+    %24 = load <2 x float>, ptr %23, align 8
+    %ret180 = alloca %nested_fv, align 8
+    %25 = call <2 x float> @subnested_fv(<2 x float> %24, i8 1, float 3.000000e+00), !dbg !35
+    store <2 x float> %25, ptr %ret180, align 8
     ret i64 0
   }
   
