@@ -54,6 +54,8 @@ let test_const_neg_int_wrong () =
 let test_const_neg_int2 () = test "int" "let a = - 1; a"
 let test_const_float () = test "float" "let a = 1.0; a"
 let test_const_neg_float () = test "float" "let a = -1.0; a"
+let test_const_float_dotonly () = test "float" "let a = 1.; a"
+let test_const_neg_float_dotonly () = test "float" "let a = -1.; a"
 
 let test_const_neg_float_wrong () =
   test_exn "In unary -. expecting float but found bool" "let a = -. true"
@@ -2385,6 +2387,8 @@ let () =
           case "neg_int_wrong" test_const_neg_int_wrong;
           case "float" test_const_float;
           case "-float" test_const_neg_float;
+          case "float" test_const_float_dotonly;
+          case "-float" test_const_neg_float_dotonly;
           case "-.float" test_const_neg_float2;
           case "-.float_wrong" test_const_neg_float_wrong;
           case "bool" test_const_bool;

@@ -90,7 +90,7 @@ let int_lit = (digits | hex_literal | oct_literal | bin_literal)
 let int = int_lit
 let u8 = digit+ "u8"
 let u16 = digit+ "u16"
-let float = digit+ '.' digit+
+let float = digit+ '.' digit*
 let i32 = min? int_lit "i32"
 let f32 = min? float "f32"
 
